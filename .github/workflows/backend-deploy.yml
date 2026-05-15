@@ -6,6 +6,7 @@ on:
 
 jobs:
   deploy:
+    if: ${{ secrets.VPS_HOST != '' && secrets.VPS_USER != '' && secrets.VPS_SSH_KEY != '' }}
     runs-on: ubuntu-latest
     steps:
       - name: SSH deploy to VPS
@@ -21,3 +22,12 @@ jobs:
             pm2 restart greffio-api --update-env
             pm2 save
             curl -f http://127.0.0.1:8787/api/health
+
+  secrets-check:
+    if: ${{ secrets.VPS_HOST == '' || secrets.VPS_USER == '' || secrets.VPS_SSH_KEY == '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Missing required secrets
+        run: |
+          echo "Missing one or more required GitHub secrets: VPS_HOST, VPS_USER, VPS_SSH_KEY"
+          exit 1

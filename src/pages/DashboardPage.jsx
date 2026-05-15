@@ -38,6 +38,7 @@ export const DashboardPage = () => {
       try {
         const payload = await getDossierById(currentDossierId);
         const dossier = payload.dossier;
+        const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
         const apiDossier = {
           id: dossier.id,
           name: dossier.companyName || dossier.denomination || 'Dossier entreprise',
@@ -54,6 +55,14 @@ export const DashboardPage = () => {
           totalSteps: 5,
           blockers: [],
           steps: [],
+          project: {
+            initiatorType: questionnaire.initiatorType || 'personne_physique',
+            initiatorName: [questionnaire.firstName, questionnaire.lastName].filter(Boolean).join(' ') || currentUser?.firstName || 'Client',
+            companyName: questionnaire.companyName || questionnaire.existingBusinessName || dossier.companyName,
+            siren: questionnaire.companySiren || questionnaire.existingBusinessSiren || '',
+            nationality: questionnaire.nationality || '',
+            companyCountry: questionnaire.companyCountry || '',
+          },
         };
         setDossiers([apiDossier]);
         setDocuments((payload.documents || []).map((doc) => ({
@@ -90,6 +99,10 @@ export const DashboardPage = () => {
     { label: 'Progression globale', value: dossiers.length ? `${averageProgress}%` : '0%', icon: ShieldCheck, text: dossiers.length ? 'calculée depuis vos dossiers' : 'en attente de projet' },
     { label: 'Échéance proche', value: nextDueDate, icon: CalendarDays, text: dossiers.length ? 'prochaine action réelle' : 'aucune échéance' },
   ];
+  const declarantProfile = dossiers[0]?.project?.initiatorType
+    || (documents.some((item) => item.type === 'ubo_declaration') ? 'personne_morale' : 'personne_physique');
+  const declarantLabel = declarantProfile === 'personne_morale' ? 'Personne morale' : 'Personne physique';
+  const profile = dossiers[0]?.project || {};
 
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background">
@@ -136,6 +149,32 @@ export const DashboardPage = () => {
                 </CardContent>
               </Card>
             ))}
+          </section>
+
+          <section className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
+            <p className="text-sm font-bold uppercase text-primary">Profil déclarant</p>
+            <h2 className="mt-1 text-2xl font-extrabold">{declarantLabel}</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Parcours interne adapté automatiquement : identité et nationalité pour personne physique, ou raison sociale/SIREN/justificatifs d’entreprise pour personne morale.
+            </p>
+            <div className="mt-4 grid gap-3 md:grid-cols-4">
+              <div className="rounded-md bg-muted p-3">
+                <p className="text-xs uppercase text-muted-foreground">Déclarant</p>
+                <p className="mt-1 font-bold">{profile.initiatorName || 'Non renseigné'}</p>
+              </div>
+              <div className="rounded-md bg-muted p-3">
+                <p className="text-xs uppercase text-muted-foreground">SIREN</p>
+                <p className="mt-1 font-bold">{profile.siren || 'Non renseigné'}</p>
+              </div>
+              <div className="rounded-md bg-muted p-3">
+                <p className="text-xs uppercase text-muted-foreground">Nationalité</p>
+                <p className="mt-1 font-bold">{profile.nationality || 'N/A'}</p>
+              </div>
+              <div className="rounded-md bg-muted p-3">
+                <p className="text-xs uppercase text-muted-foreground">Pays immatriculation</p>
+                <p className="mt-1 font-bold">{profile.companyCountry || 'N/A'}</p>
+              </div>
+            </div>
           </section>
 
           {dossiers.length === 0 ? (

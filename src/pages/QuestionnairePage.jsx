@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { Button } from '@/components/ui/button.jsx';
@@ -10,6 +11,7 @@ import { AutosaveIndicator } from '@/components/questionnaire/AutosaveIndicator.
 import { SecurityNotice } from '@/components/questionnaire/SecurityNotice.jsx';
 import {
   DEMARCHE_CATALOG,
+  EXISTING_BUSINESS_FORMALITIES,
   QUESTIONNAIRE_FLOW,
   getProgressPercent,
   isFieldValueValid,
@@ -33,6 +35,8 @@ const defaultData = {
   companyCountry: 'France',
   companySiren: '',
   companyName: '',
+  existingBusinessSiren: '',
+  existingBusinessName: '',
   email: '',
   phone: '04 11 81 86 70',
   typeFormalite: '',
@@ -61,10 +65,21 @@ const normalizeFormalityToService = (typeFormalite, formeJuridique) => {
   return 'creation-sasu';
 };
 
+const sanitizeSiren = (value) => String(value || '').replace(/\D/g, '').slice(0, 9);
+const makeUiReference = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let block = '';
+  for (let index = 0; index < 6; index += 1) {
+    block += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return `GF-${block}`;
+};
+const isModernReference = (value) => /^GF-[A-Z0-9]{4,8}$/.test(String(value || ''));
+
 export const QuestionnairePage = () => {
   const navigate = useNavigate();
   const [dossierId, setDossierId] = useState(getCurrentDossierId());
-  const [reference, setReference] = useState('F00000000');
+  const [reference, setReference] = useState(makeUiReference());
   const [formData, setFormData] = useState(defaultData);
   const [stepIndex, setStepIndex] = useState(0);
   const [autosaveState, setAutosaveState] = useState('idle');
@@ -73,6 +88,16 @@ export const QuestionnairePage = () => {
 
   const step = QUESTIONNAIRE_FLOW[stepIndex];
   const progress = getProgressPercent(stepIndex);
+  const visibleStepFields = useMemo(
+    () => step.fields.filter((field) => !field.condition || field.condition(formData)),
+    [step.fields, formData],
+  );
+  const missingRequiredFields = useMemo(
+    () => visibleStepFields
+      .filter((field) => field.required && !isFieldValueValid(field, formData[field.key]))
+      .map((field) => field.label),
+    [visibleStepFields, formData],
+  );
   const canGoNext = isStepComplete(step, formData);
 
   const contactPayload = useMemo(() => ({
@@ -98,26 +123,50 @@ export const QuestionnairePage = () => {
   ]);
 
   const [sirenLookupState, setSirenLookupState] = useState('idle');
+  const [sirenLookupMessage, setSirenLookupMessage] = useState('');
+  const lastAutoLookup = useRef('');
 
-  const lookupSiren = async () => {
-    const value = String(formData.companySiren || '').trim();
+  const lookupSiren = async (fieldKey = 'companySiren') => {
+    const value = sanitizeSiren(formData[fieldKey]);
     if (value.length !== 9) return;
     try {
       setSirenLookupState('loading');
+      setSirenLookupMessage('');
       const payload = await lookupCompanyBySiren(value);
       const company = payload?.company;
       if (company) {
         setFormData((current) => ({
           ...current,
-          companyName: company.denomination || current.companyName,
+          ...(fieldKey === 'existingBusinessSiren'
+            ? { existingBusinessName: company.denomination || current.existingBusinessName }
+            : { companyName: company.denomination || current.companyName }),
           companyCountry: company.country || current.companyCountry,
         }));
+        setSirenLookupMessage(`${company.denomination || 'Entreprise trouvée'} (${value})`);
       }
       setSirenLookupState('done');
     } catch (_error) {
       setSirenLookupState('error');
+      setSirenLookupMessage(`Aucune entreprise trouvée pour ${value}`);
     }
   };
+
+  useEffect(() => {
+    const autoLookupKey = formData.initiatorType === 'personne_morale'
+      ? `company:${String(formData.companySiren || '').trim()}`
+      : (EXISTING_BUSINESS_FORMALITIES.has(String(formData.typeFormalite || ''))
+        ? `existing:${String(formData.existingBusinessSiren || '').trim()}`
+        : '');
+    if (!autoLookupKey) return;
+    const [, siren] = autoLookupKey.split(':');
+    if (!/^\d{9}$/.test(siren)) return;
+    if (lastAutoLookup.current === autoLookupKey) return;
+    lastAutoLookup.current = autoLookupKey;
+    const timeout = window.setTimeout(() => {
+      void lookupSiren(autoLookupKey.startsWith('company:') ? 'companySiren' : 'existingBusinessSiren');
+    }, 250);
+    return () => window.clearTimeout(timeout);
+  }, [formData.initiatorType, formData.companySiren, formData.existingBusinessSiren, formData.typeFormalite]);
 
   useEffect(() => {
     const boot = async () => {
@@ -139,7 +188,11 @@ export const QuestionnairePage = () => {
 
         if (currentDossierId) {
           const state = await getQuestionnaireState(currentDossierId);
-          setReference(state.reference || state?.dossier?.reference || 'F00000000');
+          const fromApi = state.reference || state?.dossier?.reference || '';
+          const finalReference = isModernReference(fromApi)
+            ? fromApi
+            : makeUiReference();
+          setReference(finalReference);
           setFormData((current) => ({
             ...current,
             ...(state.questionnaire || {}),
@@ -181,7 +234,10 @@ export const QuestionnairePage = () => {
   };
 
   const goNext = async () => {
-    if (!canGoNext) return;
+    if (!canGoNext) {
+      toast.error('Complétez les champs requis avant de continuer.');
+      return;
+    }
     if (!dossierId) return;
     try {
       setAutosaveState('saving');
@@ -307,18 +363,38 @@ export const QuestionnairePage = () => {
                   type={field.type === 'number' ? 'number' : field.type}
                   value={value}
                   placeholder={field.placeholder || ''}
-                  onChange={(event) => updateField(field, event.target.value)}
+                  onChange={(event) => {
+                    const nextValue = field.key === 'companySiren' || field.key === 'existingBusinessSiren'
+                      ? sanitizeSiren(event.target.value)
+                      : event.target.value;
+                    updateField(field, nextValue);
+                  }}
                   className={`${fieldClass} ${invalid && String(value).length > 0 ? 'border-red-400' : ''}`}
                 />
                 {field.key === 'companySiren' && formData.initiatorType === 'personne_morale' ? (
                   <div className="flex items-center gap-2">
-                    <Button type="button" variant="outline" className="bg-white" onClick={lookupSiren} disabled={String(formData.companySiren || '').trim().length !== 9 || sirenLookupState === 'loading'}>
+                    <Button type="button" variant="outline" className="bg-white" onClick={() => lookupSiren('companySiren')} disabled={String(formData.companySiren || '').trim().length !== 9 || sirenLookupState === 'loading'}>
                       Recherche automatique annuaire
                     </Button>
                     {sirenLookupState === 'loading' ? <span className="text-xs text-muted-foreground">Recherche...</span> : null}
                     {sirenLookupState === 'done' ? <span className="text-xs text-emerald-600">Entreprise trouvée</span> : null}
                     {sirenLookupState === 'error' ? <span className="text-xs text-red-600">Aucune correspondance</span> : null}
                   </div>
+                ) : null}
+                {field.key === 'existingBusinessSiren' && EXISTING_BUSINESS_FORMALITIES.has(String(formData.typeFormalite || '')) ? (
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" className="bg-white" onClick={() => lookupSiren('existingBusinessSiren')} disabled={String(formData.existingBusinessSiren || '').trim().length !== 9 || sirenLookupState === 'loading'}>
+                      Recherche automatique annuaire
+                    </Button>
+                    {sirenLookupState === 'loading' ? <span className="text-xs text-muted-foreground">Recherche...</span> : null}
+                    {sirenLookupState === 'done' ? <span className="text-xs text-emerald-600">Entreprise trouvée</span> : null}
+                    {sirenLookupState === 'error' ? <span className="text-xs text-red-600">Aucune correspondance</span> : null}
+                  </div>
+                ) : null}
+                {(field.key === 'companySiren' || field.key === 'existingBusinessSiren') && sirenLookupMessage ? (
+                  <p className={`text-xs ${sirenLookupState === 'error' ? 'text-red-600' : 'text-emerald-600'}`}>
+                    {sirenLookupMessage}
+                  </p>
                 ) : null}
                 {invalid && String(value).length > 0 ? (
                   <p className="text-xs text-red-600">Ce champ est requis.</p>
@@ -327,6 +403,17 @@ export const QuestionnairePage = () => {
             );
           })}
         </div>
+        {(formData.initiatorType === 'personne_morale'
+          || EXISTING_BUSINESS_FORMALITIES.has(String(formData.typeFormalite || ''))) ? (
+          <div className="rounded-md border border-border bg-white p-3 text-xs text-muted-foreground">
+            Source de vérification entreprise : Annuaire des entreprises (Data.gouv).
+          </div>
+        ) : null}
+        {missingRequiredFields.length > 0 ? (
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+            Champs requis restants: {missingRequiredFields.join(', ')}
+          </div>
+        ) : null}
         <div className="rounded-md border border-border bg-muted p-3 text-xs text-muted-foreground">
           <strong className="mr-1">i</strong>
           L’extrait Kbis et la déclaration des bénéficiaires effectifs pourront être demandés ultérieurement selon votre dossier.
@@ -336,6 +423,11 @@ export const QuestionnairePage = () => {
       <div className="mt-4 rounded-md border border-border bg-white p-4 text-xs text-muted-foreground">
         Contact Greffio: {runtimeConfig.supportPhone} — {runtimeConfig.supportEmail}
       </div>
+      {!canGoNext ? (
+        <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+          Complétez tous les champs requis de cette étape pour continuer.
+        </div>
+      ) : null}
       <div className="mt-3 rounded-md border border-border bg-muted p-3 text-xs text-muted-foreground">
         Greffio est un service privé indépendant d’assistance aux démarches administratives des entreprises. Greffio n’est pas un service officiel de l’État, des greffes des tribunaux de commerce ou d’Infogreffe.
       </div>

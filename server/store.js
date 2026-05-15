@@ -3,6 +3,14 @@ import { DOSSIER_STATUSES, evaluateTransition, ROLE } from './stateMachine.js';
 import { hasPostgres, query, sqlite } from './dbClient.js';
 
 const nowIso = () => new Date().toISOString();
+const makeShortReference = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let block = '';
+  for (let index = 0; index < 6; index += 1) {
+    block += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return `GF-${block}`;
+};
 const DOCUMENT_STATUSES = Object.freeze({
   REQUESTED: 'requested',
   UPLOADED: 'uploaded',
@@ -178,7 +186,7 @@ const createDossier = async ({
   status = DOSSIER_STATUSES.QUOTE_GENERATED,
 }) => {
   const createdAt = nowIso();
-  const reference = `F${Math.floor(10000000 + Math.random() * 90000000)}`;
+  const reference = makeShortReference();
   const dossier = {
     id: `dos_${randomUUID()}`,
     reference,

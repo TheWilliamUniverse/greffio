@@ -28,6 +28,27 @@ export const DEMARCHE_CATALOG = [
   { key: 'societe_etrangere_france', label: 'Immatriculer une société étrangère en France' },
 ];
 
+export const EXISTING_BUSINESS_FORMALITIES = new Set([
+  'etablissement_creation',
+  'etablissement_fermeture',
+  'etablissement_transfert',
+  'transfert_siege',
+  'changement_dirigeant',
+  'changement_denomination',
+  'modification_activite',
+  'modification_objet_social',
+  'augmentation_capital',
+  'reduction_capital',
+  'beneficiaires_effectifs_modification',
+  'depot_comptes_annuels',
+  'mise_en_sommeil',
+  'reprise_activite',
+  'dissolution_liquidation_radiation',
+  'correction_regularisation',
+  'obtention_kbis_documents',
+  'societe_etrangere_france',
+]);
+
 export const QUESTIONNAIRE_FLOW = [
   {
     id: 'contact',
@@ -39,7 +60,10 @@ export const QUESTIONNAIRE_FLOW = [
         label: 'Type de déclarant',
         type: 'select',
         required: true,
-        options: ['personne_physique', 'personne_morale'],
+        options: [
+          { key: 'personne_physique', label: 'Personne physique' },
+          { key: 'personne_morale', label: 'Personne morale' },
+        ],
       },
       { key: 'firstName', label: 'Prénom', type: 'text', required: true, placeholder: 'Votre prénom' },
       { key: 'lastName', label: 'Nom', type: 'text', required: true, placeholder: 'Votre nom' },
@@ -90,6 +114,22 @@ export const QUESTIONNAIRE_FLOW = [
         type: 'select',
         required: true,
         options: DEMARCHE_CATALOG,
+      },
+      {
+        key: 'existingBusinessSiren',
+        label: 'SIREN de l’entreprise existante',
+        type: 'text',
+        required: true,
+        placeholder: '123456789',
+        condition: (data) => EXISTING_BUSINESS_FORMALITIES.has(String(data.typeFormalite || '')),
+      },
+      {
+        key: 'existingBusinessName',
+        label: 'Raison sociale (trouvée automatiquement)',
+        type: 'text',
+        required: false,
+        placeholder: 'Nom entreprise',
+        condition: (data) => EXISTING_BUSINESS_FORMALITIES.has(String(data.typeFormalite || '')),
       },
     ],
   },

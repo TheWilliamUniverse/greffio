@@ -42,7 +42,7 @@ export const StepLayout = ({
       <Button type="button" variant="outline" className="bg-white" onClick={onBack} disabled={!canGoBack}>
         Retour
       </Button>
-      <Button type="button" onClick={onNext} disabled={!canGoNext}>
+      <Button type="button" onClick={onNext}>
         Continuer
       </Button>
     </div>

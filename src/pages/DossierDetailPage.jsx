@@ -33,6 +33,7 @@ export const DossierDetailPage = () => {
       try {
         const payload = await getDossierById(id);
         const d = payload.dossier;
+        const questionnaire = d.dataJson ? JSON.parse(d.dataJson) : {};
         setApiDossier({
           id: d.id,
           name: d.companyName || d.denomination || 'Dossier',
@@ -49,6 +50,14 @@ export const DossierDetailPage = () => {
           currentStep: Math.max(1, Math.round(Number(d.progressPercent || 0) / 20)),
           totalSteps: 5,
           blockers: [],
+          project: {
+            initiatorType: questionnaire.initiatorType || 'personne_physique',
+            initiatorName: [questionnaire.firstName, questionnaire.lastName].filter(Boolean).join(' ') || 'Client',
+            nationality: questionnaire.nationality || '',
+            companyCountry: questionnaire.companyCountry || '',
+            siren: questionnaire.companySiren || questionnaire.existingBusinessSiren || '',
+            companyName: questionnaire.companyName || questionnaire.existingBusinessName || d.companyName || '',
+          },
           steps: [
             { label: 'Informations dossier', done: Number(d.progressPercent || 0) >= 20 },
             { label: 'Documents justificatifs', done: Number(d.progressPercent || 0) >= 40 },
@@ -115,6 +124,24 @@ export const DossierDetailPage = () => {
                 <p className="mt-2 text-sm font-semibold text-primary">Prochaine action : {dossier.nextAction}</p>
                 <div className="mt-3 rounded-md border border-border bg-muted p-3 text-xs text-muted-foreground">
                   Espace renforcé pour profils personne physique et personne morale: informations d’identité, justificatifs, statut de signature et suivi de dépôt centralisés au même endroit.
+                </div>
+                <div className="mt-3 grid gap-3 md:grid-cols-4">
+                  <div className="rounded-md bg-muted p-3">
+                    <p className="text-xs uppercase text-muted-foreground">Type</p>
+                    <p className="mt-1 font-bold">{dossier.project?.initiatorType === 'personne_morale' ? 'Personne morale' : 'Personne physique'}</p>
+                  </div>
+                  <div className="rounded-md bg-muted p-3">
+                    <p className="text-xs uppercase text-muted-foreground">Déclarant</p>
+                    <p className="mt-1 font-bold">{dossier.project?.initiatorName || 'N/A'}</p>
+                  </div>
+                  <div className="rounded-md bg-muted p-3">
+                    <p className="text-xs uppercase text-muted-foreground">SIREN</p>
+                    <p className="mt-1 font-bold">{dossier.project?.siren || 'N/A'}</p>
+                  </div>
+                  <div className="rounded-md bg-muted p-3">
+                    <p className="text-xs uppercase text-muted-foreground">Pays/Nationalité</p>
+                    <p className="mt-1 font-bold">{dossier.project?.companyCountry || dossier.project?.nationality || 'N/A'}</p>
+                  </div>
                 </div>
                 <div className="mt-5 grid gap-3 md:grid-cols-3">
                   <div className="rounded-md bg-muted p-3">
