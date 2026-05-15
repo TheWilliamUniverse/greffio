@@ -1,0 +1,13 @@
+<IfModule mod_rewrite.c>
+  AddDefaultCharset UTF-8
+  AddType "text/html; charset=UTF-8" .html
+  AddType "text/css; charset=UTF-8" .css
+  AddType "application/javascript; charset=UTF-8" .js .mjs
+
+  RewriteEngine On
+  RewriteBase /
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /index.html [L]
+</IfModule>

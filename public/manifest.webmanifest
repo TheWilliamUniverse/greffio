@@ -1,0 +1,41 @@
+{
+  "name": "Greffio - formalites d'entreprise",
+  "short_name": "Greffio",
+  "description": "SaaS de formalites greffe, statuts, documents et suivi client.",
+  "lang": "fr-FR",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "background_color": "#FFFBF1",
+  "theme_color": "#26487A",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/greffio-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/greffio-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nouvelle formalite",
+      "short_name": "Formalite",
+      "url": "/simulateur?type=statuts",
+      "description": "Lancer une nouvelle formalite Greffio"
+    },
+    {
+      "name": "Espace client",
+      "short_name": "Dashboard",
+      "url": "/dashboard",
+      "description": "Ouvrir le tableau de bord Greffio"
+    }
+  ]
+}

@@ -1,0 +1,184 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 46 90% 98%;
+    --foreground: 216 42% 13%;
+    --card: 0 0% 100%;
+    --card-foreground: 216 42% 13%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 216 42% 13%;
+    --primary: 217 49% 29%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 169 56% 93%;
+    --secondary-foreground: 216 42% 13%;
+    --muted: 214 30% 94%;
+    --muted-foreground: 216 14% 43%;
+    --accent: 45 97% 88%;
+    --accent-foreground: 216 42% 13%;
+    --destructive: 354 75% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 217 25% 86%;
+    --input: 217 25% 86%;
+    --ring: 217 49% 29%;
+    --radius: 0.5rem;
+
+    --greffio-blue: 217 49% 29%;
+    --greffio-blue-900: 218 53% 18%;
+    --greffio-mint: 163 62% 47%;
+    --greffio-citron: 45 100% 93%;
+    --greffio-coral: 10 85% 66%;
+  }
+
+  .dark {
+    --background: 218 42% 9%;
+    --foreground: 210 40% 98%;
+    --card: 218 35% 12%;
+    --card-foreground: 210 40% 98%;
+    --popover: 218 35% 12%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 100% 86%;
+    --primary-foreground: 218 42% 9%;
+    --secondary: 218 28% 18%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 218 28% 18%;
+    --muted-foreground: 215 18% 70%;
+    --accent: 163 62% 47%;
+    --accent-foreground: 218 42% 9%;
+    --destructive: 354 75% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 218 25% 22%;
+    --input: 218 25% 22%;
+    --ring: 210 100% 86%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    text-wrap: balance;
+  }
+}
+
+@layer utilities {
+  .shadow-elevation-sm {
+    box-shadow: 0 1px 3px rgba(20, 36, 64, 0.07), 0 8px 24px rgba(20, 36, 64, 0.05);
+  }
+
+  .shadow-elevation-md {
+    box-shadow: 0 12px 35px rgba(20, 36, 64, 0.12);
+  }
+
+  .shadow-elevation-lg {
+    box-shadow: 0 24px 70px rgba(20, 36, 64, 0.16);
+  }
+
+  .surface-grid {
+    background-image:
+      linear-gradient(rgba(31, 66, 119, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(31, 66, 119, 0.08) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  .logo-sheen {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .logo-sheen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, 0.12) 42%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0.12) 58%, transparent 100%);
+    transform: translateX(-130%);
+    animation: logoSheen 4.8s ease-in-out infinite;
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .animate-fade-up {
+    animation: fadeUp 0.55s ease-out forwards;
+  }
+
+  .animate-soft-pulse {
+    animation: softPulse 3.4s ease-in-out infinite;
+  }
+
+  .animate-scan {
+    animation: scan 3.2s ease-in-out infinite;
+  }
+
+  @keyframes logoSheen {
+    0%,
+    54% {
+      transform: translateX(-130%);
+    }
+    76%,
+    100% {
+      transform: translateX(130%);
+    }
+  }
+
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes softPulse {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.78;
+    }
+    50% {
+      transform: scale(1.03);
+      opacity: 1;
+    }
+  }
+
+  @keyframes scan {
+    0% {
+      transform: translateY(-120%);
+      opacity: 0;
+    }
+    20%,
+    70% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(220%);
+      opacity: 0;
+    }
+  }
+}

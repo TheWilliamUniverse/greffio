@@ -1,0 +1,192 @@
+import React, { useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  ArrowRight,
+  Bell,
+  CalendarDays,
+  CheckCircle2,
+  FileText,
+  FolderKanban,
+  MessageSquareText,
+  Plus,
+  ShieldCheck,
+  Upload,
+} from 'lucide-react';
+import { Sidebar } from '@/components/Sidebar.jsx';
+import { StatusBadge } from '@/components/StatusBadge.jsx';
+import { Button } from '@/components/ui/button.jsx';
+import { Card, CardContent } from '@/components/ui/card.jsx';
+import { useAuth } from '@/hooks/useAuth.js';
+import { getDocuments, getDossiers, getNotifications } from '@/utils/localStorage.js';
+
+export const DashboardPage = () => {
+  const { currentUser } = useAuth();
+  const dossiers = getDossiers();
+  const documents = getDocuments();
+  const notifications = getNotifications();
+  const today = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
+  const activeDossiers = dossiers.filter((dossier) => dossier.status !== 'VALIDE' && dossier.status !== 'TERMINE').length;
+  const documentsToReview = documents.filter((document) => ['ATTENTE_DOCS', 'URGENT', 'EN_ANALYSE', 'BROUILLON', 'A_SIGNER'].includes(document.status)).length;
+  const averageProgress = dossiers.length ? Math.round(dossiers.reduce((sum, dossier) => sum + (dossier.progress || 0), 0) / dossiers.length) : 0;
+  const nextDueDate = useMemo(() => {
+    if (!dossiers.length) return 'Aucune';
+    return new Date([...dossiers].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))[0].dueDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+  }, [dossiers]);
+
+  const stats = [
+    { label: 'Dossiers actifs', value: activeDossiers, icon: FolderKanban, text: dossiers.length ? 'formalité(s) réellement ouverte(s)' : 'aucun dossier ouvert' },
+    { label: 'Pièces à traiter', value: documentsToReview, icon: FileText, text: documents.length ? 'documents à compléter ou signer' : 'aucune pièce déposée' },
+    { label: 'Progression globale', value: dossiers.length ? `${averageProgress}%` : '0%', icon: ShieldCheck, text: dossiers.length ? 'calculée depuis vos dossiers' : 'en attente de projet' },
+    { label: 'Échéance proche', value: nextDueDate, icon: CalendarDays, text: dossiers.length ? 'prochaine action réelle' : 'aucune échéance' },
+  ];
+
+  return (
+    <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background">
+      <Sidebar />
+      <main className="flex-1 overflow-y-auto p-5 md:p-8">
+        <div className="mx-auto max-w-7xl space-y-7">
+          <section className="rounded-md border border-border bg-white p-6 shadow-elevation-sm">
+            <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
+              <div>
+                <p className="text-sm font-semibold capitalize text-muted-foreground">{today}</p>
+                <h1 className="mt-2 text-3xl font-extrabold text-foreground">Bonjour {currentUser.firstName || 'Bienvenue'}, votre cockpit Greffio.</h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                  Votre espace affiche uniquement vos dossiers, documents et messages réels. Créez un projet pour ouvrir le suivi greffe et la génération documentaire.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button asChild variant="outline" className="bg-white">
+                  <Link to="/team">
+                    <MessageSquareText className="h-4 w-4" />
+                    Écrire à l’équipe
+                  </Link>
+                </Button>
+                <Button asChild>
+                  <Link to="/simulateur">
+                    <Plus className="h-4 w-4" />
+                    Nouveau projet
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </section>
+
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {stats.map((stat) => (
+              <Card key={stat.label} className="border-border bg-white shadow-elevation-sm">
+                <CardContent className="p-5">
+                  <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-md bg-secondary text-primary">
+                    <stat.icon className="h-5 w-5" />
+                  </div>
+                  <p className="text-sm font-semibold text-muted-foreground">{stat.label}</p>
+                  <p className="mt-1 text-3xl font-extrabold text-foreground">{stat.value}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{stat.text}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </section>
+
+          {dossiers.length === 0 ? (
+            <section className="rounded-md border border-dashed border-primary/30 bg-white p-8 text-center shadow-elevation-sm">
+              <FolderKanban className="mx-auto h-10 w-10 text-primary" />
+              <h2 className="mt-4 text-2xl font-extrabold">Aucun dossier en cours</h2>
+              <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                C’est normal si aucun projet n’a encore été déposé. Lancez le simulateur, renseignez votre formalité, puis Greffio ouvrira le dossier correspondant dans cet espace.
+              </p>
+              <Button asChild className="mt-6">
+                <Link to="/simulateur">
+                  Démarrer une démarche
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </section>
+          ) : (
+            <div className="grid gap-7 xl:grid-cols-[1.28fr_0.72fr]">
+              <section className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-extrabold text-foreground">Formalités en cours</h2>
+                  <Button variant="ghost" asChild>
+                    <Link to="/dossiers">
+                      Tout voir
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+                <div className="overflow-hidden rounded-md border border-border bg-white shadow-elevation-sm">
+                  <div className="grid grid-cols-[1fr_130px_120px_110px] gap-4 border-b border-border bg-muted px-5 py-3 text-xs font-bold uppercase text-muted-foreground max-lg:hidden">
+                    <span>Dossier</span>
+                    <span>Statut</span>
+                    <span>Échéance</span>
+                    <span>Avancement</span>
+                  </div>
+                  {dossiers.slice(0, 4).map((dossier) => (
+                    <Link key={dossier.id} to={`/dossier/${dossier.id}`} className="grid gap-4 border-b border-border px-5 py-4 transition hover:bg-muted/60 lg:grid-cols-[1fr_130px_120px_110px] lg:items-center last:border-b-0">
+                      <div>
+                        <p className="font-bold text-foreground">{dossier.name}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{dossier.nextAction} · Responsable : {dossier.expert}</p>
+                      </div>
+                      <StatusBadge status={dossier.status} className="w-fit" />
+                      <span className="text-sm font-semibold text-foreground">{new Date(dossier.dueDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}</span>
+                      <div>
+                        <div className="h-2 rounded-full bg-muted">
+                          <div className="h-2 rounded-full bg-primary" style={{ width: `${dossier.progress || 0}%` }} />
+                        </div>
+                        <p className="mt-1 text-xs font-bold text-muted-foreground">{dossier.progress || 0}%</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+
+              <aside className="space-y-7">
+                <section className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
+                  <div className="mb-4 flex items-center gap-2">
+                    <Bell className="h-5 w-5 text-primary" />
+                    <h2 className="text-lg font-extrabold">Notifications</h2>
+                  </div>
+                  {notifications.length ? (
+                    <div className="space-y-3">
+                      {notifications.slice(0, 4).map((notification) => (
+                        <div key={notification.id} className="rounded-md bg-muted p-3">
+                          <p className="text-sm font-medium leading-5 text-foreground">{notification.message}</p>
+                          <p className="mt-2 text-xs text-muted-foreground">{new Date(notification.date || notification.createdAt).toLocaleDateString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm leading-6 text-muted-foreground">Aucune notification pour le moment.</p>
+                  )}
+                </section>
+
+                <section className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
+                  <div className="mb-4 flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                    <h2 className="text-lg font-extrabold">Prochaines pièces</h2>
+                  </div>
+                  <div className="space-y-3">
+                    {documents.length ? documents.slice(0, 4).map((document) => (
+                      <div key={document.id} className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+                        <span className="text-sm font-medium text-foreground">{document.name}</span>
+                        <StatusBadge status={document.status} />
+                      </div>
+                    )) : (
+                      <div className="rounded-md bg-muted p-4 text-sm leading-6 text-muted-foreground">
+                        Aucune pièce dans le coffre. Les documents apparaîtront après génération, dépôt ou demande de l’équipe Greffio.
+                      </div>
+                    )}
+                  </div>
+                  <Button asChild variant="outline" className="mt-5 bg-white">
+                    <Link to="/documents">
+                      <Upload className="h-4 w-4" />
+                      Ouvrir le coffre
+                    </Link>
+                  </Button>
+                </section>
+              </aside>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+};
