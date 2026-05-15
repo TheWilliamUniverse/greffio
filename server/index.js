@@ -1,7 +1,10 @@
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
-import { initPostgresSchema } from './dbClient.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { createHash } from 'node:crypto';
+import { initSchema } from './dbClient.js';
 import { DOSSIER_STATUSES } from './stateMachine.js';
 import { requireAuth, requireRole } from './authMiddleware.js';
 import { authenticateUser, createUser, getUserByEmail } from './authStore.js';
@@ -15,15 +18,31 @@ import {
   getDossier,
   getPaymentByProviderId,
   hasPaymentEventProviderId,
+  listGeneratedDocumentsByDossier,
   listDossierDocuments,
   listDossierEvents,
+  listOpsNotesByDossier,
   transitionDossierStatus,
+  updateDossierQuestionnaire,
   updateDossierDocument,
+  updateDossierOpsFields,
+  upsertGeneratedDocument,
+  addOpsNote,
   upsertPayment,
 } from './store.js';
 import { computePaymentAmounts } from './pricing.js';
 import { createMolliePayment, isMolliePaidStatus, retrieveMolliePayment } from './mollie.js';
 import { issueAccessToken, issueRefreshToken, verifyToken } from './tokens.js';
+import { buildCanonicalDocumentFilename } from './documentNaming.js';
+import { ROLE } from './stateMachine.js';
+import { sendDossierEmailById } from './emails/index.js';
+import { uploadPdfOnly } from './uploads.js';
+import { createSignatureRecord, getLatestSignatureByDossier } from './signatureStore.js';
+import { buildMandateText } from './mandateTemplate.js';
+import { generateMandatePdf } from './pdf/mandatePdf.js';
+import { generateStatutesPdf } from './pdf/statutesPdf.js';
+import { buildSasuStatutesSections } from './legal/statutes/sasuTemplate.js';
+import { buildSasStatutesSections } from './legal/statutes/sasTemplate.js';
 
 dotenv.config();
 
@@ -39,6 +58,36 @@ const mollieWebhookUrl = process.env.MOLLIE_WEBHOOK_URL || `${apiBaseUrl}/webhoo
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'greffio-api', timestamp: new Date().toISOString() });
+});
+
+app.get('/api/company-search', requireAuth, async (req, res) => {
+  const rawSiren = String(req.query?.siren || '').trim();
+  if (!/^\d{9}$/.test(rawSiren)) {
+    return res.status(400).json({ ok: false, error: 'INVALID_SIREN' });
+  }
+  try {
+    const response = await fetch(`https://recherche-entreprises.api.gouv.fr/search?q=${encodeURIComponent(rawSiren)}&per_page=1`);
+    if (!response.ok) {
+      return res.status(502).json({ ok: false, error: 'ANNNUAIRE_UNAVAILABLE' });
+    }
+    const payload = await response.json();
+    const first = payload?.results?.[0];
+    if (!first) {
+      return res.status(404).json({ ok: false, error: 'COMPANY_NOT_FOUND' });
+    }
+    return res.json({
+      ok: true,
+      company: {
+        siren: first.siren || rawSiren,
+        denomination: first.nom_complet || first.nom_raison_sociale || '',
+        legalForm: first.nature_juridique || '',
+        city: first.siege?.libelle_commune || '',
+        country: 'France',
+      },
+    });
+  } catch (_error) {
+    return res.status(502).json({ ok: false, error: 'ANNUAIRE_LOOKUP_FAILED' });
+  }
 });
 
 app.post('/api/auth/signup', async (req, res) => {
@@ -173,6 +222,7 @@ app.post('/api/dossiers/:dossierId/transition', requireAuth, requireRole(['ADMIN
     nextStatus,
     actorType: 'api',
     actorId: actorId || null,
+    actorRole: req.auth?.role || ROLE.OPS,
     reason: reason || null,
     metadata: metadata || {},
   });
@@ -182,12 +232,145 @@ app.post('/api/dossiers/:dossierId/transition', requireAuth, requireRole(['ADMIN
   return res.json({ ok: true, dossier: transition.dossier, event: transition.event });
 });
 
+app.get('/api/dossiers/:dossierId/questionnaire', requireAuth, async (req, res) => {
+  const dossier = await getDossier(req.params.dossierId);
+  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  const isOps = ['ADMIN', 'OPS', 'FORMALISTE'].includes(req.auth?.role);
+  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
+  if (!isOps && !isOwner) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+  return res.json({
+    ok: true,
+    questionnaire: dossier.dataJson ? JSON.parse(dossier.dataJson) : {},
+    progressPercent: Number(dossier.progressPercent || 0),
+    reference: dossier.reference || dossier.id,
+  });
+});
+
+app.patch('/api/dossiers/:dossierId/questionnaire', requireAuth, async (req, res) => {
+  const dossier = await getDossier(req.params.dossierId);
+  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  const isOps = ['ADMIN', 'OPS', 'FORMALISTE'].includes(req.auth?.role);
+  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
+  if (!isOps && !isOwner) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+
+  const { dataPatch = {}, progressPercent = null } = req.body || {};
+  const updated = await updateDossierQuestionnaire({
+    dossierId: dossier.id,
+    dataPatch,
+    progressPercent,
+  });
+  return res.json({
+    ok: true,
+    dossier: updated,
+    questionnaire: updated?.dataJson ? JSON.parse(updated.dataJson) : {},
+    progressPercent: Number(updated?.progressPercent || 0),
+  });
+});
+
+app.post('/api/dossiers/:dossierId/complete-step', requireAuth, async (req, res) => {
+  const dossier = await getDossier(req.params.dossierId);
+  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
+  if (!isOwner) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+
+  const { stepId, dataPatch = {}, progressPercent = null } = req.body || {};
+  const updated = await updateDossierQuestionnaire({
+    dossierId: dossier.id,
+    dataPatch,
+    progressPercent,
+  });
+
+  const mergedData = updated?.dataJson ? JSON.parse(updated.dataJson) : {};
+  if (stepId === 'contact' && mergedData.email) {
+    const baseVars = {
+      prenom: mergedData.firstName || 'Client',
+      nom: mergedData.lastName || '',
+      email: mergedData.email,
+      telephone: mergedData.phone || '',
+      reference_dossier: updated.reference || updated.id,
+      lien_espace_client: `${appUrl}/dashboard`,
+    };
+    await sendDossierEmailById({
+      templateId: 'welcome',
+      dossierId: updated.id,
+      userId: req.auth.sub,
+      toEmail: mergedData.email,
+      variables: baseVars,
+    });
+    await sendDossierEmailById({
+      templateId: 'contact_confirmed',
+      dossierId: updated.id,
+      userId: req.auth.sub,
+      toEmail: mergedData.email,
+      variables: baseVars,
+    });
+  }
+
+  return res.json({
+    ok: true,
+    dossier: updated,
+    stepCompleted: stepId || null,
+  });
+});
+
 app.get('/api/ops/dossiers/:dossierId/documents', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
   const dossier = await getDossier(req.params.dossierId);
   if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
   return res.json({
     ok: true,
     documents: await listDossierDocuments(dossier.id),
+  });
+});
+
+app.get('/api/ops/dossiers/:dossierId/detail', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
+  const dossier = await getDossier(req.params.dossierId);
+  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  return res.json({
+    ok: true,
+    dossier,
+    documents: await listDossierDocuments(dossier.id),
+    events: await listDossierEvents(dossier.id),
+    notes: await listOpsNotesByDossier(dossier.id),
+  });
+});
+
+app.patch('/api/ops/dossiers/:dossierId/assignment', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
+  const dossier = await getDossier(req.params.dossierId);
+  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  const { assignedToUserId = null, opsQueue, opsPriority } = req.body || {};
+  const updated = await updateDossierOpsFields({
+    dossierId: dossier.id,
+    assignedToUserId,
+    opsQueue,
+    opsPriority,
+  });
+  return res.json({ ok: true, dossier: updated });
+});
+
+app.get('/api/ops/dossiers/:dossierId/notes', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
+  const dossier = await getDossier(req.params.dossierId);
+  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  return res.json({
+    ok: true,
+    notes: await listOpsNotesByDossier(dossier.id),
+  });
+});
+
+app.post('/api/ops/dossiers/:dossierId/notes', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
+  const dossier = await getDossier(req.params.dossierId);
+  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  const { note } = req.body || {};
+  if (!note || !String(note).trim()) {
+    return res.status(400).json({ ok: false, error: 'NOTE_REQUIRED' });
+  }
+  await addOpsNote({
+    dossierId: dossier.id,
+    authorId: req.auth.sub,
+    note: String(note).trim(),
+  });
+  return res.status(201).json({
+    ok: true,
+    notes: await listOpsNotesByDossier(dossier.id),
   });
 });
 
@@ -201,16 +384,24 @@ app.post('/api/ops/dossiers/:dossierId/documents/:docKey/status', requireAuth, r
     mimeType,
     storageUrl,
     rejectedReason,
+    ownerFirstName,
+    ownerLastName,
   } = req.body || {};
   const allowed = new Set(Object.values(DOCUMENT_STATUSES));
   if (!allowed.has(status)) {
     return res.status(400).json({ ok: false, error: 'INVALID_DOCUMENT_STATUS' });
   }
+  const canonicalFilename = buildCanonicalDocumentFilename({
+    docKey: req.params.docKey,
+    dossierCompanyName: dossier.companyName,
+    ownerFirstName,
+    ownerLastName,
+  });
   await updateDossierDocument({
     dossierId: dossier.id,
     docKey: req.params.docKey,
     status,
-    filename,
+    filename: canonicalFilename || filename,
     fileSizeBytes,
     mimeType,
     storageUrl,
@@ -221,6 +412,282 @@ app.post('/api/ops/dossiers/:dossierId/documents/:docKey/status', requireAuth, r
     ok: true,
     documents: await listDossierDocuments(dossier.id),
   });
+});
+
+app.post('/api/dossiers/:dossierId/documents', requireAuth, uploadPdfOnly.single('file'), async (req, res) => {
+  const dossier = await getDossier(req.params.dossierId);
+  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
+  const isOps = ['ADMIN', 'OPS', 'FORMALISTE'].includes(req.auth?.role);
+  if (!isOwner && !isOps) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+  const {
+    docKey,
+    ownerFirstName,
+    ownerLastName,
+  } = req.body || {};
+  if (!docKey) return res.status(400).json({ ok: false, error: 'DOC_KEY_REQUIRED' });
+  if (!req.file) return res.status(400).json({ ok: false, error: 'FILE_REQUIRED' });
+
+  const allowedMimes = new Set(['application/pdf']);
+  if (!allowedMimes.has(req.file.mimetype)) {
+    return res.status(400).json({ ok: false, error: 'INVALID_FILE_TYPE' });
+  }
+  if (req.file.size > 10 * 1024 * 1024) {
+    return res.status(400).json({ ok: false, error: 'FILE_TOO_LARGE' });
+  }
+
+  const canonicalFilename = buildCanonicalDocumentFilename({
+    docKey,
+    dossierCompanyName: dossier.companyName,
+    ownerFirstName,
+    ownerLastName,
+  });
+
+  await updateDossierDocument({
+    dossierId: dossier.id,
+    docKey,
+    status: DOCUMENT_STATUSES.UPLOADED,
+    filename: canonicalFilename,
+    fileSizeBytes: req.file.size,
+    mimeType: req.file.mimetype,
+    storageUrl: req.file.path,
+    reviewerId: null,
+  });
+
+  return res.status(201).json({
+    ok: true,
+    file: {
+      originalFilename: req.file.originalname,
+      recommendedFilename: canonicalFilename,
+      mimeType: req.file.mimetype,
+      size: req.file.size,
+    },
+    documents: await listDossierDocuments(dossier.id),
+  });
+});
+
+app.get('/api/dossiers/:dossierId/mandate', requireAuth, async (req, res) => {
+  const dossier = await getDossier(req.params.dossierId);
+  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
+  const isOps = ['ADMIN', 'OPS', 'FORMALISTE'].includes(req.auth?.role);
+  if (!isOwner && !isOps) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+
+  const signature = await getLatestSignatureByDossier(dossier.id);
+  return res.json({
+    ok: true,
+    dossierId: dossier.id,
+    reference: dossier.reference || dossier.id,
+    signature,
+  });
+});
+
+app.post('/api/dossiers/:dossierId/mandate/sign', requireAuth, async (req, res) => {
+  const dossier = await getDossier(req.params.dossierId);
+  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
+  if (!isOwner) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+
+  const {
+    signerFullName,
+    accepted,
+    documentVersion = 'v1',
+  } = req.body || {};
+  if (!accepted || !signerFullName) {
+    return res.status(400).json({ ok: false, error: 'MANDATE_CONSENT_REQUIRED' });
+  }
+
+  const signedAt = new Date().toISOString();
+  const ipAddress = req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() || req.socket.remoteAddress || null;
+  const userAgent = req.headers['user-agent'] || null;
+  const mandateText = buildMandateText({
+    dossier,
+    signerFullName: String(signerFullName).trim(),
+    acceptedAt: signedAt,
+  });
+  const documentHash = createHash('sha256').update(`${mandateText}|${signedAt}|${signerFullName}`).digest('hex');
+  const safeReference = String(dossier.reference || dossier.id).replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `Procuration_Greffio_${safeReference}_${Date.now()}.pdf`;
+  const pdfPath = await generateMandatePdf({
+    filename,
+    bodyText: mandateText,
+    signatureSummary: `Signé électroniquement par ${signerFullName} le ${signedAt}`,
+    evidence: {
+      documentHash,
+      ipAddress,
+      userAgent,
+      documentVersion,
+    },
+  });
+
+  await createSignatureRecord({
+    dossierId: dossier.id,
+    signerUserId: req.auth.sub,
+    signatureType: 'electronic_simple',
+    status: 'signed',
+    signedAt,
+    ipAddress,
+    userAgent,
+    evidence: {
+      documentHash,
+      documentVersion,
+      consentTextAccepted: true,
+      signerFullName: String(signerFullName).trim(),
+      pdfPath,
+    },
+  });
+
+  await updateDossierDocument({
+    dossierId: dossier.id,
+    docKey: 'proxy_mandate',
+    status: DOCUMENT_STATUSES.VALID,
+    filename,
+    fileSizeBytes: fs.statSync(pdfPath).size,
+    mimeType: 'application/pdf',
+    storageUrl: pdfPath,
+    reviewerId: req.auth.sub,
+  });
+
+  await transitionDossierStatus({
+    dossierId: dossier.id,
+    nextStatus: DOSSIER_STATUSES.MANDATE_SIGNED,
+    actorType: 'api',
+    actorRole: req.auth?.role || ROLE.CLIENT,
+    actorId: req.auth.sub,
+    reason: 'mandate_signed',
+    metadata: { documentHash, documentVersion },
+  });
+
+  await sendDossierEmailById({
+    templateId: 'mandate_signed',
+    dossierId: dossier.id,
+    userId: req.auth.sub,
+    toEmail: req.auth.email || null,
+    variables: {
+      prenom: signerFullName?.split(' ')[0] || 'Client',
+      reference_dossier: dossier.reference || dossier.id,
+    },
+  });
+
+  return res.status(201).json({
+    ok: true,
+    signature: {
+      signedAt,
+      ipAddress,
+      userAgent,
+      documentHash,
+      documentVersion,
+    },
+    mandatePdf: {
+      filename,
+      path: pdfPath,
+    },
+  });
+});
+
+app.get('/api/dossiers/:dossierId/mandate/pdf', requireAuth, async (req, res) => {
+  const dossier = await getDossier(req.params.dossierId);
+  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
+  const isOps = ['ADMIN', 'OPS', 'FORMALISTE'].includes(req.auth?.role);
+  if (!isOwner && !isOps) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+
+  const docs = await listDossierDocuments(dossier.id);
+  const mandateDoc = docs.find((item) => item.docKey === 'proxy_mandate' && item.storageUrl);
+  if (!mandateDoc || !mandateDoc.storageUrl || !fs.existsSync(mandateDoc.storageUrl)) {
+    return res.status(404).json({ ok: false, error: 'MANDATE_PDF_NOT_FOUND' });
+  }
+
+  const downloadName = mandateDoc.filename || path.basename(mandateDoc.storageUrl);
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
+  return fs.createReadStream(mandateDoc.storageUrl).pipe(res);
+});
+
+app.post('/api/dossiers/:dossierId/statutes/generate', requireAuth, async (req, res) => {
+  const dossier = await getDossier(req.params.dossierId);
+  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
+  const isOps = ['ADMIN', 'OPS', 'FORMALISTE'].includes(req.auth?.role);
+  if (!isOwner && !isOps) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+
+  const data = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+  const legalForm = String(data.formeJuridique || dossier.legalForm || 'SASU').toUpperCase();
+  if (!['SASU', 'SAS'].includes(legalForm)) {
+    return res.status(409).json({ ok: false, error: 'LEGAL_FORM_UNSUPPORTED', legalForm });
+  }
+  const statutesData = {
+    denomination: data.denomination || dossier.companyName || 'Greffio Société',
+    objetSocial: data.activite || "La société exerce toute activité autorisée compatible avec son objet.",
+    siege: data.adresseSiege || 'Siège à compléter',
+    duree: '99 ans',
+    capital: Number(data.capital || 1000),
+    president: data.dirigeant || 'Président à compléter',
+    exerciceDebut: '1er janvier',
+    exerciceFin: '31 décembre',
+  };
+  const clauses = legalForm === 'SAS' ? buildSasStatutesSections(statutesData) : buildSasuStatutesSections(statutesData);
+  const safeReference = String(dossier.reference || dossier.id).replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `Statuts_${legalForm}_${safeReference}_${Date.now()}.pdf`;
+  const filePath = await generateStatutesPdf({
+    filename,
+    company: statutesData.denomination,
+    legalForm,
+    reference: dossier.reference || dossier.id,
+    clauses,
+  });
+  const fileSizeBytes = fs.statSync(filePath).size;
+  const contentHash = createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+  await upsertGeneratedDocument({
+    dossierId: dossier.id,
+    type: legalForm === 'SAS' ? 'statutes_sas' : 'statutes_sasu',
+    status: 'generated',
+    version: 1,
+    fileUrl: filePath,
+    fileSizeBytes,
+    contentHash,
+    metadata: {
+      pagesTarget: 10,
+      generatedBy: 'greffio',
+    },
+  });
+  return res.status(201).json({
+    ok: true,
+    document: {
+      type: legalForm === 'SAS' ? 'statutes_sas' : 'statutes_sasu',
+      filePath,
+      fileSizeBytes,
+      filename,
+    },
+  });
+});
+
+app.get('/api/dossiers/:dossierId/statutes', requireAuth, async (req, res) => {
+  const dossier = await getDossier(req.params.dossierId);
+  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
+  const isOps = ['ADMIN', 'OPS', 'FORMALISTE'].includes(req.auth?.role);
+  if (!isOwner && !isOps) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+  const docs = await listGeneratedDocumentsByDossier(dossier.id);
+  const statutesDocs = docs.filter((item) => item.type === 'statutes_sas' || item.type === 'statutes_sasu');
+  return res.json({ ok: true, documents: statutesDocs });
+});
+
+app.get('/api/dossiers/:dossierId/statutes/pdf', requireAuth, async (req, res) => {
+  const dossier = await getDossier(req.params.dossierId);
+  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
+  const isOps = ['ADMIN', 'OPS', 'FORMALISTE'].includes(req.auth?.role);
+  if (!isOwner && !isOps) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+
+  const docs = await listGeneratedDocumentsByDossier(dossier.id);
+  const latest = docs.find((item) => item.type === 'statutes_sasu' || item.type === 'statutes_sas');
+  if (!latest?.fileUrl || !fs.existsSync(latest.fileUrl)) {
+    return res.status(404).json({ ok: false, error: 'STATUTES_PDF_NOT_FOUND' });
+  }
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${path.basename(latest.fileUrl)}"`);
+  return fs.createReadStream(latest.fileUrl).pipe(res);
 });
 
 app.post('/api/payments/create', requireAuth, async (req, res) => {
@@ -250,6 +717,7 @@ app.post('/api/payments/create', requireAuth, async (req, res) => {
       dossierId: dossier.id,
       nextStatus: DOSSIER_STATUSES.PAYMENT_PENDING,
       actorType: 'system',
+      actorRole: ROLE.SYSTEM,
       reason: 'payment_initialized',
     });
     if (!moved.ok) {
@@ -375,8 +843,9 @@ const handleMollieWebhook = async (req, res) => {
       dossierId: payment.dossierId,
       nextStatus: DOSSIER_STATUSES.PAYMENT_CONFIRMED,
       actorType: 'webhook',
+      actorRole: ROLE.WEBHOOK,
       reason: 'mollie_paid',
-      metadata: { providerPaymentId },
+      metadata: { providerPaymentId, paymentConfirmed: true },
     });
   }
 
@@ -387,8 +856,10 @@ app.post('/webhooks/mollie', handleMollieWebhook);
 app.post('/api/mollie/webhook', handleMollieWebhook);
 
 const bootstrap = async () => {
-  await initPostgresSchema();
-  await ensureSeedDossier();
+  await initSchema();
+  if (process.env.NODE_ENV !== 'production') {
+    await ensureSeedDossier();
+  }
   app.listen(port, () => {
     // eslint-disable-next-line no-console
     console.log(`[greffio-api] listening on http://localhost:${port}`);

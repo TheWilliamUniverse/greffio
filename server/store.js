@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { DOSSIER_STATUSES, canTransition } from './stateMachine.js';
+import { DOSSIER_STATUSES, evaluateTransition, ROLE } from './stateMachine.js';
 import { hasPostgres, query, sqlite } from './dbClient.js';
 
 const nowIso = () => new Date().toISOString();
@@ -178,37 +178,64 @@ const createDossier = async ({
   status = DOSSIER_STATUSES.QUOTE_GENERATED,
 }) => {
   const createdAt = nowIso();
+  const reference = `F${Math.floor(10000000 + Math.random() * 90000000)}`;
   const dossier = {
     id: `dos_${randomUUID()}`,
+    reference,
     userId,
     companyName,
     legalForm,
     service,
     status,
+    progressPercent: 0,
+    assignedToUserId: null,
+    opsQueue: 'waiting_client',
+    opsPriority: 'normal',
+    dataJson: JSON.stringify({}),
     createdAt,
     updatedAt: createdAt,
   };
   if (hasPostgres) {
     await query(`
-      INSERT INTO dossiers (id, user_id, company_name, legal_form, service, status, created_at, updated_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+      INSERT INTO dossiers (
+        id, reference, user_id, type_formalite, forme_juridique, denomination, company_name, legal_form, service, status, progress_percent, assigned_to_user_id, ops_queue, ops_priority, data_json, created_at, updated_at
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
     `, [
       dossier.id,
+      dossier.reference,
       dossier.userId,
+      'creation_societe',
+      dossier.legalForm,
+      dossier.companyName,
       dossier.companyName,
       dossier.legalForm,
       dossier.service,
       dossier.status,
+      dossier.progressPercent,
+      dossier.assignedToUserId,
+      dossier.opsQueue,
+      dossier.opsPriority,
+      dossier.dataJson,
       dossier.createdAt,
       dossier.updatedAt,
     ]);
   } else {
     sqlite
       .prepare(`
-        INSERT INTO dossiers (id, user_id, company_name, legal_form, service, status, created_at, updated_at)
-        VALUES (@id, @userId, @companyName, @legalForm, @service, @status, @createdAt, @updatedAt)
+        INSERT INTO dossiers (
+          id, reference, user_id, type_formalite, forme_juridique, denomination, company_name, legal_form, service, status, progress_percent, assigned_to_user_id, ops_queue, ops_priority, data_json, created_at, updated_at
+        )
+        VALUES (
+          @id, @reference, @userId, @typeFormalite, @formeJuridique, @denomination, @companyName, @legalForm, @service, @status, @progressPercent, @assignedToUserId, @opsQueue, @opsPriority, @dataJson, @createdAt, @updatedAt
+        )
       `)
-      .run(dossier);
+      .run({
+        ...dossier,
+        typeFormalite: 'creation_societe',
+        formeJuridique: dossier.legalForm,
+        denomination: dossier.companyName,
+      });
   }
   await addStatusEvent({
     dossierId: dossier.id,
@@ -423,11 +450,20 @@ const getDossier = async (dossierId) => {
     const result = await query(`
       SELECT
         id,
+        reference,
         user_id AS "userId",
+        type_formalite AS "typeFormalite",
+        forme_juridique AS "formeJuridique",
+        denomination,
         company_name AS "companyName",
         legal_form AS "legalForm",
         service,
         status,
+        progress_percent AS "progressPercent",
+        assigned_to_user_id AS "assignedToUserId",
+        ops_queue AS "opsQueue",
+        ops_priority AS "opsPriority",
+        data_json AS "dataJson",
         created_at AS "createdAt",
         updated_at AS "updatedAt"
       FROM dossiers
@@ -438,7 +474,24 @@ const getDossier = async (dossierId) => {
   }
   return sqlite
     .prepare(`
-      SELECT id, user_id AS userId, company_name AS companyName, legal_form AS legalForm, service, status, created_at AS createdAt, updated_at AS updatedAt
+      SELECT
+        id,
+        reference,
+        user_id AS userId,
+        type_formalite AS typeFormalite,
+        forme_juridique AS formeJuridique,
+        denomination,
+        company_name AS companyName,
+        legal_form AS legalForm,
+        service,
+        status,
+        progress_percent AS progressPercent,
+        assigned_to_user_id AS assignedToUserId,
+        ops_queue AS opsQueue,
+        ops_priority AS opsPriority,
+        data_json AS dataJson,
+        created_at AS createdAt,
+        updated_at AS updatedAt
       FROM dossiers
       WHERE id = ?
     `)
@@ -450,11 +503,20 @@ const getAllDossiers = async () => {
     const result = await query(`
       SELECT
         id,
+        reference,
         user_id AS "userId",
+        type_formalite AS "typeFormalite",
+        forme_juridique AS "formeJuridique",
+        denomination,
         company_name AS "companyName",
         legal_form AS "legalForm",
         service,
         status,
+        progress_percent AS "progressPercent",
+        assigned_to_user_id AS "assignedToUserId",
+        ops_queue AS "opsQueue",
+        ops_priority AS "opsPriority",
+        data_json AS "dataJson",
         created_at AS "createdAt",
         updated_at AS "updatedAt"
       FROM dossiers
@@ -464,11 +526,59 @@ const getAllDossiers = async () => {
   }
   return sqlite
     .prepare(`
-      SELECT id, user_id AS userId, company_name AS companyName, legal_form AS legalForm, service, status, created_at AS createdAt, updated_at AS updatedAt
+      SELECT
+        id,
+        reference,
+        user_id AS userId,
+        type_formalite AS typeFormalite,
+        forme_juridique AS formeJuridique,
+        denomination,
+        company_name AS companyName,
+        legal_form AS legalForm,
+        service,
+        status,
+        progress_percent AS progressPercent,
+        assigned_to_user_id AS assignedToUserId,
+        ops_queue AS opsQueue,
+        ops_priority AS opsPriority,
+        data_json AS dataJson,
+        created_at AS createdAt,
+        updated_at AS updatedAt
       FROM dossiers
       ORDER BY created_at DESC
     `)
     .all();
+};
+
+const updateDossierQuestionnaire = async ({
+  dossierId,
+  dataPatch = {},
+  progressPercent = null,
+}) => {
+  const dossier = await getDossier(dossierId);
+  if (!dossier) return null;
+  const previousData = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+  const mergedData = {
+    ...previousData,
+    ...dataPatch,
+  };
+  const nextProgress = progressPercent == null ? Number(dossier.progressPercent || 0) : Math.max(0, Math.min(100, Number(progressPercent)));
+  const updatedAt = nowIso();
+
+  if (hasPostgres) {
+    await query(`
+      UPDATE dossiers
+      SET data_json = $1, progress_percent = $2, updated_at = $3
+      WHERE id = $4
+    `, [JSON.stringify(mergedData), nextProgress, updatedAt, dossierId]);
+  } else {
+    sqlite.prepare(`
+      UPDATE dossiers
+      SET data_json = ?, progress_percent = ?, updated_at = ?
+      WHERE id = ?
+    `).run(JSON.stringify(mergedData), nextProgress, updatedAt, dossierId);
+  }
+  return getDossier(dossierId);
 };
 
 const getAllPayments = async () => {
@@ -580,6 +690,7 @@ const transitionDossierStatus = async ({
   nextStatus,
   actorType = 'system',
   actorId = null,
+  actorRole = ROLE.SYSTEM,
   reason = null,
   metadata = {},
 }) => {
@@ -587,8 +698,32 @@ const transitionDossierStatus = async ({
   if (!dossier) {
     return { ok: false, code: 'DOSSIER_NOT_FOUND' };
   }
-  if (!canTransition(dossier.status, nextStatus)) {
-    return { ok: false, code: 'INVALID_TRANSITION', currentStatus: dossier.status, requestedStatus: nextStatus };
+  const documents = await listDossierDocuments(dossier.id);
+  const requiredDocsValid = documents
+    .filter((item) => item.required)
+    .every((item) => item.status === DOCUMENT_STATUSES.VALID);
+  const mandateDoc = documents.find((item) => item.docKey === 'proxy_mandate');
+  const hasMandateSigned = Boolean(mandateDoc && mandateDoc.status === DOCUMENT_STATUSES.VALID);
+  const requiresMandate = Boolean(mandateDoc && mandateDoc.required);
+  const hasConfirmedPayment = metadata?.paymentConfirmed === true
+    || dossier.status === DOSSIER_STATUSES.PAYMENT_CONFIRMED;
+
+  const evalResult = evaluateTransition({
+    from: dossier.status,
+    to: nextStatus,
+    actorRole,
+    hasConfirmedPayment,
+    hasAllRequiredDocuments: requiredDocsValid,
+    requiresMandate,
+    isMandateSigned: hasMandateSigned,
+  });
+  if (!evalResult.ok) {
+    return {
+      ok: false,
+      code: evalResult.code,
+      currentStatus: dossier.status,
+      requestedStatus: nextStatus,
+    };
   }
   const prev = dossier.status;
   const updatedAt = nowIso();
@@ -846,6 +981,192 @@ const hasPaymentEventProviderId = async (providerEventId) => {
   );
 };
 
+const listOpsNotesByDossier = async (dossierId) => {
+  if (hasPostgres) {
+    const result = await query(`
+      SELECT
+        id,
+        dossier_id AS "dossierId",
+        author_id AS "authorId",
+        note,
+        created_at AS "createdAt"
+      FROM ops_notes
+      WHERE dossier_id = $1
+      ORDER BY created_at DESC
+    `, [dossierId]);
+    return result.rows;
+  }
+  return sqlite.prepare(`
+    SELECT
+      id,
+      dossier_id AS dossierId,
+      author_id AS authorId,
+      note,
+      created_at AS createdAt
+    FROM ops_notes
+    WHERE dossier_id = ?
+    ORDER BY created_at DESC
+  `).all(dossierId);
+};
+
+const updateDossierOpsFields = async ({
+  dossierId,
+  assignedToUserId,
+  opsQueue,
+  opsPriority,
+}) => {
+  const dossier = await getDossier(dossierId);
+  if (!dossier) return null;
+  const updatedAt = nowIso();
+  const nextAssigned = assignedToUserId === undefined ? dossier.assignedToUserId : (assignedToUserId || null);
+  const nextQueue = opsQueue === undefined ? (dossier.opsQueue || 'waiting_client') : String(opsQueue || 'waiting_client');
+  const nextPriority = opsPriority === undefined ? (dossier.opsPriority || 'normal') : String(opsPriority || 'normal');
+
+  if (hasPostgres) {
+    await query(`
+      UPDATE dossiers
+      SET assigned_to_user_id = $1, ops_queue = $2, ops_priority = $3, updated_at = $4
+      WHERE id = $5
+    `, [nextAssigned, nextQueue, nextPriority, updatedAt, dossierId]);
+  } else {
+    sqlite.prepare(`
+      UPDATE dossiers
+      SET assigned_to_user_id = ?, ops_queue = ?, ops_priority = ?, updated_at = ?
+      WHERE id = ?
+    `).run(nextAssigned, nextQueue, nextPriority, updatedAt, dossierId);
+  }
+  return getDossier(dossierId);
+};
+
+const addOpsNote = async ({
+  dossierId,
+  authorId = null,
+  note,
+}) => {
+  const record = {
+    id: randomUUID(),
+    dossierId,
+    authorId,
+    note: String(note || '').trim(),
+    createdAt: nowIso(),
+  };
+  if (!record.note) return null;
+  if (hasPostgres) {
+    await query(`
+      INSERT INTO ops_notes (
+        id, dossier_id, author_id, note, created_at
+      ) VALUES ($1,$2,$3,$4,$5)
+    `, [record.id, record.dossierId, record.authorId, record.note, record.createdAt]);
+    return record;
+  }
+  sqlite.prepare(`
+    INSERT INTO ops_notes (
+      id, dossier_id, author_id, note, created_at
+    ) VALUES (
+      @id, @dossierId, @authorId, @note, @createdAt
+    )
+  `).run(record);
+  return record;
+};
+
+const upsertGeneratedDocument = async ({
+  dossierId,
+  type,
+  status = 'generated',
+  version = 1,
+  fileUrl = null,
+  fileSizeBytes = null,
+  contentHash = null,
+  metadata = {},
+}) => {
+  const record = {
+    id: randomUUID(),
+    dossierId,
+    type,
+    status,
+    version,
+    fileUrl,
+    fileSizeBytes,
+    contentHash,
+    metadata,
+    createdAt: nowIso(),
+  };
+  if (hasPostgres) {
+    await query(`
+      INSERT INTO generated_documents (
+        id, dossier_id, type, status, version, file_url, file_size_bytes, content_hash, metadata_json, created_at
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+    `, [
+      record.id,
+      record.dossierId,
+      record.type,
+      record.status,
+      record.version,
+      record.fileUrl,
+      record.fileSizeBytes,
+      record.contentHash,
+      JSON.stringify(record.metadata || {}),
+      record.createdAt,
+    ]);
+    return record;
+  }
+  sqlite.prepare(`
+    INSERT INTO generated_documents (
+      id, dossier_id, type, status, version, file_url, file_size_bytes, content_hash, metadata_json, created_at
+    ) VALUES (
+      @id, @dossierId, @type, @status, @version, @fileUrl, @fileSizeBytes, @contentHash, @metadataJson, @createdAt
+    )
+  `).run({
+    ...record,
+    metadataJson: JSON.stringify(record.metadata || {}),
+  });
+  return record;
+};
+
+const listGeneratedDocumentsByDossier = async (dossierId) => {
+  if (hasPostgres) {
+    const result = await query(`
+      SELECT
+        id,
+        dossier_id AS "dossierId",
+        type,
+        status,
+        version,
+        file_url AS "fileUrl",
+        file_size_bytes AS "fileSizeBytes",
+        content_hash AS "contentHash",
+        metadata_json AS "metadataJson",
+        created_at AS "createdAt"
+      FROM generated_documents
+      WHERE dossier_id = $1
+      ORDER BY created_at DESC
+    `, [dossierId]);
+    return result.rows.map((item) => ({
+      ...item,
+      metadata: item.metadataJson ? JSON.parse(item.metadataJson) : {},
+    }));
+  }
+  return sqlite.prepare(`
+    SELECT
+      id,
+      dossier_id AS dossierId,
+      type,
+      status,
+      version,
+      file_url AS fileUrl,
+      file_size_bytes AS fileSizeBytes,
+      content_hash AS contentHash,
+      metadata_json AS metadataJson,
+      created_at AS createdAt
+    FROM generated_documents
+    WHERE dossier_id = ?
+    ORDER BY created_at DESC
+  `).all(dossierId).map((item) => ({
+    ...item,
+    metadata: item.metadataJson ? JSON.parse(item.metadataJson) : {},
+  }));
+};
+
 export {
   createDossier,
   ensureSeedDossier,
@@ -857,10 +1178,16 @@ export {
   getDossier,
   getAllDossiers,
   getAllPayments,
+  updateDossierQuestionnaire,
   listDossierEvents,
   transitionDossierStatus,
   upsertPayment,
   getPaymentByProviderId,
   addPaymentEvent,
   hasPaymentEventProviderId,
+  upsertGeneratedDocument,
+  listGeneratedDocumentsByDossier,
+  listOpsNotesByDossier,
+  addOpsNote,
+  updateDossierOpsFields,
 };

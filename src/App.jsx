@@ -30,6 +30,9 @@ import { GuidePage } from '@/pages/GuidePage.jsx';
 import { MandatePage } from '@/pages/MandatePage.jsx';
 import { OpsDashboardPage } from '@/pages/OpsDashboardPage.jsx';
 import { PaymentVerificationPage } from '@/pages/PaymentVerificationPage.jsx';
+import { QuestionnairePage } from '@/pages/QuestionnairePage.jsx';
+import { StatutesPage } from '@/pages/StatutesPage.jsx';
+import { CookieConsentBanner } from '@/components/CookieConsentBanner.jsx';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -70,8 +73,8 @@ function App() {
         <Layout>
           <Routes>
             <Route path="/" element={<LandingPage />} />
-            <Route path="/simulateur" element={<FormalityWizardPage />} />
-            <Route path="/statuts-gratuits" element={<FormalityWizardPage />} />
+            <Route path="/simulateur" element={<ProtectedRoute><QuestionnairePage /></ProtectedRoute>} />
+            <Route path="/statuts-gratuits" element={<ProtectedRoute><QuestionnairePage /></ProtectedRoute>} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/password-reset" element={<PasswordResetPage />} />
@@ -93,6 +96,7 @@ function App() {
             <Route path="/dossiers" element={<ProtectedRoute><DossiersPage /></ProtectedRoute>} />
             <Route path="/dossier/:id" element={<ProtectedRoute><DossierDetailPage /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
+            <Route path="/statuts" element={<ProtectedRoute><StatutesPage /></ProtectedRoute>} />
             <Route path="/chat" element={<ProtectedRoute><ChatIAPage /></ProtectedRoute>} />
             <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
             <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
@@ -101,6 +105,7 @@ function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Layout>
+        <CookieConsentBanner />
         <Toaster richColors position="top-right" />
       </Router>
     </AuthProvider>

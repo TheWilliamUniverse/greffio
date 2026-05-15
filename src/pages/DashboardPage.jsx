@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
@@ -18,12 +18,63 @@ import { Button } from '@/components/ui/button.jsx';
 import { Card, CardContent } from '@/components/ui/card.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 import { getDocuments, getDossiers, getNotifications } from '@/utils/localStorage.js';
+import { getCurrentDossierId } from '@/utils/sessionStore.js';
+import { getDossierById } from '@/api/dossiers.js';
 
 export const DashboardPage = () => {
   const { currentUser } = useAuth();
-  const dossiers = getDossiers();
-  const documents = getDocuments();
+  const [dossiers, setDossiers] = useState(getDossiers());
+  const [documents, setDocuments] = useState(getDocuments());
   const notifications = getNotifications();
+  const [loadingApi, setLoadingApi] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      const currentDossierId = getCurrentDossierId();
+      if (!currentDossierId) {
+        setLoadingApi(false);
+        return;
+      }
+      try {
+        const payload = await getDossierById(currentDossierId);
+        const dossier = payload.dossier;
+        const apiDossier = {
+          id: dossier.id,
+          name: dossier.companyName || dossier.denomination || 'Dossier entreprise',
+          legalForm: dossier.legalForm || dossier.formeJuridique || 'SASU',
+          owner: currentUser?.firstName || 'Client',
+          status: String(dossier.status || '').toUpperCase(),
+          phase: dossier.service || 'formalite',
+          nextAction: 'Suivre la checklist et compléter les pièces demandées.',
+          expert: dossier.assignedToUserId || 'Équipe Greffio',
+          createdAt: dossier.createdAt,
+          dueDate: dossier.updatedAt || dossier.createdAt,
+          progress: Number(dossier.progressPercent || 0),
+          currentStep: Math.max(1, Math.round(Number(dossier.progressPercent || 0) / 20)),
+          totalSteps: 5,
+          blockers: [],
+          steps: [],
+        };
+        setDossiers([apiDossier]);
+        setDocuments((payload.documents || []).map((doc) => ({
+          id: doc.id,
+          dossierId: doc.dossierId,
+          name: doc.label,
+          status: String(doc.status || '').toUpperCase(),
+          type: doc.docKey,
+          size: doc.fileSizeBytes ? `${Math.round(Number(doc.fileSizeBytes) / 1024)} Ko` : 'N/A',
+          source: 'API',
+          providedBy: doc.reviewerId ? 'Greffio' : 'Client',
+          date: doc.updatedAt || doc.createdAt,
+        })));
+      } catch (_error) {
+        // local fallback
+      } finally {
+        setLoadingApi(false);
+      }
+    };
+    void load();
+  }, [currentUser?.firstName]);
   const today = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
   const activeDossiers = dossiers.filter((dossier) => dossier.status !== 'VALIDE' && dossier.status !== 'TERMINE').length;
   const documentsToReview = documents.filter((document) => ['ATTENTE_DOCS', 'URGENT', 'EN_ANALYSE', 'BROUILLON', 'A_SIGNER'].includes(document.status)).length;
@@ -51,8 +102,9 @@ export const DashboardPage = () => {
                 <p className="text-sm font-semibold capitalize text-muted-foreground">{today}</p>
                 <h1 className="mt-2 text-3xl font-extrabold text-foreground">Bonjour {currentUser.firstName || 'Bienvenue'}, votre cockpit Greffio.</h1>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                  Votre espace affiche uniquement vos dossiers, documents et messages réels. Créez un projet pour ouvrir le suivi greffe et la génération documentaire.
+                  Votre espace affiche vos dossiers, documents et messages en temps réel, avec un parcours adapté aux personnes physiques et morales.
                 </p>
+                {loadingApi ? <p className="mt-2 text-xs text-muted-foreground">Synchronisation API en cours...</p> : null}
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button asChild variant="outline" className="bg-white">

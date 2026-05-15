@@ -1,15 +1,24 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Archive, CheckCircle2, Download, Eye, FilePlus2, FileText, Search, ShieldCheck, Upload } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { getDocuments, getDossiers } from '@/utils/localStorage.js';
-import { FILE_NAMING_EXAMPLES, INPI_UPLOAD_RULES } from '@/config/legalFlow.js';
+import { INPI_UPLOAD_RULES } from '@/config/legalFlow.js';
+import { getCurrentDossierId } from '@/utils/sessionStore.js';
+import { getDossierDocuments, uploadDossierDocument } from '@/api/documents.js';
+import { getUser } from '@/utils/localStorage.js';
 
 export const DocumentsPage = () => {
   const [query, setQuery] = useState('');
   const [type, setType] = useState('Tous');
+  const [uploading, setUploading] = useState(false);
+  const [apiDocuments, setApiDocuments] = useState([]);
+  const [selectedDocKey, setSelectedDocKey] = useState('identity_proof');
+  const [uploadError, setUploadError] = useState(null);
+  const currentDossierId = getCurrentDossierId();
+  const user = getUser();
   const dossiers = getDossiers();
   const documents = getDocuments();
   const dossiersById = useMemo(() => new Map(dossiers.map((dossier) => [dossier.id, dossier])), [dossiers]);
@@ -31,6 +40,49 @@ export const DocumentsPage = () => {
     const matchesType = type === 'Tous' || document.type === type;
     return matchesQuery && matchesType;
   });
+
+  useEffect(() => {
+    const load = async () => {
+      if (!currentDossierId) return;
+      try {
+        const items = await getDossierDocuments(currentDossierId);
+        setApiDocuments(items);
+      } catch (_error) {
+        setApiDocuments([]);
+      }
+    };
+    void load();
+  }, [currentDossierId]);
+
+  const onUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !currentDossierId) return;
+    setUploadError(null);
+    if (file.type !== 'application/pdf') {
+      setUploadError('Seuls les fichiers PDF sont autorisés.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('Le fichier dépasse 10 Mo.');
+      return;
+    }
+    try {
+      setUploading(true);
+      const payload = await uploadDossierDocument({
+        dossierId: currentDossierId,
+        docKey: selectedDocKey,
+        file,
+        ownerFirstName: user?.firstName || '',
+        ownerLastName: user?.lastName || '',
+      });
+      setApiDocuments(payload.documents || []);
+    } catch (error) {
+      setUploadError(error?.message || "L'upload a échoué.");
+    } finally {
+      setUploading(false);
+      event.target.value = '';
+    }
+  };
 
   const dossierName = (id) => dossiersById.get(id).name || 'Dossier client';
   const waitingDocs = documents.filter((document) => ['ATTENTE_DOCS', 'URGENT', 'EN_ANALYSE', 'A_SIGNER', 'BROUILLON'].includes(document.status));
@@ -58,12 +110,37 @@ export const DocumentsPage = () => {
                 <FilePlus2 className="h-4 w-4" />
                 Générer depuis mon dossier
               </Button>
-              <Button>
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white">
                 <Upload className="h-4 w-4" />
-                Ajouter une pièce
-              </Button>
+                {uploading ? 'Upload...' : 'Ajouter une pièce'}
+                <input type="file" accept="application/pdf" className="hidden" onChange={onUpload} />
+              </label>
             </div>
           </div>
+
+          <section className="rounded-md border border-border bg-white p-4 shadow-elevation-sm">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center">
+              <div className="flex-1">
+                <p className="text-sm font-semibold">Type de justificatif</p>
+                <select className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm" value={selectedDocKey} onChange={(event) => setSelectedDocKey(event.target.value)}>
+                  {[
+                    ['identity_proof', 'Pièce d’identité'],
+                    ['address_proof', 'Justificatif de domicile'],
+                    ['proxy_mandate', 'Procuration signée'],
+                    ['signed_statutes', 'Statuts signés'],
+                    ['capital_certificate', 'Attestation dépôt capital'],
+                    ['legal_notice_certificate', 'Attestation annonce légale'],
+                    ['registered_office_proof', 'Justificatif siège social'],
+                    ['ubo_declaration', 'Déclaration bénéficiaires effectifs'],
+                  ].map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </div>
+              <p className="text-xs text-muted-foreground">PDF uniquement, 10 Mo max, un justificatif par fichier.</p>
+            </div>
+            {uploadError ? <p className="mt-2 text-xs text-red-600">{uploadError}</p> : null}
+          </section>
 
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {summary.map((item) => (
@@ -96,17 +173,13 @@ export const DocumentsPage = () => {
             <div className="flex items-start gap-3">
               <ShieldCheck className="mt-1 h-5 w-5 text-primary" />
               <div>
-                <p className="font-extrabold text-foreground">Regles de depot (Guichet unique)</p>
+                <p className="font-extrabold text-foreground">Depot simplifie et securise (Guichet unique)</p>
                 <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                  Chaque piece doit etre dans un seul fichier PDF, clairement nomme, lisible et inferieur ou egal a {INPI_UPLOAD_RULES.maxFileSizeMb} Mo.
+                  Chaque piece est automatiquement renommee au format attendu, dans un fichier PDF unique et lisible ({INPI_UPLOAD_RULES.maxFileSizeMb} Mo max).
                 </p>
-                <div className="mt-3 grid gap-2 md:grid-cols-2">
-                  {FILE_NAMING_EXAMPLES.slice(0, 6).map((item) => (
-                    <code key={item} className="rounded bg-white px-3 py-2 text-xs text-primary">
-                      {item}
-                    </code>
-                  ))}
-                </div>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Vous n'avez rien a memoriser : Greffio applique la nomenclature et controle la coherence avant traitement.
+                </p>
               </div>
             </div>
           </section>
@@ -171,6 +244,23 @@ export const DocumentsPage = () => {
               ))}
             </section>
           )}
+
+          {apiDocuments.length > 0 ? (
+            <section className="overflow-hidden rounded-md border border-border bg-white shadow-elevation-sm">
+              <div className="border-b border-border bg-muted px-5 py-3 text-xs font-bold uppercase text-muted-foreground">
+                Documents backend (réels)
+              </div>
+              {apiDocuments.map((item) => (
+                <div key={item.id} className="flex items-center justify-between gap-3 border-b border-border px-5 py-3 last:border-b-0">
+                  <div>
+                    <p className="text-sm font-bold">{item.label}</p>
+                    <p className="text-xs text-muted-foreground">{item.filename || 'Nom non généré'} · {item.docKey}</p>
+                  </div>
+                  <StatusBadge status={String(item.status || '').toUpperCase()} className="w-fit" />
+                </div>
+              ))}
+            </section>
+          ) : null}
         </div>
       </main>
     </div>

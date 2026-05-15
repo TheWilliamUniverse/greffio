@@ -52,8 +52,10 @@ export const LegalMentionsPage = () => (
       </Section>
 
       <Section title="Objet du service Greffio">
+        <p><strong className="text-foreground">Greffio est un service privé indépendant d’assistance aux démarches administratives des entreprises. Greffio n’est pas un service officiel de l’État, des greffes des tribunaux de commerce ou d’Infogreffe.</strong></p>
         <p>Greffio est une application SaaS destinée à organiser les formalités administratives, greffe et vie juridique des entreprises : questionnaires, génération documentaire, coffre documentaire, suivi de dossier, fil partagé équipe-client, paiements et pilotage opérationnel.</p>
         <p>Les documents générés constituent une aide à la préparation. Ils doivent être relus et validés par le client, l’équipe Greffio ou tout professionnel compétent lorsque la situation le requiert.</p>
+        <p>Selon la nature de la demande, Greffio peut réaliser les formalités via le Guichet unique (INPI) ou recourir à des partenaires et sous-traitants spécialisés pour l’obtention de certains documents et services.</p>
       </Section>
 
       <Section title="Conditions générales d’utilisation">

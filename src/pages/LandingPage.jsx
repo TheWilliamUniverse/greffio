@@ -292,6 +292,9 @@ export const LandingPage = () => {
           <div>
             <GreffioLogo variant="inverse" />
             <p className="mt-4 max-w-sm text-sm leading-6 text-white/70">Application SaaS de gestion de formalités administratives, greffe et vie juridique des entreprises.</p>
+            <p className="mt-3 max-w-md text-xs leading-6 text-white/80">
+              Greffio est un service privé indépendant d’assistance aux démarches administratives des entreprises. Greffio n’est pas un service officiel de l’État, des greffes des tribunaux de commerce ou d’Infogreffe.
+            </p>
           </div>
           <div className="grid gap-6 text-sm text-white/72 md:grid-cols-3">
             <div>

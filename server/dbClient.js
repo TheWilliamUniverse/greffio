@@ -1,5 +1,8 @@
+import dotenv from 'dotenv';
 import { Pool } from 'pg';
 import { sqlite } from './database.js';
+
+dotenv.config({ quiet: true });
 
 const hasPostgres = Boolean(process.env.DATABASE_URL);
 const pool = hasPostgres ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }) : null;
@@ -19,24 +22,51 @@ const initPostgresSchema = async () => {
       password_hash TEXT NOT NULL,
       first_name TEXT NOT NULL,
       last_name TEXT NOT NULL,
+      phone TEXT,
       role TEXT NOT NULL,
       company_json TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
   `);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;`);
+  await query(`
+    CREATE TABLE IF NOT EXISTS refresh_tokens (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at TEXT NOT NULL,
+      revoked_at TEXT,
+      created_at TEXT NOT NULL
+    );
+  `);
   await query(`
     CREATE TABLE IF NOT EXISTS dossiers (
       id TEXT PRIMARY KEY,
+      reference TEXT UNIQUE,
       user_id TEXT,
+      type_formalite TEXT,
+      forme_juridique TEXT,
+      denomination TEXT,
       company_name TEXT NOT NULL,
       legal_form TEXT NOT NULL,
       service TEXT NOT NULL,
       status TEXT NOT NULL,
+      progress_percent INTEGER NOT NULL DEFAULT 0,
+      data_json TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
   `);
+  await query(`ALTER TABLE dossiers ADD COLUMN IF NOT EXISTS reference TEXT;`);
+  await query(`ALTER TABLE dossiers ADD COLUMN IF NOT EXISTS type_formalite TEXT;`);
+  await query(`ALTER TABLE dossiers ADD COLUMN IF NOT EXISTS forme_juridique TEXT;`);
+  await query(`ALTER TABLE dossiers ADD COLUMN IF NOT EXISTS denomination TEXT;`);
+  await query(`ALTER TABLE dossiers ADD COLUMN IF NOT EXISTS progress_percent INTEGER NOT NULL DEFAULT 0;`);
+  await query(`ALTER TABLE dossiers ADD COLUMN IF NOT EXISTS data_json TEXT;`);
+  await query(`ALTER TABLE dossiers ADD COLUMN IF NOT EXISTS assigned_to_user_id TEXT;`);
+  await query(`ALTER TABLE dossiers ADD COLUMN IF NOT EXISTS ops_queue TEXT;`);
+  await query(`ALTER TABLE dossiers ADD COLUMN IF NOT EXISTS ops_priority TEXT;`);
   await query(`
     CREATE TABLE IF NOT EXISTS dossier_status_events (
       id TEXT PRIMARY KEY,
@@ -87,9 +117,13 @@ const initPostgresSchema = async () => {
       id TEXT PRIMARY KEY,
       dossier_id TEXT NOT NULL REFERENCES dossiers(id) ON DELETE CASCADE,
       doc_key TEXT NOT NULL,
+      type TEXT,
       label TEXT NOT NULL,
       required BOOLEAN NOT NULL DEFAULT TRUE,
       status TEXT NOT NULL,
+      original_filename TEXT,
+      recommended_filename TEXT,
+      file_url TEXT,
       filename TEXT,
       file_size_bytes BIGINT,
       mime_type TEXT,
@@ -101,6 +135,40 @@ const initPostgresSchema = async () => {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       UNIQUE(dossier_id, doc_key)
+    );
+  `);
+  await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS type TEXT;`);
+  await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS original_filename TEXT;`);
+  await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS recommended_filename TEXT;`);
+  await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_url TEXT;`);
+  await query(`
+    CREATE TABLE IF NOT EXISTS generated_documents (
+      id TEXT PRIMARY KEY,
+      dossier_id TEXT NOT NULL REFERENCES dossiers(id) ON DELETE CASCADE,
+      type TEXT NOT NULL,
+      status TEXT NOT NULL,
+      version INTEGER NOT NULL DEFAULT 1,
+      file_url TEXT,
+      file_size_bytes BIGINT,
+      content_hash TEXT,
+      metadata_json TEXT,
+      created_at TEXT NOT NULL
+    );
+  `);
+  await query(`ALTER TABLE generated_documents ADD COLUMN IF NOT EXISTS file_size_bytes BIGINT;`);
+  await query(`
+    CREATE TABLE IF NOT EXISTS signatures (
+      id TEXT PRIMARY KEY,
+      dossier_id TEXT NOT NULL REFERENCES dossiers(id) ON DELETE CASCADE,
+      document_id TEXT,
+      signer_user_id TEXT,
+      signature_type TEXT NOT NULL,
+      status TEXT NOT NULL,
+      signed_at TEXT,
+      ip_address TEXT,
+      user_agent TEXT,
+      evidence_json TEXT,
+      created_at TEXT NOT NULL
     );
   `);
   await query(`
@@ -133,9 +201,45 @@ const initPostgresSchema = async () => {
       sent_at TEXT
     );
   `);
+  await query(`
+    CREATE TABLE IF NOT EXISTS ops_notes (
+      id TEXT PRIMARY KEY,
+      dossier_id TEXT NOT NULL REFERENCES dossiers(id) ON DELETE CASCADE,
+      author_id TEXT,
+      note TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+  `);
+  await query(`
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id TEXT PRIMARY KEY,
+      actor_type TEXT NOT NULL,
+      actor_id TEXT,
+      action TEXT NOT NULL,
+      entity_type TEXT NOT NULL,
+      entity_id TEXT NOT NULL,
+      metadata_json TEXT,
+      created_at TEXT NOT NULL
+    );
+  `);
+};
+
+const initSchema = async () => {
+  await initPostgresSchema();
+};
+
+const checkDatabaseConnection = async () => {
+  if (hasPostgres) {
+    await query('SELECT 1');
+    return 'Postgres OK';
+  }
+  sqlite.prepare('SELECT 1').get();
+  return 'SQLite OK';
 };
 
 export {
+  checkDatabaseConnection,
+  initSchema,
   initPostgresSchema,
   hasPostgres,
   pool,

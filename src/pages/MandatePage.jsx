@@ -1,12 +1,14 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle2, FileSignature, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Download, FileSignature, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { GREFFIO_CONTACT, INPI_UPLOAD_RULES } from '@/config/legalFlow.js';
+import { getCurrentDossierId } from '@/utils/sessionStore.js';
+import { downloadMandatePdf, getMandateState, signMandate } from '@/api/mandate.js';
 
 const longMandateSummary = [
   'Le mandataire est autorise a preparer, deposer, suivre et regulariser la formalite dans la limite de la mission confiee.',
@@ -138,13 +140,38 @@ export const MandatePage = () => {
     signature: '',
   });
   const [signedAt, setSignedAt] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [signing, setSigning] = useState(false);
+  const [signatureEvidence, setSignatureEvidence] = useState(null);
+  const dossierId = getCurrentDossierId();
 
   const dossierReference = useMemo(
     () => `F${Math.floor(10000000 + (Math.random() * 90000000))}`,
     []
   );
 
-  const onSubmit = (event) => {
+  useEffect(() => {
+    const load = async () => {
+      if (!dossierId) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const state = await getMandateState(dossierId);
+        if (state?.signature?.signedAt) {
+          setSignedAt(state.signature.signedAt);
+          setSignatureEvidence(state.signature);
+        }
+      } catch (_error) {
+        // silent fallback
+      } finally {
+        setLoading(false);
+      }
+    };
+    void load();
+  }, [dossierId]);
+
+  const onSubmit = async (event) => {
     event.preventDefault();
     if (!form.accepted) {
       toast.error('Vous devez accepter la procuration avant signature.');
@@ -154,8 +181,41 @@ export const MandatePage = () => {
       toast.error('Veuillez renseigner votre signature.');
       return;
     }
-    setSignedAt(new Date().toISOString());
-    toast.success('Procuration signee avec succes.');
+    if (!dossierId) {
+      toast.error('Aucun dossier actif.');
+      return;
+    }
+    try {
+      setSigning(true);
+      const payload = await signMandate({
+        dossierId,
+        signerFullName: form.signature.trim(),
+        accepted: form.accepted,
+        documentVersion: 'v1',
+      });
+      setSignedAt(payload?.signature?.signedAt || new Date().toISOString());
+      setSignatureEvidence(payload?.signature || null);
+      toast.success('Procuration signée avec succès.');
+    } catch (_error) {
+      toast.error('La signature a échoué.');
+    } finally {
+      setSigning(false);
+    }
+  };
+
+  const onDownloadSignedPdf = async () => {
+    if (!dossierId) return;
+    try {
+      const blob = await downloadMandatePdf(dossierId);
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `Procuration_Greffio_${dossierReference}.pdf`;
+      anchor.click();
+      window.URL.revokeObjectURL(url);
+    } catch (_error) {
+      toast.error('PDF signé introuvable pour ce dossier.');
+    }
   };
 
   return (
@@ -179,6 +239,7 @@ export const MandatePage = () => {
             <p className="mt-2 text-sm leading-7 text-muted-foreground">
               Reference dossier : <strong>{dossierReference}</strong>
             </p>
+            {loading ? <p className="text-xs text-muted-foreground">Chargement de l’état de signature...</p> : null}
           </div>
 
           <div className="space-y-3 rounded-md border border-border bg-muted p-5">
@@ -268,8 +329,12 @@ export const MandatePage = () => {
                 En signant ce document, je reconnais avoir lu integralement la procuration, compris sa portee, et autorise {GREFFIO_CONTACT.company} / {GREFFIO_CONTACT.brand} a accomplir pour mon compte les demarches necessaires au depot, suivi et regularisation de ma formalite.
               </span>
             </label>
-            <div className="md:col-span-2">
-              <Button type="submit">Signer la procuration</Button>
+            <div className="md:col-span-2 flex flex-wrap gap-2">
+              <Button type="submit" disabled={signing}>{signing ? 'Signature...' : 'Signer la procuration'}</Button>
+              <Button type="button" variant="outline" className="bg-white" onClick={onDownloadSignedPdf} disabled={!signedAt}>
+                <Download className="h-4 w-4" />
+                Télécharger le PDF signé
+              </Button>
             </div>
           </form>
         </section>
@@ -291,6 +356,13 @@ export const MandatePage = () => {
             <p className="mt-2 text-sm text-white/80">
               {signedAt ? `Signee le ${new Date(signedAt).toLocaleString('fr-FR')}` : 'En attente de signature'}
             </p>
+            {signatureEvidence?.documentHash ? (
+              <p className="mt-2 break-all text-xs text-white/80">Hash: {signatureEvidence.documentHash}</p>
+            ) : null}
+          </div>
+
+          <div className="rounded-md border border-border bg-white p-4 text-xs text-muted-foreground shadow-elevation-sm">
+            Greffio est un service privé indépendant d’assistance aux démarches administratives des entreprises. Greffio n’est pas un service officiel de l’État, des greffes des tribunaux de commerce ou d’Infogreffe.
           </div>
         </aside>
       </main>

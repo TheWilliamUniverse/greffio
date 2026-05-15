@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, CalendarClock, CheckCircle2, Clock3, FileText, MessageSquareText, Send, Upload } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar.jsx';
@@ -7,12 +7,15 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.jsx';
 import { getChatHistory, getDocuments, getDossiers } from '@/utils/localStorage.js';
+import { getDossierById } from '@/api/dossiers.js';
 
 export const DossierDetailPage = () => {
   const { id } = useParams();
   const dossiers = getDossiers();
-  const dossier = dossiers.find((item) => item.id === id);
-  const docs = getDocuments().filter((document) => document.dossierId === id);
+  const [apiDossier, setApiDossier] = useState(null);
+  const [apiDocs, setApiDocs] = useState([]);
+  const dossier = apiDossier || dossiers.find((item) => item.id === id);
+  const docs = apiDocs.length ? apiDocs : getDocuments().filter((document) => document.dossierId === id);
   const messages = getChatHistory().filter((message) => !message.dossierId || message.dossierId === id);
   const [comment, setComment] = useState('');
   const missingDocuments = useMemo(() => docs.filter((document) => ['ATTENTE_DOCS', 'URGENT', 'EN_ANALYSE', 'A_SIGNER', 'BROUILLON'].includes(document.status)), [docs]);
@@ -23,6 +26,54 @@ export const DossierDetailPage = () => {
       ...docs.map((document) => ({ id: document.id, action: document.status === 'BROUILLON' ? 'Document préparé' : 'Document ajouté', actor: document.providedBy, date: document.date, target: document.name })),
     ].sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [dossier, docs]);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!id) return;
+      try {
+        const payload = await getDossierById(id);
+        const d = payload.dossier;
+        setApiDossier({
+          id: d.id,
+          name: d.companyName || d.denomination || 'Dossier',
+          legalForm: d.legalForm || d.formeJuridique || 'SASU',
+          owner: 'Client',
+          status: String(d.status || '').toUpperCase(),
+          priority: 'Normale',
+          phase: d.service || 'formalite',
+          nextAction: 'Compléter les pièces demandées et valider les informations.',
+          expert: d.assignedToUserId || 'Équipe Greffio',
+          createdAt: d.createdAt,
+          dueDate: d.updatedAt || d.createdAt,
+          progress: Number(d.progressPercent || 0),
+          currentStep: Math.max(1, Math.round(Number(d.progressPercent || 0) / 20)),
+          totalSteps: 5,
+          blockers: [],
+          steps: [
+            { label: 'Informations dossier', done: Number(d.progressPercent || 0) >= 20 },
+            { label: 'Documents justificatifs', done: Number(d.progressPercent || 0) >= 40 },
+            { label: 'Contrôle Greffio', done: Number(d.progressPercent || 0) >= 60 },
+            { label: 'Signature', done: Number(d.progressPercent || 0) >= 80 },
+            { label: 'Dépôt formalité', done: Number(d.progressPercent || 0) >= 100 },
+          ],
+        });
+        setApiDocs((payload.documents || []).map((doc) => ({
+          id: doc.id,
+          name: doc.label,
+          type: doc.docKey,
+          size: doc.fileSizeBytes ? `${Math.round(Number(doc.fileSizeBytes) / 1024)} Ko` : 'N/A',
+          providedBy: doc.reviewerId ? 'Greffio' : 'Client',
+          source: 'API',
+          status: String(doc.status || '').toUpperCase(),
+          date: doc.updatedAt || doc.createdAt,
+          dossierId: doc.dossierId,
+        })));
+      } catch (_error) {
+        // fallback to local mock
+      }
+    };
+    void load();
+  }, [id]);
 
   if (!dossier) {
     return (
@@ -62,6 +113,9 @@ export const DossierDetailPage = () => {
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">Responsable : {dossier.expert} · Phase : {dossier.phase}</p>
                 <p className="mt-2 text-sm font-semibold text-primary">Prochaine action : {dossier.nextAction}</p>
+                <div className="mt-3 rounded-md border border-border bg-muted p-3 text-xs text-muted-foreground">
+                  Espace renforcé pour profils personne physique et personne morale: informations d’identité, justificatifs, statut de signature et suivi de dépôt centralisés au même endroit.
+                </div>
                 <div className="mt-5 grid gap-3 md:grid-cols-3">
                   <div className="rounded-md bg-muted p-3">
                     <p className="text-xs font-bold uppercase text-muted-foreground">Forme</p>

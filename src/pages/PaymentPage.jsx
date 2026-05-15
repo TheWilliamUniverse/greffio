@@ -69,6 +69,9 @@ export const PaymentPage = () => {
               Greffio utilise Mollie avec verification serveur et webhook idempotent pour garantir la
               fiabilité du statut de paiement avant traitement du dossier.
             </p>
+            <p className="mt-3 text-xs leading-6 text-white/85">
+              Greffio est un service privé indépendant d’assistance aux démarches administratives des entreprises. Greffio n’est pas un service officiel de l’État, des greffes des tribunaux de commerce ou d’Infogreffe.
+            </p>
           </div>
 
           <section className="grid gap-4 md:grid-cols-2">
