@@ -91,7 +91,7 @@ function App() {
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/guide" element={<GuidePage />} />
             <Route path="/procuration" element={<MandatePage />} />
-            <Route path="/ops" element={<OpsDashboardPage />} />
+            <Route path="/ops" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><OpsDashboardPage /></ProtectedRoute>} />
             <Route path="/paiement/verification" element={<PaymentVerificationPage />} />
 
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />

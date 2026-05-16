@@ -1,9 +1,11 @@
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
+import helmet from 'helmet';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import rateLimit from 'express-rate-limit';
 import { initSchema } from './dbClient.js';
 import { DOSSIER_STATUSES } from './stateMachine.js';
 import { requireAuth, requireRole } from './authMiddleware.js';
@@ -50,8 +52,50 @@ dotenv.config();
 const app = express();
 const port = Number(process.env.PORT || 8787);
 
-app.use(cors());
+const allowedOrigins = [
+  'https://greffio.willentreprises.com',
+  'https://www.greffio.willentreprises.com',
+];
+
+const corsOptions = process.env.NODE_ENV === 'production'
+  ? {
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error('CORS_ORIGIN_FORBIDDEN'));
+      },
+      credentials: true,
+    }
+  : {
+      origin: true,
+      credentials: true,
+    };
+
+app.use(helmet());
+app.use(cors(corsOptions));
 app.use(express.json());
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const paymentLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 40,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const uploadLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 const appUrl = process.env.APP_URL || 'https://greffio.willentreprises.com';
 const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:8787';
@@ -152,13 +196,12 @@ app.get('/api/company-search', requireAuth, async (req, res) => {
   }
 });
 
-app.post('/api/auth/signup', async (req, res) => {
+app.post('/api/auth/signup', authLimiter, async (req, res) => {
   const {
     email,
     password,
     firstName,
     lastName,
-    role = 'CLIENT',
     company = null,
   } = req.body || {};
   if (!email || !password || String(password).length < 6) {
@@ -173,7 +216,7 @@ app.post('/api/auth/signup', async (req, res) => {
     password,
     firstName,
     lastName,
-    role,
+    role: 'CLIENT',
     company,
   });
   return res.status(201).json({
@@ -184,7 +227,7 @@ app.post('/api/auth/signup', async (req, res) => {
   });
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) {
     return res.status(400).json({ ok: false, error: 'INVALID_LOGIN_PAYLOAD' });
@@ -201,7 +244,7 @@ app.post('/api/auth/login', async (req, res) => {
   });
 });
 
-app.post('/api/auth/refresh', (req, res) => {
+app.post('/api/auth/refresh', authLimiter, (req, res) => {
   const { refreshToken } = req.body || {};
   if (!refreshToken) {
     return res.status(400).json({ ok: false, error: 'REFRESH_TOKEN_REQUIRED' });
@@ -476,7 +519,7 @@ app.post('/api/ops/dossiers/:dossierId/documents/:docKey/status', requireAuth, r
   });
 });
 
-app.post('/api/dossiers/:dossierId/documents', requireAuth, uploadPdfOnly.single('file'), async (req, res) => {
+app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploadPdfOnly.single('file'), async (req, res) => {
   const dossier = await getDossier(req.params.dossierId);
   if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
   const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
@@ -827,7 +870,7 @@ app.get('/api/dossiers/:dossierId/statutes/pdf', requireAuth, async (req, res) =
   return fs.createReadStream(latest.fileUrl).pipe(res);
 });
 
-app.post('/api/payments/create', requireAuth, async (req, res) => {
+app.post('/api/payments/create', paymentLimiter, requireAuth, async (req, res) => {
   const { dossierId = 'dos_seed_001', offerCode = 'dossier-standard' } = req.body || {};
   const dossier = await getDossier(dossierId);
   if (!dossier) {
@@ -887,6 +930,11 @@ app.post('/api/payments/create', requireAuth, async (req, res) => {
         message: error.message,
       });
     }
+  } else if (process.env.NODE_ENV === 'production') {
+    return res.status(503).json({
+      ok: false,
+      error: 'MOLLIE_NOT_CONFIGURED',
+    });
   } else {
     created = {
       providerPaymentId: `mollie_demo_${Date.now()}`,

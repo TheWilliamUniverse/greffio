@@ -89,6 +89,15 @@ const offers = [
   },
 ];
 
+const FORMS_WITHOUT_STATUTES = new Set([
+  'MICRO-ENTREPRISE',
+  'AUTO-ENTREPRENEUR',
+  'ENTREPRISE INDIVIDUELLE (EI)',
+  'EI',
+  'EIRL (HISTORIQUE)',
+  'EXPLOITATION AGRICOLE INDIVIDUELLE',
+]);
+
 const steps = ['Démarche', 'Projet', 'Dirigeants', 'Synthèse'];
 const targetFormGroups = COMPANY_FORM_CATALOG.reduce((groups, form) => {
   const group = groups.find((item) => item.category === form.family);
@@ -200,6 +209,8 @@ export const FormalityWizardPage = () => {
 
   const selectedJourney = useMemo(() => journeys.find((journey) => journey.id === data.journey) || journeys[0], [data.journey]);
   const activeCompareModule = compareModules[requestedType] || null;
+  const selectedLegalFormUpper = String(data.legalForm || '').toUpperCase();
+  const requiresStatutes = !FORMS_WITHOUT_STATUTES.has(selectedLegalFormUpper);
   const progress = ((step + 1) / steps.length) * 100;
   const selectedForm = useMemo(() => COMPANY_FORM_CATALOG.find((form) => form.label === data.legalForm), [data.legalForm]);
   const questionnaire = useMemo(() => getQuestionnaire(selectedForm?.label || data.legalForm, questionMode), [selectedForm?.label, data.legalForm, questionMode]);
@@ -280,7 +291,7 @@ export const FormalityWizardPage = () => {
   };
 
   const generatedClauses = [
-    selectedForm?.hasStatutes
+    (selectedForm?.hasStatutes && requiresStatutes)
       ?
       `Forme : ${data.legalForm}, statuts préparés selon le droit français.`
       : `Forme : ${data.legalForm}, dossier déclaratif adapté sans statuts sociaux à déposer selon l’organisme compétent.`,
@@ -727,7 +738,7 @@ export const FormalityWizardPage = () => {
                     <div className="rounded-md border border-border bg-muted p-5">
                       <div className="mb-4 flex items-center gap-2">
                         <Sparkles className="h-5 w-5 text-primary" />
-                        <p className="font-extrabold">Aperçu des statuts générés</p>
+                        <p className="font-extrabold">{requiresStatutes ? 'Aperçu des statuts générés' : 'Aperçu du dossier déclaratif'}</p>
                       </div>
                       <div className="space-y-3">
                         {generatedClauses.map((clause) => (
@@ -841,7 +852,13 @@ export const FormalityWizardPage = () => {
           <div className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
             <h3 className="font-extrabold">Ce que Greffio prépare</h3>
             <div className="mt-4 space-y-3 text-sm">
-              {['Projet de statuts', 'Liste des pièces', 'Estimation frais légaux', 'Email récapitulatif', 'Dossier dashboard'].map((item) => (
+              {[
+                requiresStatutes ? 'Projet de statuts' : 'Dossier déclaratif adapté',
+                'Liste des pièces',
+                'Estimation frais légaux',
+                'Email récapitulatif',
+                'Dossier dashboard',
+              ].map((item) => (
                 <div key={item} className="flex items-center gap-3">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                   <span>{item}</span>
