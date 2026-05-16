@@ -38,6 +38,23 @@ export const createDossier = async ({ userId, companyName, legalForm, service })
   return parseResponse(response);
 };
 
+export const listDossiers = async () => {
+  const token = getToken();
+  if (!token) {
+    const error = new Error('AUTH_TOKEN_MISSING');
+    error.status = 401;
+    throw error;
+  }
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return parseResponse(response);
+};
+
 export const getDossierById = async (dossierId) => {
   const token = getToken();
   if (!token) {

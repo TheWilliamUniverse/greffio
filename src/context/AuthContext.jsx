@@ -22,6 +22,7 @@ export const AuthContext = createContext(null);
 
 const makeSessionToken = () => `greffio_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 const makeReference = () => `F${Math.floor(10000000 + (Math.random() * 90000000))}`;
+const allowLocalFallback = import.meta.env.DEV;
 
 const makeUserFromEmail = (email) => {
   const name = email.split('@')[0].split(/[._-]/)[0] || 'Client';
@@ -193,6 +194,9 @@ export const AuthProvider = ({ children }) => {
       toast.success('Bienvenue dans votre espace Greffio');
       return { success: true, user };
     } catch (_error) {
+      if (!allowLocalFallback) {
+        return { success: false, error: 'Connexion impossible. Vérifiez vos identifiants ou réessayez dans quelques instants.' };
+      }
       const storedUser = getUser();
       const user = storedUser?.email === email ? storedUser : makeUserFromEmail(email);
       setCurrentUser(user);
@@ -241,7 +245,9 @@ export const AuthProvider = ({ children }) => {
       effectiveToken = apiSignup.accessToken || effectiveToken;
       saveRefreshToken(apiSignup.refreshToken || '');
     } catch (_error) {
-      // keep local fallback user
+      if (!allowLocalFallback) {
+        return { success: false, error: 'Création du compte impossible. Réessayez ou contactez l’équipe Greffio.' };
+      }
       saveRefreshToken('');
     }
 

@@ -189,7 +189,7 @@ app.get('/api/interfaces/status', requireAuth, requireRole(['ADMIN', 'OPS', 'FOR
         key: 'payment',
         status: process.env.MOLLIE_API_KEY ? 'healthy' : 'warning',
         detail: process.env.MOLLIE_API_KEY
-          ? 'Mollie actif avec webhook /api/webhooks/mollie'
+          ? 'Mollie actif avec webhook /webhooks/mollie'
           : 'Mollie key absente: mode simulation actif',
       },
       {
@@ -409,6 +409,19 @@ app.get('/api/ops/payments', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALIS
   res.json({
     ok: true,
     payments: await getAllPayments(),
+  });
+});
+
+app.get('/api/dossiers', requireAuth, async (req, res) => {
+  const dossiers = await getAllDossiers();
+  const isOps = ['ADMIN', 'OPS', 'FORMALISTE'].includes(req.auth?.role);
+  const visibleDossiers = isOps
+    ? dossiers
+    : dossiers.filter((dossier) => dossier.userId && dossier.userId === req.auth?.sub);
+
+  return res.json({
+    ok: true,
+    dossiers: visibleDossiers,
   });
 });
 
@@ -1111,8 +1124,9 @@ app.post('/api/payments/create', paymentLimiter, requireAuth, async (req, res) =
     const moved = await transitionDossierStatus({
       dossierId: dossier.id,
       nextStatus: DOSSIER_STATUSES.PAYMENT_PENDING,
-      actorType: 'system',
-      actorRole: ROLE.SYSTEM,
+      actorType: 'api',
+      actorRole: req.auth?.role || ROLE.CLIENT,
+      actorId: req.auth.sub,
       reason: 'payment_initialized',
     });
     if (!moved.ok) {

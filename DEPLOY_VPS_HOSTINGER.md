@@ -29,7 +29,9 @@ mkdir -p /opt/greffio && cd /opt/greffio
 
 ```bash
 cd /opt/greffio
-npm install --omit=dev
+npm ci --omit=dev
+npm run db:migrate
+npm run db:check
 ```
 
 ## 5) Create production env
@@ -116,6 +118,7 @@ ufw enable
 
 ```bash
 curl https://api.greffio.willentreprises.com/api/health
+curl https://api.greffio.willentreprises.com/api/ready
 pm2 logs greffio-api
 ```
 
@@ -127,7 +130,22 @@ In backend env:
 In Mollie dashboard, ensure payment webhook points to:
 - `https://api.greffio.willentreprises.com/webhooks/mollie`
 
-## 12) Recommended architecture
+## 12) Internal Greffio account
+
+Run this only on the backend host, after `.env` is loaded and the database is reachable:
+
+```bash
+cd /opt/greffio
+INTERNAL_USER_ROLE=ADMIN npm run ops:promote-william
+```
+
+If `william@willentreprises.com` does not exist yet, create it with a temporary strong password:
+
+```bash
+INTERNAL_USER_PASSWORD='replace-with-a-strong-temporary-password' INTERNAL_USER_ROLE=ADMIN npm run ops:promote-william
+```
+
+## 13) Recommended architecture
 
 - Hostinger VPS: Node API + Nginx + PM2
 - Supabase/Postgres: primary database (next migration step)

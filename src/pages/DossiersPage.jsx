@@ -1,16 +1,223 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, Calendar, CheckCircle2, ClipboardCheck, Clock3, Filter, Plus, Search, ShieldCheck } from 'lucide-react';
+import { listDossiers } from '@/api/dossiers.js';
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
-import { getDossiers } from '@/utils/localStorage.js';
+import { getDossiers, saveDossiers } from '@/utils/localStorage.js';
+
+const STATUS_LABELS = {
+  draft: 'BROUILLON',
+  contact_started: 'EN_COURS',
+  contact_completed: 'EN_COURS',
+  legal_form_selected: 'EN_COURS',
+  questionnaire_in_progress: 'EN_COURS',
+  questionnaire_completed: 'EN_COURS',
+  documents_requested: 'ATTENTE_DOCS',
+  documents_uploaded: 'EN_ANALYSE',
+  documents_validated: 'VALIDE',
+  documents_under_review: 'EN_ANALYSE',
+  documents_missing_or_invalid: 'URGENT',
+  mandate_pending_signature: 'A_SIGNER',
+  mandate_required: 'A_SIGNER',
+  mandate_signed: 'VALIDE',
+  statutes_generated: 'A_SIGNER',
+  statutes_under_review: 'EN_ANALYSE',
+  statutes_signed: 'VALIDE',
+  payment_pending: 'ATTENTE_DOCS',
+  payment_confirmed: 'EN_COURS',
+  dossier_preparation: 'EN_COURS',
+  client_validation_required: 'A_SIGNER',
+  client_validated: 'EN_COURS',
+  ready_for_filing: 'PLANIFIE',
+  filed_to_guichet_unique: 'EN_ANALYSE',
+  under_administration_review: 'EN_ANALYSE',
+  regularization_requested: 'URGENT',
+  regularization_submitted: 'EN_ANALYSE',
+  accepted: 'VALIDE',
+  official_documents_available: 'VALIDE',
+  completed: 'TERMINE',
+  rejected: 'REJETE',
+  abandoned: 'TERMINE',
+  cancelled_by_client: 'TERMINE',
+  payment_failed: 'URGENT',
+  manual_review_required: 'EN_ANALYSE',
+};
+
+const PRIORITY_LABELS = {
+  low: 'Basse',
+  normal: 'Normale',
+  medium: 'Moyenne',
+  high: 'Haute',
+  urgent: 'Urgente',
+};
+
+const SERVICE_LABELS = {
+  'creation-sasu': 'Création SASU',
+  'creation-sas': 'Création SAS',
+  'creation-sarl': 'Création SARL',
+  'creation-eurl': 'Création EURL',
+  'creation-sa': 'Création SA',
+  'creation-sci': 'Création SCI',
+  modification: 'Modification d’entreprise',
+  dissolution: 'Dissolution / fermeture',
+};
+
+const NEXT_ACTIONS = {
+  draft: 'Initialiser le dossier et compléter les premières informations.',
+  questionnaire_in_progress: 'Continuer le questionnaire intelligent.',
+  questionnaire_completed: 'Vérifier les réponses et choisir l’offre adaptée.',
+  documents_requested: 'Déposer les pièces justificatives demandées.',
+  documents_missing_or_invalid: 'Corriger les documents signalés par l’équipe Greffio.',
+  mandate_required: 'Lire et signer la procuration Greffio.',
+  mandate_pending_signature: 'Signer la procuration Greffio.',
+  statutes_generated: 'Relire les statuts générés avant signature.',
+  client_validation_required: 'Valider le dossier avant dépôt.',
+  payment_pending: 'Régler les frais requis pour poursuivre la formalité.',
+  filed_to_guichet_unique: 'Le dossier est déposé et suivi par Greffio.',
+  under_administration_review: 'Aucune action requise, instruction en cours.',
+  regularization_requested: 'Répondre à la demande de complément.',
+  accepted: 'Télécharger les documents officiels disponibles.',
+  completed: 'Dossier clôturé, documents conservés dans votre coffre.',
+  rejected: 'Lire le retour administratif et préparer une régularisation.',
+};
+
+const toVisualStatus = (status) => STATUS_LABELS[String(status || '').toLowerCase()] || String(status || 'BROUILLON').toUpperCase();
+
+const buildSteps = (progress, status) => {
+  const normalizedProgress = Number(progress || 0);
+  const normalizedStatus = String(status || '').toLowerCase();
+  const accepted = ['accepted', 'official_documents_available', 'completed'].includes(normalizedStatus);
+  const questionnaireDone = [
+    'questionnaire_completed',
+    'documents_requested',
+    'documents_uploaded',
+    'documents_validated',
+    'documents_under_review',
+    'documents_missing_or_invalid',
+    'mandate_pending_signature',
+    'mandate_required',
+    'mandate_signed',
+    'statutes_generated',
+    'statutes_under_review',
+    'statutes_signed',
+    'payment_pending',
+    'payment_confirmed',
+    'dossier_preparation',
+    'client_validation_required',
+    'client_validated',
+    'ready_for_filing',
+    'filed_to_guichet_unique',
+    'under_administration_review',
+    'regularization_requested',
+    'regularization_submitted',
+    'accepted',
+    'official_documents_available',
+    'completed',
+  ].includes(normalizedStatus);
+  const documentsDone = [
+    'documents_validated',
+    'mandate_pending_signature',
+    'mandate_required',
+    'mandate_signed',
+    'statutes_generated',
+    'statutes_under_review',
+    'statutes_signed',
+    'payment_pending',
+    'payment_confirmed',
+    'dossier_preparation',
+    'client_validation_required',
+    'client_validated',
+    'ready_for_filing',
+    'filed_to_guichet_unique',
+    'under_administration_review',
+    'regularization_requested',
+    'regularization_submitted',
+    'accepted',
+    'official_documents_available',
+    'completed',
+  ].includes(normalizedStatus);
+  return [
+    { label: 'Projet', done: normalizedProgress >= 5 || Boolean(status) },
+    { label: 'Questionnaire', done: normalizedProgress >= 25 || questionnaireDone },
+    { label: 'Documents', done: normalizedProgress >= 50 || documentsDone },
+    { label: 'Validation', done: normalizedProgress >= 75 || accepted },
+    { label: 'Dépôt', done: normalizedProgress >= 95 || accepted },
+  ];
+};
+
+const normalizeApiDossier = (dossier) => {
+  const progress = Math.max(0, Math.min(100, Number(dossier.progressPercent || dossier.progress || 0)));
+  const status = String(dossier.status || 'draft').toLowerCase();
+  const steps = buildSteps(progress, status);
+  const dueDate = dossier.updatedAt || dossier.createdAt || new Date().toISOString();
+  return {
+    id: dossier.id,
+    reference: dossier.reference || '',
+    name: dossier.companyName || dossier.denomination || 'Projet Greffio',
+    legalForm: dossier.legalForm || dossier.formeJuridique || 'Forme à préciser',
+    status: toVisualStatus(status),
+    rawStatus: status,
+    priority: PRIORITY_LABELS[String(dossier.opsPriority || 'normal').toLowerCase()] || dossier.opsPriority || 'Normale',
+    phase: SERVICE_LABELS[dossier.service] || dossier.typeFormalite || 'Formalité Greffio',
+    nextAction: NEXT_ACTIONS[status] || 'Suivre la prochaine étape depuis votre espace sécurisé.',
+    expert: dossier.assignedToUserId ? 'Équipe Greffio assignée' : 'Équipe Greffio',
+    createdAt: dossier.createdAt,
+    dueDate,
+    progress,
+    currentStep: Math.max(1, steps.filter((step) => step.done).length || 1),
+    totalSteps: steps.length,
+    blockers: ['URGENT', 'ATTENTE_DOCS'].includes(toVisualStatus(status)) ? ['Action attendue dans le dossier'] : [],
+    service: dossier.service,
+    steps,
+  };
+};
+
+const normalizeStoredDossier = (dossier) => ({
+  blockers: [],
+  steps: [],
+  priority: 'Normale',
+  progress: 0,
+  dueDate: dossier.updatedAt || dossier.createdAt || new Date().toISOString(),
+  ...dossier,
+});
+
+const formatDate = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'À suivre';
+  return date.toLocaleDateString('fr-FR');
+};
 
 export const DossiersPage = () => {
-  const dossiers = getDossiers();
+  const [dossiers, setDossiers] = useState(() => getDossiers().map(normalizeStoredDossier));
   const [searchTerm, setSearchTerm] = useState('');
   const [status, setStatus] = useState('Tous');
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadDossiers = async () => {
+      try {
+        const payload = await listDossiers();
+        if (!mounted || !Array.isArray(payload.dossiers)) return;
+        const apiDossiers = payload.dossiers.map(normalizeApiDossier);
+        setDossiers(apiDossiers);
+        saveDossiers(apiDossiers);
+      } catch (_error) {
+        if (!mounted) return;
+        setDossiers(getDossiers().map(normalizeStoredDossier));
+      }
+    };
+
+    loadDossiers();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const statuses = useMemo(() => ['Tous', ...new Set(dossiers.map((dossier) => dossier.status))], [dossiers]);
 
   const filteredDossiers = dossiers.filter((dossier) => {
@@ -20,7 +227,7 @@ export const DossiersPage = () => {
       dossier.expert,
       dossier.phase,
       dossier.legalForm,
-      dossier.blockers.join(' '),
+      (dossier.blockers || []).join(' '),
     ].join(' ');
     const matchesSearch = searchable.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = status === 'Tous' || dossier.status === status;
@@ -125,7 +332,7 @@ export const DossiersPage = () => {
 
                   <div className="mt-5">
                     <div className="mb-2 flex justify-between text-xs font-bold text-muted-foreground">
-                      <span>Étape {dossier.currentStep || 0}/{dossier.totalSteps || dossier.steps.length || 0}</span>
+                      <span>Étape {dossier.currentStep || 0}/{dossier.totalSteps || dossier.steps?.length || 0}</span>
                       <span>{dossier.progress || 0}%</span>
                     </div>
                     <div className="h-2 rounded-full bg-muted">
@@ -142,7 +349,7 @@ export const DossiersPage = () => {
                     ))}
                   </div>
 
-                  {dossier.blockers.length > 0 && (
+                  {(dossier.blockers || []).length > 0 && (
                     <div className="mt-5 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
                       <p className="font-bold">Point bloquant</p>
                       <p className="mt-1">{dossier.blockers.join(' · ')}</p>
@@ -151,7 +358,7 @@ export const DossiersPage = () => {
 
                   <div className="mt-5 flex items-center justify-between border-t border-border pt-4 text-sm">
                     <span className="font-semibold text-foreground">{dossier.expert}</span>
-                    <span className="text-muted-foreground">{new Date(dossier.dueDate).toLocaleDateString('fr-FR')}</span>
+                    <span className="text-muted-foreground">{formatDate(dossier.dueDate)}</span>
                   </div>
                 </Link>
               ))}

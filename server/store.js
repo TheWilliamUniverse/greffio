@@ -847,7 +847,7 @@ const upsertPayment = async (payload) => {
     amountLegalFeesCents: payload.amountLegalFeesCents,
     currency: payload.currency || 'EUR',
     status: payload.status || 'created',
-    provider: payload.provider || 'payplug',
+    provider: payload.provider || 'mollie',
     providerPaymentId: payload.providerPaymentId || null,
     providerPayload: payload.providerPayload || {},
     createdAt: payload.createdAt || nowIso(),

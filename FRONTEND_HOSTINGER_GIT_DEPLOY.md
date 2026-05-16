@@ -16,9 +16,15 @@ Deploy `greffio.willentreprises.com` from GitHub automatically.
 - Repository: `TheWilliamUniverse/greffio`
 - Branch: `main`
 - Root directory: `./`
-- Build command: `npm install && npm run build`
-- Output directory: `dist`
-- Node version: `20.x` (or `22.x` if compatible)
+- Node version: `20.x`
+- If framework auto-detection fails, set framework to `Other`
+- Install command: `npm ci`
+- Build command: `npm run hostinger:build`
+- Start command: `npm run hostinger:start`
+- Output directory (if required by UI): `dist`
+
+This repository is a monorepo-like setup (frontend + backend + mobile).
+Using `hostinger:start` guarantees Hostinger runs a valid Node entrypoint and serves the Vite build reliably.
 
 ## Frontend environment variables
 

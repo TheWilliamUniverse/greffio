@@ -75,6 +75,7 @@ const TRANSITIONS = Object.freeze([
   { from: DOSSIER_STATUSES.LEGAL_FORM_SELECTED, to: DOSSIER_STATUSES.QUESTIONNAIRE_IN_PROGRESS, allowedRoles: [ROLE.CLIENT, ...OPS_ROLES], automatic: false },
   { from: DOSSIER_STATUSES.QUESTIONNAIRE_IN_PROGRESS, to: DOSSIER_STATUSES.QUESTIONNAIRE_COMPLETED, allowedRoles: [ROLE.CLIENT, ...OPS_ROLES], automatic: false },
   { from: DOSSIER_STATUSES.QUESTIONNAIRE_COMPLETED, to: DOSSIER_STATUSES.DOCUMENTS_REQUESTED, allowedRoles: OPS_ROLES, automatic: false, emailTemplate: 'documents_requested' },
+  { from: DOSSIER_STATUSES.QUESTIONNAIRE_COMPLETED, to: DOSSIER_STATUSES.PAYMENT_PENDING, allowedRoles: [ROLE.CLIENT, ...OPS_ROLES], automatic: false, emailTemplate: 'payment_required' },
   { from: DOSSIER_STATUSES.QUESTIONNAIRE_COMPLETED, to: DOSSIER_STATUSES.MANUAL_REVIEW_REQUIRED, allowedRoles: OPS_ROLES, automatic: false },
   { from: DOSSIER_STATUSES.DOCUMENTS_REQUESTED, to: DOSSIER_STATUSES.DOCUMENTS_UPLOADED, allowedRoles: [ROLE.CLIENT, ...OPS_ROLES], automatic: false, sideEffects: ['refresh_document_checklist'] },
   { from: DOSSIER_STATUSES.DOCUMENTS_REQUESTED, to: DOSSIER_STATUSES.DOCUMENTS_MISSING_OR_INVALID, allowedRoles: OPS_ROLES, automatic: false, emailTemplate: 'document_invalid' },

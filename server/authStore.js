@@ -129,8 +129,80 @@ const authenticateUser = async ({ email, password }) => {
   return mapUserRow(row);
 };
 
+const updateUserRoleByEmail = async ({
+  email,
+  role,
+  firstName = null,
+  lastName = null,
+  company = undefined,
+}) => {
+  const normalized = String(email || '').toLowerCase().trim();
+  const updatedAt = nowIso();
+  const normalizedFirstName = firstName == null ? null : String(firstName).trim();
+  const normalizedLastName = lastName == null ? null : String(lastName).trim();
+  const companyJson = company === undefined ? undefined : JSON.stringify(company || null);
+
+  if (hasPostgres) {
+    const result = await query(`
+      UPDATE users
+      SET
+        role = $2,
+        first_name = COALESCE(NULLIF($3, ''), first_name),
+        last_name = COALESCE(NULLIF($4, ''), last_name),
+        company_json = CASE WHEN $5::text IS NULL THEN company_json ELSE $5::text END,
+        updated_at = $6
+      WHERE email = $1
+      RETURNING
+        id,
+        email,
+        first_name AS "firstName",
+        last_name AS "lastName",
+        role,
+        company_json AS "companyJson",
+        created_at AS "createdAt",
+        updated_at AS "updatedAt"
+    `, [
+      normalized,
+      role,
+      normalizedFirstName,
+      normalizedLastName,
+      companyJson === undefined ? null : companyJson,
+      updatedAt,
+    ]);
+    return mapUserRow(result.rows[0] || null);
+  }
+
+  const current = await getUserByEmail(normalized);
+  if (!current) return null;
+
+  const nextUser = {
+    email: normalized,
+    role,
+    firstName: normalizedFirstName || current.firstName,
+    lastName: normalizedLastName || current.lastName,
+    companyJson: companyJson === undefined ? current.companyJson : companyJson,
+    updatedAt,
+  };
+
+  sqlite
+    .prepare(`
+      UPDATE users
+      SET
+        role = @role,
+        first_name = @firstName,
+        last_name = @lastName,
+        company_json = @companyJson,
+        updated_at = @updatedAt
+      WHERE email = @email
+    `)
+    .run(nextUser);
+
+  return mapUserRow(await getUserByEmail(normalized));
+};
+
 export {
   createUser,
   getUserByEmail,
   authenticateUser,
+  updateUserRoleByEmail,
 };

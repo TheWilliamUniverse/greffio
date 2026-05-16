@@ -17,7 +17,9 @@ ssh root@187.127.232.210
 cd /opt/greffio
 # if using git:
 git pull
-npm install --omit=dev
+npm ci --omit=dev
+npm run db:migrate
+npm run db:check
 pm2 restart greffio-api --update-env
 pm2 logs greffio-api --lines 100
 curl http://127.0.0.1:8787/api/health
@@ -89,14 +91,29 @@ Critical checks:
 - Set `DOCUMENT_STORAGE_DRIVER=supabase` on VPS to store uploaded docs in Supabase Storage.
 - Keep `DOCUMENT_STORAGE_DRIVER=local` for local dev.
 
-## 6) What is already accessible
+## 6) Internal Greffio account
+
+Promote the William Establishments account to an internal Greffio role from the backend host only:
+
+```bash
+cd /opt/greffio
+INTERNAL_USER_ROLE=ADMIN npm run ops:promote-william
+```
+
+If the account does not exist yet, create it explicitly with a temporary strong password:
+
+```bash
+INTERNAL_USER_PASSWORD='replace-with-a-strong-temporary-password' INTERNAL_USER_ROLE=ADMIN npm run ops:promote-william
+```
+
+## 7) What is already accessible
 
 - VPS SSH access: available
 - Backend deploy/restart: available
 - Supabase Postgres connectivity via `DATABASE_URL`: configured
 - Mollie live API key on backend: configured
 
-## 7) What is still needed for full admin automation
+## 8) What is still needed for full admin automation
 
 - Real `SUPABASE_SERVICE_ROLE_KEY` (backend-only) if server-side Supabase admin APIs are required.
 - DNS for `api.greffio.willentreprises.com` must point to VPS for final HTTPS API domain cutover.

@@ -8,13 +8,18 @@ Objectif: ne plus utiliser les ZIP manuels pour chaque mise à jour frontend.
 - Branche de déploiement: `main`
 - Projet Node.js Web App configuré
 
-## 2) Configuration Hostinger recommandée
+## 2) Configuration Hostinger recommandée (import Git)
 
-- Framework preset: `Vite`
-- Node version: `22.x` (ou `20.x` si nécessaire)
+- Type d'app: `Node.js App` (pas site statique ZIP)
+- Framework preset: si la détection échoue, choisir `Other`
+- Node version: `20.x`
 - Root directory: `./`
-- Build command: `npm install && npm run build`
-- Output directory: `dist`
+- Install command: `npm ci`
+- Build command: `npm run hostinger:build`
+- Start command: `npm run hostinger:start`
+- Output directory (si demandé): `dist`
+
+Pourquoi cette config: le repo contient frontend + backend + mobile. Le script `hostinger:start` sert uniquement le build frontend React (`dist`) en mode SPA, ce qui contourne les faux négatifs de détection framework Hostinger.
 
 ## 3) Variables d'environnement frontend
 
@@ -38,7 +43,8 @@ VITE_APP_URL=https://greffio.willentreprises.com
 ```txt
 git push origin main
 -> Hostinger déclenche le build
--> publication du dossier dist
+-> lancement de `hostinger:start`
+-> publication de la version frontend
 ```
 
 Après activation de ce flux, plus besoin d'upload ZIP manuel pour le frontend.

@@ -3,34 +3,10 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { CircleCheckBig, Clock3 } from 'lucide-react';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
-import { runtimeConfig } from '@/config/runtime.js';
 
 export const PaymentVerificationPage = () => {
   const [searchParams] = useSearchParams();
   const dossierId = searchParams.get('dossierId');
-  const mock = searchParams.get('mock');
-
-  const markPaidInMock = async () => {
-    if (!mock || !dossierId) return;
-    try {
-      const createRes = await fetch(`${runtimeConfig.apiBaseUrl}/api/payments/create`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dossierId, offerCode: 'dossier-standard' }),
-      });
-      if (!createRes.ok) return;
-      const payload = await createRes.json();
-      const providerPaymentId = payload?.payment?.providerPaymentId;
-      if (!providerPaymentId) return;
-      await fetch(`${runtimeConfig.apiBaseUrl}/api/mollie/webhook`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: providerPaymentId }),
-      });
-    } catch (_e) {
-      // silent fallback in mock mode
-    }
-  };
 
   return (
     <main className="min-h-screen bg-background px-4 py-10 sm:px-6 lg:px-8">
@@ -48,7 +24,7 @@ export const PaymentVerificationPage = () => {
           </div>
           <h1 className="text-2xl font-extrabold">Retour paiement effectué</h1>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
-            Votre paiement a été initié. Greffio attend la confirmation serveur (webhook PSP)
+            Votre paiement a été initié. Greffio attend la confirmation serveur de Mollie
             avant de marquer le dossier comme payé et de lancer la suite.
           </p>
           {dossierId && (
@@ -72,11 +48,6 @@ export const PaymentVerificationPage = () => {
             <Button variant="outline" asChild className="bg-white">
               <Link to="/dossiers">Voir mes dossiers</Link>
             </Button>
-            {mock && (
-              <Button type="button" variant="outline" className="bg-white" onClick={markPaidInMock}>
-                Simuler confirmation webhook
-              </Button>
-            )}
           </div>
         </section>
       </div>
