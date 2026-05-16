@@ -1,4 +1,7 @@
 import dotenv from 'dotenv';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Pool } from 'pg';
 import { sqlite } from './database.js';
 
@@ -9,6 +12,7 @@ if (process.env.NODE_ENV === 'production' && !hasPostgres) {
   throw new Error('DATABASE_URL_REQUIRED_IN_PRODUCTION');
 }
 const pool = hasPostgres ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }) : null;
+const migrationsDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
 
 const query = async (text, params = []) => {
   if (!pool) throw new Error('POSTGRES_NOT_CONFIGURED');
@@ -229,7 +233,55 @@ const initPostgresSchema = async () => {
 };
 
 const initSchema = async () => {
-  await initPostgresSchema();
+  if (hasPostgres) {
+    await runPostgresMigrations();
+  }
+};
+
+const runPostgresMigrations = async () => {
+  if (!hasPostgres) {
+    throw new Error('POSTGRES_NOT_CONFIGURED');
+  }
+  await query(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      version TEXT PRIMARY KEY,
+      applied_at TEXT NOT NULL
+    );
+  `);
+
+  if (!fs.existsSync(migrationsDir)) {
+    return [];
+  }
+  const migrationFiles = fs
+    .readdirSync(migrationsDir)
+    .filter((file) => file.endsWith('.sql'))
+    .sort((a, b) => a.localeCompare(b));
+
+  const applied = [];
+  for (const file of migrationFiles) {
+    const version = file.replace(/\.sql$/i, '');
+    const exists = await query(
+      'SELECT 1 AS found FROM schema_migrations WHERE version = $1 LIMIT 1',
+      [version],
+    );
+    if (exists.rows[0]) continue;
+
+    const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+    try {
+      await query('BEGIN');
+      await query(sql);
+      await query(
+        'INSERT INTO schema_migrations (version, applied_at) VALUES ($1, $2)',
+        [version, new Date().toISOString()],
+      );
+      await query('COMMIT');
+      applied.push(version);
+    } catch (error) {
+      await query('ROLLBACK');
+      throw error;
+    }
+  }
+  return applied;
 };
 
 const checkDatabaseConnection = async () => {
@@ -248,6 +300,7 @@ export {
   checkDatabaseConnection,
   initSchema,
   initPostgresSchema,
+  runPostgresMigrations,
   hasPostgres,
   pool,
   query,

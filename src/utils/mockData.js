@@ -86,6 +86,12 @@ export const LEGAL_SERVICES = [
   },
 ];
 
+export const SERVICE_AVAILABILITY = Object.freeze({
+  AVAILABLE_NOW: 'available_now',
+  COMING_SOON: 'coming_soon',
+  MANUAL_QUOTE: 'manual_quote',
+});
+
 export const PAYMENT_METHODS = [
   {
     id: 'mollie-checkout',
@@ -216,3 +222,35 @@ export const COMPANY_FORM_CATALOG = [
   form('societe-de-fait', 'Société de fait', 'Situations atypiques', 'SOCIETE_DE_FAIT', false, 'Situation de fait à constater et sécuriser, sans constitution régulière classique.', 'Organisation factuelle des participants', 110),
   form('societe-tacite', 'Société tacite', 'Situations atypiques', 'SOCIETE_TACITE', false, 'Situation implicite à documenter avec prudence.', 'Organisation contractuelle ou de fait', 111),
 ];
+
+const AVAILABLE_FORM_KEYS = new Set([
+  'sas',
+  'sasu',
+  'sarl',
+  'eurl',
+  'sci',
+  'micro',
+  'auto-entrepreneur',
+  'ei',
+  'modification',
+  'transfert-siege',
+  'changement-dirigeant',
+]);
+
+const COMING_SOON_FORM_KEYS = new Set([
+  'sa',
+  'association-1901',
+  'holding',
+  'filiale',
+  'franchise',
+  'joint-venture',
+  'gaec',
+  'earl',
+  'scea',
+]);
+
+export const getFormAvailability = (formKey) => {
+  if (AVAILABLE_FORM_KEYS.has(formKey)) return SERVICE_AVAILABILITY.AVAILABLE_NOW;
+  if (COMING_SOON_FORM_KEYS.has(formKey)) return SERVICE_AVAILABILITY.COMING_SOON;
+  return SERVICE_AVAILABILITY.MANUAL_QUOTE;
+};

@@ -21,7 +21,7 @@ import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
-import { COMPANY_FORM_CATALOG } from '@/utils/mockData.js';
+import { COMPANY_FORM_CATALOG, getFormAvailability, SERVICE_AVAILABILITY } from '@/utils/mockData.js';
 import {
   QUESTION_MODES,
   buildDocumentPreview,
@@ -506,6 +506,14 @@ export const FormalityWizardPage = () => {
                             className="grid gap-3 md:grid-cols-2 xl:grid-cols-3"
                           >
                             {visibleForms.map((form) => (
+                              (() => {
+                                const availability = getFormAvailability(form.key);
+                                const availabilityLabel = availability === SERVICE_AVAILABILITY.AVAILABLE_NOW
+                                  ? 'Disponible'
+                                  : availability === SERVICE_AVAILABILITY.COMING_SOON
+                                    ? 'Bientôt'
+                                    : 'Sur devis';
+                                return (
                               <motion.button
                                 type="button"
                                 key={form.key}
@@ -516,11 +524,13 @@ export const FormalityWizardPage = () => {
                                 <span className="flex items-start justify-between gap-2">
                                   <strong className="text-base">{form.label}</strong>
                                   <span className="rounded-full bg-white px-2 py-1 text-[11px] font-bold uppercase text-primary">
-                                    {form.hasStatutes ? 'Statuts' : 'Dossier'}
+                                    {availabilityLabel}
                                   </span>
                                 </span>
                                 <span className="mt-2 block text-xs leading-5 text-muted-foreground">{form.description}</span>
                               </motion.button>
+                                );
+                              })()
                             ))}
                           </motion.div>
                         </AnimatePresence>
