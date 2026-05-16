@@ -103,6 +103,7 @@ CREATE TABLE IF NOT EXISTS documents (
   file_size_bytes INTEGER,
   mime_type TEXT,
   storage_url TEXT,
+  sha256 TEXT,
   rejected_reason TEXT,
   uploaded_at TEXT,
   reviewed_at TEXT,
@@ -229,6 +230,7 @@ addColumnIfMissing('documents', 'type', 'TEXT');
 addColumnIfMissing('documents', 'original_filename', 'TEXT');
 addColumnIfMissing('documents', 'recommended_filename', 'TEXT');
 addColumnIfMissing('documents', 'file_url', 'TEXT');
+addColumnIfMissing('documents', 'sha256', 'TEXT');
 addColumnIfMissing('generated_documents', 'file_size_bytes', 'INTEGER');
 
 export {

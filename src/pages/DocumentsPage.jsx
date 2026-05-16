@@ -125,7 +125,9 @@ export const DocumentsPage = () => {
         ownerLastName: user?.lastName || '',
       });
       setApiDocuments(payload.documents || []);
-      if (payload.analysis?.requiresManualReview) {
+      if (payload.warning) {
+        setUploadSuccess(payload.warning);
+      } else if (payload.analysis?.requiresManualReview) {
         setUploadSuccess('Pièce reçue. Contrôle manuel Greffio requis avant validation finale.');
       } else {
         setUploadSuccess('Pièce déposée et analysée automatiquement.');

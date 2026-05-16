@@ -97,6 +97,7 @@ CREATE TABLE IF NOT EXISTS documents (
   file_size_bytes BIGINT,
   mime_type TEXT,
   storage_url TEXT,
+  sha256 TEXT,
   rejected_reason TEXT,
   uploaded_at TEXT,
   reviewed_at TEXT,
@@ -195,5 +196,6 @@ ALTER TABLE documents ADD COLUMN IF NOT EXISTS type TEXT;
 ALTER TABLE documents ADD COLUMN IF NOT EXISTS original_filename TEXT;
 ALTER TABLE documents ADD COLUMN IF NOT EXISTS recommended_filename TEXT;
 ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_url TEXT;
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS sha256 TEXT;
 ALTER TABLE documents ADD COLUMN IF NOT EXISTS metadata_json TEXT;
 ALTER TABLE generated_documents ADD COLUMN IF NOT EXISTS file_size_bytes BIGINT;

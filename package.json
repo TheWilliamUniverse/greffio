@@ -9,6 +9,8 @@
     "build": "vite build",
     "db:migrate": "node server/scripts/db-migrate.js",
     "db:check": "node server/scripts/db-check.js",
+    "storage:migrate:dry": "node server/scripts/migrate-local-documents-to-supabase.js --dry-run",
+    "storage:migrate": "node server/scripts/migrate-local-documents-to-supabase.js",
     "start": "vite preview --host 0.0.0.0 --port 3000",
     "lint": "eslint . --quiet",
     "lint:warn": "eslint .",

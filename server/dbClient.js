@@ -135,6 +135,7 @@ const initPostgresSchema = async () => {
       file_size_bytes BIGINT,
       mime_type TEXT,
       storage_url TEXT,
+      sha256 TEXT,
       rejected_reason TEXT,
       uploaded_at TEXT,
       reviewed_at TEXT,
@@ -148,6 +149,7 @@ const initPostgresSchema = async () => {
   await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS original_filename TEXT;`);
   await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS recommended_filename TEXT;`);
   await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_url TEXT;`);
+  await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS sha256 TEXT;`);
   await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS metadata_json TEXT;`);
   await query(`
     CREATE TABLE IF NOT EXISTS generated_documents (

@@ -57,6 +57,11 @@ import {
   objectStorageConfig,
   uploadDocumentToConfiguredStorage,
 } from './services/objectStorage.js';
+import {
+  enqueueStorageRetry,
+  getStorageRetryQueueSnapshot,
+  registerStorageFailureForOps,
+} from './services/storageRetryQueue.js';
 
 dotenv.config();
 
@@ -148,6 +153,19 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'greffio-api', timestamp: new Date().toISOString() });
 });
 
+app.get('/api/ready', async (_req, res) => {
+  const checks = {
+    storageDriver: objectStorageConfig.driver,
+    supabaseConfigured: objectStorageConfig.supabaseConfigured,
+    assistantConfigured: isAssistantConfigured(),
+    timestamp: new Date().toISOString(),
+  };
+  if (checks.storageDriver === 'supabase' && !checks.supabaseConfigured) {
+    return res.status(503).json({ ok: false, error: 'STORAGE_NOT_CONFIGURED', checks });
+  }
+  return res.json({ ok: true, checks });
+});
+
 app.get('/api/interfaces/status', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (_req, res) => {
   const databaseStatus = process.env.DATABASE_URL
     ? 'Postgres (DATABASE_URL configuré)'
@@ -221,6 +239,15 @@ app.get('/api/observability/company-lookup', requireAuth, requireRole(['ADMIN', 
   return res.json({
     ok: true,
     metrics: getCompanyLookupMetrics(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.get('/api/observability/storage', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), (_req, res) => {
+  return res.json({
+    ok: true,
+    storage: objectStorageConfig,
+    retryQueue: getStorageRetryQueueSnapshot(),
     timestamp: new Date().toISOString(),
   });
 });
@@ -679,9 +706,11 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
   const desiredPath = path.join(dossierUploadDir, targetFilename);
   const finalPath = ensureUniqueFilePath(desiredPath);
   fs.renameSync(req.file.path, finalPath);
+  const sha256 = createHash('sha256').update(fs.readFileSync(finalPath)).digest('hex');
   let storageUrl = finalPath;
   let fileUrl = finalPath;
   let storageProvider = 'local';
+  let storageUploadWarning = null;
   try {
     const uploadResult = await uploadDocumentToConfiguredStorage({
       dossierId: dossier.id,
@@ -696,6 +725,25 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
   } catch (storageError) {
     storageProvider = 'local_fallback';
     console.error('DOCUMENT_STORAGE_UPLOAD_FAILED', storageError);
+    enqueueStorageRetry({
+      dossierId: dossier.id,
+      docKey,
+      localFilePath: finalPath,
+      filename: path.basename(finalPath),
+      reason: 'supabase_upload_failed',
+    });
+    const alert = registerStorageFailureForOps({
+      dossierId: dossier.id,
+      docKey,
+      reason: 'supabase_upload_failed',
+    });
+    if (alert.shouldAlert) {
+      console.error('OPS_STORAGE_ALERT', {
+        message: 'Repeated storage failures in 5 minute window',
+        ...alert,
+      });
+    }
+    storageUploadWarning = 'Stockage cloud temporairement indisponible, votre document est conserve et sera repris automatiquement.';
   }
   const analysis = await analyzeDocument({
     filePath: finalPath,
@@ -716,10 +764,12 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
     fileSizeBytes: req.file.size,
     mimeType: req.file.mimetype,
     storageUrl,
+    sha256,
     reviewerId: null,
     metadata: {
       analysis,
       storageProvider,
+      storageUploadWarning,
       uploadedByRole: req.auth?.role || 'client',
       uploadedAt: new Date().toISOString(),
     },
@@ -760,8 +810,10 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
       recommendedFilename: path.basename(finalPath),
       mimeType: req.file.mimetype,
       size: req.file.size,
+      sha256,
     },
     analysis,
+    warning: storageUploadWarning,
     documents: await listDossierDocuments(dossier.id),
   });
 });

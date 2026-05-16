@@ -25,6 +25,23 @@ const parseResponse = async (response) => {
   throw error;
 };
 
+const mapDocumentUploadError = (error) => {
+  const code = String(error?.message || '');
+  if (code === 'DOCUMENT_NOT_ALLOWED_FOR_FORMALITY') {
+    return 'Ce document n est pas autorise pour cette formalite (EI/micro inclus).';
+  }
+  if (code === 'FILE_TOO_LARGE') {
+    return 'Le fichier depasse la limite de 10 Mo.';
+  }
+  if (code === 'INVALID_FILE_TYPE') {
+    return 'Seuls les fichiers PDF sont acceptes.';
+  }
+  if (code === 'DOSSIER_FORBIDDEN') {
+    return 'Acces refuse a ce dossier.';
+  }
+  return code || "L upload a echoue.";
+};
+
 export const uploadDossierDocument = async ({
   dossierId,
   docKey,
@@ -45,7 +62,14 @@ export const uploadDossierDocument = async ({
     },
     body: formData,
   });
-  return parseResponse(response);
+  try {
+    return await parseResponse(response);
+  } catch (error) {
+    const mapped = new Error(mapDocumentUploadError(error));
+    mapped.status = error?.status;
+    mapped.payload = error?.payload;
+    throw mapped;
+  }
 };
 
 export const getDossierDocuments = async (dossierId) => {
