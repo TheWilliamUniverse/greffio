@@ -88,10 +88,10 @@ export const LEGAL_SERVICES = [
 
 export const PAYMENT_METHODS = [
   {
-    id: 'stripe-checkout',
-    name: 'Stripe Checkout',
+    id: 'mollie-checkout',
+    name: 'Mollie Checkout',
     type: 'Solution principale',
-    description: 'Page de paiement sécurisée, conforme SCA/3-D Secure, rapide à activer et adaptée aux paiements ponctuels comme aux abonnements.',
+    description: 'Page de paiement sécurisée, conforme SCA/3-D Secure, reliée à nos vérifications serveur et webhook idempotent.',
     recommended: true,
   },
   {

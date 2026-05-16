@@ -32,6 +32,7 @@ import { OpsDashboardPage } from '@/pages/OpsDashboardPage.jsx';
 import { PaymentVerificationPage } from '@/pages/PaymentVerificationPage.jsx';
 import { QuestionnairePage } from '@/pages/QuestionnairePage.jsx';
 import { StatutesPage } from '@/pages/StatutesPage.jsx';
+import { InterfacesPage } from '@/pages/InterfacesPage.jsx';
 import { CookieConsentBanner } from '@/components/CookieConsentBanner.jsx';
 
 const ScrollToTop = () => {
@@ -100,6 +101,7 @@ function App() {
             <Route path="/chat" element={<ProtectedRoute><ChatIAPage /></ProtectedRoute>} />
             <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
             <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
+            <Route path="/interfaces" element={<ProtectedRoute><InterfacesPage /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />

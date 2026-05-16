@@ -37,6 +37,7 @@ import { buildCanonicalDocumentFilename } from './documentNaming.js';
 import { ROLE } from './stateMachine.js';
 import { sendDossierEmailById } from './emails/index.js';
 import { uploadPdfOnly } from './uploads.js';
+import { analyzeDocument } from './documentAnalysis.js';
 import { createSignatureRecord, getLatestSignatureByDossier } from './signatureStore.js';
 import { buildMandateText } from './mandateTemplate.js';
 import { generateMandatePdf } from './pdf/mandatePdf.js';
@@ -55,9 +56,70 @@ app.use(express.json());
 const appUrl = process.env.APP_URL || 'https://greffio.willentreprises.com';
 const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:8787';
 const mollieWebhookUrl = process.env.MOLLIE_WEBHOOK_URL || `${apiBaseUrl}/webhooks/mollie`;
+const uploadsRoot = path.resolve(process.cwd(), 'server', 'data', 'uploads');
+
+const sanitizeFilename = (value, fallback = 'document.pdf') => {
+  const cleaned = String(value || '')
+    .replace(/[^a-zA-Z0-9._-]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return cleaned || fallback;
+};
+
+const ensureUniqueFilePath = (filePath) => {
+  if (!fs.existsSync(filePath)) return filePath;
+  const directory = path.dirname(filePath);
+  const extension = path.extname(filePath) || '.pdf';
+  const base = path.basename(filePath, extension);
+  const uniqueName = `${base}_${Date.now()}${extension}`;
+  return path.join(directory, uniqueName);
+};
+
+const isSafeUploadPath = (filePath) => {
+  if (!filePath) return false;
+  const normalizedRoot = path.resolve(uploadsRoot);
+  const normalizedCandidate = path.resolve(filePath);
+  return normalizedCandidate.startsWith(normalizedRoot);
+};
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'greffio-api', timestamp: new Date().toISOString() });
+});
+
+app.get('/api/interfaces/status', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (_req, res) => {
+  const databaseStatus = process.env.DATABASE_URL
+    ? 'Postgres (DATABASE_URL configuré)'
+    : 'SQLite local (mode dev uniquement)';
+  const databaseTone = process.env.DATABASE_URL ? 'healthy' : 'warning';
+
+  return res.json({
+    ok: true,
+    interfaces: [
+      {
+        key: 'frontend',
+        status: 'healthy',
+        detail: `URL client attendue: ${appUrl}`,
+      },
+      {
+        key: 'backend',
+        status: 'healthy',
+        detail: `API active: ${apiBaseUrl} · endpoint santé disponible`,
+      },
+      {
+        key: 'payment',
+        status: process.env.MOLLIE_API_KEY ? 'healthy' : 'warning',
+        detail: process.env.MOLLIE_API_KEY
+          ? 'Mollie actif avec webhook /api/webhooks/mollie'
+          : 'Mollie key absente: mode simulation actif',
+      },
+      {
+        key: 'database',
+        status: databaseTone,
+        detail: databaseStatus,
+      },
+    ],
+    timestamp: new Date().toISOString(),
+  });
 });
 
 app.get('/api/company-search', requireAuth, async (req, res) => {
@@ -442,28 +504,103 @@ app.post('/api/dossiers/:dossierId/documents', requireAuth, uploadPdfOnly.single
     ownerFirstName,
     ownerLastName,
   });
+  const fallbackUploadName = sanitizeFilename(req.file.originalname || 'document.pdf');
+  const targetFilename = sanitizeFilename(canonicalFilename || fallbackUploadName, 'document.pdf');
+  const dossierUploadDir = path.join(uploadsRoot, String(dossier.id));
+  if (!fs.existsSync(dossierUploadDir)) {
+    fs.mkdirSync(dossierUploadDir, { recursive: true });
+  }
+  const desiredPath = path.join(dossierUploadDir, targetFilename);
+  const finalPath = ensureUniqueFilePath(desiredPath);
+  fs.renameSync(req.file.path, finalPath);
+  const analysis = await analyzeDocument({
+    filePath: finalPath,
+    docKey,
+  });
+  const analysisStatus = analysis.ok && analysis.requiresManualReview
+    ? DOCUMENT_STATUSES.UNDER_REVIEW
+    : DOCUMENT_STATUSES.UPLOADED;
 
   await updateDossierDocument({
     dossierId: dossier.id,
     docKey,
-    status: DOCUMENT_STATUSES.UPLOADED,
-    filename: canonicalFilename,
+    status: analysisStatus,
+    originalFilename: req.file.originalname,
+    recommendedFilename: targetFilename,
+    fileUrl: finalPath,
+    filename: path.basename(finalPath),
     fileSizeBytes: req.file.size,
     mimeType: req.file.mimetype,
-    storageUrl: req.file.path,
+    storageUrl: finalPath,
     reviewerId: null,
+    metadata: {
+      analysis,
+      uploadedByRole: req.auth?.role || 'client',
+      uploadedAt: new Date().toISOString(),
+    },
   });
+
+  const dossierData = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+  const firstNameForEmail = ownerFirstName || dossierData.firstName || 'Client';
+  const recipientEmail = (isOwner ? req.auth.email : null) || dossierData.email || req.auth.email || null;
+  await sendDossierEmailById({
+    templateId: 'documents_received',
+    dossierId: dossier.id,
+    userId: req.auth.sub,
+    toEmail: recipientEmail,
+    variables: {
+      prenom: firstNameForEmail,
+      reference_dossier: dossier.reference || dossier.id,
+    },
+  });
+
+  if (analysis.ok && analysis.requiresManualReview) {
+    await sendDossierEmailById({
+      templateId: 'document_invalid',
+      dossierId: dossier.id,
+      userId: req.auth.sub,
+      toEmail: recipientEmail,
+      variables: {
+        prenom: firstNameForEmail,
+        reference_dossier: dossier.reference || dossier.id,
+        motif_complement: "La qualité ou lisibilité du document nécessite une vérification manuelle de l'équipe Greffio.",
+      },
+    });
+  }
 
   return res.status(201).json({
     ok: true,
     file: {
       originalFilename: req.file.originalname,
-      recommendedFilename: canonicalFilename,
+      recommendedFilename: path.basename(finalPath),
       mimeType: req.file.mimetype,
       size: req.file.size,
     },
+    analysis,
     documents: await listDossierDocuments(dossier.id),
   });
+});
+
+app.get('/api/dossiers/:dossierId/documents/:docKey/download', requireAuth, async (req, res) => {
+  const dossier = await getDossier(req.params.dossierId);
+  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
+  const isOps = ['ADMIN', 'OPS', 'FORMALISTE'].includes(req.auth?.role);
+  if (!isOwner && !isOps) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+
+  const documents = await listDossierDocuments(dossier.id);
+  const requested = documents.find((item) => item.docKey === req.params.docKey);
+  if (!requested || !requested.storageUrl) {
+    return res.status(404).json({ ok: false, error: 'DOCUMENT_FILE_NOT_FOUND' });
+  }
+  if (!isSafeUploadPath(requested.storageUrl) || !fs.existsSync(requested.storageUrl)) {
+    return res.status(404).json({ ok: false, error: 'DOCUMENT_FILE_NOT_FOUND' });
+  }
+
+  const downloadName = requested.filename || `${requested.docKey}.pdf`;
+  res.setHeader('Content-Type', requested.mimeType || 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
+  return fs.createReadStream(requested.storageUrl).pipe(res);
 });
 
 app.get('/api/dossiers/:dossierId/mandate', requireAuth, async (req, res) => {
@@ -854,6 +991,7 @@ const handleMollieWebhook = async (req, res) => {
 
 app.post('/webhooks/mollie', handleMollieWebhook);
 app.post('/api/mollie/webhook', handleMollieWebhook);
+app.post('/api/webhooks/mollie', handleMollieWebhook);
 
 const bootstrap = async () => {
   await initSchema();

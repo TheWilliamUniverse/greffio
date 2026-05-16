@@ -11,7 +11,23 @@ const quickPrompts = [
 ];
 
 const answerFor = (message) => {
-  const text = message.toLowerCase();
+  const text = String(message || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/>/g, ' ')
+    .replace(/\?/g, ' ')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (text.includes('sas sa') || text.includes('sas sarl') || (text.includes('sas') && text.includes('sa'))) {
+    return 'Si vous demandez "SAS > SA ?", en pratique la SAS est souvent plus souple (statuts, gouvernance, pactes) alors que la SA est plus formelle et adaptée à des structures plus lourdes ou cotées. Je peux vous faire un comparatif rapide selon votre projet.';
+  }
+
+  if (text.includes('chrabia') || text.includes('raccourci') || text.includes('argot')) {
+    return 'Même avec des raccourcis, je comprends les demandes principales (ex: "sas>sa?", "kbis où?", "doc id?"). Donnez juste le contexte dossier + action attendue et je traduis en plan opérationnel.';
+  }
 
   if (text.includes('document') || text.includes('pièce') || text.includes('manquent')) {
     return 'Pour une création SAS/SASU, vérifiez surtout : statuts signés, attestation de dépôt de capital, justificatif de siège, pièce d’identité du dirigeant, déclaration de non-condamnation, bénéficiaires effectifs et annonce légale.';

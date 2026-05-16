@@ -23,7 +23,7 @@ export const PaymentPage = () => {
   const mainMethods = useMemo(() => PAYMENT_METHODS.filter((method) => method.id !== 'optional'), []);
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
 
-  const handlePayPlugCheckout = async () => {
+  const handleMollieCheckout = async () => {
     try {
       setIsCreatingPayment(true);
       const dossierId = getCurrentDossierId();
@@ -64,7 +64,7 @@ export const PaymentPage = () => {
         <section className="space-y-6">
           <div className="rounded-md bg-[hsl(var(--greffio-blue))] p-6 text-white shadow-elevation-md md:p-8">
             <p className="text-sm font-bold uppercase text-white/70">Paiement sécurisé</p>
-            <h1 className="mt-2 text-3xl font-extrabold">PayPlug comme solution de paiement Greffio</h1>
+            <h1 className="mt-2 text-3xl font-extrabold">Mollie comme solution de paiement Greffio</h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-white/78">
               Greffio utilise Mollie avec verification serveur et webhook idempotent pour garantir la
               fiabilité du statut de paiement avant traitement du dossier.
@@ -129,7 +129,7 @@ export const PaymentPage = () => {
               </div>
               <div className="flex gap-2">
                 <LockKeyhole className="mt-0.5 h-4 w-4 text-primary" />
-                <span>Paiement SCA/3-D Secure via prestataire PSP.</span>
+                <span>Paiement SCA/3-D Secure via Mollie.</span>
               </div>
             </div>
             <Button asChild className="mt-6 w-full justify-between">
@@ -142,7 +142,7 @@ export const PaymentPage = () => {
               type="button"
               className="mt-3 w-full justify-between"
               variant="outline"
-              onClick={handlePayPlugCheckout}
+              onClick={handleMollieCheckout}
               disabled={isCreatingPayment}
             >
               {isCreatingPayment ? 'Initialisation...' : 'Payer maintenant via Mollie'}

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input.jsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.jsx';
 import { getChatHistory, getDocuments, getDossiers } from '@/utils/localStorage.js';
 import { getDossierById } from '@/api/dossiers.js';
+import { saveCurrentDossierId } from '@/utils/sessionStore.js';
 
 export const DossierDetailPage = () => {
   const { id } = useParams();
@@ -30,6 +31,7 @@ export const DossierDetailPage = () => {
   useEffect(() => {
     const load = async () => {
       if (!id) return;
+      saveCurrentDossierId(id);
       try {
         const payload = await getDossierById(id);
         const d = payload.dossier;
@@ -68,7 +70,7 @@ export const DossierDetailPage = () => {
         });
         setApiDocs((payload.documents || []).map((doc) => ({
           id: doc.id,
-          name: doc.label,
+          name: doc.filename || doc.recommendedFilename || doc.label,
           type: doc.docKey,
           size: doc.fileSizeBytes ? `${Math.round(Number(doc.fileSizeBytes) / 1024)} Ko` : 'N/A',
           providedBy: doc.reviewerId ? 'Greffio' : 'Client',
@@ -76,6 +78,8 @@ export const DossierDetailPage = () => {
           status: String(doc.status || '').toUpperCase(),
           date: doc.updatedAt || doc.createdAt,
           dossierId: doc.dossierId,
+          reviewHint: doc.metadata?.analysis?.requiresManualReview ? 'Vérification manuelle requise' : 'Analyse auto OK',
+          confidence: doc.metadata?.analysis?.confidence ?? null,
         })));
       } catch (_error) {
         // fallback to local mock
@@ -175,9 +179,11 @@ export const DossierDetailPage = () => {
                     <p className="mt-1">{dossier.blockers.join(' · ')}</p>
                   </div>
                 )}
-                <Button className="mt-5 w-full">
-                  <Upload className="h-4 w-4" />
-                  Ajouter une pièce
+                <Button asChild className="mt-5 w-full">
+                  <Link to="/documents">
+                    <Upload className="h-4 w-4" />
+                    Ajouter une pièce
+                  </Link>
                 </Button>
               </div>
             </div>
@@ -223,6 +229,7 @@ export const DossierDetailPage = () => {
                       <div>
                         <p className="font-bold">{document.name}</p>
                         <p className="mt-1 text-xs text-muted-foreground">{document.type} · {document.size} · fourni par {document.providedBy}</p>
+                        <p className="mt-1 text-xs font-semibold text-primary">{document.reviewHint}{typeof document.confidence === 'number' ? ` (${document.confidence}%)` : ''}</p>
                       </div>
                     </div>
                     <span className="text-sm font-semibold text-foreground">{document.source}</span>

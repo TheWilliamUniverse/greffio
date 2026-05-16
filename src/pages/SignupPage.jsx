@@ -289,7 +289,7 @@ export const SignupPage = () => {
           <div className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
             <CreditCard className="mb-4 h-7 w-7 text-primary" />
             <h2 className="text-xl font-extrabold">Paiement sécurisé</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">Stripe Checkout : CB, Visa/Mastercard, Apple Pay, Google Pay, Link, virement ou prélèvement SEPA selon l’offre.</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">Mollie Checkout : CB, Visa/Mastercard, Apple Pay, Google Pay, Link, virement ou prélèvement SEPA selon l’offre.</p>
           </div>
           <div className="rounded-md bg-[hsl(var(--greffio-blue))] p-5 text-white shadow-elevation-md">
             <p className="text-sm font-bold">Équipe Greffio</p>

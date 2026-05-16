@@ -35,7 +35,7 @@ export const LegalMentionsPage = () => (
         {[
           { icon: Scale, title: 'Éditeur', text: 'William Establishments · RCS Nice 102 230 414' },
           { icon: ShieldCheck, title: 'Marque', text: 'Greffio est une marque déposée détenue par William Establishments.' },
-          { icon: CreditCard, title: 'Paiements', text: 'Stripe Checkout, CB, wallets, Link, virement SEPA et prélèvement SEPA.' },
+          { icon: CreditCard, title: 'Paiements', text: 'Mollie Checkout, CB, wallets, Link, virement SEPA et prélèvement SEPA.' },
         ].map((item) => (
           <div key={item.title} className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
             <item.icon className="mb-4 h-6 w-6 text-primary" />
@@ -74,7 +74,7 @@ export const LegalMentionsPage = () => (
         <div className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
           <BadgeEuro className="mb-4 h-6 w-6 text-primary" />
           <h2 className="text-lg font-extrabold">Moyens de paiement</h2>
-          <p className="mt-3 text-sm leading-7 text-muted-foreground">La solution retenue est Stripe Checkout, avec activation prioritaire de CB/Cartes Bancaires, Visa, Mastercard, Apple Pay, Google Pay, Link, virement SEPA et prélèvement SEPA. PayPal, Klarna et Alma restent activables selon éligibilité et stratégie de conversion.</p>
+          <p className="mt-3 text-sm leading-7 text-muted-foreground">La solution retenue est Mollie Checkout, avec activation prioritaire de CB/Cartes Bancaires, Visa, Mastercard, Apple Pay, Google Pay, Link, virement SEPA et prélèvement SEPA. PayPal, Klarna et Alma restent activables selon éligibilité et stratégie de conversion.</p>
           <div className="mt-4 grid gap-2">
             {PAYMENT_METHODS.map((method) => (
               <div key={method.id} className="rounded-md bg-muted p-3 text-sm">
@@ -87,7 +87,7 @@ export const LegalMentionsPage = () => (
         <div className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
           <FileCheck2 className="mb-4 h-6 w-6 text-primary" />
           <h2 className="text-lg font-extrabold">Données et documents</h2>
-          <p className="mt-3 text-sm leading-7 text-muted-foreground">Les données sont utilisées pour créer le compte, traiter les dossiers, générer les documents, envoyer les emails utiles et assurer le suivi opérationnel. Les documents peuvent être partagés aux intervenants strictement nécessaires à la formalité.</p>
+          <p className="mt-3 text-sm leading-7 text-muted-foreground">Les données sont utilisées pour créer le compte, traiter les dossiers, générer les documents, envoyer les emails utiles et assurer le suivi opérationnel. Les documents peuvent être partagés aux intervenants strictement nécessaires à la formalité. Les données sont hébergées en Europe, avec une cible d’hébergement France/UE selon l’infrastructure active.</p>
         </div>
       </section>
 

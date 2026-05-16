@@ -36,6 +36,25 @@ const process = [
   'Suivez l’envoi au greffe',
 ];
 
+const howItWorks = [
+  {
+    title: '1. Cadrage du dossier',
+    text: 'Vous choisissez la formalité et renseignez les informations essentielles. Greffio crée immédiatement votre dossier de travail.',
+  },
+  {
+    title: '2. Pièces et vérifications',
+    text: 'Vous déposez vos justificatifs, l’équipe contrôle la complétude et vous indique clairement la prochaine action.',
+  },
+  {
+    title: '3. Signature et paiement',
+    text: 'Les documents sont finalisés, vous signez le mandat et validez le paiement sécurisé via Mollie.',
+  },
+  {
+    title: '4. Dépôt et suivi',
+    text: 'Le dossier est préparé pour le dépôt, puis suivi avec des statuts lisibles jusqu’au retour administratif.',
+  },
+];
+
 export const LandingPage = () => {
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -190,6 +209,28 @@ export const LandingPage = () => {
         </div>
       </section>
 
+      <section id="comment-ca-marche" className="px-4 py-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-10 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+            <div>
+              <p className="text-sm font-bold uppercase text-primary">Parcours client</p>
+              <h2 className="mt-2 text-4xl font-extrabold text-foreground">Comment ça marche ?</h2>
+            </div>
+            <Button asChild variant="outline" className="w-fit bg-white">
+              <Link to="/simulateur">Commencer ma formalité</Link>
+            </Button>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {howItWorks.map((step) => (
+              <div key={step.title} className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
+                <h3 className="text-lg font-extrabold">{step.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{step.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section id="app-mobile" className="px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto grid max-w-7xl gap-8 rounded-md border border-border bg-white p-6 shadow-elevation-md md:p-10 lg:grid-cols-[0.9fr_1.1fr]">
           <div>
@@ -251,7 +292,7 @@ export const LandingPage = () => {
             {[
               { name: 'Starter', price: '0€', text: 'Questionnaire, checklist et espace documentaire.', cta: 'Démarrer' },
               { name: 'Formalité', price: '149€', text: 'Dossier complet, relecture et dépôt au greffe.', cta: 'Créer mon dossier', highlight: true },
-              { name: 'Cabinet', price: 'Sur devis', text: 'Gestion multi-clients, équipe, reporting et marque blanche.', cta: 'Organiser le flux' },
+              { name: 'Cabinet partenaire', price: 'À venir', text: 'Gestion multi-clients, équipe, reporting et marque blanche en déploiement progressif.', cta: 'Être notifié' },
             ].map((plan) => (
               <div key={plan.name} className={`rounded-md border p-6 text-left ${plan.highlight ? 'border-primary bg-secondary shadow-elevation-md' : 'border-border bg-background'}`}>
                 <p className="text-lg font-extrabold">{plan.name}</p>
@@ -306,6 +347,7 @@ export const LandingPage = () => {
             <div>
               <p className="font-bold text-white">Conformité</p>
               <p className="mt-3">RGPD, traçabilité, conservation documentaire et suivi des actions.</p>
+              <p className="mt-2">Données hébergées en Europe, avec infrastructure opérée France/UE selon le service concerné.</p>
               <a href="https://greffio.willentreprises.com/confidentialite" className="mt-2 block hover:text-white">Politique de confidentialité</a>
               <a href="https://greffio.willentreprises.com/suppression-compte" className="mt-2 block hover:text-white">Suppression de compte</a>
             </div>

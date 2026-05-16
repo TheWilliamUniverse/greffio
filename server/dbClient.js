@@ -5,6 +5,9 @@ import { sqlite } from './database.js';
 dotenv.config({ quiet: true });
 
 const hasPostgres = Boolean(process.env.DATABASE_URL);
+if (process.env.NODE_ENV === 'production' && !hasPostgres) {
+  throw new Error('DATABASE_URL_REQUIRED_IN_PRODUCTION');
+}
 const pool = hasPostgres ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }) : null;
 
 const query = async (text, params = []) => {
@@ -141,6 +144,7 @@ const initPostgresSchema = async () => {
   await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS original_filename TEXT;`);
   await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS recommended_filename TEXT;`);
   await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_url TEXT;`);
+  await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS metadata_json TEXT;`);
   await query(`
     CREATE TABLE IF NOT EXISTS generated_documents (
       id TEXT PRIMARY KEY,
@@ -232,6 +236,9 @@ const checkDatabaseConnection = async () => {
   if (hasPostgres) {
     await query('SELECT 1');
     return 'Postgres OK';
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('SQLITE_FORBIDDEN_IN_PRODUCTION');
   }
   sqlite.prepare('SELECT 1').get();
   return 'SQLite OK';

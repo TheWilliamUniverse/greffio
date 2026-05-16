@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Archive, CheckCircle2, Download, Eye, FilePlus2, FileText, Search, ShieldCheck, Upload } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
-import { getDocuments, getDossiers } from '@/utils/localStorage.js';
 import { INPI_UPLOAD_RULES } from '@/config/legalFlow.js';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
-import { getDossierDocuments, uploadDossierDocument } from '@/api/documents.js';
+import { downloadDossierDocument, getDossierDocuments, uploadDossierDocument } from '@/api/documents.js';
 import { getUser } from '@/utils/localStorage.js';
 
 export const DocumentsPage = () => {
@@ -17,29 +17,43 @@ export const DocumentsPage = () => {
   const [apiDocuments, setApiDocuments] = useState([]);
   const [selectedDocKey, setSelectedDocKey] = useState('identity_proof');
   const [uploadError, setUploadError] = useState(null);
+  const [uploadSuccess, setUploadSuccess] = useState('');
   const currentDossierId = getCurrentDossierId();
   const user = getUser();
-  const dossiers = getDossiers();
-  const documents = getDocuments();
-  const dossiersById = useMemo(() => new Map(dossiers.map((dossier) => [dossier.id, dossier])), [dossiers]);
-  const types = ['Tous', ...new Set(documents.map((document) => document.type))];
+  const normalizedDocuments = useMemo(() => apiDocuments.map((item) => ({
+    id: item.id,
+    dossierId: item.dossierId,
+    name: item.filename || item.recommendedFilename || item.label || item.docKey,
+    label: item.label || item.docKey,
+    type: item.docKey,
+    status: String(item.status || '').toUpperCase(),
+    source: item.reviewerId ? 'Greffio' : 'Client',
+    providedBy: item.reviewerId ? 'Greffio' : 'Client',
+    requiredFor: item.required ? 'Conformité dossier' : 'Pièce complémentaire',
+    nextAction: item.status === 'invalid' ? 'Déposer une nouvelle version' : 'Suivi Greffio',
+    date: item.updatedAt || item.createdAt || null,
+    size: item.fileSizeBytes ? `${Math.max(1, Math.round(Number(item.fileSizeBytes) / 1024))} Ko` : 'N/A',
+    reviewHint: item.metadata?.analysis?.requiresManualReview ? 'Vérification manuelle requise' : 'Analyse automatique OK',
+    confidence: item.metadata?.analysis?.confidence ?? null,
+  })), [apiDocuments]);
+  const types = useMemo(() => ['Tous', ...new Set(normalizedDocuments.map((document) => document.type))], [normalizedDocuments]);
 
-  const filteredDocuments = documents.filter((document) => {
-    const dossier = dossiersById.get(document.dossierId);
+  const filteredDocuments = useMemo(() => normalizedDocuments.filter((document) => {
     const searchable = [
       document.name,
+      document.label,
       document.type,
       document.status,
       document.source,
       document.providedBy,
       document.requiredFor,
       document.nextAction,
-      dossier.name,
+      document.reviewHint,
     ].join(' ');
     const matchesQuery = searchable.toLowerCase().includes(query.toLowerCase());
     const matchesType = type === 'Tous' || document.type === type;
     return matchesQuery && matchesType;
-  });
+  }), [normalizedDocuments, query, type]);
 
   useEffect(() => {
     const load = async () => {
@@ -58,6 +72,7 @@ export const DocumentsPage = () => {
     const file = event.target.files?.[0];
     if (!file || !currentDossierId) return;
     setUploadError(null);
+    setUploadSuccess('');
     if (file.type !== 'application/pdf') {
       setUploadError('Seuls les fichiers PDF sont autorisés.');
       return;
@@ -76,6 +91,11 @@ export const DocumentsPage = () => {
         ownerLastName: user?.lastName || '',
       });
       setApiDocuments(payload.documents || []);
+      if (payload.analysis?.requiresManualReview) {
+        setUploadSuccess('Pièce reçue. Contrôle manuel Greffio requis avant validation finale.');
+      } else {
+        setUploadSuccess('Pièce déposée et analysée automatiquement.');
+      }
     } catch (error) {
       setUploadError(error?.message || "L'upload a échoué.");
     } finally {
@@ -84,14 +104,31 @@ export const DocumentsPage = () => {
     }
   };
 
-  const dossierName = (id) => dossiersById.get(id).name || 'Dossier client';
-  const waitingDocs = documents.filter((document) => ['ATTENTE_DOCS', 'URGENT', 'EN_ANALYSE', 'A_SIGNER', 'BROUILLON'].includes(document.status));
-  const thirdPartyDocs = documents.filter((document) => document.providedBy === 'Tiers');
+  const openDocumentDownload = async (docKey) => {
+    if (!currentDossierId || !docKey) return;
+    try {
+      const { filename, blob } = await downloadDossierDocument({ dossierId: currentDossierId, docKey });
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.rel = 'noopener noreferrer';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (_error) {
+      setUploadError('Impossible de télécharger ce document pour le moment.');
+    }
+  };
+
+  const waitingDocs = normalizedDocuments.filter((document) => ['REQUESTED', 'UNDER_REVIEW', 'INVALID'].includes(document.status));
+  const thirdPartyDocs = normalizedDocuments.filter((document) => document.providedBy === 'Greffio');
   const summary = [
-    { label: 'Pièces en coffre', value: documents.length, text: 'document(s) du client', icon: Archive },
+    { label: 'Pièces en coffre', value: normalizedDocuments.length, text: 'document(s) du dossier actif', icon: Archive },
     { label: 'Documents tiers', value: thirdPartyDocs.length, text: 'banque, annonce légale, greffe', icon: ShieldCheck },
     { label: 'À traiter', value: waitingDocs.length, text: 'pièces à compléter ou signer', icon: FileText },
-    { label: 'Dossiers reliés', value: dossiers.length, text: 'dossier(s) ouvert(s)', icon: CheckCircle2 },
+    { label: 'Dossier relié', value: currentDossierId ? 1 : 0, text: currentDossierId ? 'dossier actif sélectionné' : 'aucun dossier actif', icon: CheckCircle2 },
   ];
 
   return (
@@ -140,6 +177,8 @@ export const DocumentsPage = () => {
               <p className="text-xs text-muted-foreground">PDF uniquement, 10 Mo max, un justificatif par fichier.</p>
             </div>
             {uploadError ? <p className="mt-2 text-xs text-red-600">{uploadError}</p> : null}
+            {uploadSuccess ? <p className="mt-2 text-xs text-emerald-700">{uploadSuccess}</p> : null}
+            {!currentDossierId ? <p className="mt-2 text-xs text-amber-700">Aucun dossier actif détecté. Ouvrez un dossier puis revenez ici pour déposer vos pièces.</p> : null}
           </section>
 
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -189,7 +228,7 @@ export const DocumentsPage = () => {
               <Archive className="mx-auto h-10 w-10 text-primary" />
               <h2 className="mt-4 text-2xl font-extrabold">Coffre documentaire vide</h2>
               <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                Aucun document client n’est encore enregistré. Les statuts, attestations, justificatifs, annonces et pièces greffe apparaîtront ici après génération, upload ou ajout par un tiers.
+                Aucun document n’est encore enregistré sur le dossier actif. Les statuts, attestations, justificatifs, annonces et pièces greffe apparaîtront ici après génération ou dépôt.
               </p>
               <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
                 <Button>
@@ -219,8 +258,8 @@ export const DocumentsPage = () => {
                     </div>
                     <div>
                       <p className="font-bold text-foreground">{document.name}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{dossierName(document.dossierId)} · {document.size} · ajouté le {new Date(document.date).toLocaleDateString('fr-FR')}</p>
-                      <p className="mt-1 text-xs font-semibold text-primary">{document.type} · {document.version}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{document.size} · ajouté le {document.date ? new Date(document.date).toLocaleDateString('fr-FR') : 'N/A'}</p>
+                      <p className="mt-1 text-xs font-semibold text-primary">{document.type} · {document.reviewHint}{typeof document.confidence === 'number' ? ` (${document.confidence}%)` : ''}</p>
                     </div>
                   </div>
                   <div>
@@ -233,10 +272,24 @@ export const DocumentsPage = () => {
                   </div>
                   <StatusBadge status={document.status} className="w-fit" />
                   <div className="flex gap-2">
-                    <Button variant="outline" size="icon" className="bg-white" aria-label="Aperçu">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="bg-white"
+                      aria-label="Aperçu"
+                      onClick={() => openDocumentDownload(document.type)}
+                      disabled={!currentDossierId}
+                    >
                       <Eye className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="icon" className="bg-white" aria-label="Télécharger">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="bg-white"
+                      aria-label="Télécharger"
+                      onClick={() => openDocumentDownload(document.type)}
+                      disabled={!currentDossierId}
+                    >
                       <Download className="h-4 w-4" />
                     </Button>
                   </div>
@@ -254,12 +307,19 @@ export const DocumentsPage = () => {
                 <div key={item.id} className="flex items-center justify-between gap-3 border-b border-border px-5 py-3 last:border-b-0">
                   <div>
                     <p className="text-sm font-bold">{item.label}</p>
-                    <p className="text-xs text-muted-foreground">{item.filename || 'Nom non généré'} · {item.docKey}</p>
+                    <p className="text-xs text-muted-foreground">{item.filename || item.recommendedFilename || 'Nom non généré'} · {item.docKey}</p>
                   </div>
                   <StatusBadge status={String(item.status || '').toUpperCase()} className="w-fit" />
                 </div>
               ))}
             </section>
+          ) : null}
+          {currentDossierId ? (
+            <div className="text-right">
+              <Button asChild variant="outline" className="bg-white">
+                <Link to={`/dossier/${currentDossierId}`}>Retour au dossier</Link>
+              </Button>
+            </div>
           ) : null}
         </div>
       </main>

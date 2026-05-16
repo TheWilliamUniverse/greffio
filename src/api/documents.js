@@ -59,3 +59,34 @@ export const getDossierDocuments = async (dossierId) => {
   const payload = await parseResponse(response);
   return payload.documents || [];
 };
+
+export const getDossierDocumentDownloadUrl = ({ dossierId, docKey }) => (
+  `${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}/documents/${docKey}/download`
+);
+
+export const downloadDossierDocument = async ({ dossierId, docKey }) => {
+  const response = await fetch(getDossierDocumentDownloadUrl({ dossierId, docKey }), {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${authToken()}`,
+    },
+  });
+  if (!response.ok) {
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch (_error) {
+      payload = null;
+    }
+    const error = new Error(payload?.error || 'DOCUMENT_DOWNLOAD_FAILED');
+    error.payload = payload;
+    error.status = response.status;
+    throw error;
+  }
+
+  const contentDisposition = response.headers.get('content-disposition') || '';
+  const nameMatch = contentDisposition.match(/filename="([^"]+)"/i);
+  const filename = nameMatch?.[1] || `${docKey}.pdf`;
+  const blob = await response.blob();
+  return { filename, blob };
+};

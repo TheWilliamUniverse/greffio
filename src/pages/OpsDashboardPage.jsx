@@ -284,6 +284,13 @@ export const OpsDashboardPage = () => {
                   <div>
                     <p className="text-sm font-bold">{doc.label}</p>
                     <p className="text-xs text-muted-foreground">{doc.docKey} · {doc.filename || 'non uploadé'}</p>
+                    {doc.metadata?.analysis ? (
+                      <p className="mt-1 text-xs font-semibold text-primary">
+                        Analyse identité: {doc.metadata.analysis.docCategory || 'N/A'} ·
+                        confiance {doc.metadata.analysis.confidence ?? 'N/A'}% ·
+                        {doc.metadata.analysis.requiresManualReview ? ' contrôle manuel requis' : ' auto validé'}
+                      </p>
+                    ) : null}
                   </div>
                   <StatusBadge status={String(doc.status || '').toUpperCase()} />
                 </div>

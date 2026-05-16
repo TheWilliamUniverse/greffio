@@ -307,6 +307,9 @@ const listDossierDocuments = async (dossierId) => {
         label,
         required,
         status,
+        original_filename AS "originalFilename",
+        recommended_filename AS "recommendedFilename",
+        file_url AS "fileUrl",
         filename,
         file_size_bytes AS "fileSizeBytes",
         mime_type AS "mimeType",
@@ -315,13 +318,17 @@ const listDossierDocuments = async (dossierId) => {
         uploaded_at AS "uploadedAt",
         reviewed_at AS "reviewedAt",
         reviewer_id AS "reviewerId",
+        metadata_json AS "metadataJson",
         created_at AS "createdAt",
         updated_at AS "updatedAt"
       FROM documents
       WHERE dossier_id = $1
       ORDER BY created_at ASC
     `, [dossierId]);
-    return result.rows;
+    return result.rows.map((row) => ({
+      ...row,
+      metadata: row.metadataJson ? JSON.parse(row.metadataJson) : {},
+    }));
   }
   return sqlite.prepare(`
     SELECT
@@ -331,6 +338,9 @@ const listDossierDocuments = async (dossierId) => {
       label,
       required,
       status,
+      original_filename AS originalFilename,
+      recommended_filename AS recommendedFilename,
+      file_url AS fileUrl,
       filename,
       file_size_bytes AS fileSizeBytes,
       mime_type AS mimeType,
@@ -339,24 +349,33 @@ const listDossierDocuments = async (dossierId) => {
       uploaded_at AS uploadedAt,
       reviewed_at AS reviewedAt,
       reviewer_id AS reviewerId,
+      metadata_json AS metadataJson,
       created_at AS createdAt,
       updated_at AS updatedAt
     FROM documents
     WHERE dossier_id = ?
     ORDER BY created_at ASC
-  `).all(dossierId).map((row) => ({ ...row, required: Boolean(row.required) }));
+  `).all(dossierId).map((row) => ({
+    ...row,
+    required: Boolean(row.required),
+    metadata: row.metadataJson ? JSON.parse(row.metadataJson) : {},
+  }));
 };
 
 const updateDossierDocument = async ({
   dossierId,
   docKey,
   status,
+  originalFilename = null,
+  recommendedFilename = null,
+  fileUrl = null,
   filename = null,
   fileSizeBytes = null,
   mimeType = null,
   storageUrl = null,
   rejectedReason = null,
   reviewerId = null,
+  metadata = null,
 }) => {
   const existing = (await listDossierDocuments(dossierId)).find((item) => item.docKey === docKey);
   if (!existing) return null;
@@ -370,18 +389,26 @@ const updateDossierDocument = async ({
       UPDATE documents
       SET
         status = $1,
-        filename = COALESCE($2, filename),
-        file_size_bytes = COALESCE($3, file_size_bytes),
-        mime_type = COALESCE($4, mime_type),
-        storage_url = COALESCE($5, storage_url),
-        rejected_reason = $6,
-        uploaded_at = COALESCE($7, uploaded_at),
-        reviewed_at = COALESCE($8, reviewed_at),
-        reviewer_id = $9,
-        updated_at = $10
-      WHERE dossier_id = $11 AND doc_key = $12
+        original_filename = COALESCE($2, original_filename),
+        recommended_filename = COALESCE($3, recommended_filename),
+        file_url = COALESCE($4, file_url),
+        metadata_json = COALESCE($5, metadata_json),
+        filename = COALESCE($6, filename),
+        file_size_bytes = COALESCE($7, file_size_bytes),
+        mime_type = COALESCE($8, mime_type),
+        storage_url = COALESCE($9, storage_url),
+        rejected_reason = $10,
+        uploaded_at = COALESCE($11, uploaded_at),
+        reviewed_at = COALESCE($12, reviewed_at),
+        reviewer_id = $13,
+        updated_at = $14
+      WHERE dossier_id = $15 AND doc_key = $16
     `, [
       status,
+      originalFilename,
+      recommendedFilename,
+      fileUrl,
+      metadata ? JSON.stringify(metadata) : null,
       filename,
       fileSizeBytes,
       mimeType,
@@ -413,6 +440,10 @@ const updateDossierDocument = async ({
     UPDATE documents
     SET
       status = @status,
+      original_filename = COALESCE(@originalFilename, original_filename),
+      recommended_filename = COALESCE(@recommendedFilename, recommended_filename),
+      file_url = COALESCE(@fileUrl, file_url),
+      metadata_json = COALESCE(@metadataJson, metadata_json),
       filename = COALESCE(@filename, filename),
       file_size_bytes = COALESCE(@fileSizeBytes, file_size_bytes),
       mime_type = COALESCE(@mimeType, mime_type),
@@ -425,6 +456,10 @@ const updateDossierDocument = async ({
     WHERE dossier_id = @dossierId AND doc_key = @docKey
   `).run({
     status,
+    originalFilename,
+    recommendedFilename,
+    fileUrl,
+    metadataJson: metadata ? JSON.stringify(metadata) : null,
     filename,
     fileSizeBytes,
     mimeType,

@@ -6,7 +6,13 @@ const required = (key, fallback = null) => {
   return value;
 };
 
-const JWT_SECRET = () => required('JWT_SECRET', 'dev_jwt_secret_change_me_64_chars_minimum');
+const JWT_SECRET = () => {
+  const value = required('JWT_SECRET');
+  if (process.env.NODE_ENV === 'production' && String(value).length < 64) {
+    throw new Error('JWT_SECRET_TOO_SHORT');
+  }
+  return value;
+};
 const ACCESS_EXPIRES = () => required('ACCESS_TOKEN_EXPIRES_IN', '15m');
 const REFRESH_EXPIRES = () => required('REFRESH_TOKEN_EXPIRES_IN', '7d');
 

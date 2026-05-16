@@ -107,6 +107,7 @@ CREATE TABLE IF NOT EXISTS documents (
   uploaded_at TEXT,
   reviewed_at TEXT,
   reviewer_id TEXT,
+  metadata_json TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   UNIQUE(dossier_id, doc_key),

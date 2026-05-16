@@ -9,6 +9,7 @@ import {
   FolderKanban,
   LayoutDashboard,
   MessageSquareText,
+  Network,
   Settings,
   ShieldCheck,
 } from 'lucide-react';
@@ -28,6 +29,7 @@ export const Sidebar = ({ className }) => {
     { to: '/dossiers', icon: FolderKanban, label: 'Dossiers', badge: dossiers.length },
     { to: '/documents', icon: FileText, label: 'Documents', badge: documents.length },
     { to: '/team', icon: MessageSquareText, label: 'Équipe & clients' },
+    { to: '/interfaces', icon: Network, label: 'Interfaces' },
     { to: '/analytics', icon: BarChart3, label: 'Pilotage' },
     { to: '/chat', icon: Bot, label: 'Assistant Greffio' },
     { to: '/settings', icon: Settings, label: 'Paramètres' },
