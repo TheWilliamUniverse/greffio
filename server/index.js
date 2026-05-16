@@ -177,7 +177,7 @@ app.get('/api/interfaces/status', requireAuth, requireRole(['ADMIN', 'OPS', 'FOR
   });
 });
 
-app.get('/api/company-search', requireAuth, async (req, res) => {
+app.get('/api/company-search', companyLookupPublicLimiter, async (req, res) => {
   const rawQuery = String(req.query?.siren || req.query?.siret || '').trim();
   const result = await lookupCompany(rawQuery);
   if (!result.ok) {
