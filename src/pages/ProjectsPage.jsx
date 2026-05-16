@@ -10,7 +10,7 @@ const ProjectsPage = () => {
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold">Projets</h1>
-        <Link to="/simulateur" className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white">
+        <Link to="/questionnaire" className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white">
           <Plus className="h-4 w-4" />
           Nouveau projet
         </Link>

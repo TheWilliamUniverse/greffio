@@ -127,7 +127,7 @@ export const DashboardPage = () => {
                   </Link>
                 </Button>
                 <Button asChild>
-                  <Link to="/simulateur">
+                  <Link to="/questionnaire">
                     <Plus className="h-4 w-4" />
                     Nouveau projet
                   </Link>
@@ -185,7 +185,7 @@ export const DashboardPage = () => {
                 C’est normal si aucun projet n’a encore été déposé. Lancez le simulateur, renseignez votre formalité, puis Greffio ouvrira le dossier correspondant dans cet espace.
               </p>
               <Button asChild className="mt-6">
-                <Link to="/simulateur">
+                <Link to="/questionnaire">
                   Démarrer une démarche
                   <ArrowRight className="h-4 w-4" />
                 </Link>

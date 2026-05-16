@@ -51,7 +51,7 @@ export const DossiersPage = () => {
               <p className="mt-2 text-sm text-muted-foreground">Vue réelle de vos créations, modifications, dissolutions et démarches administratives.</p>
             </div>
             <Button asChild>
-              <Link to="/simulateur">
+              <Link to="/questionnaire">
                 <Plus className="h-4 w-4" />
                 Nouveau dossier
               </Link>
@@ -101,7 +101,7 @@ export const DossiersPage = () => {
                 Les dossiers apparaîtront ici uniquement après création d’un projet ou ouverture effective par l’équipe Greffio.
               </p>
               <Button asChild className="mt-6">
-                <Link to="/simulateur">
+                <Link to="/questionnaire">
                   Créer mon premier dossier
                   <Plus className="h-4 w-4" />
                 </Link>
