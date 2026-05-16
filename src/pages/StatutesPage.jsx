@@ -5,12 +5,15 @@ import { Button } from '@/components/ui/button.jsx';
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
 import { downloadStatutesPdf, generateStatutes, listStatutes } from '@/api/statutes.js';
+import { getDossierById } from '@/api/dossiers.js';
+import { isEiLikeFormality } from '@/config/formalities.js';
 
 export const StatutesPage = () => {
   const dossierId = getCurrentDossierId();
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [documents, setDocuments] = useState([]);
+  const [eiLike, setEiLike] = useState(false);
 
   const load = async () => {
     if (!dossierId) {
@@ -20,6 +23,14 @@ export const StatutesPage = () => {
     }
     try {
       setLoading(true);
+      const dossierPayload = await getDossierById(dossierId);
+      const q = dossierPayload?.dossier?.dataJson ? JSON.parse(dossierPayload.dossier.dataJson) : {};
+      setEiLike(isEiLikeFormality({
+        legalForm: dossierPayload?.dossier?.legalForm,
+        formeJuridique: q?.formeJuridique,
+        typeFormalite: q?.typeFormalite,
+        service: dossierPayload?.dossier?.service,
+      }));
       const payload = await listStatutes(dossierId);
       setDocuments(payload.documents || []);
     } catch (_error) {
@@ -36,6 +47,10 @@ export const StatutesPage = () => {
   const onGenerate = async () => {
     if (!dossierId) {
       toast.error('Aucun dossier actif.');
+      return;
+    }
+    if (eiLike) {
+      toast.error('Les statuts ne sont pas requis pour une EI/micro-entreprise.');
       return;
     }
     try {
@@ -73,19 +88,23 @@ export const StatutesPage = () => {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-bold uppercase text-primary">Documents juridiques</p>
-              <h1 className="mt-1 text-3xl font-extrabold">Statuts SAS / SASU</h1>
-              <p className="mt-2 text-sm text-muted-foreground">Génération backend en PDF long (~10 pages), puis téléchargement.</p>
+              <h1 className="mt-1 text-3xl font-extrabold">{eiLike ? 'Parcours EI / micro' : 'Statuts SAS / SASU'}</h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {eiLike
+                  ? 'Les statuts ne sont pas applicables. Ce dossier suit un flux déclaratif sans génération de statuts.'
+                  : 'Génération backend en PDF long (~10 pages), puis téléchargement.'}
+              </p>
             </div>
             <div className="flex gap-2">
               <Button type="button" variant="outline" className="bg-white" onClick={load} disabled={loading}>
                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                 Actualiser
               </Button>
-              <Button type="button" onClick={onGenerate} disabled={generating}>
+              <Button type="button" onClick={onGenerate} disabled={generating || eiLike}>
                 <FileText className="h-4 w-4" />
                 {generating ? 'Génération...' : 'Générer les statuts'}
               </Button>
-              <Button type="button" variant="outline" className="bg-white" onClick={onDownload} disabled={!documents.length}>
+              <Button type="button" variant="outline" className="bg-white" onClick={onDownload} disabled={!documents.length || eiLike}>
                 <Download className="h-4 w-4" />
                 Télécharger PDF
               </Button>

@@ -17,6 +17,20 @@ const classifyIdentityDocument = (text) => {
   return identityHits >= 2;
 };
 
+const extractIdentityFields = (text) => {
+  const lines = String(text || '').split('\n').map((line) => line.trim()).filter(Boolean);
+  const firstNameLine = lines.find((line) => /prenom|prénom/i.test(line));
+  const lastNameLine = lines.find((line) => /\bnom\b/i.test(line));
+  const dobLine = lines.find((line) => /date de naissance/i.test(line));
+  const idNumberMatch = String(text || '').match(/\b([A-Z0-9]{8,14})\b/);
+  return {
+    firstName: firstNameLine ? firstNameLine.split(':').slice(1).join(':').trim() : null,
+    lastName: lastNameLine ? lastNameLine.split(':').slice(1).join(':').trim() : null,
+    birthDate: dobLine ? (dobLine.match(/\d{2}[\/.-]\d{2}[\/.-]\d{4}/)?.[0] || null) : null,
+    idNumber: idNumberMatch?.[1] || null,
+  };
+};
+
 const extractIdentitySignals = (text) => {
   const normalized = normalize(text);
   const scoreBase = [
@@ -57,6 +71,8 @@ const analyzeDocument = async ({
       ok: true,
       analysisType: 'identity_check',
       ...base,
+      extractedText: text.slice(0, 3500),
+      extractedIdentity: extractIdentityFields(text),
       ...signals,
     };
   }
@@ -64,6 +80,7 @@ const analyzeDocument = async ({
     ok: true,
     analysisType: 'generic_readability',
     ...base,
+    extractedText: text.slice(0, 3500),
     docCategory: 'general_document',
     confidence: text.length > 200 ? 70 : 40,
     requiresManualReview: text.length <= 200,

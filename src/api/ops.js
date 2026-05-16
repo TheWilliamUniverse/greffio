@@ -36,6 +36,14 @@ export const getOpsDossiers = async () => {
   return parseResponse(response);
 };
 
+export const getOpsDossiersRisk = async () => {
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/ops/dossiers-risk`, {
+    method: 'GET',
+    headers: authHeaders(),
+  });
+  return parseResponse(response);
+};
+
 export const getOpsPayments = async () => {
   const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/ops/payments`, {
     method: 'GET',

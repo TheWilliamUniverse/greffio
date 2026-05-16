@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { DOSSIER_STATUSES, evaluateTransition, ROLE } from './stateMachine.js';
 import { hasPostgres, query, sqlite } from './dbClient.js';
+import { getFormalityRule } from './domain/formalities.js';
 
 const nowIso = () => new Date().toISOString();
 const makeShortReference = () => {
@@ -258,8 +259,14 @@ const createDossier = async ({
 
 const ensureDossierDocuments = async (dossierId) => {
   const createdAt = nowIso();
+  const dossier = await getDossier(dossierId);
+  const questionnaire = dossier?.dataJson ? JSON.parse(dossier.dataJson) : {};
+  const formalityRule = getFormalityRule({ dossier, questionnaire });
+  const allowedTemplates = DOSSIER_DOCUMENT_TEMPLATES.filter(
+    (template) => !formalityRule.excludedDocumentKeys?.includes(template.key),
+  );
   if (hasPostgres) {
-    for (const template of DOSSIER_DOCUMENT_TEMPLATES) {
+    for (const template of allowedTemplates) {
       await query(`
         INSERT INTO documents (
           id, dossier_id, doc_key, label, required, status, created_at, updated_at
@@ -278,7 +285,7 @@ const ensureDossierDocuments = async (dossierId) => {
     }
     return;
   }
-  for (const template of DOSSIER_DOCUMENT_TEMPLATES) {
+  for (const template of allowedTemplates) {
     sqlite.prepare(`
       INSERT INTO documents (
         id, dossier_id, doc_key, label, required, status, created_at, updated_at
@@ -605,6 +612,7 @@ const updateDossierQuestionnaire = async ({
     ...previousData,
     ...dataPatch,
   };
+  const formalityRule = getFormalityRule({ dossier, questionnaire: mergedData });
   const nextProgress = progressPercent == null ? Number(dossier.progressPercent || 0) : Math.max(0, Math.min(100, Number(progressPercent)));
   const updatedAt = nowIso();
 
@@ -620,6 +628,25 @@ const updateDossierQuestionnaire = async ({
       SET data_json = ?, progress_percent = ?, updated_at = ?
       WHERE id = ?
     `).run(JSON.stringify(mergedData), nextProgress, updatedAt, dossierId);
+  }
+  if (formalityRule?.excludedDocumentKeys?.length) {
+    if (hasPostgres) {
+      await query(
+        `
+        UPDATE documents
+        SET required = FALSE, updated_at = $1
+        WHERE dossier_id = $2 AND doc_key = ANY($3::text[])
+        `,
+        [updatedAt, dossierId, formalityRule.excludedDocumentKeys],
+      );
+    } else {
+      const placeholders = formalityRule.excludedDocumentKeys.map(() => '?').join(',');
+      sqlite.prepare(`
+        UPDATE documents
+        SET required = 0, updated_at = ?
+        WHERE dossier_id = ? AND doc_key IN (${placeholders})
+      `).run(updatedAt, dossierId, ...formalityRule.excludedDocumentKeys);
+    }
   }
   return getDossier(dossierId);
 };

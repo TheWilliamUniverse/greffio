@@ -12,7 +12,7 @@ const normalize = (value = '') => value.toUpperCase().normalize('NFD').replace(/
 
 export const getFormProfile = (label = '') => {
   const value = normalize(label);
-  if (value.includes('AUTO') || value.includes('MICRO') || value.includes('ENTREPRISE INDIVIDUELLE') || value === 'EI' || value.includes('EIRL')) return 'INDIVIDUAL';
+  if (value.includes('AUTO') || value.includes('MICRO') || value.includes('ENTREPRISE INDIVIDUELLE') || value === 'EI') return 'INDIVIDUAL';
   if (value.includes('SASU')) return 'SASU';
   if (value === 'SAS') return 'SAS';
   if (value.includes('EURL')) return 'EURL';
@@ -231,20 +231,29 @@ const aliases = {
   dirigeantPrincipal: 'president',
 };
 
+const isIndividualProfile = (profile) => profile === 'INDIVIDUAL';
+
 export const valueFor = (data, answers, key, fallback = 'À compléter') => {
   const value = answers[key] ?? data[key] ?? data[aliases[key]];
   return value === undefined || value === null || value === '' ? fallback : value;
 };
 
 export const getCompletion = (data, answers, sections) => {
+  const profile = getFormProfile(data.legalForm || data.formeJuridique || '');
   const required = sections.flatMap((section) => section.fields.filter((field) => field.required).map((field) => field.key));
-  const base = ['companyName', 'activity', 'city', 'capital', 'president', 'email'];
+  const base = isIndividualProfile(profile)
+    ? ['companyName', 'activity', 'city', 'email', 'nomEntrepreneur']
+    : ['companyName', 'activity', 'city', 'capital', 'president', 'email'];
   const keys = [...new Set([...base, ...required])];
   const done = keys.filter((key) => valueFor(data, answers, key, '') !== '').length;
   return Math.round((done / Math.max(keys.length, 1)) * 100);
 };
 
 export const getWarnings = (data, answers) => {
+  const profile = getFormProfile(data.legalForm || data.formeJuridique || '');
+  if (isIndividualProfile(profile)) {
+    return ['Parcours EI/micro: pas de statuts, pas de capital social, pas d’associés à renseigner.'];
+  }
   const warnings = [];
   if (answers.capitalType === 'Variable' && (!answers.capitalPlancher || !answers.capitalPlafond)) {
     warnings.push('Capital variable : ajoutez un plancher et un plafond.');
@@ -646,7 +655,9 @@ export const buildDocumentPreview = (data, answers, selectedForm) => {
           'Piece d’identite en cours de validite.',
           'Justificatif de domicile recent.',
           'Procuration signee si mandataire.',
-          'Statuts signes, attestation de depot de capital, annonce legale, justificatif de siege, declaration des beneficiaires effectifs selon le cas.',
+          profile === 'INDIVIDUAL'
+            ? 'Selon EI/micro: declaration d activite, justificatifs d identite/domicile et pieces sectorielles eventuelles.'
+            : 'Statuts signes, attestation de depot de capital, annonce legale, justificatif de siege, declaration des beneficiaires effectifs selon le cas.',
         ],
       },
       {
@@ -655,8 +666,7 @@ export const buildDocumentPreview = (data, answers, selectedForm) => {
           'Piece_identite_NOM_PRENOM.pdf',
           'Justificatif_domicile_NOM_PRENOM.pdf',
           'Procuration_Greffio_NOM_PRENOM.pdf',
-          'Statuts_signes_DENOMINATION.pdf',
-          'Attestation_depot_capital_DENOMINATION.pdf',
+          ...(profile === 'INDIVIDUAL' ? [] : ['Statuts_signes_DENOMINATION.pdf', 'Attestation_depot_capital_DENOMINATION.pdf']),
         ],
       },
       {

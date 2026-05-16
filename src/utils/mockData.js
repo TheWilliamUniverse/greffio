@@ -1,6 +1,6 @@
 export const LEGAL_STRUCTURES = [
   { category: 'Formes les plus courantes', types: ['SAS', 'SASU', 'SARL', 'EURL', 'SA', 'SCI', 'Micro-entreprise', 'Entreprise individuelle (EI)', 'Association loi 1901'] },
-  { category: 'Entrepreneurs individuels', types: ['EI', 'Micro-entreprise', 'Auto-entrepreneur', 'EIRL (historique)'] },
+  { category: 'Entrepreneurs individuels', types: ['EI', 'Micro-entreprise', 'Auto-entrepreneur'] },
   { category: 'Sociétés commerciales classiques', types: ['EURL', 'SARL', 'SASU', 'SAS', 'SA', 'Société anonyme à conseil d’administration', 'Société anonyme à directoire', 'SNC', 'SCS', 'SCA'] },
   { category: 'Sociétés civiles et immobilières', types: ['SCI', 'SCPI', 'SCP', 'SCM', 'Société civile', 'Société en participation'] },
   { category: 'Professions libérales et santé', types: ['Cabinet libéral', 'Profession libérale réglementée', 'SEL', 'SELARL', 'SELAS', 'SELAFA', 'SELCA'] },
@@ -155,7 +155,6 @@ export const COMPANY_FORM_CATALOG = [
   form('association-1901', 'Association loi 1901', 'Formes les plus courantes', 'ASSOCIATION_1901', true, 'Groupement non lucratif avec statuts associatifs.', 'Bureau, conseil ou gouvernance statutaire', 9),
 
   form('auto-entrepreneur', 'Auto-entrepreneur', 'Entrepreneurs individuels', 'AUTO_ENTREPRENEUR', false, 'Nom d’usage courant du régime micro-entrepreneur.', 'Entrepreneur individuel', 20),
-  form('eirl', 'EIRL (historique)', 'Entrepreneurs individuels', 'EIRL_HISTORIQUE', false, 'Forme historique non créable pour les nouveaux dossiers, utile en gestion d’existant.', 'Entrepreneur individuel avec patrimoine affecté historique', 21),
 
   form('commercial-sas', 'SAS', 'Sociétés commerciales classiques', 'SAS', true, 'Société par actions simplifiée, flexible pour associés, investisseurs et gouvernance sur mesure.', 'Président, DG optionnel, décisions collectives', 24),
   form('commercial-sasu', 'SASU', 'Sociétés commerciales classiques', 'SASU', true, 'SAS à associé unique pour démarrer seul avec une structure évolutive.', 'Président associé unique ou tiers', 25),

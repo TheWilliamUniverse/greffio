@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   MessageSquareText,
   Network,
+  Activity,
   Settings,
   ShieldCheck,
 } from 'lucide-react';
@@ -30,6 +31,7 @@ export const Sidebar = ({ className }) => {
     { to: '/documents', icon: FileText, label: 'Documents', badge: documents.length },
     { to: '/team', icon: MessageSquareText, label: 'Équipe & clients' },
     { to: '/interfaces', icon: Network, label: 'Interfaces' },
+    { to: '/ops-observability', icon: Activity, label: 'Ops observabilité' },
     { to: '/analytics', icon: BarChart3, label: 'Pilotage' },
     { to: '/chat', icon: Bot, label: 'Assistant Greffio' },
     { to: '/settings', icon: Settings, label: 'Paramètres' },

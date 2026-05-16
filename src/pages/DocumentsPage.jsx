@@ -9,6 +9,8 @@ import { INPI_UPLOAD_RULES } from '@/config/legalFlow.js';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
 import { downloadDossierDocument, getDossierDocuments, uploadDossierDocument } from '@/api/documents.js';
 import { getUser } from '@/utils/localStorage.js';
+import { isEiLikeFormality } from '@/config/formalities.js';
+import { getDossierById } from '@/api/dossiers.js';
 
 export const DocumentsPage = () => {
   const [query, setQuery] = useState('');
@@ -18,6 +20,7 @@ export const DocumentsPage = () => {
   const [selectedDocKey, setSelectedDocKey] = useState('identity_proof');
   const [uploadError, setUploadError] = useState(null);
   const [uploadSuccess, setUploadSuccess] = useState('');
+  const [dossierFormalityMeta, setDossierFormalityMeta] = useState({});
   const currentDossierId = getCurrentDossierId();
   const user = getUser();
   const normalizedDocuments = useMemo(() => apiDocuments.map((item) => ({
@@ -36,6 +39,29 @@ export const DocumentsPage = () => {
     reviewHint: item.metadata?.analysis?.requiresManualReview ? 'Vérification manuelle requise' : 'Analyse automatique OK',
     confidence: item.metadata?.analysis?.confidence ?? null,
   })), [apiDocuments]);
+  const dossierMeta = useMemo(() => {
+    const first = apiDocuments[0]?.metadata?.dossier || {};
+    return { ...first, ...dossierFormalityMeta };
+  }, [apiDocuments, dossierFormalityMeta]);
+  const eiLike = isEiLikeFormality({
+    legalForm: dossierMeta.legalForm,
+    formeJuridique: dossierMeta.formeJuridique,
+    service: dossierMeta.service,
+  });
+  const uploadableDocKeys = useMemo(() => ([
+    ['identity_proof', 'Pièce d’identité'],
+    ['address_proof', 'Justificatif de domicile'],
+    ['proxy_mandate', 'Procuration signée'],
+    ['legal_notice_certificate', 'Attestation annonce légale'],
+    ['registered_office_proof', 'Justificatif siège social'],
+    ['ubo_declaration', 'Déclaration bénéficiaires effectifs'],
+    ['signed_statutes', 'Statuts signés'],
+    ['capital_certificate', 'Attestation dépôt capital'],
+  ].filter(([value]) => !(eiLike && (value === 'signed_statutes' || value === 'capital_certificate')))), [eiLike]);
+  useEffect(() => {
+    if (uploadableDocKeys.some(([value]) => value === selectedDocKey)) return;
+    setSelectedDocKey(uploadableDocKeys[0]?.[0] || 'identity_proof');
+  }, [selectedDocKey, uploadableDocKeys]);
   const types = useMemo(() => ['Tous', ...new Set(normalizedDocuments.map((document) => document.type))], [normalizedDocuments]);
 
   const filteredDocuments = useMemo(() => normalizedDocuments.filter((document) => {
@@ -61,6 +87,14 @@ export const DocumentsPage = () => {
       try {
         const items = await getDossierDocuments(currentDossierId);
         setApiDocuments(items);
+        const payload = await getDossierById(currentDossierId);
+        const q = payload?.dossier?.dataJson ? JSON.parse(payload.dossier.dataJson) : {};
+        setDossierFormalityMeta({
+          legalForm: payload?.dossier?.legalForm,
+          formeJuridique: q?.formeJuridique,
+          service: payload?.dossier?.service,
+          typeFormalite: q?.typeFormalite,
+        });
       } catch (_error) {
         setApiDocuments([]);
       }
@@ -160,16 +194,7 @@ export const DocumentsPage = () => {
               <div className="flex-1">
                 <p className="text-sm font-semibold">Type de justificatif</p>
                 <select className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm" value={selectedDocKey} onChange={(event) => setSelectedDocKey(event.target.value)}>
-                  {[
-                    ['identity_proof', 'Pièce d’identité'],
-                    ['address_proof', 'Justificatif de domicile'],
-                    ['proxy_mandate', 'Procuration signée'],
-                    ['signed_statutes', 'Statuts signés'],
-                    ['capital_certificate', 'Attestation dépôt capital'],
-                    ['legal_notice_certificate', 'Attestation annonce légale'],
-                    ['registered_office_proof', 'Justificatif siège social'],
-                    ['ubo_declaration', 'Déclaration bénéficiaires effectifs'],
-                  ].map(([value, label]) => (
+                  {uploadableDocKeys.map(([value, label]) => (
                     <option key={value} value={value}>{label}</option>
                   ))}
                 </select>
@@ -228,7 +253,9 @@ export const DocumentsPage = () => {
               <Archive className="mx-auto h-10 w-10 text-primary" />
               <h2 className="mt-4 text-2xl font-extrabold">Coffre documentaire vide</h2>
               <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                Aucun document n’est encore enregistré sur le dossier actif. Les statuts, attestations, justificatifs, annonces et pièces greffe apparaîtront ici après génération ou dépôt.
+                {eiLike
+                  ? "Aucun document n’est encore enregistré sur le dossier actif. Les pièces EI/micro (identité, domicile, déclaration d'activité, justificatifs) apparaîtront ici après génération ou dépôt."
+                  : 'Aucun document n’est encore enregistré sur le dossier actif. Les statuts, attestations, justificatifs, annonces et pièces greffe apparaîtront ici après génération ou dépôt.'}
               </p>
               <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
                 <Button>
@@ -308,6 +335,12 @@ export const DocumentsPage = () => {
                   <div>
                     <p className="text-sm font-bold">{item.label}</p>
                     <p className="text-xs text-muted-foreground">{item.filename || item.recommendedFilename || 'Nom non généré'} · {item.docKey}</p>
+                    {item.metadata?.analysis?.analysisType === 'identity_check' ? (
+                      <p className="mt-1 text-xs font-semibold text-primary">
+                        Vérif identité: {item.metadata.analysis.extractedIdentity?.firstName || 'N/A'} {item.metadata.analysis.extractedIdentity?.lastName || ''} ·
+                        confiance {item.metadata.analysis.confidence ?? 'N/A'}%
+                      </p>
+                    ) : null}
                   </div>
                   <StatusBadge status={String(item.status || '').toUpperCase()} className="w-fit" />
                 </div>

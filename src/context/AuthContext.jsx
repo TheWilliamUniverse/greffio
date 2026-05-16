@@ -100,7 +100,7 @@ const makeInitialDossier = (userData) => {
 const createWorkspaceFromSignup = (userData) => {
   const reference = makeReference();
   const dossier = makeInitialDossier(userData);
-  const noStatutes = ['Micro-entreprise', 'Auto-entrepreneur', 'Entreprise individuelle (EI)', 'EIRL (historique)'];
+  const noStatutes = ['Micro-entreprise', 'Auto-entrepreneur', 'Entreprise individuelle (EI)', 'EI'];
   const documents = noStatutes.includes(dossier.legalForm)
     ? []
     : [{

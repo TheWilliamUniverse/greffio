@@ -33,6 +33,9 @@ import { PaymentVerificationPage } from '@/pages/PaymentVerificationPage.jsx';
 import { QuestionnairePage } from '@/pages/QuestionnairePage.jsx';
 import { StatutesPage } from '@/pages/StatutesPage.jsx';
 import { InterfacesPage } from '@/pages/InterfacesPage.jsx';
+import { ServiceLandingPage } from '@/pages/ServiceLandingPage.jsx';
+import { OpsLookupObservabilityPage } from '@/pages/OpsLookupObservabilityPage.jsx';
+import { SERVICE_PAGE_SLUGS } from '@/config/serviceLandingPages.js';
 import { CookieConsentBanner } from '@/components/CookieConsentBanner.jsx';
 
 const ScrollToTop = () => {
@@ -81,6 +84,9 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/password-reset" element={<PasswordResetPage />} />
             <Route path="/service/:id" element={<ServiceDetailPage />} />
+            {SERVICE_PAGE_SLUGS.map((slug) => (
+              <Route key={slug} path={`/${slug}`} element={<ServiceLandingPage />} />
+            ))}
             <Route path="/mentions-legales" element={<LegalMentionsPage />} />
             <Route path="/confidentialite" element={<PrivacyPolicyPage />} />
             <Route path="/suppression-compte" element={<AccountDeletionPage />} />
@@ -92,6 +98,7 @@ function App() {
             <Route path="/guide" element={<GuidePage />} />
             <Route path="/procuration" element={<MandatePage />} />
             <Route path="/ops" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><OpsDashboardPage /></ProtectedRoute>} />
+            <Route path="/ops-observability" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><OpsLookupObservabilityPage /></ProtectedRoute>} />
             <Route path="/paiement/verification" element={<PaymentVerificationPage />} />
 
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />

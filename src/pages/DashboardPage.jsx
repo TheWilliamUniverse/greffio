@@ -20,6 +20,7 @@ import { useAuth } from '@/hooks/useAuth.js';
 import { getDocuments, getDossiers, getNotifications } from '@/utils/localStorage.js';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
 import { getDossierById } from '@/api/dossiers.js';
+import { isEiLikeFormality } from '@/config/formalities.js';
 
 export const DashboardPage = () => {
   const { currentUser } = useAuth();
@@ -39,6 +40,11 @@ export const DashboardPage = () => {
         const payload = await getDossierById(currentDossierId);
         const dossier = payload.dossier;
         const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+        const eiLike = isEiLikeFormality({
+          legalForm: dossier.legalForm || questionnaire.formeJuridique,
+          typeFormalite: questionnaire.typeFormalite,
+          service: dossier.service,
+        });
         const apiDossier = {
           id: dossier.id,
           name: dossier.companyName || dossier.denomination || 'Dossier entreprise',
@@ -65,7 +71,9 @@ export const DashboardPage = () => {
           },
         };
         setDossiers([apiDossier]);
-        setDocuments((payload.documents || []).map((doc) => ({
+        setDocuments((payload.documents || [])
+          .filter((doc) => !(eiLike && (doc.docKey === 'signed_statutes' || doc.docKey === 'capital_certificate')))
+          .map((doc) => ({
           id: doc.id,
           dossierId: doc.dossierId,
           name: doc.label,

@@ -7,6 +7,7 @@ import {
   createOpsNote,
   getOpsDossierDetail,
   getOpsDossiers,
+  getOpsDossiersRisk,
   getOpsPayments,
   updateOpsAssignment,
 } from '@/api/ops.js';
@@ -32,20 +33,24 @@ export const OpsDashboardPage = () => {
   const [selectedDocuments, setSelectedDocuments] = useState([]);
   const [selectedEvents, setSelectedEvents] = useState([]);
   const [selectedNotes, setSelectedNotes] = useState([]);
+  const [selectedRisk, setSelectedRisk] = useState(null);
   const [newNote, setNewNote] = useState('');
   const [opsFilter, setOpsFilter] = useState('all');
   const [savingAssignment, setSavingAssignment] = useState(false);
+  const [antiRejectQueue, setAntiRejectQueue] = useState([]);
 
   const loadData = async () => {
     setLoading(true);
     setError('');
     try {
-      const [dossiersPayload, paymentsPayload] = await Promise.all([
+      const [dossiersPayload, paymentsPayload, riskPayload] = await Promise.all([
         getOpsDossiers(),
         getOpsPayments(),
+        getOpsDossiersRisk(),
       ]);
       setDossiers(dossiersPayload.dossiers || []);
       setPayments(paymentsPayload.payments || []);
+      setAntiRejectQueue(riskPayload.queue || []);
     } catch (_e) {
       setError("Impossible de charger les données Ops.");
     } finally {
@@ -73,6 +78,7 @@ export const OpsDashboardPage = () => {
       setSelectedDocuments(payload.documents || []);
       setSelectedEvents(payload.events || []);
       setSelectedNotes(payload.notes || []);
+      setSelectedRisk(payload.risk || null);
     } catch (_e) {
       setError("Impossible d'ouvrir le dossier Ops.");
     }
@@ -144,6 +150,50 @@ export const OpsDashboardPage = () => {
         <section className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
           <p className="text-sm font-semibold text-muted-foreground">Volume encaissé</p>
           <p className="mt-2 text-2xl font-extrabold text-foreground">{fmtEuros(paidVolume)}</p>
+        </section>
+
+        <section className="rounded-md border border-border bg-white shadow-elevation-sm">
+          <div className="border-b border-border p-4">
+            <h2 className="text-lg font-extrabold">Queue Anti-Rejet (tri risque + délai + pièces)</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-muted text-left">
+                  <th className="px-4 py-3 font-semibold">Dossier</th>
+                  <th className="px-4 py-3 font-semibold">Risque</th>
+                  <th className="px-4 py-3 font-semibold">Âge</th>
+                  <th className="px-4 py-3 font-semibold">Pièces manquantes</th>
+                  <th className="px-4 py-3 font-semibold">Blocage identité</th>
+                  <th className="px-4 py-3 font-semibold">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {antiRejectQueue.slice(0, 20).map((item) => (
+                  <tr key={item.dossier.id} className="border-t border-border">
+                    <td className="px-4 py-3">
+                      <p className="font-semibold">{item.dossier.companyName}</p>
+                      <p className="text-xs text-muted-foreground">{item.dossier.id}</p>
+                    </td>
+                    <td className="px-4 py-3 font-bold">{item.risk.riskScore}/100</td>
+                    <td className="px-4 py-3">{item.risk.dossierAgeDays} j</td>
+                    <td className="px-4 py-3">{item.risk.requiredMissingCount}</td>
+                    <td className="px-4 py-3">{item.risk.identityVerificationBlocked ? 'Oui' : 'Non'}</td>
+                    <td className="px-4 py-3">
+                      <Button type="button" variant="outline" className="bg-white" onClick={() => openDossier(item.dossier.id)}>
+                        Ouvrir
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+                {!antiRejectQueue.length ? (
+                  <tr>
+                    <td className="px-4 py-4 text-muted-foreground" colSpan={6}>Aucune donnée de risque disponible.</td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <section className="rounded-md border border-border bg-white shadow-elevation-sm">
@@ -237,6 +287,14 @@ export const OpsDashboardPage = () => {
                 <Button type="button" onClick={saveAssignment} disabled={savingAssignment}>
                   {savingAssignment ? 'Sauvegarde...' : 'Enregistrer assignation'}
                 </Button>
+                {selectedRisk ? (
+                  <div className="rounded-md border border-border bg-muted p-3 text-xs text-muted-foreground">
+                    <p><strong>Risque global:</strong> {selectedRisk.riskScore}/100</p>
+                    <p><strong>Blocage identité:</strong> {selectedRisk.identityVerificationBlocked ? 'Oui' : 'Non'}</p>
+                    <p><strong>Pièces manquantes:</strong> {selectedRisk.requiredMissingCount}</p>
+                    <p><strong>Recommandation:</strong> {selectedRisk.recommendation}</p>
+                  </div>
+                ) : null}
               </div>
             </div>
 

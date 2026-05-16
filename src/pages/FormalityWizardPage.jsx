@@ -21,6 +21,8 @@ import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
+import { ProgressiveStepChips } from '@/components/ProgressiveStepChips.jsx';
+import { CompanyLookupCard } from '@/components/CompanyLookupCard.jsx';
 import { COMPANY_FORM_CATALOG, getFormAvailability, SERVICE_AVAILABILITY } from '@/utils/mockData.js';
 import {
   QUESTION_MODES,
@@ -32,6 +34,8 @@ import {
 } from '@/utils/formalityEngine.js';
 import { getProjectDraft, saveProjectDraft } from '@/utils/localStorage.js';
 import { GREFFIO_CONTACT } from '@/config/legalFlow.js';
+import { getFormalityRule, isEiLikeFormality } from '@/config/formalities.js';
+import { lookupCompanyBySiren } from '@/api/company.js';
 
 const journeys = [
   {
@@ -66,18 +70,18 @@ const journeys = [
 
 const offers = [
   {
-    name: 'Statuts gratuits',
+    name: 'Dossier gratuit',
     price: '0€',
     badge: 'Offre d’appel',
-    description: 'Génération du projet de statuts, checklist des pièces et envoi du résumé par email.',
-    features: ['Questionnaire guidé', 'Projet de statuts', 'Checklist greffe', 'Emails de suivi'],
+    description: 'Questionnaire guidé, checklist des pièces et envoi du résumé par email.',
+    features: ['Questionnaire guidé', 'Checklist greffe', 'Emails de suivi'],
   },
   {
     name: 'Dossier Standard',
     price: '99€ HT',
     badge: 'Autonome',
     description: 'Documents générés, vérification de cohérence et tableau de bord de dépôt.',
-    features: ['Statuts et formulaires', 'Contrôle documentaire', 'Dossier partagé', 'Support email'],
+    features: ['Formulaires et pièces', 'Contrôle documentaire', 'Dossier partagé', 'Support email'],
   },
   {
     name: 'Équipe Greffio Premium',
@@ -89,16 +93,22 @@ const offers = [
   },
 ];
 
+const MANUAL_QUOTE_LOCK_COPY = {
+  title: 'Accompagnement sur devis',
+  description: "Cette formalité nécessite une qualification manuelle avant engagement. L'équipe Greffio vous recontacte avec un périmètre, un calendrier et un devis adapté.",
+  cta: "Demander un devis",
+};
+
 const FORMS_WITHOUT_STATUTES = new Set([
   'MICRO-ENTREPRISE',
   'AUTO-ENTREPRENEUR',
   'ENTREPRISE INDIVIDUELLE (EI)',
   'EI',
-  'EIRL (HISTORIQUE)',
   'EXPLOITATION AGRICOLE INDIVIDUELLE',
 ]);
 
 const steps = ['Démarche', 'Projet', 'Dirigeants', 'Synthèse'];
+const PROGRESSIVE_WIZARD_STEPS = steps.map((label, index) => ({ id: String(index), label }));
 const targetFormGroups = COMPANY_FORM_CATALOG.reduce((groups, form) => {
   const group = groups.find((item) => item.category === form.family);
   if (group) {
@@ -179,6 +189,10 @@ export const FormalityWizardPage = () => {
   const [questionMode, setQuestionMode] = useState('avance');
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [contactStep, setContactStep] = useState(0);
+  const [existingCompanyIdentifier, setExistingCompanyIdentifier] = useState('');
+  const [existingCompanyState, setExistingCompanyState] = useState('idle');
+  const [existingCompanyError, setExistingCompanyError] = useState('');
+  const [existingCompany, setExistingCompany] = useState(null);
   const [dossierReference] = useState(`F${Math.floor(10000000 + (Math.random() * 90000000))}`);
   const [answers, setAnswers] = useState(draft?.answers || {
     capitalType: 'Fixe',
@@ -210,9 +224,15 @@ export const FormalityWizardPage = () => {
   const selectedJourney = useMemo(() => journeys.find((journey) => journey.id === data.journey) || journeys[0], [data.journey]);
   const activeCompareModule = compareModules[requestedType] || null;
   const selectedLegalFormUpper = String(data.legalForm || '').toUpperCase();
-  const requiresStatutes = !FORMS_WITHOUT_STATUTES.has(selectedLegalFormUpper);
+  const selectedRule = useMemo(() => getFormalityRule({ legalForm: data.legalForm }), [data.legalForm]);
+  const eiLike = useMemo(() => isEiLikeFormality({ legalForm: data.legalForm }), [data.legalForm]);
+  const requiresStatutes = selectedRule.requiresStatutes && !FORMS_WITHOUT_STATUTES.has(selectedLegalFormUpper);
   const progress = ((step + 1) / steps.length) * 100;
   const selectedForm = useMemo(() => COMPANY_FORM_CATALOG.find((form) => form.label === data.legalForm), [data.legalForm]);
+  const selectedFormAvailability = useMemo(
+    () => (selectedForm ? getFormAvailability(selectedForm.key) : SERVICE_AVAILABILITY.AVAILABLE_NOW),
+    [selectedForm],
+  );
   const questionnaire = useMemo(() => getQuestionnaire(selectedForm?.label || data.legalForm, questionMode), [selectedForm?.label, data.legalForm, questionMode]);
   const flattenedQuestions = useMemo(
     () => questionnaire.flatMap((section) => section.fields
@@ -290,6 +310,40 @@ export const FormalityWizardPage = () => {
     setStep((value) => Math.max(0, value - 1));
   };
 
+  const detectJourneyFromCompany = (company) => {
+    if (!company) return 'modification';
+    const label = String(company.administrativeStatus || '').toUpperCase();
+    if (label.includes('CESSEE') || label.includes('RADI')) return 'dissolution';
+    return 'modification';
+  };
+
+  const lookupExistingCompany = async () => {
+    const digits = String(existingCompanyIdentifier || '').replace(/\D/g, '');
+    if (digits.length !== 9 && digits.length !== 14) {
+      setExistingCompanyError('Saisissez un SIREN (9) ou SIRET (14).');
+      return;
+    }
+    try {
+      setExistingCompanyState('loading');
+      setExistingCompanyError('');
+      const payload = await lookupCompanyBySiren(digits);
+      const company = payload?.company || null;
+      setExistingCompany(company);
+      if (company) {
+        const nextJourney = detectJourneyFromCompany(company);
+        update('journey', nextJourney);
+        update('companyName', company.denomination || data.companyName);
+        update('city', company.city || data.city);
+        update('activity', company.apeCode || data.activity);
+      }
+      setExistingCompanyState('done');
+    } catch (_error) {
+      setExistingCompany(null);
+      setExistingCompanyState('error');
+      setExistingCompanyError("Entreprise introuvable avec cet identifiant.");
+    }
+  };
+
   const generatedClauses = [
     (selectedForm?.hasStatutes && requiresStatutes)
       ?
@@ -326,6 +380,11 @@ export const FormalityWizardPage = () => {
             <div className="h-2 rounded-full bg-white">
               <div className="h-2 rounded-full bg-primary transition-all" style={{ width: showOffers ? '100%' : `${progress}%` }} />
             </div>
+            {!showOffers ? (
+              <div className="mt-4">
+                <ProgressiveStepChips steps={PROGRESSIVE_WIZARD_STEPS} activeIndex={step} />
+              </div>
+            ) : null}
           </div>
 
           <AnimatePresence mode="wait">
@@ -382,6 +441,38 @@ export const FormalityWizardPage = () => {
                         </button>
                       ))}
                     </div>
+                    {data.journey !== 'creation' ? (
+                      <div className="rounded-md border border-border bg-white p-5">
+                        <p className="text-sm font-bold uppercase text-primary">
+                          Signature électronique qualifiée nécessaire
+                        </p>
+                        <h3 className="mt-1 text-xl font-extrabold">Modification, cessation, dépôt d’actes ou correction</h3>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          Rechercher une entreprise par SIREN ou SIRET pour précharger le dossier.
+                        </p>
+                        <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
+                          <Input
+                            value={existingCompanyIdentifier}
+                            onChange={(event) => {
+                              setExistingCompanyIdentifier(event.target.value);
+                              setExistingCompanyError('');
+                              setExistingCompany(null);
+                              setExistingCompanyState('idle');
+                            }}
+                            placeholder="SIREN (9) ou SIRET (14)"
+                          />
+                          <Button type="button" onClick={() => void lookupExistingCompany()} disabled={existingCompanyState === 'loading'}>
+                            {existingCompanyState === 'loading' ? 'Recherche…' : 'Rechercher'}
+                          </Button>
+                        </div>
+                        {existingCompanyError ? <p className="mt-2 text-xs text-red-600">{existingCompanyError}</p> : null}
+                        {existingCompany ? (
+                          <div className="mt-4">
+                            <CompanyLookupCard company={existingCompany} onUse={() => next()} />
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                 )}
 
@@ -804,8 +895,26 @@ export const FormalityWizardPage = () => {
                 <div className="mb-8">
                   <p className="text-sm font-bold uppercase text-primary">Offres recommandées</p>
                   <h1 className="mt-2 text-3xl font-extrabold">Choisissez la suite de votre démarche.</h1>
-                  <p className="mt-2 text-muted-foreground">La génération gratuite reste disponible. Les offres payantes ajoutent la vérification, l’équipe et le dépôt.</p>
+                  <p className="mt-2 text-muted-foreground">
+                    {eiLike
+                      ? "Le parcours EI/micro ne génère pas de statuts. Les offres portent sur la déclaration d'activité, les pièces et le suivi administratif."
+                      : 'La génération gratuite reste disponible. Les offres payantes ajoutent la vérification, l’équipe et le dépôt.'}
+                  </p>
                 </div>
+                {selectedFormAvailability === SERVICE_AVAILABILITY.MANUAL_QUOTE && (
+                  <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 p-5">
+                    <p className="text-sm font-bold uppercase text-amber-800">Validation humaine requise</p>
+                    <h2 className="mt-1 text-xl font-extrabold text-amber-900">{MANUAL_QUOTE_LOCK_COPY.title}</h2>
+                    <p className="mt-2 text-sm text-amber-900/80">{MANUAL_QUOTE_LOCK_COPY.description}</p>
+                    <Button asChild className="mt-4">
+                      <Link to={`/contact?service=${encodeURIComponent(data.journey)}&form=${encodeURIComponent(data.legalForm)}&mode=devis`}>
+                        {MANUAL_QUOTE_LOCK_COPY.cta}
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+
                 <div className="grid gap-4 lg:grid-cols-3">
                   {offers.map((offer) => (
                     <div key={offer.name} className={`rounded-md border p-5 ${offer.highlighted ? 'border-primary bg-secondary shadow-elevation-md' : 'border-border bg-white'}`}>
@@ -823,12 +932,21 @@ export const FormalityWizardPage = () => {
                           </div>
                         ))}
                       </div>
-                      <Button asChild className="mt-6 w-full" variant={offer.highlighted ? 'default' : 'outline'}>
-                        <Link to={offer.price === '0€' ? `/signup?service=${data.journey}` : `/paiement?offer=${encodeURIComponent(offer.name)}&service=${data.journey}`}>
-                          Choisir
-                          <ArrowRight className="h-4 w-4" />
-                        </Link>
-                      </Button>
+                      {selectedFormAvailability === SERVICE_AVAILABILITY.MANUAL_QUOTE ? (
+                        <Button asChild className="mt-6 w-full" variant="outline">
+                          <Link to={`/contact?service=${encodeURIComponent(data.journey)}&form=${encodeURIComponent(data.legalForm)}&offer=${encodeURIComponent(offer.name)}&mode=devis`}>
+                            {MANUAL_QUOTE_LOCK_COPY.cta}
+                            <ArrowRight className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button asChild className="mt-6 w-full" variant={offer.highlighted ? 'default' : 'outline'}>
+                          <Link to={offer.price === '0€' ? `/signup?service=${data.journey}` : `/paiement?offer=${encodeURIComponent(offer.name)}&service=${data.journey}`}>
+                            Choisir
+                            <ArrowRight className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>

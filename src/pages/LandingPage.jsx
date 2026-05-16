@@ -19,7 +19,10 @@ import {
 import { NavbarDropdown } from '@/components/NavbarDropdown.jsx';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
+import { CompanyLookupCard } from '@/components/CompanyLookupCard.jsx';
 import { LEGAL_SERVICES } from '@/utils/mockData.js';
+import { lookupCompanyBySiren } from '@/api/company.js';
+import { useNavigate } from 'react-router-dom';
 
 const platformFeatures = [
   { icon: FileCheck2, title: 'Dossiers guidés', text: 'Création, modification, dépôt de capital, annonce légale et envoi au greffe dans un parcours unique.' },
@@ -56,6 +59,31 @@ const howItWorks = [
 ];
 
 export const LandingPage = () => {
+  const navigate = useNavigate();
+  const [lookupIdentifier, setLookupIdentifier] = React.useState('');
+  const [lookupLoading, setLookupLoading] = React.useState(false);
+  const [lookupError, setLookupError] = React.useState('');
+  const [lookupCompany, setLookupCompany] = React.useState(null);
+
+  const performLookup = async () => {
+    const digits = String(lookupIdentifier || '').replace(/\D/g, '');
+    if (digits.length !== 9 && digits.length !== 14) {
+      setLookupError('Saisissez un SIREN (9) ou SIRET (14).');
+      return;
+    }
+    try {
+      setLookupLoading(true);
+      setLookupError('');
+      const payload = await lookupCompanyBySiren(digits);
+      setLookupCompany(payload?.company || null);
+    } catch (_error) {
+      setLookupCompany(null);
+      setLookupError('Entreprise introuvable pour cet identifiant.');
+    } finally {
+      setLookupLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <NavbarDropdown />
@@ -228,6 +256,47 @@ export const LandingPage = () => {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section id="inpi-like-lookup" className="bg-white px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl rounded-md border border-border p-6 shadow-elevation-sm">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold uppercase text-primary">Informations de l’entreprise</p>
+              <h2 className="mt-1 text-3xl font-extrabold">Recherche SIREN / SIRET (style guichet unique)</h2>
+            </div>
+            <div className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-primary">
+              Signature qualifiée nécessaire (modification/dépôt)
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-[1fr_auto]">
+            <input
+              className="h-11 rounded-md border border-input px-3 text-sm"
+              placeholder="SIREN (9) ou SIRET (14)"
+              value={lookupIdentifier}
+              onChange={(event) => {
+                setLookupIdentifier(event.target.value);
+                setLookupError('');
+                setLookupCompany(null);
+              }}
+            />
+            <Button className="h-11" onClick={() => void performLookup()} disabled={lookupLoading}>
+              {lookupLoading ? 'Recherche…' : 'Rechercher une entreprise'}
+            </Button>
+          </div>
+          {lookupError ? <p className="mt-2 text-sm text-red-600">{lookupError}</p> : null}
+
+          {lookupCompany ? (
+            <div className="mt-5">
+              <CompanyLookupCard
+                company={lookupCompany}
+                onUse={() => {
+                  navigate(`/questionnaire?prefillSiren=${encodeURIComponent(lookupCompany.siren || '')}`);
+                }}
+              />
+            </div>
+          ) : null}
         </div>
       </section>
 

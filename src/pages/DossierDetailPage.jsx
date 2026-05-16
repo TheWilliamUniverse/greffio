@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.j
 import { getChatHistory, getDocuments, getDossiers } from '@/utils/localStorage.js';
 import { getDossierById } from '@/api/dossiers.js';
 import { saveCurrentDossierId } from '@/utils/sessionStore.js';
+import { isEiLikeFormality } from '@/config/formalities.js';
 
 export const DossierDetailPage = () => {
   const { id } = useParams();
@@ -36,6 +37,11 @@ export const DossierDetailPage = () => {
         const payload = await getDossierById(id);
         const d = payload.dossier;
         const questionnaire = d.dataJson ? JSON.parse(d.dataJson) : {};
+        const eiLike = isEiLikeFormality({
+          legalForm: d.legalForm || questionnaire.formeJuridique,
+          typeFormalite: questionnaire.typeFormalite,
+          service: d.service,
+        });
         setApiDossier({
           id: d.id,
           name: d.companyName || d.denomination || 'Dossier',
@@ -66,7 +72,7 @@ export const DossierDetailPage = () => {
             { label: 'Contrôle Greffio', done: Number(d.progressPercent || 0) >= 60 },
             { label: 'Signature', done: Number(d.progressPercent || 0) >= 80 },
             { label: 'Dépôt formalité', done: Number(d.progressPercent || 0) >= 100 },
-          ],
+          ].filter((stepItem) => !(eiLike && stepItem.label.toLowerCase().includes('statuts'))),
         });
         setApiDocs((payload.documents || []).map((doc) => ({
           id: doc.id,

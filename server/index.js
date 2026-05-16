@@ -46,6 +46,10 @@ import { generateMandatePdf } from './pdf/mandatePdf.js';
 import { generateStatutesPdf } from './pdf/statutesPdf.js';
 import { buildSasuStatutesSections } from './legal/statutes/sasuTemplate.js';
 import { buildSasStatutesSections } from './legal/statutes/sasTemplate.js';
+import { getFormalityRule } from './domain/formalities.js';
+import { getCompanyLookupMetrics, lookupCompany } from './services/companyLookup.js';
+import { buildIntelligentPrefill } from './services/intelligentIntake.js';
+import { computeDossierRisk, sortAntiRejectionQueue } from './services/opsRisk.js';
 
 dotenv.config();
 
@@ -167,33 +171,58 @@ app.get('/api/interfaces/status', requireAuth, requireRole(['ADMIN', 'OPS', 'FOR
 });
 
 app.get('/api/company-search', requireAuth, async (req, res) => {
-  const rawSiren = String(req.query?.siren || '').trim();
-  if (!/^\d{9}$/.test(rawSiren)) {
-    return res.status(400).json({ ok: false, error: 'INVALID_SIREN' });
-  }
-  try {
-    const response = await fetch(`https://recherche-entreprises.api.gouv.fr/search?q=${encodeURIComponent(rawSiren)}&per_page=1`);
-    if (!response.ok) {
-      return res.status(502).json({ ok: false, error: 'ANNNUAIRE_UNAVAILABLE' });
+  const rawQuery = String(req.query?.siren || req.query?.siret || '').trim();
+  const result = await lookupCompany(rawQuery);
+  if (!result.ok) {
+    if (result.error === 'INVALID_SIREN_OR_SIRET') {
+      return res.status(400).json({ ok: false, error: result.error });
     }
-    const payload = await response.json();
-    const first = payload?.results?.[0];
-    if (!first) {
-      return res.status(404).json({ ok: false, error: 'COMPANY_NOT_FOUND' });
+    if (result.error === 'COMPANY_NOT_FOUND') {
+      return res.status(404).json({ ok: false, error: result.error });
     }
-    return res.json({
-      ok: true,
-      company: {
-        siren: first.siren || rawSiren,
-        denomination: first.nom_complet || first.nom_raison_sociale || '',
-        legalForm: first.nature_juridique || '',
-        city: first.siege?.libelle_commune || '',
-        country: 'France',
-      },
-    });
-  } catch (_error) {
-    return res.status(502).json({ ok: false, error: 'ANNUAIRE_LOOKUP_FAILED' });
+    return res.status(502).json({ ok: false, error: result.error || 'ANNUAIRE_LOOKUP_FAILED' });
   }
+  return res.json({ ok: true, company: result.company, cached: result.cached, source: result.company?.source || null });
+});
+
+app.get('/api/observability/company-lookup', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), (_req, res) => {
+  return res.json({
+    ok: true,
+    metrics: getCompanyLookupMetrics(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.get('/api/dossiers/:dossierId/intelligent-prefill', requireAuth, async (req, res) => {
+  const dossier = await getDossier(req.params.dossierId);
+  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  const isOps = ['ADMIN', 'OPS', 'FORMALISTE'].includes(req.auth?.role);
+  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
+  if (!isOps && !isOwner) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+
+  const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+  const docs = await listDossierDocuments(dossier.id);
+  const analyses = docs
+    .map((doc) => doc?.metadata?.analysis)
+    .filter(Boolean);
+
+  let companyLookupResult = null;
+  const identifier = questionnaire.companySiren || questionnaire.existingBusinessSiren || '';
+  if (identifier) {
+    const lookup = await lookupCompany(identifier);
+    if (lookup.ok) companyLookupResult = lookup.company;
+  }
+
+  const payload = buildIntelligentPrefill({
+    dossier,
+    questionnaire,
+    companyLookup: companyLookupResult,
+    analyses,
+  });
+  return res.json({
+    ok: true,
+    ...payload,
+  });
 });
 
 app.post('/api/auth/signup', authLimiter, async (req, res) => {
@@ -271,6 +300,21 @@ app.get('/api/ops/dossiers', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALIS
   res.json({
     ok: true,
     dossiers: await getAllDossiers(),
+  });
+});
+
+app.get('/api/ops/dossiers-risk', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (_req, res) => {
+  const dossiers = await getAllDossiers();
+  const enriched = await Promise.all(
+    dossiers.map(async (dossier) => {
+      const documents = await listDossierDocuments(dossier.id);
+      const risk = computeDossierRisk({ dossier, documents });
+      return { dossier, documents, risk };
+    }),
+  );
+  return res.json({
+    ok: true,
+    queue: sortAntiRejectionQueue(enriched),
   });
 });
 
@@ -379,6 +423,17 @@ app.post('/api/dossiers/:dossierId/complete-step', requireAuth, async (req, res)
   if (!isOwner) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
 
   const { stepId, dataPatch = {}, progressPercent = null } = req.body || {};
+  if (stepId && stepId !== 'contact') {
+    const docsBefore = await listDossierDocuments(dossier.id);
+    const riskBefore = computeDossierRisk({ dossier, documents: docsBefore });
+    if (riskBefore.identityVerificationBlocked) {
+      return res.status(409).json({
+        ok: false,
+        error: 'IDENTITY_VERIFICATION_REQUIRED',
+        risk: riskBefore,
+      });
+    }
+  }
   const updated = await updateDossierQuestionnaire({
     dossierId: dossier.id,
     dataPatch,
@@ -430,12 +485,15 @@ app.get('/api/ops/dossiers/:dossierId/documents', requireAuth, requireRole(['ADM
 app.get('/api/ops/dossiers/:dossierId/detail', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
   const dossier = await getDossier(req.params.dossierId);
   if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  const documents = await listDossierDocuments(dossier.id);
+  const risk = computeDossierRisk({ dossier, documents });
   return res.json({
     ok: true,
     dossier,
-    documents: await listDossierDocuments(dossier.id),
+    documents,
     events: await listDossierEvents(dossier.id),
     notes: await listOpsNotesByDossier(dossier.id),
+    risk,
   });
 });
 
@@ -532,6 +590,11 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
   } = req.body || {};
   if (!docKey) return res.status(400).json({ ok: false, error: 'DOC_KEY_REQUIRED' });
   if (!req.file) return res.status(400).json({ ok: false, error: 'FILE_REQUIRED' });
+  const dossierQuestionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+  const formalityRule = getFormalityRule({ dossier, questionnaire: dossierQuestionnaire });
+  if (formalityRule.excludedDocumentKeys?.includes(docKey)) {
+    return res.status(409).json({ ok: false, error: 'DOCUMENT_NOT_ALLOWED_FOR_FORMALITY', docKey });
+  }
 
   const allowedMimes = new Set(['application/pdf']);
   if (!allowedMimes.has(req.file.mimetype)) {
@@ -792,6 +855,10 @@ app.post('/api/dossiers/:dossierId/statutes/generate', requireAuth, async (req, 
   if (!isOwner && !isOps) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
 
   const data = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+  const formalityRule = getFormalityRule({ dossier, questionnaire: data });
+  if (!formalityRule.requiresStatutes) {
+    return res.status(409).json({ ok: false, error: 'STATUTES_NOT_REQUIRED_FOR_EI' });
+  }
   const legalForm = String(data.formeJuridique || dossier.legalForm || 'SASU').toUpperCase();
   if (!['SASU', 'SAS'].includes(legalForm)) {
     return res.status(409).json({ ok: false, error: 'LEGAL_FORM_UNSUPPORTED', legalForm });

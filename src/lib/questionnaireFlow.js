@@ -28,6 +28,15 @@ export const DEMARCHE_CATALOG = [
   { key: 'societe_etrangere_france', label: 'Immatriculer une société étrangère en France' },
 ];
 
+const isEiLikeFormality = (data) => {
+  const formality = String(data.typeFormalite || '').toLowerCase();
+  const legalForm = String(data.formeJuridique || '').toUpperCase();
+  return formality === 'micro_entreprise'
+    || formality === 'entreprise_individuelle'
+    || legalForm === 'EI'
+    || legalForm === 'MICRO-ENTREPRISE';
+};
+
 export const EXISTING_BUSINESS_FORMALITIES = new Set([
   'etablissement_creation',
   'etablissement_fermeture',
@@ -85,10 +94,10 @@ export const QUESTIONNAIRE_FLOW = [
       },
       {
         key: 'companySiren',
-        label: 'SIREN',
+        label: 'SIREN / SIRET',
         type: 'text',
         required: true,
-        placeholder: '123456789',
+        placeholder: '123456789 ou 12345678900013',
         condition: (data) => data.initiatorType === 'personne_morale',
       },
       {
@@ -117,10 +126,10 @@ export const QUESTIONNAIRE_FLOW = [
       },
       {
         key: 'existingBusinessSiren',
-        label: 'SIREN de l’entreprise existante',
+        label: 'SIREN / SIRET de l’entreprise existante',
         type: 'text',
         required: true,
-        placeholder: '123456789',
+        placeholder: '123456789 ou 12345678900013',
         condition: (data) => EXISTING_BUSINESS_FORMALITIES.has(String(data.typeFormalite || '')),
       },
       {
@@ -143,7 +152,7 @@ export const QUESTIONNAIRE_FLOW = [
         label: 'Forme juridique',
         type: 'select',
         required: true,
-        options: ['SASU', 'SAS', 'EURL', 'SARL', 'SCI', 'AUTRE'],
+        options: ['SASU', 'SAS', 'EURL', 'SARL', 'SCI', 'EI', 'MICRO-ENTREPRISE', 'AUTRE'],
       },
     ],
   },
@@ -155,7 +164,62 @@ export const QUESTIONNAIRE_FLOW = [
       { key: 'denomination', label: 'Dénomination', type: 'text', required: true, placeholder: 'Nom de la société' },
       { key: 'adresseSiege', label: 'Siège social', type: 'text', required: true, placeholder: 'Adresse complète du siège' },
       { key: 'activite', label: 'Activité', type: 'text', required: true, placeholder: 'Description de l’activité principale' },
-      { key: 'capital', label: 'Capital social (EUR)', type: 'number', required: true, placeholder: '1000' },
+      {
+        key: 'capital',
+        label: 'Capital social (EUR)',
+        type: 'number',
+        required: true,
+        placeholder: '1000',
+        condition: (data) => !isEiLikeFormality(data),
+      },
+      {
+        key: 'adressePersonnelle',
+        label: 'Adresse personnelle',
+        type: 'text',
+        required: true,
+        placeholder: 'Adresse complète',
+        condition: (data) => isEiLikeFormality(data),
+      },
+      {
+        key: 'adresseActivite',
+        label: "Adresse de l'activité (si différente)",
+        type: 'text',
+        required: false,
+        placeholder: "Adresse d'exploitation",
+        condition: (data) => isEiLikeFormality(data),
+      },
+      {
+        key: 'nomEnseigne',
+        label: "Nom commercial / enseigne (si applicable)",
+        type: 'text',
+        required: false,
+        placeholder: 'Nom commercial',
+        condition: (data) => isEiLikeFormality(data),
+      },
+      {
+        key: 'dateDebutActivite',
+        label: "Date souhaitée de début d'activité",
+        type: 'text',
+        required: true,
+        placeholder: 'JJ/MM/AAAA',
+        condition: (data) => isEiLikeFormality(data),
+      },
+      {
+        key: 'regimeEi',
+        label: 'Régime',
+        type: 'select',
+        required: true,
+        options: ['Micro-entreprise', 'EI classique'],
+        condition: (data) => isEiLikeFormality(data),
+      },
+      {
+        key: 'optionFiscaleSociale',
+        label: 'Option fiscale / sociale',
+        type: 'text',
+        required: false,
+        placeholder: 'Versement libératoire, réel, micro-social...',
+        condition: (data) => isEiLikeFormality(data),
+      },
     ],
   },
   {
@@ -163,9 +227,30 @@ export const QUESTIONNAIRE_FLOW = [
     title: 'Associés, dirigeant et bénéficiaires effectifs',
     description: 'Complétez les personnes clés pour vos documents juridiques.',
     fields: [
-      { key: 'associesSummary', label: 'Associés / actionnaires', type: 'text', required: false, placeholder: 'Noms et répartition' },
-      { key: 'dirigeant', label: 'Dirigeant', type: 'text', required: true, placeholder: 'Nom et prénom du dirigeant' },
-      { key: 'beneficiairesEffectifs', label: 'Bénéficiaires effectifs', type: 'text', required: false, placeholder: 'Noms des bénéficiaires effectifs' },
+      {
+        key: 'associesSummary',
+        label: 'Associés / actionnaires',
+        type: 'text',
+        required: false,
+        placeholder: 'Noms et répartition',
+        condition: (data) => !isEiLikeFormality(data),
+      },
+      {
+        key: 'dirigeant',
+        label: 'Dirigeant',
+        type: 'text',
+        required: true,
+        placeholder: 'Nom et prénom du dirigeant',
+        condition: (data) => !isEiLikeFormality(data),
+      },
+      {
+        key: 'beneficiairesEffectifs',
+        label: 'Bénéficiaires effectifs',
+        type: 'text',
+        required: false,
+        placeholder: 'Noms des bénéficiaires effectifs',
+        condition: (data) => !isEiLikeFormality(data),
+      },
     ],
   },
   {
