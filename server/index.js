@@ -50,6 +50,7 @@ import { getFormalityRule } from './domain/formalities.js';
 import { getCompanyLookupMetrics, lookupCompany } from './services/companyLookup.js';
 import { buildIntelligentPrefill } from './services/intelligentIntake.js';
 import { computeDossierRisk, sortAntiRejectionQueue } from './services/opsRisk.js';
+import { generateAiStatutesClauses } from './services/statutesAi.js';
 import { askGreffioAssistant, isAssistantConfigured } from './services/assistant.js';
 import {
   createSupabaseSignedDownloadUrl,
@@ -958,7 +959,17 @@ app.post('/api/dossiers/:dossierId/statutes/generate', requireAuth, async (req, 
     exerciceDebut: '1er janvier',
     exerciceFin: '31 décembre',
   };
-  const clauses = legalForm === 'SAS' ? buildSasStatutesSections(statutesData) : buildSasuStatutesSections(statutesData);
+  let clauses = null;
+  let aiUsed = false;
+  try {
+    clauses = await generateAiStatutesClauses(statutesData, legalForm);
+    aiUsed = Array.isArray(clauses) && clauses.length > 0;
+  } catch (_error) {
+    clauses = null;
+  }
+  if (!clauses) {
+    clauses = legalForm === 'SAS' ? buildSasStatutesSections(statutesData) : buildSasuStatutesSections(statutesData);
+  }
   const safeReference = String(dossier.reference || dossier.id).replace(/[^a-zA-Z0-9_-]/g, '_');
   const filename = `Statuts_${legalForm}_${safeReference}_${Date.now()}.pdf`;
   const filePath = await generateStatutesPdf({
@@ -980,7 +991,7 @@ app.post('/api/dossiers/:dossierId/statutes/generate', requireAuth, async (req, 
     contentHash,
     metadata: {
       pagesTarget: 10,
-      generatedBy: 'greffio',
+      generatedBy: aiUsed ? 'greffio_chatgpt' : 'greffio_template',
     },
   });
   return res.status(201).json({

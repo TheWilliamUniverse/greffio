@@ -13,9 +13,21 @@ export const StepLayout = ({
   onNext,
   canGoBack,
   canGoNext,
+  onEnterNext,
   children,
 }) => (
-  <section className="rounded-md border border-border bg-white shadow-elevation-md">
+  <section
+    className="rounded-md border border-border bg-white shadow-elevation-md"
+    onKeyDown={(event) => {
+      if (event.key !== 'Enter' || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+      const tagName = String(event.target?.tagName || '').toUpperCase();
+      const isTextarea = tagName === 'TEXTAREA';
+      const isButton = tagName === 'BUTTON';
+      if (isTextarea || isButton) return;
+      event.preventDefault();
+      if (typeof onEnterNext === 'function') onEnterNext();
+    }}
+  >
     <div className="border-b border-border bg-muted px-6 py-4">
       <div className="flex items-center justify-between gap-4">
         <div>

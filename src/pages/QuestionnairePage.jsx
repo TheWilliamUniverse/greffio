@@ -379,6 +379,7 @@ export const QuestionnairePage = () => {
         securityNode={<SecurityNotice />}
         onBack={goBack}
         onNext={goNext}
+        onEnterNext={goNext}
         canGoBack={stepIndex > 0}
         canGoNext={canGoNext}
       >

@@ -30,9 +30,9 @@ npm run dev:api
 - Backend VPS setup: `BACKEND_VPS_SETUP.md`
 - Runbook global: `RUNBOOK_DEPLOYMENT.md`
 
-## Assistant ChatGPT (backend)
+## Assistant Greffio (backend)
 
-Greffio expose un endpoint serveur pour l'assistant:
+Greffio expose un endpoint serveur pour Assistant Greffio (propulse par ChatGPT):
 
 - `POST /api/assistant` (auth requise)
 
