@@ -100,11 +100,70 @@ const targetFormGroups = COMPANY_FORM_CATALOG.reduce((groups, form) => {
 }, []);
 const fieldClass = 'rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring';
 
+const typePresetByQuery = Object.freeze({
+  statuts: 'statuts',
+  charges: 'creation',
+  acre: 'creation',
+  nom: 'creation',
+  mentions: 'creation',
+  creation: 'creation',
+  modification: 'modification',
+  dissolution: 'dissolution',
+});
+
+const compareModules = Object.freeze({
+  charges: {
+    title: 'Comparateur de charges',
+    description: 'Estimation rapide des charges selon votre profil de dirigeant et votre forme.',
+    bullets: [
+      'Assimilé salarié (SAS/SASU) : charges plus élevées, protection sociale plus complète.',
+      'TNS (SARL/EURL) : charges souvent plus basses, couverture différente.',
+      'Micro-entreprise : calcul simplifié, plafonds spécifiques.',
+    ],
+    cta: '/questionnaire',
+    ctaLabel: 'Passer au dossier réel',
+  },
+  acre: {
+    title: "Comparateur d'éligibilité ACRE",
+    description: "Pré-vérification des critères de base avant constitution d'un dossier complet.",
+    bullets: [
+      "Situation du demandeur d'emploi et création/reprise.",
+      "Historique d'aides déjà perçues.",
+      "Calendrier conseillé pour déposer la demande.",
+    ],
+    cta: '/questionnaire',
+    ctaLabel: 'Démarrer mon questionnaire',
+  },
+  nom: {
+    title: 'Comparateur disponibilité du nom',
+    description: 'Checklist de contrôle avant dépôt (raison sociale, marque, domaine web).',
+    bullets: [
+      'Vérifier confusion avec sociétés existantes.',
+      'Vérifier la marque et la disponibilité de domaine.',
+      'Préparer 2 à 3 variantes de dénomination.',
+    ],
+    cta: '/questionnaire',
+    ctaLabel: 'Créer le dossier avec ce nom',
+  },
+  mentions: {
+    title: 'Comparateur mentions légales',
+    description: 'Repères pour préparer vos pages légales avant mise en ligne.',
+    bullets: [
+      "Mentions légales (éditeur, hébergeur, contact).",
+      'CGU/CGV selon votre modèle de service.',
+      'Politique de confidentialité et suppression des données.',
+    ],
+    cta: '/guide',
+    ctaLabel: 'Voir le guide conformité',
+  },
+});
+
 export const FormalityWizardPage = () => {
   const [searchParams] = useSearchParams();
   const wizardTopRef = useRef(null);
   const draft = getProjectDraft();
-  const initialJourney = searchParams.get('type') || 'statuts';
+  const requestedType = String(searchParams.get('type') || 'statuts').toLowerCase();
+  const initialJourney = typePresetByQuery[requestedType] || 'statuts';
   const [step, setStep] = useState(0);
   const [showOffers, setShowOffers] = useState(false);
   const [selectedFamily, setSelectedFamily] = useState('Formes les plus courantes');
@@ -140,6 +199,7 @@ export const FormalityWizardPage = () => {
   });
 
   const selectedJourney = useMemo(() => journeys.find((journey) => journey.id === data.journey) || journeys[0], [data.journey]);
+  const activeCompareModule = compareModules[requestedType] || null;
   const progress = ((step + 1) / steps.length) * 100;
   const selectedForm = useMemo(() => COMPANY_FORM_CATALOG.find((form) => form.label === data.legalForm), [data.legalForm]);
   const questionnaire = useMemo(() => getQuestionnaire(selectedForm?.label || data.legalForm, questionMode), [selectedForm?.label, data.legalForm, questionMode]);
@@ -269,6 +329,27 @@ export const FormalityWizardPage = () => {
               >
                 {step === 0 && (
                   <div className="space-y-7">
+                    {activeCompareModule ? (
+                      <div className="rounded-md border border-primary/20 bg-secondary p-5">
+                        <p className="text-sm font-bold uppercase text-primary">Module comparateur</p>
+                        <h2 className="mt-1 text-2xl font-extrabold">{activeCompareModule.title}</h2>
+                        <p className="mt-2 text-sm text-muted-foreground">{activeCompareModule.description}</p>
+                        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+                          {activeCompareModule.bullets.map((item) => (
+                            <li key={item} className="flex items-start gap-2">
+                              <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <Button asChild className="mt-4">
+                          <Link to={activeCompareModule.cta}>
+                            {activeCompareModule.ctaLabel}
+                            <ArrowRight className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </div>
+                    ) : null}
                     <div>
                       <p className="text-sm font-bold uppercase text-primary">Démarche</p>
                       <h1 className="mt-2 text-3xl font-extrabold">Que souhaitez-vous faire </h1>
