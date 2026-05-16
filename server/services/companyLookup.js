@@ -2,6 +2,12 @@ const LOOKUP_TIMEOUT_MS = Number(process.env.COMPANY_LOOKUP_TIMEOUT_MS || 6500);
 const CACHE_TTL_MS = Number(process.env.COMPANY_LOOKUP_CACHE_TTL_MS || 5 * 60 * 1000);
 const ENABLE_SECONDARY_PROVIDER = String(process.env.COMPANY_LOOKUP_ENABLE_SECONDARY || 'false').toLowerCase() === 'true';
 const SECONDARY_PROVIDER = String(process.env.COMPANY_LOOKUP_SECONDARY_PROVIDER || 'entreprise_data_gouv').toLowerCase();
+const INSEE_API_BASE_URL = String(process.env.INSEE_API_BASE_URL || 'https://api.insee.fr/entreprises/sirene/V3.11');
+const INSEE_API_TOKEN = String(process.env.INSEE_API_TOKEN || '').trim();
+const ENABLE_INSEE_PROVIDER = String(process.env.COMPANY_LOOKUP_ENABLE_INSEE || 'false').toLowerCase() === 'true';
+const PAPPERS_API_BASE_URL = String(process.env.PAPPERS_API_BASE_URL || 'https://api.pappers.fr/v2');
+const PAPPERS_API_TOKEN = String(process.env.PAPPERS_API_TOKEN || '').trim();
+const ENABLE_PAPPERS_PROVIDER = String(process.env.COMPANY_LOOKUP_ENABLE_PAPPERS || 'false').toLowerCase() === 'true';
 
 const cache = new Map();
 const metrics = {
@@ -73,11 +79,11 @@ const recordProviderMetric = ({
   }
 };
 
-const fetchJsonWithTimeout = async (url, timeoutMs = LOOKUP_TIMEOUT_MS) => {
+const fetchJsonWithTimeout = async (url, timeoutMs = LOOKUP_TIMEOUT_MS, headers = {}) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(url, { signal: controller.signal });
+    const response = await fetch(url, { signal: controller.signal, headers });
     if (!response.ok) return null;
     return await response.json();
   } finally {
@@ -220,6 +226,107 @@ const queryEntrepriseDataGouv = async ({ siren, siret }) => {
   return null;
 };
 
+const mapInseeSirenResult = ({ payload, siren, siret = null }) => {
+  const unit = payload?.uniteLegale || payload?.unite_legale;
+  if (!unit) return null;
+  const period = Array.isArray(unit.periodesUniteLegale) ? unit.periodesUniteLegale[0] : null;
+  const city = period?.libelleCommuneEtablissement || period?.libelleCommune || '';
+  const denomination = period?.denominationUniteLegale
+    || period?.nomUniteLegale
+    || period?.nomUsageUniteLegale
+    || '';
+  return {
+    siren: unit.siren || siren,
+    siretSiege: siret || null,
+    denomination,
+    legalForm: period?.categorieJuridiqueUniteLegale || '',
+    city,
+    addressSiege: city || null,
+    apeCode: period?.activitePrincipaleUniteLegale || null,
+    creationDate: unit.dateCreationUniteLegale || null,
+    administrativeStatus: period?.etatAdministratifUniteLegale || null,
+    rcsGreffe: city && (unit.siren || siren) ? `RCS ${city} ${unit.siren || siren}` : null,
+    country: 'France',
+    source: 'api.insee.fr',
+  };
+};
+
+const queryInseeSirene = async ({ siren, siret }) => {
+  if (!ENABLE_INSEE_PROVIDER || !INSEE_API_TOKEN) return null;
+  const headers = {
+    Authorization: `Bearer ${INSEE_API_TOKEN}`,
+    Accept: 'application/json',
+  };
+  const attempts = [
+    siret ? `${INSEE_API_BASE_URL}/siret/${encodeURIComponent(siret)}` : null,
+    `${INSEE_API_BASE_URL}/siren/${encodeURIComponent(siren)}`,
+  ].filter(Boolean);
+  for (const url of attempts) {
+    const startedAt = Date.now();
+    try {
+      const payload = await fetchJsonWithTimeout(url, LOOKUP_TIMEOUT_MS, headers);
+      const latencyMs = Date.now() - startedAt;
+      const mapped = mapInseeSirenResult({ payload, siren, siret });
+      if (mapped) {
+        recordProviderMetric({ provider: 'insee_sirene', ok: true, latencyMs });
+        return mapped;
+      }
+      recordProviderMetric({ provider: 'insee_sirene', ok: false, latencyMs, error: 'NOT_FOUND' });
+    } catch (error) {
+      const latencyMs = Date.now() - startedAt;
+      recordProviderMetric({ provider: 'insee_sirene', ok: false, latencyMs, error: error?.name || 'REQUEST_FAILED' });
+    }
+  }
+  return null;
+};
+
+const mapPappersResult = ({ payload, siren, siret = null }) => {
+  const company = payload?.entreprise || payload;
+  if (!company) return null;
+  const city = company.ville || company.ville_siege || '';
+  const denomination = company.nom_entreprise || company.denomination || '';
+  const addressSiege = company.siege?.adresse_ligne_1 || company.adresse_ligne_1 || null;
+  return {
+    siren: company.siren || siren,
+    siretSiege: company.siege?.siret || company.siret || siret || null,
+    denomination,
+    legalForm: company.forme_juridique || '',
+    city,
+    addressSiege,
+    apeCode: company.code_naf || company.ape || null,
+    creationDate: company.date_creation || null,
+    administrativeStatus: company.cessation ? 'C' : 'A',
+    rcsGreffe: company.numero_rcs || null,
+    country: 'France',
+    source: 'api.pappers.fr',
+  };
+};
+
+const queryPappers = async ({ siren, siret }) => {
+  if (!ENABLE_PAPPERS_PROVIDER || !PAPPERS_API_TOKEN) return null;
+  const attempts = [
+    `${PAPPERS_API_BASE_URL}/entreprise?api_token=${encodeURIComponent(PAPPERS_API_TOKEN)}&siren=${encodeURIComponent(siren)}`,
+    siret ? `${PAPPERS_API_BASE_URL}/entreprise?api_token=${encodeURIComponent(PAPPERS_API_TOKEN)}&siret=${encodeURIComponent(siret)}` : null,
+  ].filter(Boolean);
+  for (const url of attempts) {
+    const startedAt = Date.now();
+    try {
+      const payload = await fetchJsonWithTimeout(url);
+      const latencyMs = Date.now() - startedAt;
+      const mapped = mapPappersResult({ payload, siren, siret });
+      if (mapped) {
+        recordProviderMetric({ provider: 'pappers', ok: true, latencyMs });
+        return mapped;
+      }
+      recordProviderMetric({ provider: 'pappers', ok: false, latencyMs, error: 'NOT_FOUND' });
+    } catch (error) {
+      const latencyMs = Date.now() - startedAt;
+      recordProviderMetric({ provider: 'pappers', ok: false, latencyMs, error: error?.name || 'REQUEST_FAILED' });
+    }
+  }
+  return null;
+};
+
 export const lookupCompany = async (rawIdentifier) => {
   metrics.total += 1;
   const digits = normalizeDigits(rawIdentifier);
@@ -246,6 +353,12 @@ export const lookupCompany = async (rawIdentifier) => {
       company = await queryEntrepriseDataGouv({ siren, siret });
     }
     if (!company) {
+      company = await queryInseeSirene({ siren, siret });
+    }
+    if (!company) {
+      company = await queryPappers({ siren, siret });
+    }
+    if (!company) {
       metrics.notFound += 1;
       return { ok: false, error: 'COMPANY_NOT_FOUND' };
     }
@@ -269,5 +382,9 @@ export const getCompanyLookupMetrics = () => ({
     cacheTtlMs: CACHE_TTL_MS,
     secondaryProviderEnabled: ENABLE_SECONDARY_PROVIDER,
     secondaryProvider: SECONDARY_PROVIDER,
+    inseeProviderEnabled: ENABLE_INSEE_PROVIDER,
+    inseeTokenConfigured: Boolean(INSEE_API_TOKEN),
+    pappersProviderEnabled: ENABLE_PAPPERS_PROVIDER,
+    pappersTokenConfigured: Boolean(PAPPERS_API_TOKEN),
   },
 });

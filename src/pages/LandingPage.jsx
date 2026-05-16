@@ -21,7 +21,7 @@ import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { CompanyLookupCard } from '@/components/CompanyLookupCard.jsx';
 import { LEGAL_SERVICES } from '@/utils/mockData.js';
-import { lookupCompanyBySiren } from '@/api/company.js';
+import { lookupPublicCompanyBySiren } from '@/api/company.js';
 import { useNavigate } from 'react-router-dom';
 
 const platformFeatures = [
@@ -74,11 +74,15 @@ export const LandingPage = () => {
     try {
       setLookupLoading(true);
       setLookupError('');
-      const payload = await lookupCompanyBySiren(digits);
+      const payload = await lookupPublicCompanyBySiren(digits);
       setLookupCompany(payload?.company || null);
-    } catch (_error) {
+    } catch (error) {
       setLookupCompany(null);
-      setLookupError('Entreprise introuvable pour cet identifiant.');
+      if (error?.message === 'INVALID_SIREN_OR_SIRET') {
+        setLookupError('Saisissez un identifiant valide (SIREN 9 chiffres ou SIRET 14 chiffres).');
+      } else {
+        setLookupError("Entreprise introuvable actuellement. Réessayez ou saisissez un autre identifiant.");
+      }
     } finally {
       setLookupLoading(false);
     }

@@ -21,6 +21,17 @@ export const lookupCompanyBySiren = async (identifier) => {
   return response.json();
 };
 
+export const lookupPublicCompanyBySiren = async (identifier) => {
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/public/company-search?siren=${encodeURIComponent(identifier)}`, {
+    method: 'GET',
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new Error(payload?.error || 'COMPANY_LOOKUP_FAILED');
+  }
+  return response.json();
+};
+
 export const getCompanyLookupObservability = async () => {
   const token = getToken();
   if (!token) {

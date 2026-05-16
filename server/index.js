@@ -101,6 +101,13 @@ const uploadLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const companyLookupPublicLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 40,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const appUrl = process.env.APP_URL || 'https://greffio.willentreprises.com';
 const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:8787';
 const mollieWebhookUrl = process.env.MOLLIE_WEBHOOK_URL || `${apiBaseUrl}/webhooks/mollie`;
@@ -171,6 +178,21 @@ app.get('/api/interfaces/status', requireAuth, requireRole(['ADMIN', 'OPS', 'FOR
 });
 
 app.get('/api/company-search', requireAuth, async (req, res) => {
+  const rawQuery = String(req.query?.siren || req.query?.siret || '').trim();
+  const result = await lookupCompany(rawQuery);
+  if (!result.ok) {
+    if (result.error === 'INVALID_SIREN_OR_SIRET') {
+      return res.status(400).json({ ok: false, error: result.error });
+    }
+    if (result.error === 'COMPANY_NOT_FOUND') {
+      return res.status(404).json({ ok: false, error: result.error });
+    }
+    return res.status(502).json({ ok: false, error: result.error || 'ANNUAIRE_LOOKUP_FAILED' });
+  }
+  return res.json({ ok: true, company: result.company, cached: result.cached, source: result.company?.source || null });
+});
+
+app.get('/api/public/company-search', companyLookupPublicLimiter, async (req, res) => {
   const rawQuery = String(req.query?.siren || req.query?.siret || '').trim();
   const result = await lookupCompany(rawQuery);
   if (!result.ok) {
