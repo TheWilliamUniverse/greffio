@@ -92,7 +92,7 @@ export const NavbarDropdown = () => {
                         <Building2 className="h-5 w-5" />
                       </div>
                       <p className="text-sm font-bold">Espace entrepreneur complet</p>
-                      <p className="mt-2 text-sm text-white/78">Dossiers, documents, signature, échéances et assistant interne dans un seul cockpit.</p>
+                      <p className="mt-2 text-sm text-white/78">Dossiers, documents, signature, échéances et assistant propulsé par ChatGPT dans un seul cockpit.</p>
                       <Button asChild variant="secondary" size="sm" className="mt-5 w-full justify-between">
                         <Link to="/simulateur">
                           Démarrer

@@ -33,7 +33,7 @@ export const Sidebar = ({ className }) => {
     { to: '/interfaces', icon: Network, label: 'Interfaces' },
     { to: '/ops-observability', icon: Activity, label: 'Ops observabilité' },
     { to: '/analytics', icon: BarChart3, label: 'Pilotage' },
-    { to: '/chat', icon: Bot, label: 'Assistant Greffio' },
+    { to: '/chat', icon: Bot, label: 'Assistant ChatGPT' },
     { to: '/settings', icon: Settings, label: 'Paramètres' },
   ];
 

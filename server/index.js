@@ -50,6 +50,12 @@ import { getFormalityRule } from './domain/formalities.js';
 import { getCompanyLookupMetrics, lookupCompany } from './services/companyLookup.js';
 import { buildIntelligentPrefill } from './services/intelligentIntake.js';
 import { computeDossierRisk, sortAntiRejectionQueue } from './services/opsRisk.js';
+import { askGreffioAssistant, isAssistantConfigured } from './services/assistant.js';
+import {
+  createSupabaseSignedDownloadUrl,
+  objectStorageConfig,
+  uploadDocumentToConfiguredStorage,
+} from './services/objectStorage.js';
 
 dotenv.config();
 
@@ -216,6 +222,34 @@ app.get('/api/observability/company-lookup', requireAuth, requireRole(['ADMIN', 
     metrics: getCompanyLookupMetrics(),
     timestamp: new Date().toISOString(),
   });
+});
+
+app.post('/api/assistant', requireAuth, async (req, res) => {
+  const { message, history = [] } = req.body || {};
+  if (!message || !String(message).trim()) {
+    return res.status(400).json({ ok: false, error: 'ASSISTANT_MESSAGE_REQUIRED' });
+  }
+  try {
+    const result = await askGreffioAssistant({
+      message: String(message).trim(),
+      history: Array.isArray(history) ? history : [],
+      userContext: {
+        userId: req.auth?.sub || null,
+        role: req.auth?.role || 'CLIENT',
+        email: req.auth?.email || null,
+      },
+    });
+    return res.json({
+      ok: true,
+      answer: result.answer,
+      provider: result.provider,
+      model: result.model,
+      configured: isAssistantConfigured(),
+    });
+  } catch (error) {
+    console.error('ASSISTANT_API_FAILED', error);
+    return res.status(502).json({ ok: false, error: 'ASSISTANT_UNAVAILABLE' });
+  }
 });
 
 app.get('/api/dossiers/:dossierId/intelligent-prefill', requireAuth, async (req, res) => {
@@ -644,6 +678,24 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
   const desiredPath = path.join(dossierUploadDir, targetFilename);
   const finalPath = ensureUniqueFilePath(desiredPath);
   fs.renameSync(req.file.path, finalPath);
+  let storageUrl = finalPath;
+  let fileUrl = finalPath;
+  let storageProvider = 'local';
+  try {
+    const uploadResult = await uploadDocumentToConfiguredStorage({
+      dossierId: dossier.id,
+      filename: path.basename(finalPath),
+      localFilePath: finalPath,
+    });
+    if (uploadResult.uploaded) {
+      storageUrl = uploadResult.storageUrl;
+      fileUrl = uploadResult.storageUrl;
+      storageProvider = 'supabase';
+    }
+  } catch (storageError) {
+    storageProvider = 'local_fallback';
+    console.error('DOCUMENT_STORAGE_UPLOAD_FAILED', storageError);
+  }
   const analysis = await analyzeDocument({
     filePath: finalPath,
     docKey,
@@ -658,14 +710,15 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
     status: analysisStatus,
     originalFilename: req.file.originalname,
     recommendedFilename: targetFilename,
-    fileUrl: finalPath,
+    fileUrl,
     filename: path.basename(finalPath),
     fileSizeBytes: req.file.size,
     mimeType: req.file.mimetype,
-    storageUrl: finalPath,
+    storageUrl,
     reviewerId: null,
     metadata: {
       analysis,
+      storageProvider,
       uploadedByRole: req.auth?.role || 'client',
       uploadedAt: new Date().toISOString(),
     },
@@ -723,6 +776,13 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/download', requireAuth, asyn
   const requested = documents.find((item) => item.docKey === req.params.docKey);
   if (!requested || !requested.storageUrl) {
     return res.status(404).json({ ok: false, error: 'DOCUMENT_FILE_NOT_FOUND' });
+  }
+  if (String(requested.storageUrl).startsWith('supabase://')) {
+    const signedUrl = await createSupabaseSignedDownloadUrl(requested.storageUrl, 120);
+    if (!signedUrl) {
+      return res.status(404).json({ ok: false, error: 'DOCUMENT_FILE_NOT_FOUND' });
+    }
+    return res.redirect(signedUrl);
   }
   if (!isSafeUploadPath(requested.storageUrl) || !fs.existsSync(requested.storageUrl)) {
     return res.status(404).json({ ok: false, error: 'DOCUMENT_FILE_NOT_FOUND' });
@@ -1140,7 +1200,7 @@ const bootstrap = async () => {
   }
   app.listen(port, () => {
     // eslint-disable-next-line no-console
-    console.log(`[greffio-api] listening on http://localhost:${port}`);
+    console.log(`[greffio-api] listening on http://localhost:${port} | storage=${objectStorageConfig.driver}`);
   });
 };
 

@@ -23,6 +23,15 @@ pm2 logs greffio-api --lines 100
 curl http://127.0.0.1:8787/api/health
 ```
 
+Automated safer flow (recommended):
+
+```bash
+ssh root@187.127.232.210
+cd /opt/greffio
+chmod +x scripts/vps-deploy.sh
+APP_DIR=/opt/greffio PM2_NAME=greffio-api BRANCH=main scripts/vps-deploy.sh
+```
+
 Current fallback flow (without git clone on VPS):
 - upload changed files to `/opt/greffio`
 - restart PM2 as above
@@ -77,6 +86,8 @@ Critical checks:
 - Never expose `SUPABASE_SERVICE_ROLE_KEY` in frontend
 - Keep backend secrets only in VPS `.env`
 - Restart backend with `--update-env` after changing env vars
+- Set `DOCUMENT_STORAGE_DRIVER=supabase` on VPS to store uploaded docs in Supabase Storage.
+- Keep `DOCUMENT_STORAGE_DRIVER=local` for local dev.
 
 ## 6) What is already accessible
 

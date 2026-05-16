@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Bot, Send, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
+import { askAssistant } from '@/api/assistant.js';
 
 const quickPrompts = [
   'Quels documents manquent pour une SASU ',
@@ -10,62 +11,46 @@ const quickPrompts = [
   'Quels frais légaux prévoir ',
 ];
 
-const answerFor = (message) => {
-  const text = String(message || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/>/g, ' ')
-    .replace(/\?/g, ' ')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  if (text.includes('sas sa') || text.includes('sas sarl') || (text.includes('sas') && text.includes('sa'))) {
-    return 'Si vous demandez "SAS > SA ?", en pratique la SAS est souvent plus souple (statuts, gouvernance, pactes) alors que la SA est plus formelle et adaptée à des structures plus lourdes ou cotées. Je peux vous faire un comparatif rapide selon votre projet.';
-  }
-
-  if (text.includes('chrabia') || text.includes('raccourci') || text.includes('argot')) {
-    return 'Même avec des raccourcis, je comprends les demandes principales (ex: "sas>sa?", "kbis où?", "doc id?"). Donnez juste le contexte dossier + action attendue et je traduis en plan opérationnel.';
-  }
-
-  if (text.includes('document') || text.includes('pièce') || text.includes('manquent')) {
-    return 'Pour une création SAS/SASU, vérifiez surtout : statuts signés, attestation de dépôt de capital, justificatif de siège, pièce d’identité du dirigeant, déclaration de non-condamnation, bénéficiaires effectifs et annonce légale.';
-  }
-
-  if (text.includes('sas') && text.includes('sarl')) {
-    return 'La SAS offre plus de liberté statutaire et une présidence affiliée au régime assimilé salarié. La SARL est plus encadrée, souvent choisie pour un projet familial ou une gouvernance stable.';
-  }
-
-  if (text.includes('relance')) {
-    return 'Bonjour, nous avons besoin de la pièce demandée pour finaliser votre dossier et éviter un blocage au greffe. Vous pouvez l’ajouter depuis votre espace Greffio. Merci beaucoup.';
-  }
-
-  if (text.includes('frais') || text.includes('coût')) {
-    return 'Les frais à prévoir dépendent de la forme et du département : annonce légale, frais de guichet/greffe, bénéficiaires effectifs et éventuellement dépôt de capital. Greffio les rattache au dossier pour les rendre lisibles.';
-  }
-
-  return 'Je peux vous aider à préparer une formalité, résumer un dossier, vérifier une checklist ou rédiger une relance client. Donnez-moi la forme juridique, la démarche et l’action à traiter.';
-};
-
 export default function IntegratedAiChat() {
   const [input, setInput] = useState('');
+  const [sending, setSending] = useState(false);
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Bonjour, je suis l’assistant interne Greffio. Je peux aider sur les statuts, pièces, relances et démarches greffe.' },
+    { role: 'assistant', content: 'Bonjour, je suis l’assistant Greffio propulsé par ChatGPT. Je peux vous aider sur vos démarches, documents et prochaines actions.' },
   ]);
 
   const canSend = useMemo(() => input.trim().length > 0, [input]);
 
-  const sendMessage = (message = input) => {
+  const sendMessage = async (message = input) => {
     const clean = message.trim();
-    if (!clean) return;
+    if (!clean || sending) return;
 
+    const nextMessages = [
+      ...messages,
+      { role: 'user', content: clean },
+    ];
     setMessages((current) => [
       ...current,
       { role: 'user', content: clean },
-      { role: 'assistant', content: answerFor(clean) },
     ]);
     setInput('');
+    setSending(true);
+    try {
+      const payload = await askAssistant({
+        message: clean,
+        history: nextMessages.slice(-8),
+      });
+      setMessages((current) => [
+        ...current,
+        { role: 'assistant', content: payload?.answer || 'Je n’ai pas pu générer de réponse.' },
+      ]);
+    } catch (_error) {
+      setMessages((current) => [
+        ...current,
+        { role: 'assistant', content: 'Assistant temporairement indisponible. Réessayez dans quelques secondes.' },
+      ]);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -77,7 +62,7 @@ export default function IntegratedAiChat() {
           </div>
           <div>
             <h2 className="font-extrabold">Assistant Greffio</h2>
-            <p className="text-xs text-muted-foreground">Réponses internes sans backend externe</p>
+            <p className="text-xs text-muted-foreground">Propulsé par ChatGPT</p>
           </div>
         </div>
         <Sparkles className="h-5 w-5 text-primary" />
@@ -109,9 +94,9 @@ export default function IntegratedAiChat() {
           className="flex gap-3"
         >
           <Input value={input} onChange={(event) => setInput(event.target.value)} placeholder="Demander une analyse, une relance, une checklist..." />
-          <Button type="submit" disabled={!canSend}>
+          <Button type="submit" disabled={!canSend || sending}>
             <Send className="h-4 w-4" />
-            Envoyer
+            {sending ? 'Envoi...' : 'Envoyer'}
           </Button>
         </form>
       </div>

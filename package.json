@@ -11,7 +11,10 @@
     "db:check": "node server/scripts/db-check.js",
     "start": "vite preview --host 0.0.0.0 --port 3000",
     "lint": "eslint . --quiet",
-    "lint:warn": "eslint ."
+    "lint:warn": "eslint .",
+    "screenshots:playstore": "node scripts/generate-play-store-screenshots.js",
+    "assets:playstore": "node scripts/generate-play-store-assets.js",
+    "video:playstore": "node scripts/generate-play-store-video.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
@@ -64,6 +67,7 @@
     "lucide-react": "^0.469.0",
     "multer": "^2.0.2",
     "next-themes": "^0.4.6",
+    "openai": "^6.38.0",
     "pdf-parse": "^2.4.5",
     "pdfkit": "^0.17.2",
     "pg": "^8.20.0",
@@ -99,6 +103,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.1.0",
     "globals": "^15.14.0",
+    "playwright": "^1.60.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
     "terser": "^5.37.0",

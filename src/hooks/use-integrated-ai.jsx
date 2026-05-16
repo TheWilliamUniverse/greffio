@@ -16,7 +16,7 @@ const answerFor = (message) => {
 
 export function useIntegratedAi() {
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Assistant Greffio prêt à répondre sur vos formalités.' },
+    { role: 'assistant', content: 'Assistant Greffio propulsé par ChatGPT, prêt à répondre sur vos formalités.' },
   ]);
   const [isStreaming] = useState(false);
   const [isLoadingHistory] = useState(false);
