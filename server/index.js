@@ -448,7 +448,7 @@ app.post('/api/dossiers/:dossierId/complete-step', requireAuth, async (req, res)
   if (!isOwner) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
 
   const { stepId, dataPatch = {}, progressPercent = null } = req.body || {};
-  if (stepId && stepId !== 'contact') {
+  if (stepId === 'validation') {
     const docsBefore = await listDossierDocuments(dossier.id);
     const riskBefore = computeDossierRisk({ dossier, documents: docsBefore });
     if (riskBefore.identityVerificationBlocked) {

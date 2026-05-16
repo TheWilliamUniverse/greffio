@@ -106,6 +106,7 @@ export const QuestionnairePage = () => {
   const [loading, setLoading] = useState(true);
   const [demarcheQuery, setDemarcheQuery] = useState('');
   const [intakeHints, setIntakeHints] = useState({ score: null, warnings: [], issues: [] });
+  const [stepError, setStepError] = useState('');
 
   const step = QUESTIONNAIRE_FLOW[stepIndex];
   const progress = getProgressPercent(stepIndex);
@@ -276,7 +277,12 @@ export const QuestionnairePage = () => {
   };
 
   const goNext = async () => {
+    setStepError('');
     if (!canGoNext) {
+      const details = missingRequiredFields.length
+        ? `Champs manquants: ${missingRequiredFields.join(', ')}.`
+        : 'Complétez les champs requis avant de continuer.';
+      setStepError(details);
       toast.error('Complétez les champs requis avant de continuer.');
       return;
     }
@@ -292,7 +298,10 @@ export const QuestionnairePage = () => {
       setAutosaveState('saved');
     } catch (_error) {
       if (_error?.message === 'IDENTITY_VERIFICATION_REQUIRED') {
-        toast.error("Étape bloquée: vérification d'identité requise.");
+        setStepError("La vérification d'identité est requise pour finaliser le dossier (dernière étape).");
+        toast.error("Finalisation bloquée: vérification d'identité requise.");
+      } else {
+        setStepError("Une erreur est survenue pendant l'enregistrement. Réessayez.");
       }
       setAutosaveState('error');
       return;
@@ -373,6 +382,11 @@ export const QuestionnairePage = () => {
         canGoBack={stepIndex > 0}
         canGoNext={canGoNext}
       >
+        {stepError ? (
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+            {stepError}
+          </div>
+        ) : null}
         <div className="rounded-md border border-border bg-muted p-3 text-xs text-muted-foreground">
           <div className="flex flex-wrap items-center gap-3">
             <span className="font-bold text-foreground">Auto-collecte intelligente</span>
@@ -554,7 +568,7 @@ export const QuestionnairePage = () => {
       <div className="mt-4 rounded-md border border-border bg-white p-4 text-xs text-muted-foreground">
         Contact Greffio: {runtimeConfig.supportPhone} — {runtimeConfig.supportEmail}
       </div>
-      {!canGoNext ? (
+      {!canGoNext && !stepError ? (
         <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
           Complétez tous les champs requis de cette étape pour continuer.
         </div>
