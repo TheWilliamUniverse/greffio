@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import pdfParse from 'pdf-parse';
+import PDFParser from 'pdf2json';
 
 const normalize = (text) => String(text || '').toLowerCase();
 
@@ -48,6 +48,30 @@ const extractIdentitySignals = (text) => {
   };
 };
 
+const extractPdfText = async (pdfBuffer) => new Promise((resolve, reject) => {
+  const parser = new PDFParser(null, 1);
+  parser.on('pdfParser_dataError', (errorData) => {
+    reject(new Error(errorData?.parserError || 'PDF_PARSE_FAILED'));
+  });
+  parser.on('pdfParser_dataReady', (pdfData) => {
+    try {
+      const pages = Array.isArray(pdfData?.Pages) ? pdfData.Pages : [];
+      const text = pages
+        .flatMap((page) => (Array.isArray(page.Texts) ? page.Texts : []))
+        .flatMap((item) => (Array.isArray(item.R) ? item.R : []))
+        .map((run) => decodeURIComponent(run.T || ''))
+        .join(' ');
+      resolve({
+        text,
+        numpages: pages.length,
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+  parser.parseBuffer(pdfBuffer);
+});
+
 const analyzeDocument = async ({
   filePath,
   docKey,
@@ -59,7 +83,7 @@ const analyzeDocument = async ({
     };
   }
   const pdfBuffer = fs.readFileSync(filePath);
-  const parsed = await pdfParse(pdfBuffer);
+  const parsed = await extractPdfText(pdfBuffer);
   const text = String(parsed?.text || '').slice(0, 40000);
   const base = {
     charsAnalyzed: text.length,
