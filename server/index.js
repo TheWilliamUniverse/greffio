@@ -177,35 +177,38 @@ app.get('/api/interfaces/status', requireAuth, requireRole(['ADMIN', 'OPS', 'FOR
   });
 });
 
-app.get('/api/company-search', companyLookupPublicLimiter, async (req, res) => {
-  const rawQuery = String(req.query?.siren || req.query?.siret || '').trim();
-  const result = await lookupCompany(rawQuery);
-  if (!result.ok) {
-    if (result.error === 'INVALID_SIREN_OR_SIRET') {
-      return res.status(400).json({ ok: false, error: result.error });
-    }
-    if (result.error === 'COMPANY_NOT_FOUND') {
-      return res.status(404).json({ ok: false, error: result.error });
-    }
-    return res.status(502).json({ ok: false, error: result.error || 'ANNUAIRE_LOOKUP_FAILED' });
-  }
-  return res.json({ ok: true, company: result.company, cached: result.cached, source: result.company?.source || null });
-});
+const resolveCompanyIdentifier = (query = {}) => String(
+  query.identifier || query.siren || query.siret || query.q || '',
+).trim();
 
-app.get('/api/public/company-search', companyLookupPublicLimiter, async (req, res) => {
-  const rawQuery = String(req.query?.siren || req.query?.siret || '').trim();
-  const result = await lookupCompany(rawQuery);
-  if (!result.ok) {
-    if (result.error === 'INVALID_SIREN_OR_SIRET') {
-      return res.status(400).json({ ok: false, error: result.error });
-    }
-    if (result.error === 'COMPANY_NOT_FOUND') {
-      return res.status(404).json({ ok: false, error: result.error });
-    }
-    return res.status(502).json({ ok: false, error: result.error || 'ANNUAIRE_LOOKUP_FAILED' });
+const companyLookupResponder = async (req, res) => {
+  const startedAt = Date.now();
+  const rawIdentifier = resolveCompanyIdentifier(req.query || {});
+  const result = await lookupCompany(rawIdentifier);
+  if (result.ok) {
+    return res.json({
+      ok: true,
+      company: result.company,
+      cached: Boolean(result.cached),
+      source: result.company?.source || null,
+      latencyMs: Date.now() - startedAt,
+    });
   }
-  return res.json({ ok: true, company: result.company, cached: result.cached, source: result.company?.source || null });
-});
+  const code = result.error || 'COMPANY_LOOKUP_FAILED';
+  const status = code === 'INVALID_SIREN_OR_SIRET'
+    ? 400
+    : code === 'COMPANY_NOT_FOUND'
+      ? 404
+      : 502;
+  return res.status(status).json({
+    ok: false,
+    code,
+    message: 'Recherche entreprise indisponible pour le moment.',
+  });
+};
+
+app.get('/api/company-search', companyLookupPublicLimiter, companyLookupResponder);
+app.get('/api/public/company-search', companyLookupPublicLimiter, companyLookupResponder);
 
 app.get('/api/observability/company-lookup', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), (_req, res) => {
   return res.json({
