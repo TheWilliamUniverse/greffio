@@ -7,7 +7,8 @@ const toBool = (value, fallback = false) => {
 export const runtimeConfig = {
   appName: import.meta.env.VITE_APP_NAME || 'Greffio',
   appUrl: import.meta.env.VITE_APP_URL || 'https://greffio.willentreprises.com',
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8787',
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL
+    || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8787'),
   supportEmail: import.meta.env.VITE_SUPPORT_EMAIL || 'contact@willentreprises.com',
   supportPhone: import.meta.env.VITE_SUPPORT_PHONE || '04 11 81 86 70',
   salesEmail: import.meta.env.VITE_SALES_EMAIL || 'contact@willentreprises.com',
