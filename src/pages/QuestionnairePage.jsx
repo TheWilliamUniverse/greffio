@@ -7,13 +7,14 @@ import { Button } from '@/components/ui/button.jsx';
 import { ProgressCircle } from '@/components/questionnaire/ProgressCircle.jsx';
 import { StepLayout } from '@/components/questionnaire/StepLayout.jsx';
 import { ChoiceCard } from '@/components/questionnaire/ChoiceCard.jsx';
+import { DemarchePicker } from '@/components/questionnaire/DemarchePicker.jsx';
+import { SegmentedChoice } from '@/components/questionnaire/SegmentedChoice.jsx';
 import { AutosaveIndicator } from '@/components/questionnaire/AutosaveIndicator.jsx';
 import { SecurityNotice } from '@/components/questionnaire/SecurityNotice.jsx';
 import { ProgressiveStepChips } from '@/components/ProgressiveStepChips.jsx';
 import { CompanyLookupCard } from '@/components/CompanyLookupCard.jsx';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  DEMARCHE_CATALOG,
   EXISTING_BUSINESS_FORMALITIES,
   QUESTIONNAIRE_FLOW,
   getProgressPercent,
@@ -66,7 +67,7 @@ const defaultData = {
   validationConfirmed: false,
 };
 
-const fieldClass = 'rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring';
+const fieldClass = 'rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring';
 const STEP_TITLES_BY_ID = Object.freeze({
   contact: 'Type de déclarant',
   demarche: 'Type de formalité',
@@ -115,7 +116,6 @@ export const QuestionnairePage = () => {
   const [stepIndex, setStepIndex] = useState(0);
   const [autosaveState, setAutosaveState] = useState('idle');
   const [loading, setLoading] = useState(true);
-  const [demarcheQuery, setDemarcheQuery] = useState('');
   const [intakeHints, setIntakeHints] = useState({ score: null, warnings: [], issues: [] });
   const [stepError, setStepError] = useState('');
 
@@ -429,23 +429,26 @@ export const QuestionnairePage = () => {
             {stepError}
           </div>
         ) : null}
-        <div className="rounded-md border border-border bg-muted p-3 text-xs text-muted-foreground">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="font-bold text-foreground">Auto-collecte intelligente</span>
-            <Button type="button" variant="outline" className="h-8 bg-white text-xs" onClick={applyIntelligentPrefill}>
-              Préremplir depuis SIREN/SIRET + OCR
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/15 bg-secondary/40 px-4 py-3">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Auto-collecte intelligente</p>
+            <p className="text-xs text-muted-foreground">Préremplissage depuis SIREN/SIRET ou documents OCR</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="outline" className="h-9 rounded-xl bg-white text-xs" onClick={applyIntelligentPrefill}>
+              Préremplir
             </Button>
             {typeof intakeHints.score === 'number' ? (
-              <span className="rounded-full bg-white px-2 py-1 font-bold text-primary">
-                Score cohérence: {intakeHints.score}/100
+              <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-primary ring-1 ring-primary/15">
+                Cohérence {intakeHints.score}/100
               </span>
             ) : null}
           </div>
           {intakeHints.issues.length ? (
-            <p className="mt-2 text-red-600">Blocages: {intakeHints.issues.join(' · ')}</p>
+            <p className="w-full text-xs text-red-600">Blocages : {intakeHints.issues.join(' · ')}</p>
           ) : null}
           {intakeHints.warnings.length ? (
-            <p className="mt-2 text-amber-700">A vérifier: {intakeHints.warnings.join(' · ')}</p>
+            <p className="w-full text-xs text-amber-700">À vérifier : {intakeHints.warnings.join(' · ')}</p>
           ) : null}
         </div>
         <ProgressiveStepChips steps={PROGRESSIVE_STEPS} activeIndex={stepIndex} />
@@ -463,52 +466,49 @@ export const QuestionnairePage = () => {
             .map((field) => {
             if (field.type === 'select') {
               const options = field.options || [];
+              const normalizedOptions = options.map((option) => (
+                typeof option === 'string'
+                  ? { value: option, label: option }
+                  : { value: option.key, label: option.label }
+              ));
+
+              if (field.key === 'typeFormalite') {
+                return (
+                  <div key={field.key}>
+                    <Label className="text-base font-semibold">{field.label}{field.required ? ' *' : ''}</Label>
+                    <div className="mt-3">
+                      <DemarchePicker
+                        value={formData.typeFormalite}
+                        onChange={(nextValue) => updateField(field, nextValue)}
+                      />
+                    </div>
+                  </div>
+                );
+              }
+
+              const isBinaryChoice = normalizedOptions.length === 2;
               return (
                 <div key={field.key}>
-                  <Label>{field.label}{field.required ? ' *' : ''}</Label>
-                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                    {options
-                      .map((option) => {
-                        if (typeof option === 'string') {
-                          return { value: option, label: option };
-                        }
-                        return { value: option.key, label: option.label };
-                      })
-                      .filter((option) => {
-                        if (field.key !== 'typeFormalite' || !demarcheQuery.trim()) return true;
-                        return option.label.toLowerCase().includes(demarcheQuery.trim().toLowerCase());
-                      })
-                      .map((option) => (
+                  <Label className={isBinaryChoice ? 'text-base font-semibold' : ''}>
+                    {field.label}{field.required ? ' *' : ''}
+                  </Label>
+                  <div className={`mt-2 ${isBinaryChoice ? '' : 'grid gap-2 sm:grid-cols-2 xl:grid-cols-3'}`}>
+                    {isBinaryChoice ? (
+                      <SegmentedChoice
+                        options={options}
+                        value={formData[field.key]}
+                        onChange={(nextValue) => updateField(field, nextValue)}
+                      />
+                    ) : normalizedOptions.map((option) => (
                       <ChoiceCard
                         key={option.value}
+                        compact
                         selected={String(formData[field.key] || '') === String(option.value)}
                         title={option.label}
                         onClick={() => updateField(field, option.value)}
                       />
                     ))}
                   </div>
-                  {field.key === 'typeFormalite' ? (
-                    <div className="mt-3 space-y-2">
-                      <Input
-                        type="text"
-                        value={demarcheQuery}
-                        placeholder="Rechercher une autre démarche (ex: établissement secondaire)"
-                        onChange={(event) => setDemarcheQuery(event.target.value)}
-                        className={fieldClass}
-                      />
-                      {demarcheQuery.trim().length > 2
-                      && !DEMARCHE_CATALOG.some((item) => item.label.toLowerCase().includes(demarcheQuery.trim().toLowerCase())) ? (
-                        <p className="text-xs text-muted-foreground">
-                          Démarche précise non proposée automatiquement pour le moment. Contactez notre équipe pour un traitement dédié.
-                        </p>
-                        ) : null}
-                    </div>
-                  ) : null}
-                  {field.key === 'typeFormalite' ? (
-                    <div className="mt-3 rounded-md border border-border bg-muted p-3 text-xs text-muted-foreground">
-                      Certaines demandes très spécifiques peuvent être traitées via des partenaires (dont Infogreffe et autres) dans le cadre de notre sous-traitance opérationnelle. Les autres formalités sont réalisées via le Guichet unique (INPI).
-                    </div>
-                  ) : null}
                 </div>
               );
             }

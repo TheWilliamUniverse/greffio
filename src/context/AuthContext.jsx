@@ -11,7 +11,10 @@ import {
   saveUser,
 } from '@/utils/localStorage.js';
 import { loginWithApi, refreshAccessToken, signupWithApi } from '@/api/auth.js';
+import { fetchUserProfile } from '@/api/profile.js';
 import { verifyMfaLogin } from '@/api/mfa.js';
+import { clearLoginAlertsConfiguredLocal } from '@/utils/loginAlertsStorage.js';
+import { rememberLoginAlertsChoice } from '@/utils/userProfile.js';
 
 export const AuthContext = createContext(null);
 
@@ -74,6 +77,15 @@ export const AuthProvider = ({ children }) => {
       saveToken(apiPayload.accessToken || makeSessionToken());
       saveRefreshToken(apiPayload.refreshToken || '');
       saveSessions([makeSession(email, provider)]);
+      try {
+        const profilePayload = await fetchUserProfile();
+        const enrichedUser = profilePayload?.user || user;
+        rememberLoginAlertsChoice(enrichedUser);
+        setCurrentUser(enrichedUser);
+        saveUser(enrichedUser);
+      } catch (_profileError) {
+        // keep login payload user
+      }
       toast.success('Bienvenue dans votre espace Greffio');
       return { success: true, user };
     } catch (_error) {
@@ -81,15 +93,24 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const completeMfaLogin = async ({ mfaToken, code, recoveryCode }) => {
+  const completeMfaLogin = async ({ mfaToken, code, recoveryCode, method = 'totp' }) => {
     try {
-      const apiPayload = await verifyMfaLogin({ mfaToken, code, recoveryCode });
+      const apiPayload = await verifyMfaLogin({ mfaToken, code, recoveryCode, method });
       const user = apiPayload.user;
       setCurrentUser(user);
       saveUser(user);
       saveToken(apiPayload.accessToken || makeSessionToken());
       saveRefreshToken(apiPayload.refreshToken || '');
       saveSessions([makeSession(user.email)]);
+      try {
+        const profilePayload = await fetchUserProfile();
+        const enrichedUser = profilePayload?.user || user;
+        rememberLoginAlertsChoice(enrichedUser);
+        setCurrentUser(enrichedUser);
+        saveUser(enrichedUser);
+      } catch (_profileError) {
+        // keep MFA login payload user
+      }
       toast.success('Authentification multifacteur validée');
       return { success: true, user };
     } catch (_error) {
@@ -133,6 +154,7 @@ export const AuthProvider = ({ children }) => {
 
     setCurrentUser(effectiveUser);
     saveUser(effectiveUser);
+    rememberLoginAlertsChoice(effectiveUser);
     saveToken(effectiveToken);
     saveSessions([makeSession(userData.email)]);
     saveSecuritySettings({
@@ -148,7 +170,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    const userId = currentUser?.id;
     clearAllData();
+    if (userId) clearLoginAlertsConfiguredLocal(userId);
     setCurrentUser(null);
     toast.success('Déconnexion effectuée');
   };

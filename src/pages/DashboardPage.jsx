@@ -22,7 +22,7 @@ import { getDossierById, listDossiers } from '@/api/dossiers.js';
 import { fetchUserProfile } from '@/api/profile.js';
 import { LoginAlertsPromptBanner } from '@/components/security/LoginAlertsPromptBanner.jsx';
 import { isEiLikeFormality } from '@/config/formalities.js';
-import { isLoginAlertsConfigured } from '@/utils/userProfile.js';
+import { isLoginAlertsConfigured, getLoginAlertsSettings, rememberLoginAlertsChoice } from '@/utils/userProfile.js';
 
 export const DashboardPage = () => {
   const { currentUser, updateProfile } = useAuth();
@@ -30,7 +30,15 @@ export const DashboardPage = () => {
   const [documents, setDocuments] = useState([]);
   const notifications = [];
   const [loadingApi, setLoadingApi] = useState(true);
-  const [showLoginAlertsPrompt, setShowLoginAlertsPrompt] = useState(false);
+  const [showLoginAlertsPrompt, setShowLoginAlertsPrompt] = useState(
+    () => !isLoginAlertsConfigured(currentUser),
+  );
+
+  useEffect(() => {
+    if (isLoginAlertsConfigured(currentUser)) {
+      setShowLoginAlertsPrompt(false);
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     let mounted = true;
@@ -40,6 +48,7 @@ export const DashboardPage = () => {
         if (!mounted) return;
         const user = payload?.user || currentUser;
         if (user) {
+          rememberLoginAlertsChoice(user);
           updateProfile(user);
           setShowLoginAlertsPrompt(!isLoginAlertsConfigured(user));
         }
@@ -155,8 +164,12 @@ export const DashboardPage = () => {
         <div className="mx-auto max-w-7xl space-y-7">
           {showLoginAlertsPrompt ? (
             <LoginAlertsPromptBanner
+              initialEnabled={getLoginAlertsSettings(currentUser).enabled}
               onSaved={(user) => {
-                if (user) updateProfile(user);
+                if (user) {
+                  rememberLoginAlertsChoice(user);
+                  updateProfile(user);
+                }
                 setShowLoginAlertsPrompt(false);
               }}
             />

@@ -65,11 +65,20 @@ export const regenerateRecoveryCodes = async ({ password, code }) => {
   return parseApi(response);
 };
 
-export const verifyMfaLogin = async ({ mfaToken, code, recoveryCode }) => {
+export const sendMfaEmailCode = async ({ mfaToken }) => {
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/auth/mfa/email/send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mfaToken }),
+  });
+  return parseApi(response);
+};
+
+export const verifyMfaLogin = async ({ mfaToken, code, recoveryCode, method = 'totp' }) => {
   const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/auth/mfa/verify-login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ mfaToken, code, recoveryCode }),
+    body: JSON.stringify({ mfaToken, code, recoveryCode, method }),
   });
   return parseApi(response);
 };

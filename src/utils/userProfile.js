@@ -172,6 +172,12 @@ export const hasCompleteUserContact = (user) => {
   return ['firstName', 'lastName', 'email', 'phone'].every((key) => isContactDetailValid(key, contact[key]));
 };
 
+import {
+  clearLoginAlertsConfiguredLocal,
+  isLoginAlertsConfiguredLocal,
+  markLoginAlertsConfiguredLocal,
+} from '@/utils/loginAlertsStorage.js';
+
 export const getLoginAlertsSettings = (user) => {
   const security = user?.profile?.preferences?.security || {};
   const updatedAt = typeof security.loginAlertsEnabledUpdatedAt === 'string'
@@ -186,7 +192,17 @@ export const getLoginAlertsSettings = (user) => {
   };
 };
 
-export const isLoginAlertsConfigured = (user) => getLoginAlertsSettings(user).configured;
+export const isLoginAlertsConfigured = (user) => {
+  if (getLoginAlertsSettings(user).configured) return true;
+  return isLoginAlertsConfiguredLocal(user?.id);
+};
+
+export const rememberLoginAlertsChoice = (user) => {
+  const settings = getLoginAlertsSettings(user);
+  if (settings.configured && user?.id) {
+    markLoginAlertsConfiguredLocal(user.id, settings.updatedAt || new Date().toISOString());
+  }
+};
 
 export const buildLoginAlertsProfilePatch = (enabled) => ({
   preferences: {

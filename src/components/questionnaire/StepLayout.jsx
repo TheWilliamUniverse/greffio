@@ -18,7 +18,7 @@ export const StepLayout = ({
   children,
 }) => (
   <section
-    className="rounded-md border border-border bg-white shadow-elevation-md"
+    className="overflow-hidden rounded-2xl border border-border bg-white shadow-elevation-md"
     onKeyDown={(event) => {
       if (event.key !== 'Enter' || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
       const tagName = String(event.target?.tagName || '').toUpperCase();
@@ -30,7 +30,7 @@ export const StepLayout = ({
       onEnterNext();
     }}
   >
-    <div className="border-b border-border bg-muted px-6 py-4">
+    <div className="border-b border-border bg-gradient-to-br from-secondary/80 via-white to-white px-6 py-5">
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase text-primary">Réf. : {reference}</p>

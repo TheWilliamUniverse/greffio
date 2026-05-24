@@ -15,6 +15,7 @@ import {
   buildLoginAlertsProfilePatch,
   getLoginAlertsSettings,
   isLoginAlertsConfigured,
+  rememberLoginAlertsChoice,
 } from '@/utils/userProfile.js';
 import {
   disableTotp,
@@ -26,7 +27,7 @@ import {
 
 const securityMethods = [
   { icon: Smartphone, key: 'totp', label: 'Application TOTP', text: 'Google Authenticator, Microsoft Authenticator, 1Password.', available: true },
-  { icon: Mail, key: 'email', label: 'Code email', text: 'Code à usage unique lié à l’adresse du compte.', available: false },
+  { icon: Mail, key: 'email', label: 'Code email', text: 'Code à usage unique envoyé par email lors de la connexion MFA.', available: true },
   { icon: KeyRound, key: 'sms', label: 'Code SMS', text: 'Code court envoyé sur le téléphone de secours.', available: false },
 ];
 
@@ -83,7 +84,10 @@ export const SettingsPage = () => {
         const settings = getLoginAlertsSettings(user);
         setLoginAlertsEnabled(settings.enabled);
         setLoginAlertsUpdatedAt(settings.updatedAt);
-        if (user) updateProfile(user);
+        if (user) {
+          rememberLoginAlertsChoice(user);
+          updateProfile(user);
+        }
       } catch (_error) {
         if (!mounted) return;
         const settings = getLoginAlertsSettings(currentUser);
@@ -106,6 +110,7 @@ export const SettingsPage = () => {
       });
       const user = payload?.user;
       if (user) {
+        rememberLoginAlertsChoice(user);
         updateProfile(user);
         const settings = getLoginAlertsSettings(user);
         setLoginAlertsUpdatedAt(settings.updatedAt);

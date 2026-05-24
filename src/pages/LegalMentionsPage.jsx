@@ -93,6 +93,12 @@ export const LegalMentionsPage = () => (
 
       <Section title="Conformite Google Play et RGPD">
         <p>
+          Politique cookies:{' '}
+          <a href={`${runtimeConfig.appUrl}/cookies`} className="font-semibold text-primary hover:underline">
+            {runtimeConfig.appUrl}/cookies
+          </a>
+        </p>
+        <p>
           Politique de confidentialite:{' '}
           <a href={`${runtimeConfig.appUrl}/confidentialite`} className="font-semibold text-primary hover:underline">
             {runtimeConfig.appUrl}/confidentialite

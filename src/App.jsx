@@ -22,6 +22,7 @@ import { SettingsPage } from '@/pages/SettingsPage.jsx';
 import { ServiceDetailPage } from '@/pages/ServiceDetailPage.jsx';
 import { LegalMentionsPage } from '@/pages/LegalMentionsPage.jsx';
 import { PrivacyPolicyPage } from '@/pages/PrivacyPolicyPage.jsx';
+import { CookiesPage } from '@/pages/CookiesPage.jsx';
 import { AccountDeletionPage } from '@/pages/AccountDeletionPage.jsx';
 import { DataDeletionPage } from '@/pages/DataDeletionPage.jsx';
 import { PaymentPage } from '@/pages/PaymentPage.jsx';
@@ -94,6 +95,7 @@ function App() {
             ))}
             <Route path="/mentions-legales" element={<LegalMentionsPage />} />
             <Route path="/confidentialite" element={<PrivacyPolicyPage />} />
+            <Route path="/cookies" element={<CookiesPage />} />
             <Route path="/suppression-compte" element={<AccountDeletionPage />} />
             <Route path="/suppression-donnees" element={<DataDeletionPage />} />
             <Route path="/paiement" element={<PaymentPage />} />

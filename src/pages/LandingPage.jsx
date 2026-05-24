@@ -441,7 +441,8 @@ export const LandingPage = () => {
               <p className="font-bold text-white">Conformité</p>
               <p className="mt-3">RGPD, traçabilité, conservation documentaire et suivi des actions.</p>
               <p className="mt-2">Données hébergées en Europe, avec infrastructure opérée France/UE selon le service concerné.</p>
-              <a href="https://greffio.willentreprises.com/confidentialite" className="mt-2 block hover:text-white">Politique de confidentialité</a>
+              <Link to="/confidentialite" className="mt-2 block hover:text-white">Politique de confidentialité</Link>
+              <Link to="/cookies" className="mt-2 block hover:text-white">Politique cookies</Link>
               <a href="https://greffio.willentreprises.com/suppression-compte" className="mt-2 block hover:text-white">Suppression de compte</a>
             </div>
             <div>

@@ -101,6 +101,11 @@ import {
   replaceRecoveryCodes,
   savePendingTotpSecret,
 } from './mfaStore.js';
+import {
+  issueMfaEmailCode,
+  maskEmailAddress,
+  verifyMfaEmailCode,
+} from './mfaEmailCodeStore.js';
 import { buildTotpSetup, encryptSecret, verifyTotpCode } from './services/mfaService.js';
 
 dotenv.config();
@@ -204,6 +209,26 @@ const maybeSendLoginAlertEmail = async (req, user, extraTags = []) => {
     userId: user.id,
     tags: ['auth', 'security', 'login_alert', ...extraTags],
   });
+};
+
+const resolveMfaPendingUser = async (mfaToken) => {
+  let payload;
+  try {
+    payload = verifyToken(String(mfaToken));
+  } catch (_error) {
+    const error = new Error('MFA_TOKEN_INVALID');
+    throw error;
+  }
+  if (payload.typ !== 'mfa_pending') {
+    const error = new Error('MFA_TOKEN_INVALID');
+    throw error;
+  }
+  const user = await getUserById(payload.sub);
+  if (!user || !(await isMfaEnabled(user.id))) {
+    const error = new Error('MFA_NOT_ENABLED');
+    throw error;
+  }
+  return user;
 };
 const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:8787';
 const mollieWebhookUrl = process.env.MOLLIE_WEBHOOK_URL || `${apiBaseUrl}/webhooks/mollie`;
@@ -603,7 +628,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
       ok: true,
       mfaRequired: true,
       mfaToken: issueMfaPendingToken(user),
-      methods: ['totp'],
+      methods: ['totp', 'email', 'recovery'],
       user: {
         id: user.id,
         email: user.email,
@@ -833,28 +858,73 @@ app.post('/api/auth/mfa/recovery-codes/regenerate', requireAuth, async (req, res
   return res.json({ ok: true, recoveryCodes });
 });
 
+app.post('/api/auth/mfa/email/send', authLimiter, async (req, res) => {
+  const { mfaToken } = req.body || {};
+  if (!mfaToken) {
+    return res.status(400).json({ ok: false, error: 'MFA_TOKEN_REQUIRED' });
+  }
+  try {
+    const user = await resolveMfaPendingUser(mfaToken);
+    const { code, expiresInMinutes } = issueMfaEmailCode(user.id);
+    void sendTransactionalEmail({
+      to: { email: user.email, name: `${user.firstName || ''} ${user.lastName || ''}`.trim() },
+      templateKey: 'authentication_code',
+      userId: user.id,
+      variables: {
+        firstName: user.firstName || 'Utilisateur',
+        verificationCode: code,
+        expirationMinutes: expiresInMinutes,
+        actionLabel: 'connexion sécurisée à Greffio',
+        supportUrl: `${appUrl}/contact`,
+      },
+      tags: ['auth', 'security', 'mfa', 'email'],
+    });
+    return res.json({
+      ok: true,
+      emailMasked: maskEmailAddress(user.email),
+      expiresInMinutes,
+    });
+  } catch (error) {
+    if (error?.message === 'MFA_EMAIL_COOLDOWN') {
+      return res.status(429).json({
+        ok: false,
+        error: 'MFA_EMAIL_COOLDOWN',
+        retryAfterSeconds: error.retryAfterSeconds || 60,
+      });
+    }
+    if (error?.message === 'MFA_TOKEN_INVALID') {
+      return res.status(401).json({ ok: false, error: 'MFA_TOKEN_INVALID' });
+    }
+    if (error?.message === 'MFA_NOT_ENABLED') {
+      return res.status(401).json({ ok: false, error: 'MFA_NOT_ENABLED' });
+    }
+    throw error;
+  }
+});
+
 app.post('/api/auth/mfa/verify-login', authLimiter, async (req, res) => {
-  const { mfaToken, code, recoveryCode } = req.body || {};
+  const { mfaToken, code, recoveryCode, method = 'totp' } = req.body || {};
   if (!mfaToken || (!code && !recoveryCode)) {
     return res.status(400).json({ ok: false, error: 'MFA_VERIFY_PAYLOAD_INVALID' });
   }
-  let payload;
+  let user;
   try {
-    payload = verifyToken(String(mfaToken));
-  } catch (_error) {
-    return res.status(401).json({ ok: false, error: 'MFA_TOKEN_INVALID' });
-  }
-  if (payload.typ !== 'mfa_pending') {
-    return res.status(401).json({ ok: false, error: 'MFA_TOKEN_INVALID' });
-  }
-  const user = await getUserById(payload.sub);
-  if (!user || !(await isMfaEnabled(user.id))) {
-    return res.status(401).json({ ok: false, error: 'MFA_NOT_ENABLED' });
+    user = await resolveMfaPendingUser(mfaToken);
+  } catch (error) {
+    if (error?.message === 'MFA_TOKEN_INVALID') {
+      return res.status(401).json({ ok: false, error: 'MFA_TOKEN_INVALID' });
+    }
+    if (error?.message === 'MFA_NOT_ENABLED') {
+      return res.status(401).json({ ok: false, error: 'MFA_NOT_ENABLED' });
+    }
+    throw error;
   }
 
   let verified = false;
-  if (recoveryCode) {
+  if (recoveryCode || method === 'recovery') {
     verified = await consumeRecoveryCode({ userId: user.id, code: recoveryCode });
+  } else if (method === 'email') {
+    verified = verifyMfaEmailCode({ userId: user.id, code });
   } else {
     const secret = await getTotpSecret(user.id);
     verified = Boolean(secret && verifyTotpCode({ secret, token: code }));
