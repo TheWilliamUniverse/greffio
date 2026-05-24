@@ -98,7 +98,7 @@ export const LandingPage = () => {
           <motion.div initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="max-w-2xl">
             <div className="we-hero-eyebrow mb-7 inline-flex items-center gap-2 shadow-elevation-sm">
               <Sparkles className="h-4 w-4" />
-              SaaS de formalités greffe pour clients, pros et équipes internes
+              SaaS de formalités greffe pour clients, pros et équipes
             </div>
             <h1 className="text-4xl font-extrabold leading-[1.04] tracking-normal text-[hsl(var(--greffio-blue-900))] sm:text-5xl lg:text-7xl">
               Greffio pilote vos formalités d’entreprise.

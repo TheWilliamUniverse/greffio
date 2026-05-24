@@ -161,13 +161,23 @@ export const DocumentsPage = () => {
   };
 
   const updateEditorField = (key, value) => {
-    setEditorData((current) => ({
-      ...current,
-      fields: {
+    setEditorData((current) => {
+      const nextFields = {
         ...(current?.fields || {}),
         [key]: value,
-      },
-    }));
+      };
+      if (key === 'useCaseSelf' || key === 'useCaseParents') {
+        const self = key === 'useCaseSelf' ? Boolean(value) : Boolean(nextFields.useCaseSelf);
+        const parents = key === 'useCaseParents' ? Boolean(value) : Boolean(nextFields.useCaseParents);
+        nextFields.useCaseSelf = self;
+        nextFields.useCaseParents = parents;
+        if (self && parents) nextFields.useCase = 'both';
+        else if (self) nextFields.useCase = 'self';
+        else if (parents) nextFields.useCase = 'parents';
+        else nextFields.useCase = '';
+      }
+      return { ...current, fields: nextFields };
+    });
   };
 
   const saveEditor = async () => {
@@ -182,8 +192,8 @@ export const DocumentsPage = () => {
       setApiDocuments(payload.documents || []);
       setUploadSuccess('Document PDF généré et attaché au dossier.');
       setEditorData(null);
-    } catch (_error) {
-      setUploadError("Le document n'a pas pu être généré.");
+    } catch (error) {
+      setUploadError(error?.message || "Le document n'a pas pu être généré.");
     } finally {
       setEditorSaving(false);
     }
@@ -267,7 +277,28 @@ export const DocumentsPage = () => {
             <section className="rounded-md border border-primary/25 bg-white p-5 shadow-elevation-sm">
               <p className="text-sm font-bold uppercase text-primary">Éditeur PDF en ligne</p>
               <h2 className="mt-1 text-xl font-extrabold">{editorData.title}</h2>
-              <p className="mt-1 text-xs text-primary">Les champs ci-dessous correspondent aux zones bleues du PDF généré.</p>
+              <p className="mt-1 text-xs text-primary">Les champs correspondent aux zones du PDF remplissable généré (compatible lecteurs PDF).</p>
+              <div className="mt-4 rounded-md border border-border bg-muted p-4">
+                <p className="text-sm font-bold">Cas d&apos;usage</p>
+                <div className="mt-2 flex flex-wrap gap-4">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(editorData.fields?.useCaseSelf ?? (editorData.fields?.useCase === 'self' || editorData.fields?.useCase === 'both'))}
+                      onChange={(event) => updateEditorField('useCaseSelf', event.target.checked)}
+                    />
+                    Pour moi (dirigeant / associé)
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(editorData.fields?.useCaseParents ?? (editorData.fields?.useCase === 'parents' || editorData.fields?.useCase === 'both'))}
+                      onChange={(event) => updateEditorField('useCaseParents', event.target.checked)}
+                    />
+                    Filiation (parents)
+                  </label>
+                </div>
+              </div>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 <Input placeholder="Nom complet" value={editorData.fields?.declarantFullName || ''} onChange={(event) => updateEditorField('declarantFullName', event.target.value)} />
                 <Input placeholder="Date de naissance" type="date" value={editorData.fields?.declarantBirthDate || ''} onChange={(event) => updateEditorField('declarantBirthDate', event.target.value)} />

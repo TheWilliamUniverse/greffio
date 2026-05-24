@@ -18,6 +18,13 @@ const readOpenAiModel = () => {
   return configured || 'gpt-4o-mini';
 };
 
+let openAiQuotaBlockedUntil = 0;
+
+const isQuotaError = (error) => {
+  const message = String(error?.message || error || '');
+  return error?.status === 429 || message.includes('429') || message.toLowerCase().includes('quota');
+};
+
 const getOpenAiClient = () => {
   const apiKey = readOpenAiKey();
   if (!apiKey) return null;
@@ -77,6 +84,16 @@ export const askGreffioAssistant = async ({
     };
   }
 
+  if (Date.now() < openAiQuotaBlockedUntil) {
+    return {
+      answer: fallbackAnswer({ message: cleanMessage, userContext }),
+      provider: 'local_fallback',
+      model,
+      degraded: true,
+      reason: 'openai_quota',
+    };
+  }
+
   const recentHistory = Array.isArray(history) ? history.slice(-10) : [];
   const messages = [
     { role: 'system', content: baseSystemPrompt },
@@ -110,12 +127,16 @@ export const askGreffioAssistant = async ({
       model,
     };
   } catch (error) {
+    if (isQuotaError(error)) {
+      openAiQuotaBlockedUntil = Date.now() + (15 * 60 * 1000);
+    }
     console.warn('ASSISTANT_OPENAI_FAILED', error?.message || error);
     return {
       answer: fallbackAnswer({ message: cleanMessage, userContext }),
       provider: 'local_fallback',
       model,
       degraded: true,
+      reason: isQuotaError(error) ? 'openai_quota' : 'openai_error',
     };
   }
 };

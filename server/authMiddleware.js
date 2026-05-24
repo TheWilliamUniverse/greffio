@@ -1,4 +1,5 @@
 import { verifyToken } from './tokens.js';
+import { isInternalRole, normalizeRole } from './authRoles.js';
 
 const readBearerToken = (headerValue) => {
   const [scheme, token] = String(headerValue || '').split(' ');
@@ -19,12 +20,15 @@ const requireAuth = (req, res, next) => {
 };
 
 const requireRole = (roles = []) => (req, res, next) => {
-  if (!req.auth?.role) return res.status(403).json({ ok: false, error: 'ROLE_MISSING' });
-  if (!roles.includes(req.auth.role)) return res.status(403).json({ ok: false, error: 'ROLE_FORBIDDEN' });
+  const userRole = normalizeRole(req.auth?.role);
+  if (!userRole) return res.status(403).json({ ok: false, error: 'ROLE_MISSING' });
+  const allowed = roles.map((role) => normalizeRole(role));
+  if (!allowed.includes(userRole)) return res.status(403).json({ ok: false, error: 'ROLE_FORBIDDEN' });
   return next();
 };
 
 export {
   requireAuth,
   requireRole,
+  isInternalRole,
 };

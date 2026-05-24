@@ -71,3 +71,15 @@ export const getDossierById = async (dossierId) => {
   });
   return parseResponse(response);
 };
+
+export const fetchDossierDetail = async (dossierId, { allowOpsFallback = false } = {}) => {
+  try {
+    return await getDossierById(dossierId);
+  } catch (error) {
+    if (!allowOpsFallback || ![403, 404].includes(Number(error?.status))) {
+      throw error;
+    }
+    const { getOpsDossierDetail } = await import('./ops.js');
+    return getOpsDossierDetail(dossierId);
+  }
+};

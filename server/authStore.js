@@ -432,6 +432,108 @@ const verifyUserPassword = async ({ email, password }) => {
   return verifyPassword(password, row.passwordHash);
 };
 
+const listAllUserRecords = async () => {
+  if (hasPostgres) {
+    const result = await query(`
+      SELECT
+        id,
+        email,
+        first_name AS "firstName",
+        last_name AS "lastName",
+        role,
+        company_json AS "companyJson",
+        profile_json AS "profileJson",
+        phone,
+        created_at AS "createdAt"
+      FROM users
+      ORDER BY created_at ASC
+    `);
+    return result.rows;
+  }
+  return sqlite.prepare(`
+    SELECT
+      id,
+      email,
+      first_name AS firstName,
+      last_name AS lastName,
+      role,
+      company_json AS companyJson,
+      profile_json AS profileJson,
+      phone,
+      created_at AS createdAt
+    FROM users
+    ORDER BY created_at ASC
+  `).all();
+};
+
+const replaceUserRecord = async ({
+  id,
+  email,
+  password,
+  firstName,
+  lastName,
+  role,
+  companyJson = null,
+  profileJson = null,
+  phone = null,
+  createdAt,
+}) => {
+  const normalizedEmail = String(email || '').toLowerCase().trim();
+  const passwordHash = hashPassword(password);
+  const updatedAt = nowIso();
+  const created = createdAt || updatedAt;
+  if (hasPostgres) {
+    await query(`
+      INSERT INTO users (
+        id, email, password_hash, first_name, last_name, role, company_json, profile_json, phone,
+        mfa_enabled, totp_secret_encrypted, totp_pending_secret_encrypted, created_at, updated_at
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,FALSE,NULL,NULL,$10,$11)
+    `, [
+      id,
+      normalizedEmail,
+      passwordHash,
+      String(firstName || '').trim() || 'Client',
+      String(lastName || '').trim(),
+      role,
+      companyJson,
+      profileJson,
+      phone,
+      created,
+      updatedAt,
+    ]);
+    return;
+  }
+  sqlite.prepare(`
+    INSERT INTO users (
+      id, email, password_hash, first_name, last_name, role, company_json, profile_json, phone,
+      mfa_enabled, totp_secret_encrypted, totp_pending_secret_encrypted, created_at, updated_at
+    ) VALUES (
+      @id, @email, @passwordHash, @firstName, @lastName, @role, @companyJson, @profileJson, @phone,
+      0, NULL, NULL, @createdAt, @updatedAt
+    )
+  `).run({
+    id,
+    email: normalizedEmail,
+    passwordHash,
+    firstName: String(firstName || '').trim() || 'Client',
+    lastName: String(lastName || '').trim(),
+    role,
+    companyJson,
+    profileJson,
+    phone,
+    createdAt: created,
+    updatedAt,
+  });
+};
+
+const deleteAllUsers = async () => {
+  if (hasPostgres) {
+    await query('DELETE FROM users');
+    return;
+  }
+  sqlite.prepare('DELETE FROM users').run();
+};
+
 export {
   createUser,
   getUserByEmail,
@@ -443,4 +545,8 @@ export {
   consumePasswordResetToken,
   updateUserPasswordById,
   verifyUserPassword,
+  listAllUserRecords,
+  replaceUserRecord,
+  deleteAllUsers,
+  hashPassword,
 };

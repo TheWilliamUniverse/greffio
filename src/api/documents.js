@@ -25,6 +25,19 @@ const parseResponse = async (response) => {
   throw error;
 };
 
+const mapDocumentEditorError = (error) => {
+  const code = String(error?.message || '');
+  if (code === 'DOCUMENT_EDITOR_USE_CASE_REQUIRED') return 'Sélectionnez au moins un cas d’usage : pour vous ou filiation parents.';
+  if (code === 'DOCUMENT_EDITOR_SIGNATURE_REQUIRED') return 'Indiquez le nom du signataire.';
+  if (code === 'DOCUMENT_EDITOR_IDENTITY_REQUIRED') return 'Renseignez l’identité du déclarant (nom et date de naissance).';
+  if (code === 'DOCUMENT_EDITOR_NON_CONDAMNATION_REQUIRED') return 'Cochez la déclaration de non-condamnation.';
+  if (code === 'DOCUMENT_EDITOR_FILIATION_REQUIRED') return 'Cochez la déclaration de filiation.';
+  if (code === 'DOCUMENT_EDITOR_PARENTS_REQUIRED') return 'Renseignez les deux lignées parentales.';
+  if (code === 'DOCUMENT_SLOT_NOT_FOUND') return 'Emplacement document introuvable. Réouvrez le dossier puis réessayez.';
+  if (code === 'DOCUMENT_EDITOR_GENERATION_FAILED') return 'Génération PDF impossible. Réessayez dans quelques secondes.';
+  return "Le document n'a pas pu être généré.";
+};
+
 const mapDocumentUploadError = (error) => {
   const code = String(error?.message || '');
   if (code === 'DOCUMENT_NOT_ALLOWED_FOR_FORMALITY') {
@@ -135,5 +148,12 @@ export const saveDossierDocumentEditor = async ({ dossierId, docKey, fields }) =
     },
     body: JSON.stringify({ fields }),
   });
-  return parseResponse(response);
+  try {
+    return await parseResponse(response);
+  } catch (error) {
+    const mapped = new Error(mapDocumentEditorError(error));
+    mapped.status = error?.status;
+    mapped.payload = error?.payload;
+    throw mapped;
+  }
 };

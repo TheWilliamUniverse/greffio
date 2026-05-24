@@ -58,6 +58,64 @@ const transactionalTemplates = Object.freeze({
     `,
   }),
 
+  credentials_direct: defineTemplate({
+    subject: 'Vos identifiants temporaires Greffio',
+    tags: ['auth', 'credentials'],
+    requiredVariables: ['firstName', 'loginUrl', 'temporaryPassword', 'roleLabel'],
+    preheader: 'Vos identifiants temporaires Greffio.',
+    textLines: [
+      'Bonjour {{firstName}},',
+      '',
+      'Votre compte Greffio a été actualisé.',
+      'Profil : {{roleLabel}}',
+      '',
+      'Page de connexion : {{loginUrl}}',
+      'Mot de passe temporaire : {{temporaryPassword}}',
+      '',
+      'Changez ce mot de passe dès votre première connexion.',
+      'Besoin d’aide ? {{supportUrl}}',
+    ],
+    bodyHtml: `
+      <p style="margin:0 0 16px;">Bonjour <strong>{{firstName}}</strong>,</p>
+      <p style="margin:0 0 16px;">Votre compte Greffio a été actualisé. Voici vos identifiants temporaires.</p>
+      <table role="presentation" width="100%" style="margin:0 0 20px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
+        <tr><td style="padding:14px 16px;font-size:14px;"><strong>Profil</strong><br/>{{roleLabel}}</td></tr>
+        <tr><td style="padding:0 16px 14px;font-size:14px;"><strong>Connexion</strong><br/><a href="{{loginUrl}}" style="color:#214082;">{{loginUrl}}</a></td></tr>
+        <tr><td style="padding:0 16px 14px;font-size:14px;"><strong>Mot de passe temporaire</strong><br/><span style="font-family:monospace;font-size:16px;">{{temporaryPassword}}</span></td></tr>
+      </table>
+      ${ctaButton('Se connecter', '{{loginUrl}}')}
+      <p style="margin:16px 0 0;font-size:14px;color:#64748b;">Changez ce mot de passe dès votre première connexion.</p>
+    `,
+  }),
+
+  credentials_secured: defineTemplate({
+    subject: 'Accès sécurisé — identifiants Greffio',
+    tags: ['auth', 'credentials', 'security'],
+    requiredVariables: ['firstName', 'unlockUrl', 'phoneMasked', 'expirationMinutes', 'loginUrl'],
+    preheader: 'Déverrouillez vos identifiants avec le code SMS.',
+    textLines: [
+      'Bonjour {{firstName}},',
+      '',
+      'Votre compte Greffio a été actualisé.',
+      'Pour des raisons de sécurité, votre mot de passe temporaire n’est pas inclus dans cet email.',
+      '',
+      'Un code de vérification a été envoyé par SMS au numéro se terminant par {{phoneMasked}}.',
+      'Ouvrez le lien sécurisé et saisissez ce code pour afficher vos identifiants :',
+      '{{unlockUrl}}',
+      '',
+      'Lien valable {{expirationMinutes}} minutes.',
+      'Page de connexion : {{loginUrl}}',
+    ],
+    bodyHtml: `
+      <p style="margin:0 0 16px;">Bonjour <strong>{{firstName}}</strong>,</p>
+      <p style="margin:0 0 16px;">Votre compte Greffio a été actualisé. Pour protéger vos identifiants, le mot de passe temporaire <strong>n’est pas affiché dans cet email</strong>.</p>
+      <p style="margin:0 0 16px;">Un code de vérification a été envoyé par SMS au numéro se terminant par <strong>{{phoneMasked}}</strong>.</p>
+      ${ctaButton('Déverrouiller mes identifiants', '{{unlockUrl}}')}
+      <p style="margin:16px 0 0;font-size:14px;color:#64748b;">Ce lien est valable <strong>{{expirationMinutes}} minutes</strong>. Saisissez ensuite le code reçu par SMS pour afficher votre mot de passe temporaire.</p>
+      <p style="margin:8px 0 0;font-size:14px;color:#64748b;">Connexion : <a href="{{loginUrl}}" style="color:#214082;">{{loginUrl}}</a></p>
+    `,
+  }),
+
   email_verification: defineTemplate({
     subject: 'Confirmez votre adresse email',
     tags: ['auth', 'security'],

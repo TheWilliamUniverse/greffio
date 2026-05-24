@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils.js';
 import { useAuth } from '@/hooks/useAuth.js';
+import { isInternalUser } from '@/utils/roles.js';
 import { useEffect, useState } from 'react';
 import { listDossiers } from '@/api/dossiers.js';
 
@@ -43,14 +44,18 @@ export const Sidebar = ({ className }) => {
     };
   }, []);
 
+  const internalView = isInternalUser(currentUser);
+
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
     { to: '/simulateur', icon: FileSignature, label: 'Nouvelle démarche' },
     { to: '/dossiers', icon: FolderKanban, label: 'Dossiers', badge: dossiersCount },
     { to: '/documents', icon: FileText, label: 'Documents' },
     { to: '/team', icon: MessageSquareText, label: 'Équipe & clients' },
-    { to: '/interfaces', icon: Network, label: 'Interfaces' },
-    { to: '/ops-observability', icon: Activity, label: 'Ops observabilité' },
+    ...(internalView ? [
+      { to: '/interfaces', icon: Network, label: 'Interfaces' },
+      { to: '/ops-observability', icon: Activity, label: 'Ops observabilité' },
+    ] : []),
     { to: '/analytics', icon: BarChart3, label: 'Pilotage' },
     { to: '/chat', icon: Bot, label: 'Assistant Greffio' },
     { to: '/profil', icon: UserRound, label: 'Mon profil' },

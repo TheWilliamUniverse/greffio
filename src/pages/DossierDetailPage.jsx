@@ -6,19 +6,75 @@ import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.jsx';
-import { getChatHistory, getDocuments, getDossiers } from '@/utils/localStorage.js';
-import { getDossierById } from '@/api/dossiers.js';
+import { fetchDossierDetail, listDossiers } from '@/api/dossiers.js';
 import { saveCurrentDossierId } from '@/utils/sessionStore.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
-import { listDossiers } from '@/api/dossiers.js';
+import { parseJsonField } from '@/utils/jsonField.js';
+import { isInternalUser } from '@/utils/roles.js';
+import { useAuth } from '@/hooks/useAuth.js';
+
+const mapDossierFromApi = (d) => {
+  const questionnaire = parseJsonField(d.dataJson, {});
+  const eiLike = isEiLikeFormality({
+    legalForm: d.legalForm || questionnaire.formeJuridique,
+    typeFormalite: questionnaire.typeFormalite,
+    service: d.service,
+  });
+  return {
+    id: d.id,
+    name: d.companyName || d.denomination || 'Dossier',
+    legalForm: d.legalForm || d.formeJuridique || 'SASU',
+    owner: 'Client',
+    status: String(d.status || '').toUpperCase(),
+    priority: 'Normale',
+    phase: d.service || 'formalite',
+    nextAction: 'Compléter les pièces demandées et valider les informations.',
+    expert: d.assignedToUserId || 'Équipe Greffio',
+    createdAt: d.createdAt,
+    dueDate: d.updatedAt || d.createdAt,
+    progress: Number(d.progressPercent || 0),
+    currentStep: Math.max(1, Math.round(Number(d.progressPercent || 0) / 20)),
+    totalSteps: 5,
+    blockers: [],
+    project: {
+      initiatorType: questionnaire.initiatorType || 'personne_physique',
+      initiatorName: [questionnaire.firstName, questionnaire.lastName].filter(Boolean).join(' ') || 'Client',
+      nationality: questionnaire.nationality || '',
+      companyCountry: questionnaire.companyCountry || '',
+      siren: questionnaire.companySiren || questionnaire.existingBusinessSiren || '',
+      companyName: questionnaire.companyName || questionnaire.existingBusinessName || d.companyName || '',
+    },
+    steps: [
+      { label: 'Informations dossier', done: Number(d.progressPercent || 0) >= 20 },
+      { label: 'Documents justificatifs', done: Number(d.progressPercent || 0) >= 40 },
+      { label: 'Contrôle Greffio', done: Number(d.progressPercent || 0) >= 60 },
+      { label: 'Signature', done: Number(d.progressPercent || 0) >= 80 },
+      { label: 'Dépôt formalité', done: Number(d.progressPercent || 0) >= 100 },
+    ].filter((stepItem) => !(eiLike && stepItem.label.toLowerCase().includes('statuts'))),
+  };
+};
+
+const mapDocumentsFromApi = (documents = []) => documents.map((doc) => ({
+  id: doc.id,
+  name: doc.filename || doc.recommendedFilename || doc.label,
+  type: doc.docKey,
+  size: doc.fileSizeBytes ? `${Math.round(Number(doc.fileSizeBytes) / 1024)} Ko` : 'N/A',
+  providedBy: doc.reviewerId ? 'Greffio' : 'Client',
+  source: 'API',
+  status: String(doc.status || '').toUpperCase(),
+  date: doc.updatedAt || doc.createdAt,
+  dossierId: doc.dossierId,
+  reviewHint: parseJsonField(doc.metadata, {})?.analysis?.requiresManualReview ? 'Vérification manuelle requise' : 'Analyse auto OK',
+  confidence: parseJsonField(doc.metadata, {})?.analysis?.confidence ?? null,
+}));
 
 export const DossierDetailPage = () => {
   const { id } = useParams();
-  const [dossiers, setDossiers] = useState([]);
-  const [apiDossier, setApiDossier] = useState(null);
-  const [apiDocs, setApiDocs] = useState([]);
-  const dossier = apiDossier || dossiers.find((item) => item.id === id);
-  const docs = apiDocs;
+  const { currentUser } = useAuth();
+  const internalView = isInternalUser(currentUser);
+  const [dossier, setDossier] = useState(null);
+  const [docs, setDocs] = useState([]);
+  const [loading, setLoading] = useState(true);
   const messages = [];
   const [comment, setComment] = useState('');
   const missingDocuments = useMemo(() => docs.filter((document) => ['ATTENTE_DOCS', 'URGENT', 'EN_ANALYSE', 'A_SIGNER', 'BROUILLON'].includes(document.status)), [docs]);
@@ -32,88 +88,42 @@ export const DossierDetailPage = () => {
 
   useEffect(() => {
     const load = async () => {
-      if (!id) return;
+      if (!id) {
+        setLoading(false);
+        return;
+      }
       saveCurrentDossierId(id);
+      setLoading(true);
       try {
-        const listPayload = await listDossiers();
-        const normalizedList = Array.isArray(listPayload?.dossiers) ? listPayload.dossiers.map((d) => ({
-          id: d.id,
-          name: d.companyName || d.denomination || 'Dossier',
-          legalForm: d.legalForm || d.formeJuridique || 'SASU',
-          owner: 'Client',
-          status: String(d.status || '').toUpperCase(),
-          phase: d.service || 'formalite',
-          nextAction: 'Compléter les pièces demandées et valider les informations.',
-          expert: d.assignedToUserId || 'Équipe Greffio',
-          createdAt: d.createdAt,
-          dueDate: d.updatedAt || d.createdAt,
-          progress: Number(d.progressPercent || 0),
-          currentStep: Math.max(1, Math.round(Number(d.progressPercent || 0) / 20)),
-          totalSteps: 5,
-          blockers: [],
-        })) : [];
-        setDossiers(normalizedList);
-        const payload = await getDossierById(id);
+        const payload = await fetchDossierDetail(id, { allowOpsFallback: internalView });
         const d = payload.dossier;
-        const questionnaire = d.dataJson ? JSON.parse(d.dataJson) : {};
-        const eiLike = isEiLikeFormality({
-          legalForm: d.legalForm || questionnaire.formeJuridique,
-          typeFormalite: questionnaire.typeFormalite,
-          service: d.service,
-        });
-        setApiDossier({
-          id: d.id,
-          name: d.companyName || d.denomination || 'Dossier',
-          legalForm: d.legalForm || d.formeJuridique || 'SASU',
-          owner: 'Client',
-          status: String(d.status || '').toUpperCase(),
-          priority: 'Normale',
-          phase: d.service || 'formalite',
-          nextAction: 'Compléter les pièces demandées et valider les informations.',
-          expert: d.assignedToUserId || 'Équipe Greffio',
-          createdAt: d.createdAt,
-          dueDate: d.updatedAt || d.createdAt,
-          progress: Number(d.progressPercent || 0),
-          currentStep: Math.max(1, Math.round(Number(d.progressPercent || 0) / 20)),
-          totalSteps: 5,
-          blockers: [],
-          project: {
-            initiatorType: questionnaire.initiatorType || 'personne_physique',
-            initiatorName: [questionnaire.firstName, questionnaire.lastName].filter(Boolean).join(' ') || 'Client',
-            nationality: questionnaire.nationality || '',
-            companyCountry: questionnaire.companyCountry || '',
-            siren: questionnaire.companySiren || questionnaire.existingBusinessSiren || '',
-            companyName: questionnaire.companyName || questionnaire.existingBusinessName || d.companyName || '',
-          },
-          steps: [
-            { label: 'Informations dossier', done: Number(d.progressPercent || 0) >= 20 },
-            { label: 'Documents justificatifs', done: Number(d.progressPercent || 0) >= 40 },
-            { label: 'Contrôle Greffio', done: Number(d.progressPercent || 0) >= 60 },
-            { label: 'Signature', done: Number(d.progressPercent || 0) >= 80 },
-            { label: 'Dépôt formalité', done: Number(d.progressPercent || 0) >= 100 },
-          ].filter((stepItem) => !(eiLike && stepItem.label.toLowerCase().includes('statuts'))),
-        });
-        setApiDocs((payload.documents || []).map((doc) => ({
-          id: doc.id,
-          name: doc.filename || doc.recommendedFilename || doc.label,
-          type: doc.docKey,
-          size: doc.fileSizeBytes ? `${Math.round(Number(doc.fileSizeBytes) / 1024)} Ko` : 'N/A',
-          providedBy: doc.reviewerId ? 'Greffio' : 'Client',
-          source: 'API',
-          status: String(doc.status || '').toUpperCase(),
-          date: doc.updatedAt || doc.createdAt,
-          dossierId: doc.dossierId,
-          reviewHint: doc.metadata?.analysis?.requiresManualReview ? 'Vérification manuelle requise' : 'Analyse auto OK',
-          confidence: doc.metadata?.analysis?.confidence ?? null,
-        })));
-      } catch (_error) {
-        setApiDossier(null);
-        setApiDocs([]);
-        setDossiers([]);
+        if (!d?.id) {
+          setDossier(null);
+          setDocs([]);
+          return;
+        }
+        setDossier(mapDossierFromApi(d));
+        setDocs(mapDocumentsFromApi(payload.documents || []));
+      } catch (error) {
+        setDossier(null);
+        setDocs([]);
+      } finally {
+        setLoading(false);
       }
     };
     void load();
-  }, [id]);
+  }, [id, internalView]);
+
+  if (loading) {
+    return (
+      <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background">
+        <Sidebar />
+        <main className="flex flex-1 items-center justify-center p-8">
+          <p className="text-sm font-medium text-muted-foreground">Chargement du dossier...</p>
+        </main>
+      </div>
+    );
+  }
 
   if (!dossier) {
     return (
@@ -122,7 +132,16 @@ export const DossierDetailPage = () => {
         <main className="flex-1 overflow-y-auto p-8">
           <section className="mx-auto max-w-3xl rounded-md border border-border bg-white p-8 text-center shadow-elevation-sm">
             <h1 className="text-2xl font-extrabold">Dossier introuvable</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Ce dossier n’existe pas dans votre espace client.</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {internalView
+                ? 'Ce dossier est absent de la plateforme ou l’identifiant est invalide.'
+                : 'Ce dossier n’existe pas dans votre espace client.'}
+            </p>
+            {internalView ? (
+              <Button asChild variant="outline" className="mt-4 bg-white">
+                <Link to="/ops">Ouvrir le pilotage Ops</Link>
+              </Button>
+            ) : null}
             <Button asChild className="mt-6">
               <Link to="/dossiers">Retour aux dossiers</Link>
             </Button>

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { AlertTriangle, Calendar, CheckCircle2, ClipboardCheck, Clock3, Filter, Plus, Search, ShieldCheck } from 'lucide-react';
 import { listDossiers } from '@/api/dossiers.js';
 import { Sidebar } from '@/components/Sidebar.jsx';
+import { useAuth } from '@/hooks/useAuth.js';
+import { isInternalUser } from '@/utils/roles.js';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
@@ -181,6 +183,8 @@ const formatDate = (value) => {
 };
 
 export const DossiersPage = () => {
+  const { currentUser } = useAuth();
+  const internalView = isInternalUser(currentUser);
   const [dossiers, setDossiers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [status, setStatus] = useState('Tous');
@@ -244,7 +248,11 @@ export const DossiersPage = () => {
             <div>
               <p className="text-sm font-bold uppercase text-primary">Portefeuille</p>
               <h1 className="mt-2 text-3xl font-extrabold text-foreground">Dossiers</h1>
-              <p className="mt-2 text-sm text-muted-foreground">Vue réelle de vos créations, modifications, dissolutions et démarches administratives.</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {internalView
+                  ? 'Vue équipe Greffio — tous les dossiers ouverts sur la plateforme.'
+                  : 'Vue réelle de vos créations, modifications, dissolutions et démarches administratives.'}
+              </p>
             </div>
             <Button asChild>
               <Link to="/questionnaire">

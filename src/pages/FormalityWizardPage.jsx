@@ -33,10 +33,16 @@ import {
   getQuestionnaire,
   getWarnings,
 } from '@/utils/formalityEngine.js';
-import { getProjectDraft, saveProjectDraft } from '@/utils/localStorage.js';
+import { getProjectDraft, saveProjectDraft, getUser } from '@/utils/localStorage.js';
 import { GREFFIO_CONTACT } from '@/config/legalFlow.js';
 import { getFormalityRule, isEiLikeFormality } from '@/config/formalities.js';
 import { lookupCompanyBySiren } from '@/api/company.js';
+import { useAuth } from '@/hooks/useAuth.js';
+import {
+  contactDetailsFromUser,
+  hasCompleteUserContact,
+  isContactDetailValid,
+} from '@/utils/userProfile.js';
 
 const journeys = [
   {
@@ -117,6 +123,12 @@ const PROJECT_SUB_STEPS = [
   { id: 'form_choice', label: 'Forme' },
   { id: 'project_details', label: 'Projet' },
 ];
+const contactFields = [
+  { key: 'firstName', label: 'Prenom', type: 'text', placeholder: 'Votre prenom' },
+  { key: 'lastName', label: 'Nom', type: 'text', placeholder: 'Votre nom' },
+  { key: 'email', label: 'Email', type: 'email', placeholder: 'vous@entreprise.fr' },
+  { key: 'phone', label: 'Numero joignable', type: 'tel', placeholder: GREFFIO_CONTACT.supportPhone },
+];
 const targetFormGroups = COMPANY_FORM_CATALOG.reduce((groups, form) => {
   const group = groups.find((item) => item.category === form.family);
   if (group) {
@@ -189,13 +201,16 @@ const compareModules = Object.freeze({
 
 export const FormalityWizardPage = () => {
   const [searchParams] = useSearchParams();
+  const { currentUser, isAuthenticated } = useAuth();
   const wizardTopRef = useRef(null);
   const draft = getProjectDraft();
   const requestedType = String(searchParams.get('type') || 'statuts').toLowerCase();
   const initialJourney = typePresetByQuery[requestedType] || 'statuts';
+  const accountContact = contactDetailsFromUser(getUser());
   const skipJourneyPicker = DIRECT_JOURNEY_TYPES.has(requestedType) && !compareModules[requestedType];
+  const initialSkipContact = hasCompleteUserContact(getUser());
   const [step, setStep] = useState(skipJourneyPicker ? 1 : 0);
-  const [projectSubStep, setProjectSubStep] = useState(0);
+  const [projectSubStep, setProjectSubStep] = useState(skipJourneyPicker && initialSkipContact ? 1 : 0);
   const [showOffers, setShowOffers] = useState(false);
   const [selectedFamily, setSelectedFamily] = useState('Formes les plus courantes');
   const [questionMode, setQuestionMode] = useState('avance');
@@ -216,24 +231,35 @@ export const FormalityWizardPage = () => {
   const [data, setData] = useState({
     journey: draft?.data?.journey || initialJourney,
     initiatorType: draft?.data?.initiatorType || 'personne_physique',
-    initiatorName: draft?.data?.initiatorName || '',
+    initiatorName: draft?.data?.initiatorName || (accountContact?.firstName
+      ? `${accountContact.firstName} ${accountContact.lastName || ''}`.trim()
+      : ''),
     initiatorLegalForm: draft?.data?.initiatorLegalForm || 'SA',
     legalForm: draft?.data?.legalForm || 'SAS',
     urgency: draft?.data?.urgency || 'Cette semaine',
     companyName: draft?.data?.companyName || '',
     activity: draft?.data?.activity || '',
     city: draft?.data?.city || '',
-    firstName: draft?.data?.firstName || '',
-    lastName: draft?.data?.lastName || '',
+    firstName: accountContact?.firstName || draft?.data?.firstName || '',
+    lastName: accountContact?.lastName || draft?.data?.lastName || '',
     capital: draft?.data?.capital || '',
     shareholders: draft?.data?.shareholders || '1',
     president: draft?.data?.president || '',
-    email: draft?.data?.email || '',
-    phone: draft?.data?.phone || '',
+    email: accountContact?.email || draft?.data?.email || '',
+    phone: accountContact?.phone || draft?.data?.phone || '',
     marketingConsent: true,
   });
 
   const selectedJourney = useMemo(() => journeys.find((journey) => journey.id === data.journey) || journeys[0], [data.journey]);
+  const skipContactStep = useMemo(
+    () => isAuthenticated && hasCompleteUserContact(currentUser),
+    [isAuthenticated, currentUser],
+  );
+  const visibleProjectSubSteps = useMemo(
+    () => (skipContactStep ? PROJECT_SUB_STEPS.filter((item) => item.id !== 'contact') : PROJECT_SUB_STEPS),
+    [skipContactStep],
+  );
+  const activeProjectSubIndex = skipContactStep ? Math.max(0, projectSubStep - 1) : projectSubStep;
   const activeCompareModule = compareModules[requestedType] || null;
   const selectedLegalFormUpper = String(data.legalForm || '').toUpperCase();
   const selectedRule = useMemo(() => getFormalityRule({ legalForm: data.legalForm }), [data.legalForm]);
@@ -266,6 +292,42 @@ export const FormalityWizardPage = () => {
   }, [data, answers]);
 
   useEffect(() => {
+    if (!currentUser) return;
+    const contact = contactDetailsFromUser(currentUser);
+    if (!contact) return;
+    setData((current) => {
+      const next = { ...current };
+      let changed = false;
+      for (const key of ['firstName', 'lastName', 'email', 'phone']) {
+        if (contact[key] && current[key] !== contact[key]) {
+          next[key] = contact[key];
+          changed = true;
+        }
+      }
+      const initiatorName = `${next.firstName || ''} ${next.lastName || ''}`.trim();
+      if (initiatorName && !next.initiatorName) {
+        next.initiatorName = initiatorName;
+        changed = true;
+      }
+      return changed ? next : current;
+    });
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!skipContactStep || step !== 1 || projectSubStep !== 0) return;
+    setProjectSubStep(1);
+  }, [skipContactStep, step, projectSubStep]);
+
+  useEffect(() => {
+    if (skipContactStep || !currentUser) return;
+    const firstIncomplete = contactFields.findIndex((field) => !isContactDetailValid(field.key, data[field.key]));
+    if (firstIncomplete > 0) {
+      setContactStep(firstIncomplete);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser, skipContactStep]);
+
+  useEffect(() => {
     window.requestAnimationFrame(() => {
       wizardTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
@@ -283,12 +345,6 @@ export const FormalityWizardPage = () => {
     setAnswers((current) => ({ ...current, [key]: value }));
   };
 
-  const contactFields = [
-    { key: 'firstName', label: 'Prenom', type: 'text', placeholder: 'Votre prenom' },
-    { key: 'lastName', label: 'Nom', type: 'text', placeholder: 'Votre nom' },
-    { key: 'email', label: 'Email', type: 'email', placeholder: 'vous@entreprise.fr' },
-    { key: 'phone', label: 'Numero joignable', type: 'tel', placeholder: GREFFIO_CONTACT.supportPhone },
-  ];
   const activeContactField = contactFields[contactStep];
   const contactCompletion = Math.round(((contactStep + 1) / contactFields.length) * 100);
   const canContinueContact = () => {
@@ -313,7 +369,10 @@ export const FormalityWizardPage = () => {
   };
 
   const canContinueProjectSubStep = () => {
-    if (projectSubStep === 0) return canContinueContact();
+    if (projectSubStep === 0) {
+      if (skipContactStep) return true;
+      return canContinueContact();
+    }
     if (projectSubStep === 1) return Boolean(String(data.initiatorName || '').trim());
     if (projectSubStep === 2) return Boolean(selectedFamily);
     if (projectSubStep === 3) return Boolean(data.legalForm);
@@ -321,9 +380,15 @@ export const FormalityWizardPage = () => {
   };
 
   const advanceProjectFlow = () => {
-    if (projectSubStep === 0 && contactStep < contactFields.length - 1) {
-      setContactStep((value) => value + 1);
-      return;
+    if (projectSubStep === 0) {
+      if (skipContactStep) {
+        setProjectSubStep(1);
+        return;
+      }
+      if (contactStep < contactFields.length - 1) {
+        setContactStep((value) => value + 1);
+        return;
+      }
     }
     if (projectSubStep < PROJECT_SUB_STEPS.length - 1) {
       setProjectSubStep((value) => value + 1);
@@ -337,7 +402,7 @@ export const FormalityWizardPage = () => {
       setContactStep((value) => value - 1);
       return;
     }
-    if (projectSubStep > 0) {
+    if (projectSubStep > (skipContactStep ? 1 : 0)) {
       setProjectSubStep((value) => value - 1);
       return;
     }
@@ -346,7 +411,8 @@ export const FormalityWizardPage = () => {
 
   const next = () => {
     if (step === 0) {
-      setProjectSubStep(0);
+      setProjectSubStep(skipContactStep ? 1 : 0);
+      setContactStep(0);
       setStep(1);
       return;
     }
@@ -378,7 +444,7 @@ export const FormalityWizardPage = () => {
     setStep((value) => Math.max(0, value - 1));
   };
 
-  const isProjectBackDisabled = step === 1 && projectSubStep === 0 && contactStep === 0;
+  const isProjectBackDisabled = step === 1 && projectSubStep === (skipContactStep ? 1 : 0) && contactStep === 0;
 
   const detectJourneyFromCompany = (company) => {
     if (!company) return 'modification';
@@ -445,7 +511,7 @@ export const FormalityWizardPage = () => {
               <div className="mt-4 space-y-3">
                 <ProgressiveStepChips steps={PROGRESSIVE_WIZARD_STEPS} activeIndex={step} />
                 {step === 1 ? (
-                  <ProgressiveStepChips steps={PROJECT_SUB_STEPS} activeIndex={projectSubStep} />
+                  <ProgressiveStepChips steps={visibleProjectSubSteps} activeIndex={activeProjectSubIndex} />
                 ) : null}
               </div>
             ) : null}

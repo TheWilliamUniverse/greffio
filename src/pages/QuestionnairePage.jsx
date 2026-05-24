@@ -33,6 +33,9 @@ import { isEiLikeFormality } from '@/config/formalities.js';
 import { AssociatesMinorPanel } from '@/components/questionnaire/AssociatesMinorPanel.jsx';
 import { BirthDateMinorEncouragement } from '@/components/BirthDateMinorEncouragement.jsx';
 import { validateDirectorEligibility } from '@/config/minorAssociateRules.js';
+import { useAuth } from '@/hooks/useAuth.js';
+import { fetchUserProfile } from '@/api/profile.js';
+import { contactDetailsFromUser } from '@/utils/userProfile.js';
 
 const defaultData = {
   initiatorType: 'personne_physique',
@@ -104,6 +107,7 @@ const isModernReference = (value) => /^GF-[A-Z0-9]{4,8}$/.test(String(value || '
 
 export const QuestionnairePage = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [searchParams] = useSearchParams();
   const [dossierId, setDossierId] = useState(getCurrentDossierId());
   const [reference, setReference] = useState(makeUiReference());
@@ -209,6 +213,16 @@ export const QuestionnairePage = () => {
   useEffect(() => {
     const boot = async () => {
       try {
+        let userForContact = null;
+        if (isAuthenticated) {
+          try {
+            const profilePayload = await fetchUserProfile();
+            userForContact = profilePayload?.user || null;
+          } catch (_profileError) {
+            userForContact = null;
+          }
+        }
+
         let currentDossierId = dossierId;
         if (!currentDossierId) {
           const created = await createDossier({
@@ -224,6 +238,7 @@ export const QuestionnairePage = () => {
           }
         }
 
+        let mergedData = { ...defaultData };
         if (currentDossierId) {
           const state = await getQuestionnaireState(currentDossierId);
           const fromApi = state.reference || state?.dossier?.reference || '';
@@ -231,18 +246,36 @@ export const QuestionnairePage = () => {
             ? fromApi
             : makeUiReference();
           setReference(finalReference);
-          setFormData((current) => ({
-            ...current,
+          mergedData = {
+            ...mergedData,
             ...(state.questionnaire || {}),
-          }));
+          };
           const prefillSiren = String(searchParams.get('prefillSiren') || '').replace(/\D/g, '');
           if (prefillSiren.length === 9 || prefillSiren.length === 14) {
-            setFormData((current) => ({
-              ...current,
+            mergedData = {
+              ...mergedData,
               companySiren: prefillSiren,
               initiatorType: 'personne_morale',
-            }));
+            };
           }
+        }
+
+        const accountContact = contactDetailsFromUser(userForContact);
+        if (accountContact) {
+          mergedData = {
+            ...mergedData,
+            firstName: accountContact.firstName || mergedData.firstName,
+            lastName: accountContact.lastName || mergedData.lastName,
+            email: accountContact.email || mergedData.email,
+            phone: accountContact.phone || (isAuthenticated ? '' : mergedData.phone),
+          };
+        }
+
+        setFormData(mergedData);
+
+        const contactFlowStep = QUESTIONNAIRE_FLOW[0];
+        if (isAuthenticated && isStepComplete(contactFlowStep, mergedData)) {
+          setStepIndex(1);
         }
       } catch (_error) {
         // Keep graceful UI fallback.
@@ -252,7 +285,7 @@ export const QuestionnairePage = () => {
     };
     void boot();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [searchParams, isAuthenticated]);
 
   useEffect(() => {
     if (!dossierId || loading) return;

@@ -8,7 +8,7 @@ import { LandingPage } from '@/pages/LandingPage.jsx';
 import { FormalityWizardPage } from '@/pages/FormalityWizardPage.jsx';
 import { SignupPage } from '@/pages/SignupPage.jsx';
 import { LoginPage } from '@/pages/LoginPage.jsx';
-import { PasswordResetPage } from '@/pages/PasswordResetPage.jsx';
+import { CredentialsUnlockPage } from '@/pages/CredentialsUnlockPage.jsx';
 import { DashboardPage } from '@/pages/DashboardPage.jsx';
 import { DossiersPage } from '@/pages/DossiersPage.jsx';
 import { DossierDetailPage } from '@/pages/DossierDetailPage.jsx';
@@ -60,7 +60,7 @@ const NotFound = () => (
 
 const Layout = ({ children }) => {
   const location = useLocation();
-  const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/services', '/paiement', '/ressources', '/app', '/guide', '/procuration', '/contact'];
+  const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/services', '/paiement', '/ressources', '/app', '/guide', '/procuration', '/contact', '/credentials-unlock'];
   const shouldHideHeader = hideHeaderRoutes.some((route) => location.pathname === route || location.pathname.startsWith('/service/'));
 
   return (
@@ -86,6 +86,7 @@ function App() {
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/password-reset" element={<PasswordResetPage />} />
+            <Route path="/credentials-unlock" element={<CredentialsUnlockPage />} />
             <Route path="/service/:id" element={<ServiceDetailPage />} />
             {SERVICE_PAGE_SLUGS.map((slug) => (
               <Route key={slug} path={`/${slug}`} element={<ServiceLandingPage />} />
@@ -112,7 +113,7 @@ function App() {
             <Route path="/chat" element={<ProtectedRoute><ChatIAPage /></ProtectedRoute>} />
             <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
             <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
-            <Route path="/interfaces" element={<ProtectedRoute><InterfacesPage /></ProtectedRoute>} />
+            <Route path="/interfaces" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><InterfacesPage /></ProtectedRoute>} />
             <Route path="/profil" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
 

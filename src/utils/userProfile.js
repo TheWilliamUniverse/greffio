@@ -137,3 +137,29 @@ export const getCivilityAvatar = (civility) => {
   }
   return { label: 'G', className: 'bg-primary text-white', caption: 'Profil Greffio' };
 };
+
+export const contactDetailsFromUser = (user) => {
+  if (!user) return null;
+  const profile = profileFromUser(user);
+  const primaryPhone = profile.phones.find((entry) => entry.isPrimary)?.number || user.phone || '';
+  return {
+    firstName: String(user.firstName || '').trim(),
+    lastName: String(user.lastName || '').trim(),
+    email: String(user.email || '').trim(),
+    phone: normalizePhone(primaryPhone),
+  };
+};
+
+export const isContactDetailValid = (key, value) => {
+  const normalized = String(value || '').trim();
+  if (!normalized) return false;
+  if (key === 'email') return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
+  if (key === 'phone') return isValidPhone(normalized) && normalized.replace(/\D/g, '').length >= 9;
+  return true;
+};
+
+export const hasCompleteUserContact = (user) => {
+  const contact = contactDetailsFromUser(user);
+  if (!contact) return false;
+  return ['firstName', 'lastName', 'email', 'phone'].every((key) => isContactDetailValid(key, contact[key]));
+};

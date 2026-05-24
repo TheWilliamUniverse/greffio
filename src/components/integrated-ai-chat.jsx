@@ -41,7 +41,12 @@ export default function IntegratedAiChat() {
       });
       setMessages((current) => [
         ...current,
-        { role: 'assistant', content: payload?.answer || 'Je n’ai pas pu générer de réponse.' },
+        {
+          role: 'assistant',
+          content: payload?.degraded
+            ? `${payload?.answer || 'Réponse locale Greffio.'}\n\n(Assistant ChatGPT temporairement indisponible — quota OpenAI. Réponse générée localement.)`
+            : (payload?.answer || 'Je n’ai pas pu générer de réponse.'),
+        },
       ]);
     } catch (_error) {
       setMessages((current) => [

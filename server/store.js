@@ -561,6 +561,8 @@ const updateDossierDocument = async ({
 };
 
 const getDossier = async (dossierId) => {
+  const key = String(dossierId || '').trim();
+  if (!key) return null;
   if (hasPostgres) {
     const result = await query(`
       SELECT
@@ -582,9 +584,9 @@ const getDossier = async (dossierId) => {
         created_at AS "createdAt",
         updated_at AS "updatedAt"
       FROM dossiers
-      WHERE id = $1
+      WHERE id = $1 OR reference = $1
       LIMIT 1
-    `, [dossierId]);
+    `, [key]);
     return result.rows[0] || null;
   }
   return sqlite
@@ -608,9 +610,9 @@ const getDossier = async (dossierId) => {
         created_at AS createdAt,
         updated_at AS updatedAt
       FROM dossiers
-      WHERE id = ?
+      WHERE id = ? OR reference = ?
     `)
-    .get(dossierId) || null;
+    .get(key, key) || null;
 };
 
 const getAllDossiers = async () => {
