@@ -39,6 +39,10 @@ export const defaultUserProfile = () => ({
       dossierUpdates: true,
       marketing: false,
     },
+    security: {
+      loginAlertsEnabled: true,
+      loginAlertsEnabledUpdatedAt: null,
+    },
   },
 });
 
@@ -92,6 +96,10 @@ export const mergeUserProfile = (current, patch) => {
       notifications: {
         ...base.preferences.notifications,
         ...(patch?.preferences?.notifications || {}),
+      },
+      security: {
+        ...base.preferences.security,
+        ...(patch?.preferences?.security || {}),
       },
     },
     phones: sanitizePhones(patch?.phones ?? base.phones),
@@ -163,3 +171,28 @@ export const hasCompleteUserContact = (user) => {
   if (!contact) return false;
   return ['firstName', 'lastName', 'email', 'phone'].every((key) => isContactDetailValid(key, contact[key]));
 };
+
+export const getLoginAlertsSettings = (user) => {
+  const security = user?.profile?.preferences?.security || {};
+  const updatedAt = typeof security.loginAlertsEnabledUpdatedAt === 'string'
+    && security.loginAlertsEnabledUpdatedAt.trim()
+    ? security.loginAlertsEnabledUpdatedAt.trim()
+    : null;
+  const configured = Boolean(updatedAt);
+  return {
+    enabled: configured ? Boolean(security.loginAlertsEnabled) : true,
+    configured,
+    updatedAt,
+  };
+};
+
+export const isLoginAlertsConfigured = (user) => getLoginAlertsSettings(user).configured;
+
+export const buildLoginAlertsProfilePatch = (enabled) => ({
+  preferences: {
+    security: {
+      loginAlertsEnabled: Boolean(enabled),
+      loginAlertsEnabledUpdatedAt: new Date().toISOString(),
+    },
+  },
+});

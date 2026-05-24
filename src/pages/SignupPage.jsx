@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { COMPANY_FORM_CATALOG, LEGAL_SERVICES } from '@/config/businessCatalog.js';
+import { LoginAlertsToggle } from '@/components/security/LoginAlertsToggle.jsx';
 import { getProjectDraft } from '@/utils/localStorage.js';
 import { createDossier } from '@/api/dossiers.js';
 import { saveCurrentDossierId } from '@/utils/sessionStore.js';
@@ -45,7 +46,7 @@ export const SignupPage = () => {
   const draft = getProjectDraft();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
-  const { register, watch, trigger, getValues, formState: { errors } } = useForm({
+  const { register, watch, trigger, getValues, setValue, formState: { errors } } = useForm({
     shouldUnregister: false,
     defaultValues: {
       profile: 'client',
@@ -62,6 +63,7 @@ export const SignupPage = () => {
       lastName: '',
       password: '',
       acceptedTerms: false,
+      loginAlertsEnabled: true,
     },
   });
   const { signup } = useAuth();
@@ -71,6 +73,7 @@ export const SignupPage = () => {
   const selectedService = watch('service');
   const initiatorType = watch('initiatorType');
   const acceptedTerms = watch('acceptedTerms');
+  const loginAlertsEnabled = watch('loginAlertsEnabled');
   const selectedOffer = useMemo(() => LEGAL_SERVICES.find((service) => service.id === selectedService), [selectedService]);
 
   const advanceStep = async () => {
@@ -291,6 +294,14 @@ export const SignupPage = () => {
                       <p><span className="text-muted-foreground">Compte :</span> <strong>{watch('firstName')} {watch('lastName')}</strong></p>
                       <p><span className="text-muted-foreground">Entreprise :</span> <strong>{watch('companyName')}</strong></p>
                     </div>
+                  </div>
+                  <div className="space-y-3">
+                    <p className="text-sm font-bold uppercase text-primary">Sécurité du compte</p>
+                    <LoginAlertsToggle
+                      id="signup-login-alerts"
+                      enabled={loginAlertsEnabled}
+                      onEnabledChange={(value) => setValue('loginAlertsEnabled', value, { shouldDirty: true })}
+                    />
                   </div>
                   <label className="flex items-start gap-3 rounded-md border border-border bg-white p-4">
                     <input type="checkbox" className="mt-1" {...register('acceptedTerms', { required: true })} />

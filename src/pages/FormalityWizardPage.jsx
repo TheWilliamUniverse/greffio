@@ -354,6 +354,36 @@ export const FormalityWizardPage = () => {
     return true;
   };
 
+  const canAdvanceActiveQuestion = () => {
+    if (!activeQuestion) return false;
+    if (!activeQuestion.required) return true;
+    return Boolean(String(answers[activeQuestion.key] || '').trim());
+  };
+
+  const advanceActiveQuestion = () => {
+    if (!canAdvanceActiveQuestion()) return;
+    if (activeQuestionIndex >= flattenedQuestions.length - 1) return;
+    setActiveQuestionIndex((current) => Math.min(flattenedQuestions.length - 1, current + 1));
+  };
+
+  const tryWizardContinue = () => {
+    if (showOffers) return;
+    if (step === 2 && activeQuestion) {
+      advanceActiveQuestion();
+      return;
+    }
+    if (step === 1 && !canContinueProjectSubStep()) return;
+    next();
+  };
+
+  const handleWizardKeyDown = (event) => {
+    if (event.key !== 'Enter' || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+    const tagName = String(event.target?.tagName || '').toUpperCase();
+    if (tagName === 'TEXTAREA' || tagName === 'BUTTON' || tagName === 'SELECT') return;
+    event.preventDefault();
+    tryWizardContinue();
+  };
+
   const chooseFamily = (category) => {
     const group = targetFormGroups.find((item) => item.category === category);
     setSelectedFamily(category);
@@ -526,6 +556,7 @@ export const FormalityWizardPage = () => {
                 exit={{ opacity: 0, x: -22 }}
                 transition={{ duration: 0.22 }}
                 className="p-6 md:p-10"
+                onKeyDown={handleWizardKeyDown}
               >
                 {step === 0 && (
                   <div className="space-y-7">
@@ -659,16 +690,32 @@ export const FormalityWizardPage = () => {
                                 <span className="absolute inset-0 flex items-center justify-center text-xs font-bold">{contactCompletion}%</span>
                               </div>
                             </div>
-                            <div className="mt-6 space-y-2">
+                            <form
+                              className="mt-6 space-y-2"
+                              onSubmit={(event) => {
+                                event.preventDefault();
+                                if (canContinueContact()) tryWizardContinue();
+                              }}
+                            >
                               <Label>{activeContactField.label}</Label>
-                              <Input
-                                type={activeContactField.type}
-                                value={data[activeContactField.key]}
-                                onChange={(event) => update(activeContactField.key, event.target.value)}
-                                placeholder={activeContactField.placeholder}
-                                className="rounded-xl"
-                              />
-                            </div>
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  type={activeContactField.type}
+                                  value={data[activeContactField.key]}
+                                  onChange={(event) => update(activeContactField.key, event.target.value)}
+                                  placeholder={activeContactField.placeholder}
+                                  className="flex-1 rounded-xl"
+                                />
+                                <Button
+                                  type="submit"
+                                  disabled={!canContinueContact()}
+                                  className="h-11 w-11 shrink-0 rounded-full p-0 sm:hidden"
+                                  aria-label="Continuer"
+                                >
+                                  <ArrowRight className="h-5 w-5" />
+                                </Button>
+                              </div>
+                            </form>
                             <p className="mt-4 text-xs leading-5 text-muted-foreground">
                               Vos données sont en sécurité et transmises uniquement à l’administration française pour enregistrer votre entreprise.
                             </p>
@@ -887,7 +934,13 @@ export const FormalityWizardPage = () => {
                         </div>
 
                         {activeQuestion ? (
-                          <div className="space-y-4">
+                          <form
+                            className="space-y-4"
+                            onSubmit={(event) => {
+                              event.preventDefault();
+                              advanceActiveQuestion();
+                            }}
+                          >
                             <div className="rounded-md bg-muted p-4">
                               <div className="flex gap-3">
                                 <Info className="mt-1 h-4 w-4 shrink-0 text-primary" />
@@ -937,9 +990,8 @@ export const FormalityWizardPage = () => {
                                 Retour
                               </Button>
                               <Button
-                                type="button"
-                                disabled={activeQuestionIndex >= flattenedQuestions.length - 1}
-                                onClick={() => setActiveQuestionIndex((current) => Math.min(flattenedQuestions.length - 1, current + 1))}
+                                type="submit"
+                                disabled={!canAdvanceActiveQuestion() || activeQuestionIndex >= flattenedQuestions.length - 1}
                               >
                                 Continuer
                                 <ArrowRight className="h-4 w-4" />
@@ -948,7 +1000,7 @@ export const FormalityWizardPage = () => {
                             <p className="text-xs text-muted-foreground">
                               Numéro joignable : {GREFFIO_CONTACT.supportPhone}
                             </p>
-                          </div>
+                          </form>
                         ) : (
                           <p className="text-sm text-muted-foreground">Aucune question affichable avec cette configuration.</p>
                         )}

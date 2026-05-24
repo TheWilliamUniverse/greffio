@@ -1,4 +1,5 @@
 import React from 'react';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 
 export const StepLayout = ({
@@ -25,7 +26,8 @@ export const StepLayout = ({
       const isButton = tagName === 'BUTTON';
       if (isTextarea || isButton) return;
       event.preventDefault();
-      if (typeof onEnterNext === 'function') onEnterNext();
+      if (!canGoNext || typeof onEnterNext !== 'function') return;
+      onEnterNext();
     }}
   >
     <div className="border-b border-border bg-muted px-6 py-4">
@@ -54,8 +56,9 @@ export const StepLayout = ({
       <Button type="button" variant="outline" className="bg-white" onClick={onBack} disabled={!canGoBack}>
         Retour
       </Button>
-      <Button type="button" onClick={onNext}>
+      <Button type="button" onClick={onNext} disabled={!canGoNext} className="touch-manipulation">
         Continuer
+        <ArrowRight className="h-4 w-4" />
       </Button>
     </div>
   </section>

@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { KeyRound, LockKeyhole, Mail, MonitorCheck, ShieldCheck, Smartphone } from 'lucide-react';
+import { KeyRound, LockKeyhole, Mail, MonitorCheck, ShieldCheck, Smartphone, Bell } from 'lucide-react';
 import { toast } from 'sonner';
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
@@ -8,7 +8,14 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp.jsx';
+import { LoginAlertsToggle } from '@/components/security/LoginAlertsToggle.jsx';
 import { listDossiers } from '@/api/dossiers.js';
+import { fetchUserProfile, updateUserProfileApi } from '@/api/profile.js';
+import {
+  buildLoginAlertsProfilePatch,
+  getLoginAlertsSettings,
+  isLoginAlertsConfigured,
+} from '@/utils/userProfile.js';
 import {
   disableTotp,
   enableTotp,
@@ -41,6 +48,13 @@ export const SettingsPage = () => {
   const [regenPassword, setRegenPassword] = useState('');
   const [regenCode, setRegenCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loginAlertsEnabled, setLoginAlertsEnabled] = useState(true);
+  const [loginAlertsUpdatedAt, setLoginAlertsUpdatedAt] = useState(null);
+  const [loginAlertsSaving, setLoginAlertsSaving] = useState(false);
+  const showLoginAlertsSetupHint = useMemo(
+    () => !isLoginAlertsConfigured(currentUser),
+    [currentUser],
+  );
 
   const loadMfaStatus = async () => {
     try {
@@ -58,6 +72,53 @@ export const SettingsPage = () => {
   useEffect(() => {
     void loadMfaStatus();
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadLoginAlerts = async () => {
+      try {
+        const payload = await fetchUserProfile();
+        if (!mounted) return;
+        const user = payload?.user || currentUser;
+        const settings = getLoginAlertsSettings(user);
+        setLoginAlertsEnabled(settings.enabled);
+        setLoginAlertsUpdatedAt(settings.updatedAt);
+        if (user) updateProfile(user);
+      } catch (_error) {
+        if (!mounted) return;
+        const settings = getLoginAlertsSettings(currentUser);
+        setLoginAlertsEnabled(settings.enabled);
+        setLoginAlertsUpdatedAt(settings.updatedAt);
+      }
+    };
+    void loadLoginAlerts();
+    return () => {
+      mounted = false;
+    };
+  }, [currentUser?.id]);
+
+  const handleLoginAlertsChange = async (enabled) => {
+    setLoginAlertsEnabled(enabled);
+    setLoginAlertsSaving(true);
+    try {
+      const payload = await updateUserProfileApi({
+        profile: buildLoginAlertsProfilePatch(enabled),
+      });
+      const user = payload?.user;
+      if (user) {
+        updateProfile(user);
+        const settings = getLoginAlertsSettings(user);
+        setLoginAlertsUpdatedAt(settings.updatedAt);
+      }
+      toast.success(enabled ? 'Alertes de connexion activées.' : 'Alertes de connexion désactivées.');
+    } catch (_error) {
+      const settings = getLoginAlertsSettings(currentUser);
+      setLoginAlertsEnabled(settings.enabled);
+      toast.error('Impossible de mettre à jour les alertes de connexion.');
+    } finally {
+      setLoginAlertsSaving(false);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -352,6 +413,35 @@ export const SettingsPage = () => {
                   </div>
                 </div>
               )}
+            </div>
+
+            <div className="rounded-md border border-border bg-white p-6 shadow-elevation-sm">
+              <div className="mb-5 flex items-center gap-3">
+                <Bell className="h-6 w-6 text-primary" />
+                <div>
+                  <h2 className="text-xl font-extrabold">Alertes de connexion</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">Paramètres &gt; Sécurité &gt; Alertes de connexion</p>
+                </div>
+              </div>
+              {showLoginAlertsSetupHint ? (
+                <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  Souhaitez-vous recevoir des alertes email lors de nouvelles connexions à votre compte ? Par défaut, Greffio les active pour renforcer la sécurité tant qu’aucun choix n’a été enregistré.
+                </p>
+              ) : null}
+              <LoginAlertsToggle
+                id="settings-login-alerts"
+                enabled={loginAlertsEnabled}
+                onEnabledChange={(value) => void handleLoginAlertsChange(value)}
+                disabled={loginAlertsSaving}
+              />
+              {loginAlertsUpdatedAt ? (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Dernière modification : {new Date(loginAlertsUpdatedAt).toLocaleString('fr-FR')}
+                </p>
+              ) : null}
+              <p className="mt-4 text-xs leading-5 text-muted-foreground">
+                Les tentatives de connexion suspectes bloquées, les changements de mot de passe et les opérations MFA restent notifiés séparément, même si les alertes de connexion sont désactivées.
+              </p>
             </div>
 
             <div className="rounded-md border border-border bg-white p-6 shadow-elevation-sm">

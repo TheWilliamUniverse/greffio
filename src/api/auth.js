@@ -31,6 +31,7 @@ export const signupWithApi = async ({
   lastName,
   role,
   company,
+  loginAlertsEnabled,
 }) => {
   const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/auth/signup`, {
     method: 'POST',
@@ -42,6 +43,7 @@ export const signupWithApi = async ({
       lastName,
       role,
       company,
+      loginAlertsEnabled,
     }),
   });
   return parseApi(response);

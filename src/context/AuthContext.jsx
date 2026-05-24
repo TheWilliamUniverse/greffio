@@ -107,6 +107,7 @@ export const AuthProvider = ({ children }) => {
         firstName: userData.firstName,
         lastName: userData.lastName,
         role: 'CLIENT',
+        loginAlertsEnabled: userData.loginAlertsEnabled !== false,
         company: {
           name: userData.companyName || 'Projet Greffio',
           legalStructure: userData.legalStructure || userData.legalForm || 'SAS',

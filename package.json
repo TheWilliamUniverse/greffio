@@ -25,7 +25,8 @@
     "screenshots:playstore": "node scripts/generate-play-store-screenshots.js",
     "assets:playstore": "node scripts/generate-play-store-assets.js",
     "assets:email-logo": "node scripts/generate-email-logo.js",
-    "video:playstore": "node scripts/generate-play-store-video.js"
+    "video:playstore": "node scripts/generate-play-store-video.js",
+    "test:login-alerts": "node --test server/utils/loginAlerts.test.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",

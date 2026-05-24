@@ -24,6 +24,10 @@ const defaultProfile = () => ({
       dossierUpdates: true,
       marketing: false,
     },
+    security: {
+      loginAlertsEnabled: true,
+      loginAlertsEnabledUpdatedAt: null,
+    },
   },
 });
 
@@ -70,6 +74,10 @@ const mergeProfile = (current, patch) => {
       notifications: {
         ...base.preferences?.notifications,
         ...(patch?.preferences?.notifications || {}),
+      },
+      security: {
+        ...base.preferences?.security,
+        ...(patch?.preferences?.security || {}),
       },
     },
     phones: sanitizePhones(patch?.phones ?? base.phones),

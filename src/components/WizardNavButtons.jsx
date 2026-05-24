@@ -33,10 +33,11 @@ export const WizardNavButtons = ({
       type="button"
       onClick={onContinue}
       disabled={continueDisabled}
+      aria-label={continueLabel}
       whileHover={continueDisabled ? undefined : { y: -2, scale: 1.02 }}
       whileTap={continueDisabled ? undefined : { scale: 0.98 }}
       className={cn(
-        'group relative inline-flex h-12 items-center gap-2 overflow-hidden rounded-full bg-primary px-7 text-sm font-bold text-primary-foreground shadow-elevation-md',
+        'group relative inline-flex h-12 min-w-[3rem] touch-manipulation items-center gap-2 overflow-hidden rounded-full bg-primary px-7 text-sm font-bold text-primary-foreground shadow-elevation-md',
         'disabled:pointer-events-none disabled:opacity-45',
         !showContinue && 'hidden',
       )}

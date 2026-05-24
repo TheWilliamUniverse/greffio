@@ -59,6 +59,7 @@ import { searchAddresses as searchGeoAddresses } from './services/addressSearch.
 import { sendTransactionalEmail, handleBrevoWebhookEvent } from './services/emailService.js';
 import { getUnlockByToken, verifyAndConsumeUnlock } from './credentialUnlockStore.js';
 import { formatParisDateTime, getClientIp, parseDeviceLabel } from './utils/loginContext.js';
+import { buildLoginAlertsProfilePatch, shouldSendLoginAlert } from './utils/loginAlerts.js';
 import { uploadPdfOnly } from './uploads.js';
 import { analyzeDocument } from './documentAnalysis.js';
 import { createSignatureRecord, getLatestSignatureByDossier } from './signatureStore.js';
@@ -186,6 +187,24 @@ const credentialsUnlockLimiter = rateLimit({
 });
 
 const appUrl = process.env.APP_URL || 'https://greffio.willentreprises.com';
+
+const maybeSendLoginAlertEmail = async (req, user, extraTags = []) => {
+  if (!shouldSendLoginAlert(user)) return;
+  void sendTransactionalEmail({
+    to: { email: user.email, name: `${user.firstName || ''} ${user.lastName || ''}`.trim() },
+    templateKey: 'login_notification',
+    variables: {
+      firstName: user.firstName || 'Client',
+      loginTime: formatParisDateTime(),
+      ipAddress: getClientIp(req),
+      deviceLabel: parseDeviceLabel(req.headers['user-agent']),
+      locationApproximation: 'Non disponible',
+      securityUrl: `${appUrl}/settings`,
+    },
+    userId: user.id,
+    tags: ['auth', 'security', 'login_alert', ...extraTags],
+  });
+};
 const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:8787';
 const mollieWebhookUrl = process.env.MOLLIE_WEBHOOK_URL || `${apiBaseUrl}/webhooks/mollie`;
 const gocardlessWebhookUrl = process.env.GOCARDLESS_WEBHOOK_URL || `${apiBaseUrl}/webhooks/gocardless`;
@@ -507,6 +526,7 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
     firstName,
     lastName,
     company = null,
+    loginAlertsEnabled,
   } = req.body || {};
   if (!email || !password || String(password).length < 6) {
     return res.status(400).json({ ok: false, error: 'INVALID_SIGNUP_PAYLOAD' });
@@ -515,7 +535,7 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
   if (existing) {
     return res.status(409).json({ ok: false, error: 'EMAIL_ALREADY_EXISTS' });
   }
-  const user = await createUser({
+  const createdUser = await createUser({
     email,
     password,
     firstName,
@@ -523,6 +543,11 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
     role: 'CLIENT',
     company,
   });
+  const alertsEnabled = loginAlertsEnabled !== false;
+  const user = await updateUserProfile({
+    userId: createdUser.id,
+    profile: buildLoginAlertsProfilePatch(alertsEnabled),
+  }) || createdUser;
   void sendTransactionalEmail({
     to: { email: user.email, name: `${user.firstName || ''} ${user.lastName || ''}`.trim() },
     templateKey: 'account_welcome',
@@ -587,20 +612,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
       },
     });
   }
-  void sendTransactionalEmail({
-    to: { email: user.email, name: `${user.firstName || ''} ${user.lastName || ''}`.trim() },
-    templateKey: 'login_notification',
-    variables: {
-      firstName: user.firstName || 'Client',
-      loginTime: formatParisDateTime(),
-      ipAddress: getClientIp(req),
-      deviceLabel: parseDeviceLabel(req.headers['user-agent']),
-      locationApproximation: 'Non disponible',
-      securityUrl: `${appUrl}/settings`,
-    },
-    userId: user.id,
-    tags: ['auth', 'security'],
-  });
+  void maybeSendLoginAlertEmail(req, user);
   return res.json({
     ok: true,
     user,
@@ -851,20 +863,7 @@ app.post('/api/auth/mfa/verify-login', authLimiter, async (req, res) => {
     return res.status(401).json({ ok: false, error: 'MFA_CODE_INVALID' });
   }
 
-  void sendTransactionalEmail({
-    to: { email: user.email, name: `${user.firstName || ''} ${user.lastName || ''}`.trim() },
-    templateKey: 'login_notification',
-    variables: {
-      firstName: user.firstName || 'Client',
-      loginTime: formatParisDateTime(),
-      ipAddress: getClientIp(req),
-      deviceLabel: parseDeviceLabel(req.headers['user-agent']),
-      locationApproximation: 'Non disponible',
-      securityUrl: `${appUrl}/settings`,
-    },
-    userId: user.id,
-    tags: ['auth', 'security', 'mfa'],
-  });
+  await maybeSendLoginAlertEmail(req, user, ['mfa']);
 
   return res.json({
     ok: true,

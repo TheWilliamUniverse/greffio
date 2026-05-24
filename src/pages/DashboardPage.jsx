@@ -19,14 +19,42 @@ import { Card, CardContent } from '@/components/ui/card.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
 import { getDossierById, listDossiers } from '@/api/dossiers.js';
+import { fetchUserProfile } from '@/api/profile.js';
+import { LoginAlertsPromptBanner } from '@/components/security/LoginAlertsPromptBanner.jsx';
 import { isEiLikeFormality } from '@/config/formalities.js';
+import { isLoginAlertsConfigured } from '@/utils/userProfile.js';
 
 export const DashboardPage = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, updateProfile } = useAuth();
   const [dossiers, setDossiers] = useState([]);
   const [documents, setDocuments] = useState([]);
   const notifications = [];
   const [loadingApi, setLoadingApi] = useState(true);
+  const [showLoginAlertsPrompt, setShowLoginAlertsPrompt] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    const checkLoginAlertsPreference = async () => {
+      try {
+        const payload = await fetchUserProfile();
+        if (!mounted) return;
+        const user = payload?.user || currentUser;
+        if (user) {
+          updateProfile(user);
+          setShowLoginAlertsPrompt(!isLoginAlertsConfigured(user));
+        }
+      } catch (_error) {
+        if (!mounted) return;
+        setShowLoginAlertsPrompt(!isLoginAlertsConfigured(currentUser));
+      }
+    };
+    if (currentUser?.id) {
+      void checkLoginAlertsPreference();
+    }
+    return () => {
+      mounted = false;
+    };
+  }, [currentUser?.id]);
 
   useEffect(() => {
     const load = async () => {
@@ -125,6 +153,14 @@ export const DashboardPage = () => {
       <Sidebar />
       <main className="flex-1 overflow-y-auto p-5 md:p-8">
         <div className="mx-auto max-w-7xl space-y-7">
+          {showLoginAlertsPrompt ? (
+            <LoginAlertsPromptBanner
+              onSaved={(user) => {
+                if (user) updateProfile(user);
+                setShowLoginAlertsPrompt(false);
+              }}
+            />
+          ) : null}
           <section className="rounded-md border border-border bg-white p-6 shadow-elevation-sm">
             <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
               <div>
