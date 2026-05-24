@@ -11,7 +11,7 @@ const footerText = [
   'Cordialement,',
   'L’équipe Greffio',
   'greffio.willentreprises.com',
-  'contact@willentreprises.com',
+  'greffio@willentreprises.com',
   '04 11 81 86 70',
 ].join('\n');
 

@@ -16,9 +16,13 @@ const sendWithResend = async ({ to, subject, html, text }) => {
     };
   }
 
-  const from = process.env.FROM_EMAIL || process.env.BREVO_SENDER_EMAIL || 'notifications@greffio.willentreprises.com';
+  const senderName = process.env.BREVO_SENDER_NAME || 'Greffio Team';
+  const senderEmail = process.env.BREVO_SENDER_EMAIL || process.env.FROM_EMAIL || 'contact@willentreprises.com';
+  const from = process.env.FROM_EMAIL || `${senderName} <${senderEmail}>`;
+  const replyTo = process.env.BREVO_REPLY_TO || 'greffio@willentreprises.com';
   const response = await resend.emails.send({
     from,
+    replyTo,
     to: [to],
     subject,
     html,

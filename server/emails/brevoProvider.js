@@ -1,13 +1,17 @@
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 
+const DEFAULT_SENDER_NAME = 'Greffio Team';
+const DEFAULT_REPLY_EMAIL = 'greffio@willentreprises.com';
+
 const getSender = () => ({
-  email: process.env.BREVO_SENDER_EMAIL || process.env.FROM_EMAIL || 'notifications@greffio.willentreprises.com',
-  name: process.env.BREVO_SENDER_NAME || 'Greffio',
+  email: process.env.BREVO_SENDER_EMAIL || process.env.FROM_EMAIL || 'contact@willentreprises.com',
+  name: process.env.BREVO_SENDER_NAME || DEFAULT_SENDER_NAME,
 });
 
 const getReplyTo = () => {
-  const email = process.env.BREVO_REPLY_TO || process.env.SUPPORT_EMAIL || 'contact@willentreprises.com';
-  return { email, name: 'Greffio' };
+  const email = process.env.BREVO_REPLY_TO || DEFAULT_REPLY_EMAIL;
+  const name = process.env.BREVO_REPLY_TO_NAME || process.env.BREVO_SENDER_NAME || DEFAULT_SENDER_NAME;
+  return { email, name };
 };
 
 const isBrevoConfigured = () => Boolean(process.env.BREVO_API_KEY);
