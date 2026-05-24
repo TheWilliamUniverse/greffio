@@ -28,13 +28,13 @@ export const FormalityChoiceCard = ({ item, selected, onClick }) => {
       }`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="relative h-[4.75rem] w-[4.75rem] shrink-0 overflow-hidden rounded-2xl shadow-[0_2px_10px_rgba(15,39,80,0.08)] ring-1 ring-primary/10">
+        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl">
           <img
             src={visual.icon}
             alt=""
-            width={76}
-            height={76}
-            className="h-full w-full object-contain"
+            width={80}
+            height={80}
+            className="h-full w-full object-cover"
             loading="lazy"
             decoding="async"
           />

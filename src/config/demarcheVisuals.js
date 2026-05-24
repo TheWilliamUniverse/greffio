@@ -1,10 +1,17 @@
+import creationIcon from '@/assets/formalities/creation-societe.png';
+import modificationIcon from '@/assets/formalities/modifier-societe.png';
+import etablissementAddIcon from '@/assets/formalities/ajouter-etablissement.png';
+import etablissementCloseIcon from '@/assets/formalities/fermer-etablissement.png';
+import siegeTransferIcon from '@/assets/formalities/transferer-siege.png';
+import dirigeantIcon from '@/assets/formalities/changer-dirigeant.png';
+
 const ICONS = {
-  creation: '/images/formalities/creation-societe.png',
-  modification: '/images/formalities/modifier-societe.png',
-  etablissementAdd: '/images/formalities/ajouter-etablissement.png',
-  etablissementClose: '/images/formalities/fermer-etablissement.png',
-  siegeTransfer: '/images/formalities/transferer-siege.png',
-  dirigeant: '/images/formalities/changer-dirigeant.png',
+  creation: creationIcon,
+  modification: modificationIcon,
+  etablissementAdd: etablissementAddIcon,
+  etablissementClose: etablissementCloseIcon,
+  siegeTransfer: siegeTransferIcon,
+  dirigeant: dirigeantIcon,
 };
 
 const defaultsByCategory = {
