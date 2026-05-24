@@ -6,32 +6,39 @@
 
 @layer base {
   :root {
-    --background: 46 90% 98%;
-    --foreground: 216 42% 13%;
+    /* Aligné shop.willentreprises.com / willentreprises.com */
+    --background: 214 33% 97%;
+    --foreground: 215 16% 34%;
     --card: 0 0% 100%;
-    --card-foreground: 216 42% 13%;
+    --card-foreground: 218 60% 15%;
     --popover: 0 0% 100%;
-    --popover-foreground: 216 42% 13%;
-    --primary: 217 49% 29%;
+    --popover-foreground: 218 60% 15%;
+    --primary: 214 68% 34%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 169 56% 93%;
-    --secondary-foreground: 216 42% 13%;
-    --muted: 214 30% 94%;
-    --muted-foreground: 216 14% 43%;
-    --accent: 45 97% 88%;
-    --accent-foreground: 216 42% 13%;
+    --secondary: 214 56% 95%;
+    --secondary-foreground: 218 60% 15%;
+    --muted: 214 41% 96%;
+    --muted-foreground: 215 18% 47%;
+    --accent: 45 100% 93%;
+    --accent-foreground: 218 60% 15%;
     --destructive: 354 75% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 217 25% 86%;
-    --input: 217 25% 86%;
-    --ring: 217 49% 29%;
+    --border: 214 41% 91%;
+    --input: 214 41% 91%;
+    --ring: 214 68% 34%;
     --radius: 0.5rem;
 
-    --greffio-blue: 217 49% 29%;
-    --greffio-blue-900: 218 53% 18%;
+    --greffio-blue: 214 68% 34%;
+    --greffio-blue-900: 218 60% 15%;
     --greffio-mint: 163 62% 47%;
     --greffio-citron: 45 100% 93%;
     --greffio-coral: 10 85% 66%;
+
+    --we-blue: #1e4d8c;
+    --we-blue-dark: #0f1f3d;
+    --we-bg: #f4f7fc;
+    --we-border: #dde6f5;
+    --we-muted: #8a9bb5;
   }
 
   .dark {
@@ -94,10 +101,45 @@
   }
 
   .surface-grid {
+    background-color: var(--we-bg);
     background-image:
-      linear-gradient(rgba(31, 66, 119, 0.08) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(31, 66, 119, 0.08) 1px, transparent 1px);
+      linear-gradient(rgba(30, 77, 140, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(30, 77, 140, 0.06) 1px, transparent 1px);
     background-size: 32px 32px;
+  }
+
+  .we-hero-eyebrow {
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--we-blue);
+    background: #eef3fb;
+    border: 1px solid #c8d8f0;
+    border-radius: 999px;
+    padding: 5px 16px;
+    font-size: 10px;
+    font-weight: 600;
+    display: inline-block;
+  }
+
+  .we-card {
+    border: 1px solid var(--we-border);
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.06);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+
+  .we-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(15, 23, 42, 0.16);
+    box-shadow: 0 32px 100px rgba(15, 23, 42, 0.1);
+  }
+
+  .we-panel {
+    border: 1px solid var(--we-border);
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: 0 14px 30px rgba(15, 31, 61, 0.1);
   }
 
   .logo-sheen {

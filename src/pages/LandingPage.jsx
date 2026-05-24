@@ -51,7 +51,7 @@ const howItWorks = [
   },
   {
     title: '3. Signature et paiement',
-    text: 'Les documents sont finalisés, vous signez le mandat et validez le paiement sécurisé via Mollie.',
+    text: 'Les documents sont finalisés, vous signez le mandat et validez le paiement sécurisé via GoCardless.',
   },
   {
     title: '4. Dépôt et suivi',
@@ -93,10 +93,10 @@ export const LandingPage = () => {
     <div className="min-h-screen bg-background text-foreground">
       <NavbarDropdown />
 
-      <section className="surface-grid overflow-hidden bg-[hsl(var(--greffio-citron))] px-4 pt-24 sm:px-6 lg:px-8 lg:pt-28">
+      <section className="surface-grid overflow-hidden px-4 pt-28 sm:px-6 lg:px-8 lg:pt-32">
         <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 pb-14 lg:min-h-[720px] lg:grid-cols-[0.94fr_1.06fr] lg:gap-12 lg:pb-16">
           <motion.div initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="max-w-2xl">
-            <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white/70 px-4 py-2 text-sm font-bold text-primary shadow-elevation-sm">
+            <div className="we-hero-eyebrow mb-7 inline-flex items-center gap-2 shadow-elevation-sm">
               <Sparkles className="h-4 w-4" />
               SaaS de formalités greffe pour clients, pros et équipes internes
             </div>

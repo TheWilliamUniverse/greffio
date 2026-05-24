@@ -17,7 +17,7 @@ import {
   Sparkles,
   Trash2,
 } from 'lucide-react';
-import { GreffioLogo } from '@/components/GreffioLogo.jsx';
+import { NavbarDropdown } from '@/components/NavbarDropdown.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
@@ -428,21 +428,12 @@ export const FormalityWizardPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-white px-6 py-4">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <Link to="/">
-            <GreffioLogo variant="full" />
-          </Link>
-          <Button variant="outline" asChild className="bg-white">
-            <Link to="/login">Connexion</Link>
-          </Button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[var(--we-bg)]">
+      <NavbarDropdown />
 
-      <main ref={wizardTopRef} className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8">
-        <section className="overflow-hidden rounded-md border border-border bg-white shadow-elevation-lg">
-          <div className="border-b border-border bg-muted px-6 py-4">
+      <main ref={wizardTopRef} className="mx-auto grid max-w-7xl gap-8 px-4 pb-10 pt-28 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8">
+        <section className="we-panel overflow-hidden">
+          <div className="border-b border-[var(--we-border)] bg-[#fafcff] px-6 py-4">
             <div className="mb-3 flex items-center justify-between text-xs font-bold uppercase text-muted-foreground">
               <span>Simulation Greffio</span>
               <span>{showOffers ? 'Offres' : `${step + 1}/${steps.length}`}</span>
@@ -504,7 +495,7 @@ export const FormalityWizardPage = () => {
                           type="button"
                           key={journey.id}
                           onClick={() => update('journey', journey.id)}
-                          className={`rounded-md border p-5 text-left transition hover:-translate-y-1 hover:shadow-elevation-sm ${data.journey === journey.id ? 'border-primary bg-secondary' : 'border-border bg-white'}`}
+                          className={`we-card rounded-[22px] p-5 text-left ${data.journey === journey.id ? 'border-primary ring-2 ring-primary/20' : ''}`}
                         >
                           <span className={`mb-4 flex h-11 w-11 items-center justify-center rounded-md ${journey.color}`}>
                             <journey.icon className="h-5 w-5 text-primary" />
@@ -1058,7 +1049,7 @@ export const FormalityWizardPage = () => {
         </section>
 
         <aside className="space-y-4">
-          <div className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
+          <div className="we-card rounded-[22px] p-5">
             <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-md ${selectedJourney.color}`}>
               <selectedJourney.icon className="h-6 w-6 text-primary" />
             </div>
@@ -1066,7 +1057,7 @@ export const FormalityWizardPage = () => {
             <p className="mt-2 text-sm leading-6 text-muted-foreground">{selectedJourney.pitch}</p>
           </div>
 
-          <div className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
+          <div className="we-card rounded-[22px] p-5">
             <h3 className="font-extrabold">Ce que Greffio prépare</h3>
             <div className="mt-4 space-y-3 text-sm">
               {[
@@ -1084,7 +1075,7 @@ export const FormalityWizardPage = () => {
             </div>
           </div>
 
-          <div className="rounded-md bg-[hsl(var(--greffio-blue))] p-5 text-white shadow-elevation-md">
+          <div className="rounded-[22px] bg-[var(--we-blue-dark)] p-5 text-white shadow-[0_24px_70px_rgba(7,10,18,0.28)]">
             <Mail className="mb-4 h-6 w-6 text-[hsl(var(--greffio-citron))]" />
             <p className="font-extrabold">Offre gratuite utile</p>
             <p className="mt-2 text-sm leading-6 text-white/78">Les statuts générés gratuitement permettent à Greffio de vous envoyer votre résumé, vos relances et les offres adaptées à votre situation.</p>

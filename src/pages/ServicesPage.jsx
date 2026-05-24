@@ -40,7 +40,7 @@ export const ServicesPage = () => (
   <div className="min-h-screen bg-background text-foreground">
     <NavbarDropdown />
 
-    <section className="surface-grid overflow-hidden bg-[hsl(var(--greffio-citron))] px-4 pt-28 sm:px-6 lg:px-8">
+    <section className="surface-grid overflow-hidden px-4 pt-28 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl pb-16 pt-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -48,7 +48,7 @@ export const ServicesPage = () => (
           transition={{ duration: 0.45 }}
           className="max-w-3xl"
         >
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white/75 px-4 py-2 text-sm font-bold text-primary shadow-elevation-sm">
+          <div className="we-hero-eyebrow mb-6 inline-flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
             Catalogue Greffio
           </div>
@@ -83,7 +83,7 @@ export const ServicesPage = () => (
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-40px' }}
             transition={{ duration: 0.35, delay: index * 0.06 }}
-            className="rounded-2xl border border-border bg-white p-6 shadow-elevation-sm"
+            className="we-card rounded-[22px] p-6"
           >
             <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary">
               <pillar.icon className="h-5 w-5 text-primary" />
