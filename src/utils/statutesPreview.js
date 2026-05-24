@@ -91,13 +91,20 @@ export const fullPreviewToDocumentPreview = (preview) => {
     });
   }
 
+  const meta = preview.metadata || {};
+  const articleLabel = meta.articleCount || preview.clauseCount || preview.allClauses?.length || 0;
+  const pageLabel = meta.pageCount ? ` · ${meta.pageCount} pages` : '';
+
   return {
     title: `Statuts - ${legalForm || 'Société'}`,
     subtitle: `${denomination} · Document préparé par Greffio`,
     sections,
     watermarkText: 'Greffio',
     isFullStatutes: true,
-    clauseCount: preview.clauseCount || preview.allClauses?.length || 0,
+    clauseCount: articleLabel,
+    pageCount: meta.pageCount,
+    templateId: meta.templateId || meta.template,
+    previewMetaLine: `${articleLabel} articles rédigés${pageLabel} — document prêt à relire et exporter.`,
     williamPreview: preview,
   };
 };

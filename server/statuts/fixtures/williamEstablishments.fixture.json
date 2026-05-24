@@ -1,0 +1,99 @@
+{
+  "company": {
+    "name": "WILLIAM ESTABLISHMENTS",
+    "sigle": "WX",
+    "legalFormLabel": "Société par Actions Simplifiée (SAS)",
+    "capitalAmount": 5000,
+    "capitalFormatted": "5 000 euros",
+    "registeredOffice": "470 Promenade des Anglais, 06200 Nice, chez Flex-O, société de domiciliation",
+    "rcsCity": "Nice",
+    "durationYears": 99,
+    "fiscalYearEnd": "25/12",
+    "firstFiscalYearEnd": "31/12/2026"
+  },
+  "associates": [
+    {
+      "fullName": "William ABDOU",
+      "address": "29 Boulevard de Magnan, Appartement 22, 06200 Nice (France)",
+      "birthDate": "28/07/2009",
+      "birthPlace": "Mamoudzou (France)",
+      "nationality": "française",
+      "isMinor": true,
+      "isEmancipated": true,
+      "shares": 3000,
+      "sharePercentage": 60,
+      "roleLabel": "Président désigné",
+      "cashContributionFormatted": "1000 euros",
+      "cashReleasedFormatted": "500 euros",
+      "inKindContributions": [
+        {
+          "label": "1 ordinateur portable",
+          "valueFormatted": "750 euros"
+        },
+        {
+          "label": "1 ordinateur portable",
+          "valueFormatted": "600 euros"
+        },
+        {
+          "label": "1 téléphone portable",
+          "valueFormatted": "650 euros"
+        }
+      ]
+    },
+    {
+      "fullName": "Nobatène ABDOU",
+      "address": "29 Boulevard de Magnan, Appartement 22, 06200 Nice (France)",
+      "birthDate": "06/03/1976",
+      "birthPlace": "Koungou (France)",
+      "nationality": "française",
+      "shares": 1000,
+      "sharePercentage": 20,
+      "roleLabel": "Directeur Général",
+      "cashContributionFormatted": "1000 euros",
+      "cashReleasedFormatted": "500 euros"
+    },
+    {
+      "fullName": "Ibtissam ABDOU",
+      "address": "29 Boulevard de Magnan, Appartement 22, 06200 Nice (France)",
+      "birthDate": "14/08/2008",
+      "birthPlace": "Mamoudzou (France)",
+      "nationality": "française",
+      "isMinor": true,
+      "isEmancipated": false,
+      "legalRepresentatives": [
+        "Madame Anissati ABDOU née DJOUMOI ALI",
+        "Monsieur Nobatène ABDOU"
+      ],
+      "shares": 1000,
+      "sharePercentage": 20,
+      "roleLabel": "Associée",
+      "cashContributionFormatted": "1000 euros",
+      "cashReleasedFormatted": "500 euros"
+    }
+  ],
+  "officers": {
+    "president": "William ABDOU",
+    "directorGeneral": "Nobatène ABDOU"
+  },
+  "apports": {
+    "cashTotalFormatted": "3000 euros",
+    "inKindTotalFormatted": "2000 euros",
+    "depositedFundsFormatted": "1500 euros",
+    "liberationRate": "50%"
+  },
+  "execution": {
+    "city": "Nice",
+    "date": "11 Mars 2026",
+    "originalsCount": 4
+  },
+  "options": {
+    "variableCapital": true,
+    "capitalMinFormatted": "5 000 euros",
+    "capitalMaxFormatted": "5 000 000 euros",
+    "includeMinorClause": true,
+    "includeInalienability": true,
+    "includePreemption": true,
+    "includeApprovalClause": true,
+    "includeMediation": true
+  }
+}

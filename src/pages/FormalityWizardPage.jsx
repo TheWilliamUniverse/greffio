@@ -1182,7 +1182,7 @@ export const FormalityWizardPage = () => {
                             <p className="font-extrabold">{documentPreview.subtitle}</p>
                             <p className="text-xs text-muted-foreground">
                               {documentPreview.isFullStatutes
-                                ? `${documentPreview.clauseCount || 0} articles rédigés — document prêt à relire et exporter.`
+                                ? (documentPreview.previewMetaLine || `${documentPreview.clauseCount || 0} articles rédigés — document prêt à relire et exporter.`)
                                 : 'Document structuré et prêt à compléter dans l’espace sécurisé.'}
                             </p>
                           </div>

@@ -1,11 +1,15 @@
-import { STATUTES_SUPPORTED_FORMS } from './shared/formatting.js';
+import { STATUTES_SUPPORTED_FORMS, usesActions } from './shared/formatting.js';
 import { buildWilliamDocumentByForm } from './reference/williamAdaptations.js';
 import { documentToFullPreview } from './previewMapper.js';
+import { generateStatutesDocument } from '../../statuts/index.js';
 
 export const buildStatutesByLegalForm = (data) => {
   const legalForm = String(data.legalForm || '').toUpperCase();
   if (!STATUTES_SUPPORTED_FORMS.includes(legalForm)) {
     throw new Error(`Unsupported legal form for statutes generation: ${legalForm}`);
+  }
+  if (usesActions(legalForm)) {
+    return generateStatutesDocument(data);
   }
   return buildWilliamDocumentByForm(data);
 };

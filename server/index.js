@@ -2036,6 +2036,13 @@ app.post('/api/statutes/preview-draft', statutesPreviewDraftLimiter, async (req,
       },
     });
   } catch (error) {
+    if (error?.code === 'STATUTES_VALIDATION_FAILED') {
+      return res.status(422).json({
+        ok: false,
+        error: 'STATUTES_VALIDATION_FAILED',
+        validation: error.validation,
+      });
+    }
     return res.status(500).json({ ok: false, error: 'STATUTES_PREVIEW_FAILED', message: error.message });
   }
 });
@@ -2109,6 +2116,13 @@ app.post('/api/dossiers/:dossierId/statutes/generate', requireAuth, async (req, 
   } catch (error) {
     if (error?.code === 'STATUTES_INCOMPLETE') {
       return res.status(500).json({ ok: false, error: 'STATUTES_INCOMPLETE', articleCount: error.articleCount });
+    }
+    if (error?.code === 'STATUTES_VALIDATION_FAILED') {
+      return res.status(422).json({
+        ok: false,
+        error: 'STATUTES_VALIDATION_FAILED',
+        validation: error.validation,
+      });
     }
     throw error;
   }
