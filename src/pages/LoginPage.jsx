@@ -77,7 +77,7 @@ export const LoginPage = () => {
           <div className="mt-8 grid grid-cols-3 gap-3 text-sm font-semibold">
             <div className="rounded-md bg-white/10 p-4">Documents</div>
             <div className="rounded-md bg-white/10 p-4">Équipe</div>
-            <div className="rounded-md bg-white/10 p-4">dépôt au greffe</div>
+            <div className="rounded-md bg-white/10 p-4">Dépôt au greffe</div>
           </div>
         </div>
         <p className="text-sm text-white/60">Greffio est une marque déposée de William Establishments.</p>
