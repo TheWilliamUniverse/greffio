@@ -59,7 +59,7 @@ export const NavbarDropdown = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   return (
-    <nav className="fixed left-0 right-0 top-0 z-50 border-b border-[#edf1f7] bg-white/90 backdrop-blur-xl shadow-[0_1px_0_rgba(30,58,110,0.08),0_10px_30px_rgba(20,35,80,0.08)]">
+    <nav className="fixed left-0 right-0 top-0 z-50 border-b border-[#c5d2e6] bg-white shadow-[0_1px_0_rgba(10,18,32,0.1),0_8px_24px_rgba(10,18,32,0.08)]">
       <div className="mx-auto flex min-h-[84px] max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center">
           <GreffioLogo variant="full" />
@@ -71,7 +71,7 @@ export const NavbarDropdown = () => {
             onMouseEnter={() => setIsServicesOpen(true)}
             onMouseLeave={() => setIsServicesOpen(false)}
           >
-            <Link to="/services" className="flex items-center gap-1 text-sm font-semibold text-foreground transition-colors hover:text-primary">
+            <Link to="/services" className="flex items-center gap-1 text-sm font-semibold text-[#0a1220] transition-colors hover:text-primary">
               Services
               <ChevronDown className={`h-4 w-4 transition-transform ${isServicesOpen ? 'rotate-180' : ''}`} />
             </Link>
@@ -131,12 +131,12 @@ export const NavbarDropdown = () => {
             </AnimatePresence>
           </div>
 
-          <a href="#platform" className="text-sm font-semibold text-foreground transition-colors hover:text-primary">Plateforme</a>
-          <a href="#pricing" className="text-sm font-semibold text-foreground transition-colors hover:text-primary">Tarifs</a>
-          <Link to="/ressources" className="text-sm font-semibold text-foreground transition-colors hover:text-primary">Ressources</Link>
-          <Link to="/guide" className="text-sm font-semibold text-foreground transition-colors hover:text-primary">Guide</Link>
-          <Link to="/contact" className="text-sm font-semibold text-foreground transition-colors hover:text-primary">Contact</Link>
-          <Link to="/app" className="text-sm font-semibold text-foreground transition-colors hover:text-primary">App</Link>
+          <a href="#platform" className="text-sm font-semibold text-[#0a1220] transition-colors hover:text-primary">Plateforme</a>
+          <a href="#pricing" className="text-sm font-semibold text-[#0a1220] transition-colors hover:text-primary">Tarifs</a>
+          <Link to="/ressources" className="text-sm font-semibold text-[#0a1220] transition-colors hover:text-primary">Ressources</Link>
+          <Link to="/guide" className="text-sm font-semibold text-[#0a1220] transition-colors hover:text-primary">Guide</Link>
+          <Link to="/contact" className="text-sm font-semibold text-[#0a1220] transition-colors hover:text-primary">Contact</Link>
+          <Link to="/app" className="text-sm font-semibold text-[#0a1220] transition-colors hover:text-primary">App</Link>
         </div>
 
         <div className="hidden items-center gap-2 lg:flex">

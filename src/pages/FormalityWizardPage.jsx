@@ -433,7 +433,7 @@ export const FormalityWizardPage = () => {
 
       <main ref={wizardTopRef} className="mx-auto grid max-w-7xl gap-8 px-4 pb-10 pt-28 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8">
         <section className="we-panel overflow-hidden">
-          <div className="border-b border-[var(--we-border)] bg-[#fafcff] px-6 py-4">
+          <div className="border-b border-[var(--we-border)] bg-white px-6 py-4">
             <div className="mb-3 flex items-center justify-between text-xs font-bold uppercase text-muted-foreground">
               <span>Simulation Greffio</span>
               <span>{showOffers ? 'Offres' : `${step + 1}/${steps.length}`}</span>
@@ -1075,10 +1075,10 @@ export const FormalityWizardPage = () => {
             </div>
           </div>
 
-          <div className="rounded-[22px] bg-[var(--we-blue-dark)] p-5 text-white shadow-[0_24px_70px_rgba(7,10,18,0.28)]">
+          <div className="rounded-[22px] bg-[var(--we-blue-dark)] p-5 text-white shadow-[0_24px_70px_rgba(7,10,18,0.35)]">
             <Mail className="mb-4 h-6 w-6 text-[hsl(var(--greffio-citron))]" />
             <p className="font-extrabold">Offre gratuite utile</p>
-            <p className="mt-2 text-sm leading-6 text-white/78">Les statuts générés gratuitement permettent à Greffio de vous envoyer votre résumé, vos relances et les offres adaptées à votre situation.</p>
+            <p className="mt-2 text-sm font-medium leading-6 text-white/92">Les statuts générés gratuitement permettent à Greffio de vous envoyer votre résumé, vos relances et les offres adaptées à votre situation.</p>
           </div>
         </aside>
       </main>

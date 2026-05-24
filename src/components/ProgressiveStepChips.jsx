@@ -13,7 +13,7 @@ export const ProgressiveStepChips = ({
             ? 'bg-emerald-100 text-emerald-700'
             : index === activeIndex
               ? 'bg-primary text-white'
-              : 'bg-muted text-muted-foreground'
+              : 'border border-[#c5d2e6] bg-white text-[#243247]'
         }`}
       >
         {index + 1}. {step.label}

@@ -6,39 +6,39 @@
 
 @layer base {
   :root {
-    /* Aligné shop.willentreprises.com / willentreprises.com */
-    --background: 214 33% 97%;
-    --foreground: 215 16% 34%;
+    /* Contraste net : textes proches du noir, bordures plus marquées */
+    --background: 210 25% 98%;
+    --foreground: 218 62% 9%;
     --card: 0 0% 100%;
-    --card-foreground: 218 60% 15%;
+    --card-foreground: 218 62% 9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 218 60% 15%;
-    --primary: 214 68% 34%;
+    --popover-foreground: 218 62% 9%;
+    --primary: 214 72% 32%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 214 56% 95%;
-    --secondary-foreground: 218 60% 15%;
-    --muted: 214 41% 96%;
-    --muted-foreground: 215 18% 47%;
-    --accent: 45 100% 93%;
-    --accent-foreground: 218 60% 15%;
+    --secondary: 214 48% 93%;
+    --secondary-foreground: 218 62% 9%;
+    --muted: 214 32% 93%;
+    --muted-foreground: 218 32% 22%;
+    --accent: 45 100% 91%;
+    --accent-foreground: 218 62% 9%;
     --destructive: 354 75% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 214 41% 91%;
-    --input: 214 41% 91%;
-    --ring: 214 68% 34%;
+    --border: 218 28% 78%;
+    --input: 218 28% 78%;
+    --ring: 214 72% 32%;
     --radius: 0.5rem;
 
-    --greffio-blue: 214 68% 34%;
-    --greffio-blue-900: 218 60% 15%;
+    --greffio-blue: 214 72% 32%;
+    --greffio-blue-900: 218 62% 9%;
     --greffio-mint: 163 62% 47%;
-    --greffio-citron: 45 100% 93%;
+    --greffio-citron: 45 100% 91%;
     --greffio-coral: 10 85% 66%;
 
     --we-blue: #1e4d8c;
-    --we-blue-dark: #0f1f3d;
-    --we-bg: #f4f7fc;
-    --we-border: #dde6f5;
-    --we-muted: #8a9bb5;
+    --we-blue-dark: #0a1220;
+    --we-bg: #f6f8fc;
+    --we-border: #c5d2e6;
+    --we-muted: #243247;
   }
 
   .dark {
@@ -74,6 +74,8 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   h1,
@@ -89,35 +91,35 @@
 
 @layer utilities {
   .shadow-elevation-sm {
-    box-shadow: 0 1px 3px rgba(20, 36, 64, 0.07), 0 8px 24px rgba(20, 36, 64, 0.05);
+    box-shadow: 0 1px 2px rgba(10, 18, 32, 0.12), 0 8px 24px rgba(10, 18, 32, 0.08);
   }
 
   .shadow-elevation-md {
-    box-shadow: 0 12px 35px rgba(20, 36, 64, 0.12);
+    box-shadow: 0 12px 35px rgba(10, 18, 32, 0.16);
   }
 
   .shadow-elevation-lg {
-    box-shadow: 0 24px 70px rgba(20, 36, 64, 0.16);
+    box-shadow: 0 24px 70px rgba(10, 18, 32, 0.2);
   }
 
   .surface-grid {
     background-color: var(--we-bg);
     background-image:
-      linear-gradient(rgba(30, 77, 140, 0.06) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(30, 77, 140, 0.06) 1px, transparent 1px);
+      linear-gradient(rgba(30, 77, 140, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(30, 77, 140, 0.1) 1px, transparent 1px);
     background-size: 32px 32px;
   }
 
   .we-hero-eyebrow {
     letter-spacing: 0.28em;
     text-transform: uppercase;
-    color: var(--we-blue);
+    color: var(--we-blue-dark);
     background: #eef3fb;
-    border: 1px solid #c8d8f0;
+    border: 1px solid #9eb5d8;
     border-radius: 999px;
     padding: 5px 16px;
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 700;
     display: inline-block;
   }
 
@@ -125,21 +127,21 @@
     border: 1px solid var(--we-border);
     border-radius: 22px;
     background: #fff;
-    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 16px 48px rgba(10, 18, 32, 0.1);
     transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
   }
 
   .we-card:hover {
     transform: translateY(-4px);
-    border-color: rgba(15, 23, 42, 0.16);
-    box-shadow: 0 32px 100px rgba(15, 23, 42, 0.1);
+    border-color: rgba(10, 18, 32, 0.22);
+    box-shadow: 0 24px 64px rgba(10, 18, 32, 0.14);
   }
 
   .we-panel {
     border: 1px solid var(--we-border);
     border-radius: 22px;
     background: #fff;
-    box-shadow: 0 14px 30px rgba(15, 31, 61, 0.1);
+    box-shadow: 0 14px 36px rgba(10, 18, 32, 0.12);
   }
 
   .logo-sheen {
@@ -201,7 +203,7 @@
     0%,
     100% {
       transform: scale(1);
-      opacity: 0.78;
+      opacity: 0.92;
     }
     50% {
       transform: scale(1.03);

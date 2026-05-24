@@ -55,7 +55,7 @@ export const ServicesPage = () => (
           <h1 className="text-4xl font-extrabold leading-tight text-[hsl(var(--greffio-blue-900))] sm:text-5xl lg:text-6xl">
             Toutes vos formalités, présentées clairement.
           </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-[hsl(var(--greffio-blue-900))]/82">
+          <p className="mt-6 max-w-2xl text-lg font-medium leading-8 text-[hsl(var(--greffio-blue-900))]">
             Création, modification, fermeture et outils de cadrage : chaque service est relié au simulateur,
             au dashboard et à l’équipe Greffio pour un parcours opérationnel de bout en bout.
           </p>
@@ -170,7 +170,7 @@ export const ServicesPage = () => (
       <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 rounded-2xl bg-[hsl(var(--greffio-blue))] p-8 text-white md:flex-row md:items-center">
         <div>
           <GreffioLogo variant="full" className="brightness-0 invert" />
-          <p className="mt-4 max-w-xl text-sm leading-7 text-white/82">
+          <p className="mt-4 max-w-xl text-sm font-medium leading-7 text-white/92">
             Vous hésitez entre plusieurs formes ? Le simulateur vous guide étape par étape, sans afficher
             plusieurs écrans en même temps.
           </p>

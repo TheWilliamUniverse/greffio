@@ -103,7 +103,7 @@ export const LandingPage = () => {
             <h1 className="text-4xl font-extrabold leading-[1.04] tracking-normal text-[hsl(var(--greffio-blue-900))] sm:text-5xl lg:text-7xl">
               Greffio pilote vos formalités d’entreprise.
             </h1>
-            <p className="mt-7 max-w-xl text-xl leading-8 text-[hsl(var(--greffio-blue-900))]/82">
+            <p className="mt-7 max-w-xl text-xl font-medium leading-8 text-[hsl(var(--greffio-blue-900))]">
               Création, modifications, documents, signature, échanges avec l’équipe Greffio et suivi greffe dans un espace client complet.
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
@@ -166,7 +166,7 @@ export const LandingPage = () => {
                 <div className="space-y-4">
                   <div className="rounded-md bg-[hsl(var(--greffio-blue))] p-4 text-white">
                     <p className="text-sm font-bold">Assistant interne</p>
-                    <p className="mt-2 text-sm text-white/78">Détecte les pièces manquantes, prépare les relances et résume le dossier.</p>
+                    <p className="mt-2 text-sm text-white/92">Détecte les pièces manquantes, prépare les relances et résume le dossier.</p>
                     <div className="relative mt-4 h-20 overflow-hidden rounded-md bg-white/10">
                       <div className="animate-scan absolute left-0 right-0 h-8 bg-white/20" />
                     </div>
@@ -344,7 +344,7 @@ export const LandingPage = () => {
             <div>
               <ShieldCheck className="mb-5 h-8 w-8 text-[hsl(var(--greffio-citron))]" />
               <h2 className="text-3xl font-extrabold">Un parcours opérationnel, pas une simple vitrine.</h2>
-              <p className="mt-4 text-white/78">Chaque demande crée un dossier, des tâches, des documents attendus et un fil d’échange exploitable par l’équipe.</p>
+              <p className="mt-4 text-white/92">Chaque demande crée un dossier, des tâches, des documents attendus et un fil d’échange exploitable par l’équipe.</p>
             </div>
             <div className="grid gap-3">
               {process.map((step, index) => (
