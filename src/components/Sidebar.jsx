@@ -1,4 +1,5 @@
 import React from 'react';
+import { isCapacitorNative } from '@/utils/platform.js';
 import { NavLink } from 'react-router-dom';
 import {
   BarChart3,
@@ -22,6 +23,7 @@ import { useEffect, useState } from 'react';
 import { listDossiers } from '@/api/dossiers.js';
 
 export const Sidebar = ({ className }) => {
+  if (isCapacitorNative()) return null;
   const { currentUser } = useAuth();
   const [dossiersCount, setDossiersCount] = useState(0);
   const company = currentUser?.company || {};

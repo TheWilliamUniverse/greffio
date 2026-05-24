@@ -15,6 +15,8 @@ import { fetchUserProfile } from '@/api/profile.js';
 import { verifyMfaLogin } from '@/api/mfa.js';
 import { clearLoginAlertsConfiguredLocal } from '@/utils/loginAlertsStorage.js';
 import { rememberLoginAlertsChoice } from '@/utils/userProfile.js';
+import { disableBiometricUnlock, syncBiometricRefreshToken } from '@/utils/biometricAuth.js';
+import { isCapacitorNative } from '@/utils/platform.js';
 
 export const AuthContext = createContext(null);
 
@@ -87,6 +89,12 @@ export const AuthProvider = ({ children }) => {
         // keep login payload user
       }
       toast.success('Bienvenue dans votre espace Greffio');
+      if (isCapacitorNative()) {
+        await syncBiometricRefreshToken({
+          email: user?.email || email,
+          refreshToken: apiPayload.refreshToken || getRefreshToken(),
+        });
+      }
       return { success: true, user };
     } catch (_error) {
       return { success: false, error: 'Connexion impossible. Vérifiez vos identifiants ou réessayez dans quelques instants.' };
@@ -112,6 +120,12 @@ export const AuthProvider = ({ children }) => {
         // keep MFA login payload user
       }
       toast.success('Authentification multifacteur validée');
+      if (isCapacitorNative()) {
+        await syncBiometricRefreshToken({
+          email: user?.email,
+          refreshToken: apiPayload.refreshToken || getRefreshToken(),
+        });
+      }
       return { success: true, user };
     } catch (_error) {
       return { success: false, error: 'Code MFA invalide ou expiré.' };
@@ -169,8 +183,11 @@ export const AuthProvider = ({ children }) => {
     return { success: true, user: effectiveUser };
   };
 
-  const logout = () => {
+  const logout = async () => {
     const userId = currentUser?.id;
+    if (isCapacitorNative()) {
+      await disableBiometricUnlock();
+    }
     clearAllData();
     if (userId) clearLoginAlertsConfiguredLocal(userId);
     setCurrentUser(null);

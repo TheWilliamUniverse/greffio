@@ -1,0 +1,19 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "REPLACE_WITH_APPLE_TEAM_ID.com.greffio.app",
+        "paths": [
+          "/dossier/*",
+          "/dossiers",
+          "/documents",
+          "/questionnaire",
+          "/paiement",
+          "/login",
+          "/password-reset"
+        ]
+      }
+    ]
+  }
+}

@@ -10,6 +10,7 @@ server/data/
 *.jks
 *.keystore
 android/keystore.properties
+android/app/google-services.json
 MOLLIE_API_KEY.txt
 SSH.txt
 ACCES SUPABASE.txt

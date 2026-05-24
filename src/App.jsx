@@ -10,7 +10,6 @@ import { SignupPage } from '@/pages/SignupPage.jsx';
 import { LoginPage } from '@/pages/LoginPage.jsx';
 import { PasswordResetPage } from '@/pages/PasswordResetPage.jsx';
 import { CredentialsUnlockPage } from '@/pages/CredentialsUnlockPage.jsx';
-import { DashboardPage } from '@/pages/DashboardPage.jsx';
 import { DossiersPage } from '@/pages/DossiersPage.jsx';
 import { DossierDetailPage } from '@/pages/DossierDetailPage.jsx';
 import { DocumentsPage } from '@/pages/DocumentsPage.jsx';
@@ -41,6 +40,12 @@ import { ServicesPage } from '@/pages/ServicesPage.jsx';
 import { OpsLookupObservabilityPage } from '@/pages/OpsLookupObservabilityPage.jsx';
 import { SERVICE_PAGE_SLUGS } from '@/config/serviceLandingPages.js';
 import { CookieConsentBanner } from '@/components/CookieConsentBanner.jsx';
+import { MobileAppShell } from '@/mobile/MobileAppShell.jsx';
+import { MobileSearchPage } from '@/mobile/MobileSearchPage.jsx';
+import { MobileAccountPage } from '@/mobile/MobileAccountPage.jsx';
+import { DashboardEntry } from '@/mobile/DashboardEntry.jsx';
+import { BiometricSessionProvider } from '@/context/BiometricSessionContext.jsx';
+import { shouldUseMobileShell, isCapacitorNative } from '@/utils/platform.js';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -62,13 +67,20 @@ const NotFound = () => (
 
 const Layout = ({ children }) => {
   const location = useLocation();
-  const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/services', '/paiement', '/ressources', '/app', '/guide', '/procuration', '/contact', '/credentials-unlock'];
-  const shouldHideHeader = hideHeaderRoutes.some((route) => location.pathname === route || location.pathname.startsWith('/service/'));
+  const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/services', '/paiement', '/ressources', '/app', '/guide', '/procuration', '/contact', '/credentials-unlock', '/login', '/password-reset'];
+  const shouldHideHeader = hideHeaderRoutes.some((route) => location.pathname === route || location.pathname.startsWith('/service/'))
+    || (isCapacitorNative() && shouldUseMobileShell(location.pathname));
+
+  const content = shouldUseMobileShell(location.pathname) ? (
+    <MobileAppShell>{children}</MobileAppShell>
+  ) : (
+    <div className="flex-1">{children}</div>
+  );
 
   return (
     <div className="flex min-h-screen flex-col font-['Inter']">
       {!shouldHideHeader && <Header />}
-      <div className="flex-1">{children}</div>
+      {content}
     </div>
   );
 };
@@ -77,6 +89,7 @@ function App() {
   return (
     <AuthProvider>
       <Router>
+        <BiometricSessionProvider>
         <ScrollToTop />
         <Layout>
           <Routes>
@@ -108,7 +121,9 @@ function App() {
             <Route path="/ops-observability" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><OpsLookupObservabilityPage /></ProtectedRoute>} />
             <Route path="/paiement/verification" element={<PaymentVerificationPage />} />
 
-            <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><DashboardEntry /></ProtectedRoute>} />
+            <Route path="/mobile/search" element={<ProtectedRoute><MobileSearchPage /></ProtectedRoute>} />
+            <Route path="/mobile/account" element={<ProtectedRoute><MobileAccountPage /></ProtectedRoute>} />
             <Route path="/dossiers" element={<ProtectedRoute><DossiersPage /></ProtectedRoute>} />
             <Route path="/dossier/:id" element={<ProtectedRoute><DossierDetailPage /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
@@ -125,6 +140,7 @@ function App() {
         </Layout>
         <CookieConsentBanner />
         <Toaster richColors position="top-right" />
+        </BiometricSessionProvider>
       </Router>
     </AuthProvider>
   );

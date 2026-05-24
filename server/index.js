@@ -60,6 +60,9 @@ import { sendTransactionalEmail, handleBrevoWebhookEvent } from './services/emai
 import { getUnlockByToken, verifyAndConsumeUnlock } from './credentialUnlockStore.js';
 import { formatParisDateTime, getClientIp, parseDeviceLabel } from './utils/loginContext.js';
 import { buildLoginAlertsProfilePatch, shouldSendLoginAlert } from './utils/loginAlerts.js';
+import { buildMobileSearchResponse } from './utils/mobileSearch.js';
+import { buildMobileNotifications } from './utils/mobileNotifications.js';
+import { upsertPushDeviceToken, revokePushDeviceToken } from './pushStore.js';
 import { uploadPdfOnly } from './uploads.js';
 import { analyzeDocument } from './documentAnalysis.js';
 import { createSignatureRecord, getLatestSignatureByDossier } from './signatureStore.js';
@@ -401,6 +404,65 @@ app.post('/api/assistant', assistantLimiter, requireAuth, async (req, res) => {
     });
   }
 });
+
+app.post('/api/mobile/search', requireAuth, async (req, res) => {
+  const { query } = req.body || {};
+  try {
+    const payload = await buildMobileSearchResponse({
+      userId: req.auth?.sub,
+      role: req.auth?.role,
+      query: String(query || ''),
+    });
+    return res.json({ ok: true, ...payload });
+  } catch (error) {
+    console.error('MOBILE_SEARCH_FAILED', error);
+    return res.status(500).json({ ok: false, error: 'MOBILE_SEARCH_FAILED' });
+  }
+});
+
+app.get('/api/mobile/notifications', requireAuth, async (req, res) => {
+  try {
+    const notifications = await buildMobileNotifications({
+      userId: req.auth?.sub,
+      role: req.auth?.role,
+    });
+    return res.json({ ok: true, notifications, unreadCount: notifications.length });
+  } catch (error) {
+    console.error('MOBILE_NOTIFICATIONS_FAILED', error);
+    return res.status(500).json({ ok: false, error: 'MOBILE_NOTIFICATIONS_FAILED' });
+  }
+});
+
+app.post('/api/mobile/push/register', requireAuth, async (req, res) => {
+  const { token, platform, deviceLabel } = req.body || {};
+  try {
+    const payload = await upsertPushDeviceToken({
+      userId: req.auth?.sub,
+      token: String(token || ''),
+      platform: String(platform || 'unknown'),
+      deviceLabel,
+    });
+    return res.json({ ok: true, device: payload });
+  } catch (error) {
+    console.error('PUSH_REGISTER_FAILED', error);
+    return res.status(400).json({ ok: false, error: 'PUSH_REGISTER_FAILED' });
+  }
+});
+
+app.post('/api/mobile/push/unregister', requireAuth, async (req, res) => {
+  const { token } = req.body || {};
+  try {
+    await revokePushDeviceToken({
+      userId: req.auth?.sub,
+      token: String(token || ''),
+    });
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error('PUSH_UNREGISTER_FAILED', error);
+    return res.status(400).json({ ok: false, error: 'PUSH_UNREGISTER_FAILED' });
+  }
+});
+
 const loginFailureTracker = new Map();
 const LOGIN_FAILURE_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_FAILURE_THRESHOLD = 3;

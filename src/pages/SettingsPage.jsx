@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp.jsx';
 import { LoginAlertsToggle } from '@/components/security/LoginAlertsToggle.jsx';
+import { BiometricUnlockToggle } from '@/components/security/BiometricUnlockToggle.jsx';
 import { listDossiers } from '@/api/dossiers.js';
 import { fetchUserProfile, updateUserProfileApi } from '@/api/profile.js';
 import {
@@ -448,6 +449,8 @@ export const SettingsPage = () => {
                 Les tentatives de connexion suspectes bloquées, les changements de mot de passe et les opérations MFA restent notifiés séparément, même si les alertes de connexion sont désactivées.
               </p>
             </div>
+
+            <BiometricUnlockToggle />
 
             <div className="rounded-md border border-border bg-white p-6 shadow-elevation-sm">
               <div className="mb-5 flex items-center gap-3">
