@@ -17,6 +17,7 @@ import {
   Users,
 } from 'lucide-react';
 import { NavbarDropdown } from '@/components/NavbarDropdown.jsx';
+import { YoungEntrepreneurOfferBanner } from '@/components/YoungEntrepreneurOfferBanner.jsx';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { CompanyLookupCard } from '@/components/CompanyLookupCard.jsx';
@@ -93,7 +94,13 @@ export const LandingPage = () => {
     <div className="min-h-screen bg-background text-foreground">
       <NavbarDropdown />
 
-      <section className="surface-grid overflow-hidden px-4 pt-28 sm:px-6 lg:px-8 lg:pt-32">
+      <div className="px-4 pt-24 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <YoungEntrepreneurOfferBanner />
+        </div>
+      </div>
+
+      <section className="surface-grid overflow-hidden px-4 pt-8 sm:px-6 lg:px-8 lg:pt-10">
         <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 pb-14 lg:min-h-[720px] lg:grid-cols-[0.94fr_1.06fr] lg:gap-12 lg:pb-16">
           <motion.div initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="max-w-2xl">
             <div className="we-hero-eyebrow mb-7 inline-flex items-center gap-2 shadow-elevation-sm">
@@ -365,19 +372,38 @@ export const LandingPage = () => {
           <div className="mt-10 grid gap-4 md:grid-cols-3">
             {[
               { name: 'Starter', price: '0€', text: 'Questionnaire, checklist et espace documentaire.', cta: 'Démarrer' },
-              { name: 'Formalité', price: '149€', text: 'Dossier complet, relecture et dépôt au greffe.', cta: 'Créer mon dossier', highlight: true },
+              {
+                name: 'Formalité',
+                price: '70€',
+                compareAt: '149€',
+                badge: 'Offre Jeune',
+                text: 'Dossier complet, relecture et dépôt au greffe. Tarif jeune (-26 ans) en ce moment.',
+                cta: 'Créer mon dossier',
+                highlight: true,
+                ctaLink: '/simulateur?offer=jeune-entrepreneur',
+              },
               { name: 'Cabinet partenaire', price: 'À venir', text: 'Gestion multi-clients, équipe, reporting et marque blanche en déploiement progressif.', cta: 'Être notifié' },
             ].map((plan) => (
               <div key={plan.name} className={`rounded-md border p-6 text-left ${plan.highlight ? 'border-primary bg-secondary shadow-elevation-md' : 'border-border bg-background'}`}>
-                <p className="text-lg font-extrabold">{plan.name}</p>
-                <p className="mt-3 text-3xl font-extrabold">{plan.price}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-lg font-extrabold">{plan.name}</p>
+                  {plan.badge ? <span className="rounded-full bg-[hsl(var(--greffio-citron))] px-2 py-1 text-xs font-bold text-[hsl(var(--greffio-blue-900))]">{plan.badge}</span> : null}
+                </div>
+                <p className="mt-3 text-3xl font-extrabold">
+                  {plan.price}
+                  {plan.compareAt ? <span className="ml-2 text-lg font-semibold text-muted-foreground line-through">{plan.compareAt}</span> : null}
+                </p>
                 <p className="mt-3 min-h-[52px] text-sm leading-6 text-muted-foreground">{plan.text}</p>
                 <Button asChild className="mt-6 w-full" variant={plan.highlight ? 'default' : 'outline'}>
-                  <Link to="/simulateur">{plan.cta}</Link>
+                  <Link to={plan.ctaLink || '/simulateur'}>{plan.cta}</Link>
                 </Button>
               </div>
             ))}
           </div>
+          <p className="mx-auto mt-6 max-w-3xl text-sm leading-6 text-muted-foreground">
+            En ce moment : Offre Spéciale Jeune Entrepreneur.e — réservée aux créateurs et porteurs de projet de moins de 26 ans.
+            Tarif Formalité à 70 € au lieu de 149 €.
+          </p>
         </div>
       </section>
 

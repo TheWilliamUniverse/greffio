@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { DOSSIER_STATUSES, evaluateTransition, ROLE } from './stateMachine.js';
 import { hasPostgres, query, sqlite } from './dbClient.js';
 import { getFormalityRule } from './domain/formalities.js';
+import { getMinorDocumentRequirements } from './utils/minorAssociateRules.js';
 
 const nowIso = () => new Date().toISOString();
 const makeShortReference = () => {
@@ -32,6 +33,8 @@ const DOSSIER_DOCUMENT_TEMPLATES = Object.freeze([
   { key: 'manager_non_conviction', label: 'Declaration non-condamnation et filiation', required: false },
   { key: 'filiation_declaration', label: 'Declaration de filiation', required: false },
   { key: 'regulated_activity_proof', label: 'Autorisation activite reglementee', required: false },
+  { key: 'minor_emancipation_order', label: "Ordonnance ou jugement d'emancipation", required: false },
+  { key: 'minor_parental_authorization', label: 'Autorisation parentale / tuteur (associé mineur)', required: false },
 ]);
 
 const addStatusEvent = async ({ dossierId, fromStatus, toStatus, actorType, actorId, reason, metadata }) => {
@@ -302,6 +305,60 @@ const ensureDossierDocuments = async (dossierId) => {
       createdAt,
       updatedAt: createdAt,
     });
+  }
+};
+
+const syncMinorAssociateDocuments = async (dossierId, questionnaire = {}) => {
+  const { needsEmancipation, needsAuthorization } = getMinorDocumentRequirements(questionnaire);
+  const rules = [
+    { key: 'minor_emancipation_order', required: needsEmancipation },
+    { key: 'minor_parental_authorization', required: needsAuthorization },
+  ];
+  const templatesByKey = Object.fromEntries(DOSSIER_DOCUMENT_TEMPLATES.map((item) => [item.key, item]));
+  const updatedAt = nowIso();
+
+  for (const rule of rules) {
+    const template = templatesByKey[rule.key];
+    if (!template) continue;
+    if (hasPostgres) {
+      await query(`
+        INSERT INTO documents (
+          id, dossier_id, doc_key, label, required, status, created_at, updated_at
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+        ON CONFLICT (dossier_id, doc_key) DO UPDATE SET
+          required = EXCLUDED.required,
+          label = EXCLUDED.label,
+          updated_at = EXCLUDED.updated_at
+      `, [
+        randomUUID(),
+        dossierId,
+        template.key,
+        template.label,
+        rule.required,
+        DOCUMENT_STATUSES.REQUESTED,
+        updatedAt,
+        updatedAt,
+      ]);
+    } else {
+      sqlite.prepare(`
+        INSERT INTO documents (
+          id, dossier_id, doc_key, label, required, status, created_at, updated_at
+        ) VALUES (@id, @dossierId, @docKey, @label, @required, @status, @createdAt, @updatedAt)
+        ON CONFLICT(dossier_id, doc_key) DO UPDATE SET
+          required = excluded.required,
+          label = excluded.label,
+          updated_at = excluded.updated_at
+      `).run({
+        id: randomUUID(),
+        dossierId,
+        docKey: template.key,
+        label: template.label,
+        required: rule.required ? 1 : 0,
+        status: DOCUMENT_STATUSES.REQUESTED,
+        createdAt: updatedAt,
+        updatedAt,
+      });
+    }
   }
 };
 
@@ -656,6 +713,7 @@ const updateDossierQuestionnaire = async ({
       `).run(updatedAt, dossierId, ...formalityRule.excludedDocumentKeys);
     }
   }
+  await syncMinorAssociateDocuments(dossierId, mergedData);
   return getDossier(dossierId);
 };
 

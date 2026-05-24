@@ -1,26 +1,12 @@
 import { STATUTES_SUPPORTED_FORMS } from './shared/formatting.js';
-import { buildSasStatutes } from './templates/sas.template.js';
-import { buildSasuStatutes } from './templates/sasu.template.js';
-import { buildSarlStatutes } from './templates/sarl.template.js';
-import { buildEurlStatutes } from './templates/eurl.template.js';
-import { buildSciStatutes } from './templates/sci.template.js';
+import { buildWilliamDocumentByForm } from './reference/williamAdaptations.js';
 
 export const buildStatutesByLegalForm = (data) => {
   const legalForm = String(data.legalForm || '').toUpperCase();
-  switch (legalForm) {
-    case 'SAS':
-      return buildSasStatutes(data);
-    case 'SASU':
-      return buildSasuStatutes(data);
-    case 'SARL':
-      return buildSarlStatutes(data);
-    case 'EURL':
-      return buildEurlStatutes(data);
-    case 'SCI':
-      return buildSciStatutes(data);
-    default:
-      throw new Error(`Unsupported legal form for statutes generation: ${legalForm}`);
+  if (!STATUTES_SUPPORTED_FORMS.includes(legalForm)) {
+    throw new Error(`Unsupported legal form for statutes generation: ${legalForm}`);
   }
+  return buildWilliamDocumentByForm(data);
 };
 
 export const isStatutesSupportedForm = (legalForm) => (
@@ -73,11 +59,4 @@ const extractStructure = (document) => {
   };
 };
 
-export {
-  buildSasStatutes,
-  buildSasuStatutes,
-  buildSarlStatutes,
-  buildEurlStatutes,
-  buildSciStatutes,
-  STATUTES_SUPPORTED_FORMS,
-};
+export { buildWilliamDocumentByForm, STATUTES_SUPPORTED_FORMS };

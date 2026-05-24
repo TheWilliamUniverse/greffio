@@ -1,4 +1,5 @@
 import { DIRECTOR_LABELS, usesActions } from '../legal/statutes/shared/formatting.js';
+import { isLegallyMinor } from './minorAssociateRules.js';
 
 const pick = (...values) => {
   for (const value of values) {
@@ -61,6 +62,13 @@ const parseAssociateEntry = (entry, fallback = {}) => {
       share: '',
       titlesCount: '',
       isMinor: false,
+      isMinorEmancipated: false,
+      legalRepresentatives: '',
+      roleLabel: 'Associé',
+      contributionCash: '',
+      liberationRate: '50%',
+      liberationAmount: '',
+      contributionInKind: '',
     };
   }
   return {
@@ -72,7 +80,15 @@ const parseAssociateEntry = (entry, fallback = {}) => {
     birthPlace: pick(entry.birthPlace, ''),
     share: pick(entry.percentage, entry.share, ''),
     titlesCount: pick(entry.sharesOrParts, entry.titlesCount, ''),
-    isMinor: Boolean(entry.isMinor),
+    isMinor: entry.isMinor != null ? Boolean(entry.isMinor) : isLegallyMinor(pick(entry.birthDate, '')),
+    isMinorEmancipated: Boolean(entry.isMinorEmancipated),
+    legalRepresentatives: pick(entry.legalRepresentatives, entry.legalGuardian, ''),
+    roleLabel: pick(entry.roleLabel, entry.role, 'Associé'),
+    contributionCash: pick(entry.contributionCash, entry.apportNumeraire, ''),
+    liberationRate: pick(entry.liberationRate, '50%'),
+    liberationAmount: pick(entry.liberationAmount, ''),
+    contributionInKind: pick(entry.contributionInKind, entry.apportNature, ''),
+    civility: pick(entry.civility, ''),
   };
 };
 
@@ -150,6 +166,19 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
     questionnaire.associesSummary,
     ['SASU', 'EURL'].includes(legalForm) ? '100 % de l’associé unique' : 'Répartition à compléter',
   );
+  const objetSocialBullets = Array.isArray(questionnaire.objetSocialBullets)
+    ? questionnaire.objetSocialBullets.filter(Boolean)
+    : String(objetSocial).split(/\n+/).map((line) => line.replace(/^●\s*/, '').trim()).filter(Boolean);
+  const capitalRepartitionLines = associates.map((a) => {
+    const security = usesActions(legalForm) ? 'actions' : 'parts sociales';
+    const securitySingular = usesActions(legalForm) ? 'action' : 'part sociale';
+    return `${a.label} : ${a.share || '—'} des ${security}, soit ${a.titlesCount || '—'} ${securitySingular}${Number(a.titlesCount) > 1 ? 's' : ''}.`;
+  });
+  const hasMinor = associates.some((a) => a.isMinor && !a.isMinorEmancipated);
+  const minorAssociate = associates.find((a) => a.isMinor && !a.isMinorEmancipated);
+  const minorRepresentationNote = hasMinor && minorAssociate
+    ? `${minorAssociate.label}, mineure${minorAssociate.civility === 'M.' ? '' : ''} non émancipée au jour de la constitution, est représentée légalement pour les besoins des présentes, jusqu'à sa majorité, par ${minorAssociate.legalRepresentatives || 'ses représentants légaux'}, agissant en qualités d'administrateurs légaux conformément aux articles 382 et suivants du Code civil.`
+    : '';
 
   const data = {
     reference: pick(dossier?.reference, dossier?.id, 'GF-REF'),
@@ -158,13 +187,17 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
     sigle: pick(questionnaire.sigle, questionnaire.tradeName, 'Non prévu'),
     nomCommercial: pick(questionnaire.nomCommercial, questionnaire.nomEnseigne, 'Non prévu'),
     objetSocial,
+    objetSocialBullets,
     seat,
-    duree: pick(questionnaire.duration, questionnaire.duree, '99 ans'),
+    domiciliation: pick(questionnaire.domiciliation, questionnaire.domicileSiege, ''),
+    mailingAddress: pick(questionnaire.mailingAddress, questionnaire.adresseCourrier, questionnaire.courrierSiege, ''),
+    duree: pick(questionnaire.duration, questionnaire.duree, '99 années'),
     capital: capitalFormatted,
     capitalRaw,
     capitalType: pick(questionnaire.capitalVariable, questionnaire.capitalType, 'Fixe'),
+    capitalVariable: ['variable', 'Variable', true].includes(questionnaire.capitalVariable),
     capitalMin: pick(questionnaire.capitalMin, ''),
-    capitalMax: pick(questionnaire.capitalMax, ''),
+    capitalMax: pick(questionnaire.capitalMax, '5 000 000'),
     liberationCapital: pick(questionnaire.liberationCapital, '100 %'),
     apportsNumeraire: pick(questionnaire.contributions?.cash, questionnaire.apportsNumeraire, 'Oui'),
     apportsNature: pick(questionnaire.contributions?.inKind, questionnaire.apportsNature, 'Non'),
@@ -172,12 +205,21 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
     nombreTitres,
     valeurNominale,
     repartition,
+    capitalRepartitionLines,
     associates,
     director,
-    president: director,
+    president: pick(questionnaire.president, director),
     directorRole: directorLabel,
+    directeurGeneral: pick(questionnaire.directeurGeneral, questionnaire.directeursGeneraux, 'Aucun'),
     beneficiairesEffectifs: pick(questionnaire.beneficiairesEffectifs, questionnaire.beneficialOwners, director),
     directeursGeneraux: pick(questionnaire.directeursGeneraux, 'Aucun'),
+    apportsNumeraireTotal: pick(questionnaire.apportsNumeraireTotal, capitalFormatted),
+    apportsNatureTotal: pick(questionnaire.apportsNatureTotal, ''),
+    depotFonds: pick(questionnaire.depotFonds, questionnaire.apportsLibérés, ''),
+    premierExerciceFin: pick(questionnaire.premierExerciceFin, questionnaire.premierExerciceCloture, ''),
+    inalienabiliteAnnees: pick(questionnaire.inalienabiliteAnnees, questionnaire.dureeInalienabilite, 'cinq (5)'),
+    exemplairesOriginaux: pick(questionnaire.exemplairesOriginaux, ''),
+    minorRepresentationNote,
     exerciceDebut: pick(questionnaire.exerciceDebut, '1er janvier'),
     exerciceFin: pick(questionnaire.fiscalYearEnd, questionnaire.dateCloture, questionnaire.exerciceFin, '31 décembre'),
     clauseAgrement: pick(questionnaire.clauseAgrement, ['SAS', 'SARL', 'SCI'].includes(legalForm) ? 'Oui' : 'Oui'),

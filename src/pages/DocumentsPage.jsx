@@ -59,6 +59,8 @@ export const DocumentsPage = () => {
     ['registered_office_proof', 'Justificatif siège social'],
     ['ubo_declaration', 'Déclaration bénéficiaires effectifs'],
     ['manager_non_conviction', 'Déclaration non-condamnation et filiation (en ligne)'],
+    ['minor_emancipation_order', "Ordonnance ou jugement d'émancipation"],
+    ['minor_parental_authorization', 'Autorisation parentale / tuteur (associé mineur)'],
     ['signed_statutes', 'Statuts signés'],
     ['capital_certificate', 'Attestation dépôt capital'],
   ].filter(([value]) => !(eiLike && (value === 'signed_statutes' || value === 'capital_certificate')))), [eiLike]);

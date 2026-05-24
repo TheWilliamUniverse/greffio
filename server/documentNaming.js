@@ -20,6 +20,8 @@ const DOC_KEY_FILENAME_PREFIX = Object.freeze({
   ubo_declaration: 'Declaration_beneficiaires_effectifs',
   manager_non_conviction: 'Declaration_non_condamnation',
   filiation_declaration: 'Declaration_filiation',
+  minor_emancipation_order: 'Ordonnance_emancipation',
+  minor_parental_authorization: 'Autorisation_parentale_mineur',
 });
 
 const buildCanonicalDocumentFilename = ({

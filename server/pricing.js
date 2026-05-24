@@ -2,6 +2,9 @@ const OFFER_MAP = Object.freeze({
   'statuts-gratuits': { service: 0, legalFees: 0 },
   'dossier-standard': { service: 9900, legalFees: 24500 },
   'equipe-premium': { service: 19900, legalFees: 24500 },
+  'jeune-entrepreneur': { service: 7000, legalFees: 24500 },
+  'formalite': { service: 14900, legalFees: 24500 },
+  'formalite-jeune': { service: 7000, legalFees: 24500 },
 });
 
 const normalizeOffer = (offerCode) => {
@@ -15,6 +18,9 @@ const normalizeOffer = (offerCode) => {
     .replaceAll(' ', '-');
   if (normalized.includes('gratuit')) return 'statuts-gratuits';
   if (normalized.includes('premium')) return 'equipe-premium';
+  if (normalized.includes('jeune')) return 'jeune-entrepreneur';
+  if (normalized.includes('formalite') && normalized.includes('jeune')) return 'formalite-jeune';
+  if (normalized.includes('formalite')) return 'formalite';
   return 'dossier-standard';
 };
 

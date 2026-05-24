@@ -1,3 +1,5 @@
+import { isLegallyMinor } from '@/config/minorAssociateRules.js';
+
 export const DEMARCHE_CATALOG = [
   { key: 'creation_societe', label: 'Créer une société' },
   { key: 'creation_sasu', label: 'Créer une SASU' },
@@ -82,6 +84,13 @@ export const QUESTIONNAIRE_FLOW = [
         type: 'text',
         required: true,
         placeholder: 'Française',
+        condition: (data) => (data.initiatorType || 'personne_physique') === 'personne_physique',
+      },
+      {
+        key: 'birthDate',
+        label: 'Date de naissance',
+        type: 'date',
+        required: false,
         condition: (data) => (data.initiatorType || 'personne_physique') === 'personne_physique',
       },
       {
@@ -241,30 +250,13 @@ export const QUESTIONNAIRE_FLOW = [
   {
     id: 'gouvernance',
     title: 'Associés, dirigeant et bénéficiaires effectifs',
-    description: 'Complétez les personnes clés pour vos documents juridiques.',
+    description: 'Complétez les personnes clés pour vos documents juridiques. Pour tout associé mineur, précisez s’il est légalement émancipé.',
     fields: [
       {
-        key: 'repartition',
-        label: 'Répartition du capital (%)',
-        type: 'text',
-        required: false,
-        placeholder: 'Ex. 100 % ou 60 % / 40 %',
-        condition: (data) => !isEiLikeFormality(data),
-      },
-      {
-        key: 'associesSummary',
-        label: 'Associés / actionnaires (identité complète)',
-        type: 'textarea',
-        required: false,
-        placeholder: 'Nom, prénom, adresse et quote-part de chaque associé',
-        condition: (data) => !isEiLikeFormality(data) && String(data.formeJuridique || '').toUpperCase() === 'SAS',
-      },
-      {
-        key: 'dirigeant',
-        label: 'Président / dirigeant',
-        type: 'text',
+        key: 'associates',
+        label: 'Associés et statut mineur',
+        type: 'associates_minor_panel',
         required: true,
-        placeholder: 'Nom et prénom du dirigeant',
         condition: (data) => !isEiLikeFormality(data),
       },
       {
@@ -289,7 +281,16 @@ export const QUESTIONNAIRE_FLOW = [
 
 export const getProgressPercent = (stepIndex) => Math.round(((stepIndex + 1) / QUESTIONNAIRE_FLOW.length) * 100);
 
-export const isFieldValueValid = (field, value) => {
+export const isFieldValueValid = (field, value, formData = {}) => {
+  if (field.type === 'associates_minor_panel') {
+    const associates = Array.isArray(formData.associates) ? formData.associates : [];
+    const hasAssociate = associates.some((a) => String(a.firstName || '').trim() && String(a.lastName || '').trim());
+    const directorOk = Boolean(String(formData.dirigeant || '').trim());
+    const minorsComplete = associates
+      .filter((a) => isLegallyMinor(a.birthDate))
+      .every((a) => a.isMinorEmancipated || String(a.legalRepresentatives || '').trim());
+    return hasAssociate && directorOk && minorsComplete;
+  }
   if (!field.required) return true;
   if (field.type === 'checkbox') return Boolean(value);
   if (value == null) return false;
@@ -301,4 +302,4 @@ export const isFieldValueValid = (field, value) => {
 
 export const isStepComplete = (step, formData) => step.fields
   .filter((field) => !field.condition || field.condition(formData))
-  .every((field) => isFieldValueValid(field, formData[field.key]));
+  .every((field) => isFieldValueValid(field, formData[field.key], formData));

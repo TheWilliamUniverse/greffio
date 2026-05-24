@@ -13,6 +13,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar.jsx';
+import { BirthDateMinorEncouragement } from '@/components/BirthDateMinorEncouragement.jsx';
 import { ProfileSection } from '@/components/profile/ProfileSection.jsx';
 import { AddressAutocomplete } from '@/components/profile/AddressAutocomplete.jsx';
 import { PhoneNumbersField } from '@/components/profile/PhoneNumbersField.jsx';
@@ -215,6 +216,7 @@ export const ProfilePage = () => {
                         value={form.profile.birthDate || ''}
                         onChange={(event) => patchProfile({ birthDate: event.target.value })}
                       />
+                      <BirthDateMinorEncouragement birthDate={form.profile.birthDate || ''} />
                     </div>
                   </div>
                 </div>

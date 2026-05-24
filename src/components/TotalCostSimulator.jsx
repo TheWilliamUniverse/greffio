@@ -1,17 +1,12 @@
 import React, { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Calculator, CircleHelp } from 'lucide-react';
 import { LEGAL_STRUCTURES } from '@/config/businessCatalog.js';
 import { Button } from '@/components/ui/button.jsx';
-
-const serviceBaseByForm = {
-  SASU: 14900,
-  SAS: 14900,
-  SARL: 14900,
-  EURL: 14900,
-  SA: 29900,
-  SCI: 19900,
-  'Micro-entreprise': 0,
-};
+import { YoungEntrepreneurOfferBanner } from '@/components/YoungEntrepreneurOfferBanner.jsx';
+import { BirthDateMinorEncouragement } from '@/components/BirthDateMinorEncouragement.jsx';
+import { isYoungEntrepreneurEligible } from '@/config/minorAssociateRules.js';
+import { YOUNG_ENTREPRENEUR_OFFER, resolveServicePriceCents } from '@/config/pricingOffers.js';
 
 const legalFeesByForm = {
   SASU: 24500,
@@ -26,20 +21,28 @@ const legalFeesByForm = {
 const fmtEuro = (cents) => `${(cents / 100).toFixed(2)} €`;
 
 export const TotalCostSimulator = () => {
+  const [searchParams] = useSearchParams();
   const [legalForm, setLegalForm] = useState('SASU');
   const [associateCount, setAssociateCount] = useState(1);
+  const [birthDate, setBirthDate] = useState('');
   const [options, setOptions] = useState({
     assistancePremium: false,
     depositCapital: true,
     accountingSetup: false,
   });
 
+  const youngEligible = useMemo(
+    () => searchParams.get('offer') === 'jeune-entrepreneur' || isYoungEntrepreneurEligible(birthDate),
+    [birthDate, searchParams],
+  );
+
   const legalFormOptions = useMemo(() => (
-    LEGAL_STRUCTURES[0]?.types?.filter((item) => serviceBaseByForm[item] !== undefined) || ['SASU', 'SAS', 'SARL', 'EURL', 'SA', 'SCI', 'Micro-entreprise']
+    LEGAL_STRUCTURES[0]?.types?.filter((item) => item !== 'SA' || true) || ['SASU', 'SAS', 'SARL', 'EURL', 'SA', 'SCI', 'Micro-entreprise']
   ), []);
 
   const breakdown = useMemo(() => {
-    const baseService = serviceBaseByForm[legalForm] ?? 14900;
+    const standardBase = legalForm === 'SCI' ? 19900 : legalForm === 'SA' ? 29900 : legalForm === 'Micro-entreprise' ? 0 : YOUNG_ENTREPRENEUR_OFFER.standardPriceCents;
+    const baseService = resolveServicePriceCents({ youngEligible, standardCents: standardBase });
     const legalFees = legalFeesByForm[legalForm] ?? 24500;
     const premium = options.assistancePremium ? 9900 : 0;
     const deposit = options.depositCapital ? 7900 : 0;
@@ -53,6 +56,8 @@ export const TotalCostSimulator = () => {
     const totalTtc = totalHt + vat;
     return {
       baseService,
+      standardBase,
+      youngEligible,
       premium,
       accounting,
       associatesExtra,
@@ -64,14 +69,17 @@ export const TotalCostSimulator = () => {
       vat,
       totalTtc,
     };
-  }, [associateCount, legalForm, options]);
+  }, [associateCount, birthDate, legalForm, options, youngEligible]);
 
   const toggle = (key) => {
     setOptions((current) => ({ ...current, [key]: !current[key] }));
   };
 
   return (
-    <section className="rounded-md border border-border bg-white p-6 shadow-elevation-sm">
+    <section className="space-y-4">
+      <YoungEntrepreneurOfferBanner compact />
+
+      <div className="rounded-md border border-border bg-white p-6 shadow-elevation-sm">
       <div className="mb-5 flex items-center gap-3">
         <div className="rounded-md bg-secondary p-2">
           <Calculator className="h-5 w-5 text-primary" />
@@ -82,7 +90,7 @@ export const TotalCostSimulator = () => {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         <div className="space-y-2">
           <label className="text-sm font-semibold">Forme juridique</label>
           <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={legalForm} onChange={(event) => setLegalForm(event.target.value)}>
@@ -100,7 +108,23 @@ export const TotalCostSimulator = () => {
             onChange={(event) => setAssociateCount(Math.max(1, Number(event.target.value || 1)))}
           />
         </div>
+        <div className="space-y-2">
+          <label className="text-sm font-semibold">Date de naissance (offre jeune)</label>
+          <input
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            type="date"
+            value={birthDate}
+            onChange={(event) => setBirthDate(event.target.value)}
+          />
+          <BirthDateMinorEncouragement birthDate={birthDate} />
+        </div>
       </div>
+
+      {youngEligible ? (
+        <p className="mt-4 rounded-md bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
+          Offre Jeune appliquée : {fmtEuro(breakdown.baseService)} au lieu de {fmtEuro(breakdown.standardBase)} pour le service Greffio.
+        </p>
+      ) : null}
 
       <div className="mt-4 flex flex-wrap gap-2">
         <Button type="button" variant={options.assistancePremium ? 'default' : 'outline'} className="bg-white" onClick={() => toggle('assistancePremium')}>
@@ -141,6 +165,7 @@ export const TotalCostSimulator = () => {
           Estimation indicative. Le total final dépend des pièces, du département, des organismes et des
           options réellement validées.
         </p>
+      </div>
       </div>
     </section>
   );

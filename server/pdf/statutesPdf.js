@@ -169,6 +169,55 @@ const renderAnnexes = (doc, companyName, annexes = []) => {
   });
 };
 
+const renderSignatureBlock = (doc, companyName, block) => {
+  if (block.layout === 'grid' && block.columns?.length) {
+    ensureSpace(doc, companyName, 160);
+    doc.moveDown(0.8);
+    const width = contentWidth(doc);
+    const colWidth = width / block.columns.length;
+    const startY = doc.y;
+    block.columns.forEach((col, index) => {
+      const x = PAGE.marginLeft + (colWidth * index);
+      doc.font(FONTS.regular).fontSize(11).text(col.name, x, startY, { width: colWidth - 8 });
+      doc.font(FONTS.regular).fontSize(10.5).text(col.role, x, doc.y + 2, { width: colWidth - 8 });
+    });
+    doc.y = startY + 36;
+    block.columns.forEach((col, index) => {
+      const x = PAGE.marginLeft + (colWidth * index);
+      doc.font(FONTS.italic).fontSize(10).fillColor('#555555')
+        .text(col.mention || 'Lu et approuvé', x, doc.y, { width: colWidth - 8 });
+    });
+    doc.fillColor('#111111');
+    doc.moveDown(2.5);
+    return;
+  }
+
+  ensureSpace(doc, companyName, 130);
+  doc.moveDown(0.8);
+  if (block.role) {
+    doc.font(FONTS.bold).fontSize(11).text(block.role, PAGE.marginLeft, doc.y, { width: contentWidth(doc) });
+    doc.moveDown(0.35);
+  }
+  (block.names || []).forEach((name, index) => {
+    const role = block.roles?.[index];
+    const line = role ? `${name} — ${role}` : name;
+    doc.font(FONTS.regular).fontSize(11).text(line, PAGE.marginLeft, doc.y, { width: contentWidth(doc) });
+    doc.moveDown(0.25);
+  });
+  if (block.footer) {
+    doc.moveDown(0.4);
+    doc.font(FONTS.regular).fontSize(10.5)
+      .text(block.footer, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify' });
+    doc.moveDown(0.5);
+  }
+  doc.moveDown(1);
+  doc.font(FONTS.regular).fontSize(10.5).text('Signature :', PAGE.marginLeft, doc.y, { width: contentWidth(doc) });
+  doc.moveDown(2.2);
+  doc.font(FONTS.italic).fontSize(10).fillColor('#555555')
+    .text(block.mention || 'Lu et approuvé', PAGE.marginLeft, doc.y, { width: contentWidth(doc) });
+  doc.fillColor('#111111');
+};
+
 const renderSignatures = (doc, companyName, signatures) => {
   startNewPage(doc, companyName);
   doc.font(FONTS.bold).fontSize(12).text(signatures.title || 'SIGNATURES', PAGE.marginLeft, doc.y, { width: contentWidth(doc) });
@@ -177,28 +226,14 @@ const renderSignatures = (doc, companyName, signatures) => {
     doc.font(FONTS.regular).fontSize(11).text(line, PAGE.marginLeft, doc.y, { width: contentWidth(doc) });
     doc.moveDown(0.3);
   });
-  [signatures.associateBlock, signatures.directorBlock].filter(Boolean).forEach((block) => {
-    ensureSpace(doc, companyName, 130);
-    doc.moveDown(0.8);
-    doc.font(FONTS.bold).fontSize(11).text(block.role, PAGE.marginLeft, doc.y, { width: contentWidth(doc) });
-    doc.moveDown(0.35);
-    (block.names || []).forEach((name) => {
-      doc.font(FONTS.regular).fontSize(11).text(name, PAGE.marginLeft, doc.y, { width: contentWidth(doc) });
-      doc.moveDown(0.25);
-    });
-    if (block.footer) {
-      doc.moveDown(0.4);
-      doc.font(FONTS.regular).fontSize(10.5)
-        .text(block.footer, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify' });
-      doc.moveDown(0.5);
-    }
-    doc.moveDown(1);
-    doc.font(FONTS.regular).fontSize(10.5).text('Signature :', PAGE.marginLeft, doc.y, { width: contentWidth(doc) });
-    doc.moveDown(2.2);
-    doc.font(FONTS.italic).fontSize(10).fillColor('#555555')
-      .text(block.mention || 'Lu et approuvé', PAGE.marginLeft, doc.y, { width: contentWidth(doc) });
-    doc.fillColor('#111111');
+  [signatures.associateBlock, signatures.directorBlock, signatures.generalDirectorBlock].filter(Boolean).forEach((block) => {
+    renderSignatureBlock(doc, companyName, block);
   });
+  if (signatures.minorRepresentationNote) {
+    doc.moveDown(0.6);
+    doc.font(FONTS.regular).fontSize(10.5)
+      .text(signatures.minorRepresentationNote, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify' });
+  }
 };
 
 const generateStatutesPdf = async ({ filename, document: statutesDocument }) => {

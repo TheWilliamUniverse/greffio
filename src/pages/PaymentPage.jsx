@@ -13,6 +13,8 @@ const offers = {
   'Statuts gratuits': { title: 'Statuts gratuits', price: '0€', tax: 'Aucun paiement requis', legalFees: 'Frais légaux non inclus si dépôt ultérieur' },
   'Dossier Standard': { title: 'Dossier Standard', price: '99€ HT', tax: 'TVA calculée au paiement', legalFees: 'Frais légaux refacturés ou payés séparément' },
   'Équipe Greffio Premium': { title: 'Équipe Greffio Premium', price: '199€ HT', tax: 'TVA calculée au paiement', legalFees: 'Frais légaux et tiers visibles avant validation' },
+  'jeune-entrepreneur': { title: 'Offre Jeune Entrepreneur.e', price: '70€', compareAt: '149€', tax: 'TVA calculée au paiement', legalFees: 'Frais légaux refacturés ou payés séparément' },
+  Formalité: { title: 'Formalité', price: '149€', tax: 'TVA calculée au paiement', legalFees: 'Frais légaux refacturés ou payés séparément' },
 };
 
 export const PaymentPage = () => {

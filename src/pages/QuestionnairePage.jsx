@@ -30,7 +30,9 @@ import { createDossier } from '@/api/dossiers.js';
 import { getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.js';
 import { runtimeConfig } from '@/config/runtime.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
-import { getIntelligentPrefill } from '@/api/intelligentIntake.js';
+import { AssociatesMinorPanel } from '@/components/questionnaire/AssociatesMinorPanel.jsx';
+import { BirthDateMinorEncouragement } from '@/components/BirthDateMinorEncouragement.jsx';
+import { validateDirectorEligibility } from '@/config/minorAssociateRules.js';
 
 const defaultData = {
   initiatorType: 'personne_physique',
@@ -53,8 +55,10 @@ const defaultData = {
   activite: '',
   capital: '',
   repartition: '',
+  associates: [],
   associesSummary: '',
   dirigeant: '',
+  birthDate: '',
   beneficiairesEffectifs: '',
   validationConfirmed: false,
 };
@@ -123,7 +127,8 @@ export const QuestionnairePage = () => {
       .map((field) => field.label),
     [visibleStepFields, formData],
   );
-  const canGoNext = isStepComplete(step, formData);
+  const canGoNext = isStepComplete(step, formData)
+    && (step.id !== 'gouvernance' || validateDirectorEligibility(formData).ok);
 
   const contactPayload = useMemo(() => ({
     initiatorType: formData.initiatorType,
@@ -486,6 +491,46 @@ export const QuestionnairePage = () => {
                   />
                   <span className="text-sm leading-6 text-muted-foreground">{field.label}</span>
                 </label>
+              );
+            }
+
+            if (field.type === 'associates_minor_panel') {
+              return (
+                <div key={field.key}>
+                  <AssociatesMinorPanel
+                    value={formData.associates}
+                    dirigeant={formData.dirigeant || ''}
+                    onDirigeantChange={(nextDirector) => setFormData((current) => ({ ...current, dirigeant: nextDirector }))}
+                    onChange={(patch) => setFormData((current) => ({
+                      ...current,
+                      ...patch,
+                      repartition: (patch.associates || current.associates || [])
+                        .map((a) => `${[a.firstName, a.lastName].filter(Boolean).join(' ')} ${a.share ? `${a.share}%` : ''}`.trim())
+                        .filter(Boolean)
+                        .join(' · '),
+                    }))}
+                  />
+                </div>
+              );
+            }
+
+            if (field.type === 'date') {
+              const dateValue = formData[field.key] || '';
+              const showLegalHint = field.key === 'birthDate';
+              return (
+                <div key={field.key} className="space-y-2">
+                  <Label htmlFor={field.key}>{field.label}{field.required ? ' *' : ''}</Label>
+                  <Input
+                    id={field.key}
+                    type="date"
+                    value={dateValue}
+                    onChange={(event) => updateField(field, event.target.value)}
+                    className={fieldClass}
+                  />
+                  {showLegalHint ? (
+                    <BirthDateMinorEncouragement birthDate={dateValue} showLegalHint />
+                  ) : null}
+                </div>
               );
             }
 
