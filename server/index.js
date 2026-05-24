@@ -75,13 +75,17 @@ import {
   documentToPreview,
   isStatutesSupportedForm,
 } from './legal/statutes/index.js';
-import { mapStatutesData } from './utils/statutesDataMapper.js';
+import { mapStatutesData, mapStatutesDataFromSimulator } from './utils/statutesDataMapper.js';
 import { resolveLegalForm } from './domain/formalities.js';
 import { getFormalityRule } from './domain/formalities.js';
 import { getCompanyLookupMetrics, lookupCompany } from './services/companyLookup.js';
 import { buildIntelligentPrefill } from './services/intelligentIntake.js';
 import { computeDossierRisk, sortAntiRejectionQueue } from './services/opsRisk.js';
-import { generateAiStatutesClauses } from './services/statutesAi.js';
+import { draftStatutesDocument } from './services/statutesDrafting.js';
+import {
+  createTrustedDevice,
+  hasValidTrustedDevice,
+} from './mfaTrustedDeviceStore.js';
 import { askGreffioAssistant, isAssistantConfigured } from './services/assistant.js';
 import {
   createSupabaseSignedDownloadUrl,
@@ -172,6 +176,12 @@ const uploadLimiter = rateLimit({
 const companyLookupPublicLimiter = rateLimit({
   windowMs: 1 * 60 * 1000,
   max: 40,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+const statutesPreviewDraftLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 30,
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -685,7 +695,18 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     return res.status(401).json({ ok: false, error: 'INVALID_CREDENTIALS' });
   }
   clearLoginFailures(email);
+  const mfaDeviceToken = String(req.headers['x-greffio-mfa-device'] || '').trim();
   if (await isMfaEnabled(user.id)) {
+    if (mfaDeviceToken && await hasValidTrustedDevice(user.id, mfaDeviceToken)) {
+      void maybeSendLoginAlertEmail(req, user, ['trusted_device']);
+      return res.json({
+        ok: true,
+        user,
+        accessToken: issueAccessToken(user),
+        refreshToken: issueRefreshToken(user),
+        mfaSkipped: true,
+      });
+    }
     return res.json({
       ok: true,
       mfaRequired: true,
@@ -1002,6 +1023,30 @@ app.post('/api/auth/mfa/verify-login', authLimiter, async (req, res) => {
     user,
     accessToken: issueAccessToken(user),
     refreshToken: issueRefreshToken(user),
+  });
+});
+
+app.get('/api/auth/mfa/trusted-device/status', requireAuth, async (req, res) => {
+  const deviceToken = String(req.headers['x-greffio-mfa-device'] || '').trim();
+  const remembered = deviceToken
+    ? await hasValidTrustedDevice(req.auth.sub, deviceToken)
+    : false;
+  const mfaEnabled = await isMfaEnabled(req.auth.sub);
+  return res.json({ ok: true, mfaEnabled, remembered });
+});
+
+app.post('/api/auth/mfa/trust-device', requireAuth, async (req, res) => {
+  const mfaEnabled = await isMfaEnabled(req.auth.sub);
+  if (!mfaEnabled) {
+    return res.status(409).json({ ok: false, error: 'MFA_NOT_ENABLED' });
+  }
+  const payload = await createTrustedDevice(req.auth.sub, req);
+  return res.json({
+    ok: true,
+    deviceToken: payload.deviceToken,
+    expiresAt: payload.expiresAt,
+    deviceLabel: payload.deviceLabel,
+    ttlDays: payload.ttlDays,
   });
 });
 
@@ -1841,6 +1886,50 @@ app.get('/api/dossiers/:dossierId/mandate/pdf', requireAuth, async (req, res) =>
   return fs.createReadStream(mandateDoc.storageUrl).pipe(res);
 });
 
+app.post('/api/statutes/preview-draft', statutesPreviewDraftLimiter, async (req, res) => {
+  const { data = {}, answers = {} } = req.body || {};
+  const legalForm = String(
+    answers.formeJuridique || data.legalForm || data.formeJuridique || 'SASU',
+  ).toUpperCase();
+
+  if (!isStatutesSupportedForm(legalForm)) {
+    return res.status(409).json({ ok: false, error: 'LEGAL_FORM_UNSUPPORTED', legalForm });
+  }
+
+  try {
+    const statutesData = mapStatutesDataFromSimulator({ data, answers });
+    const document = draftStatutesDocument(statutesData);
+    const preview = documentToPreview(document);
+
+    return res.json({
+      ok: true,
+      preview: {
+        ...preview,
+        metadata: {
+          ...preview.metadata,
+          checks: statutesData.checks,
+          completeness: statutesData.completeness,
+          missingFields: statutesData.missingFields,
+        },
+        incorporatedData: {
+          denomination: statutesData.denomination,
+          legalForm: statutesData.legalForm,
+          objetSocial: statutesData.objetSocial,
+          siege: statutesData.seat.full,
+          capital: statutesData.capital,
+          repartition: statutesData.repartition,
+          director: statutesData.director,
+          directorRole: statutesData.directorRole,
+          beneficiairesEffectifs: statutesData.beneficiairesEffectifs,
+          associates: statutesData.associates,
+        },
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: 'STATUTES_PREVIEW_FAILED', message: error.message });
+  }
+});
+
 app.get('/api/dossiers/:dossierId/statutes/preview', requireAuth, async (req, res) => {
   const dossier = await getDossier(req.params.dossierId);
   if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
@@ -1861,7 +1950,7 @@ app.get('/api/dossiers/:dossierId/statutes/preview', requireAuth, async (req, re
 
   const user = dossier.userId ? await getUserById(dossier.userId) : null;
   const statutesData = mapStatutesData({ dossier, questionnaire, user });
-  const document = buildStatutesByLegalForm(statutesData);
+  const document = draftStatutesDocument(statutesData);
   const preview = documentToPreview(document);
 
   return res.json({
@@ -1904,7 +1993,15 @@ app.post('/api/dossiers/:dossierId/statutes/generate', requireAuth, async (req, 
 
   const user = dossier.userId ? await getUserById(dossier.userId) : null;
   const statutesData = mapStatutesData({ dossier, questionnaire, user });
-  const statutesDocument = buildStatutesByLegalForm(statutesData);
+  let statutesDocument;
+  try {
+    statutesDocument = draftStatutesDocument(statutesData);
+  } catch (error) {
+    if (error?.code === 'STATUTES_INCOMPLETE') {
+      return res.status(500).json({ ok: false, error: 'STATUTES_INCOMPLETE', articleCount: error.articleCount });
+    }
+    throw error;
+  }
 
   const safeReference = String(dossier.reference || dossier.id).replace(/[^a-zA-Z0-9_-]/g, '_');
   const filename = `Statuts_${legalForm}_${safeReference}_${Date.now()}.pdf`;

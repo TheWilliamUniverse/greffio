@@ -21,6 +21,7 @@ import { getCurrentDossierId } from '@/utils/sessionStore.js';
 import { getDossierById, listDossiers } from '@/api/dossiers.js';
 import { fetchUserProfile } from '@/api/profile.js';
 import { LoginAlertsPromptBanner } from '@/components/security/LoginAlertsPromptBanner.jsx';
+import { RememberMfaDeviceBanner } from '@/components/security/RememberMfaDeviceBanner.jsx';
 import { isEiLikeFormality } from '@/config/formalities.js';
 import { isLoginAlertsConfigured, getLoginAlertsSettings, rememberLoginAlertsChoice } from '@/utils/userProfile.js';
 
@@ -162,6 +163,7 @@ export const DashboardPage = () => {
       <Sidebar />
       <main className="flex-1 overflow-y-auto p-5 md:p-8">
         <div className="mx-auto max-w-7xl space-y-7">
+          <RememberMfaDeviceBanner />
           {showLoginAlertsPrompt ? (
             <LoginAlertsPromptBanner
               initialEnabled={getLoginAlertsSettings(currentUser).enabled}

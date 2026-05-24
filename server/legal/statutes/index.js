@@ -1,5 +1,6 @@
 import { STATUTES_SUPPORTED_FORMS } from './shared/formatting.js';
 import { buildWilliamDocumentByForm } from './reference/williamAdaptations.js';
+import { documentToFullPreview } from './previewMapper.js';
 
 export const buildStatutesByLegalForm = (data) => {
   const legalForm = String(data.legalForm || '').toUpperCase();
@@ -29,34 +30,6 @@ export const normalizeAiClauses = (rawClauses = []) => rawClauses
   })
   .filter(Boolean);
 
-export const documentToPreview = (document) => ({
-  cover: document.cover,
-  preamble: {
-    title: 'Préambule',
-    paragraphs: document.blocks
-      ?.filter((b) => b.kind === 'section-title' || b.kind === 'paragraph')
-      ?.slice(0, 12)
-      ?.map((b) => b.text || b.title) || [],
-  },
-  structure: extractStructure(document),
-  clauseCount: document.blocks?.filter((b) => b.kind === 'article').length || 0,
-  sampleClauses: document.blocks
-    ?.filter((b) => b.kind === 'article')
-    ?.slice(0, 4)
-    ?.map((b) => ({ title: `Article ${b.number} — ${b.title}`, body: b.body })) || [],
-  annexes: document.annexes?.map((a) => ({ title: a.title, paragraphs: a.paragraphs })) || [],
-  signatures: document.signatures,
-  metadata: document.metadata,
-});
+export const documentToPreview = (document) => documentToFullPreview(document);
 
-const extractStructure = (document) => {
-  const titles = document.blocks?.filter((b) => b.kind === 'legal-title').map((b) => b.text) || [];
-  return {
-    sections: titles,
-    annexCount: document.annexes?.length || 0,
-    template: document.metadata?.template,
-    legalForm: document.metadata?.legalForm,
-  };
-};
-
-export { buildWilliamDocumentByForm, STATUTES_SUPPORTED_FORMS };
+export { buildWilliamDocumentByForm, STATUTES_SUPPORTED_FORMS, documentToFullPreview };

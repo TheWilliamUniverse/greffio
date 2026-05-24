@@ -855,12 +855,12 @@ const downloadPdf = async (documentPreview) => {
 
   pdf.addPage();
   y = margin;
-  documentPreview.sections.forEach((section, index) => {
+  documentPreview.sections.forEach((section) => {
     addPageIfNeeded(80);
     pdf.setDrawColor(201, 211, 227);
     pdf.line(margin, y, pageWidth - margin, y);
     y += 22;
-    drawWrapped(`Article ${index + 1} - ${section.title}`, { size: 14, style: 'bold', gap: 10, color: [38, 72, 122] });
+    drawWrapped(section.title, { size: 14, style: 'bold', gap: 10, color: [38, 72, 122] });
     section.lines.forEach((line) => drawWrapped(line, { size: 11, gap: 8 }));
     y += 8;
   });
@@ -878,23 +878,25 @@ const downloadPdf = async (documentPreview) => {
     pdf.text(label, x, y + 14);
   });
 
-  while (pdf.internal.getNumberOfPages() < 10) {
-    pdf.addPage();
-    pdf.setFont('times', 'normal');
-    pdf.setFontSize(11);
-    pdf.setTextColor(76, 91, 115);
-    pdf.text('Page de continuation - contenu juridique detaille annexe au projet principal.', margin, margin + 10);
-    const filler = [
-      'Ce document doit etre relu et valide avant signature definitive.',
-      'Les mentions variables sont completees a partir des informations confirmees dans le dossier client.',
-      'Les clauses sensibles peuvent faire l objet d un ajustement avant depot.',
-      'Le depot est realise sous reserve des exigences des organismes competents.',
-    ];
-    let fy = margin + 34;
-    filler.forEach((line) => {
-      pdf.text(line, margin, fy);
-      fy += 20;
-    });
+  if (!documentPreview.isFullStatutes) {
+    while (pdf.internal.getNumberOfPages() < 10) {
+      pdf.addPage();
+      pdf.setFont('times', 'normal');
+      pdf.setFontSize(11);
+      pdf.setTextColor(76, 91, 115);
+      pdf.text('Page de continuation - contenu juridique detaille annexe au projet principal.', margin, margin + 10);
+      const filler = [
+        'Ce document doit etre relu et valide avant signature definitive.',
+        'Les mentions variables sont completees a partir des informations confirmees dans le dossier client.',
+        'Les clauses sensibles peuvent faire l objet d un ajustement avant depot.',
+        'Le depot est realise sous reserve des exigences des organismes competents.',
+      ];
+      let fy = margin + 34;
+      filler.forEach((line) => {
+        pdf.text(line, margin, fy);
+        fy += 20;
+      });
+    }
   }
 
   pdf.addPage();

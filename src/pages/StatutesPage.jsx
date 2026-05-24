@@ -189,7 +189,7 @@ export const StatutesPage = () => {
                 </div>
               </section>
 
-              <section className="grid gap-6 lg:grid-cols-2">
+              <section className="grid gap-6">
                 <div className="we-panel p-6">
                   <h2 className="text-lg font-extrabold">Présentation du document</h2>
                   <p className="mt-1 text-sm text-muted-foreground">Structure imposée pour conformité greffe et relecture client.</p>
@@ -212,21 +212,42 @@ export const StatutesPage = () => {
                   </dl>
                 </div>
 
-                <div className="we-panel p-6">
-                  <h2 className="text-lg font-extrabold">Aperçu des premiers articles</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">Extrait avant génération PDF définitive.</p>
-                  <div className="mt-5 space-y-4">
-                    {(preview.sampleClauses || []).map((clause) => (
-                      <article key={clause.title} className="rounded-xl border border-[var(--we-border)] bg-white p-4">
-                        <h3 className="text-sm font-extrabold text-primary">{clause.title}</h3>
-                        <p className="mt-2 text-sm leading-relaxed text-foreground">{clause.body}</p>
-                      </article>
-                    ))}
-                  </div>
+                <div className="we-panel p-6 lg:col-span-2">
+                  <h2 className="text-lg font-extrabold">Statuts complets</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {preview.clauseCount || preview.allClauses?.length || 0} articles rédigés — document William prêt à relire avant génération PDF.
+                  </p>
                   {preview.preamble?.paragraphs?.length ? (
                     <div className="mt-5 rounded-xl border border-dashed border-[var(--we-border)] bg-[#fafcff] p-4">
                       <p className="text-xs font-bold uppercase text-primary">Préambule</p>
-                      <p className="mt-2 text-sm text-muted-foreground">{preview.preamble.paragraphs.slice(0, 3).join(' ')}</p>
+                      <div className="mt-2 space-y-2 text-sm leading-relaxed text-foreground">
+                        {preview.preamble.paragraphs.map((paragraph) => (
+                          <p key={paragraph.slice(0, 48)}>{paragraph}</p>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  <div className="mt-5 max-h-[36rem] space-y-4 overflow-y-auto pr-1">
+                    {(preview.allClauses || preview.sampleClauses || []).map((clause) => (
+                      <article key={clause.title} className="rounded-xl border border-[var(--we-border)] bg-white p-4">
+                        <h3 className="text-sm font-extrabold text-primary">{clause.title}</h3>
+                        <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground">{clause.body}</p>
+                      </article>
+                    ))}
+                  </div>
+                  {(preview.annexes || []).length ? (
+                    <div className="mt-5 space-y-3">
+                      <p className="text-xs font-bold uppercase text-primary">Annexes</p>
+                      {preview.annexes.map((annex) => (
+                        <article key={annex.title} className="rounded-xl border border-[var(--we-border)] bg-[#fafcff] p-4">
+                          <h3 className="text-sm font-extrabold">{annex.title}</h3>
+                          <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                            {(annex.paragraphs || []).map((line) => (
+                              <p key={line.slice(0, 40)}>{line}</p>
+                            ))}
+                          </div>
+                        </article>
+                      ))}
                     </div>
                   ) : null}
                 </div>

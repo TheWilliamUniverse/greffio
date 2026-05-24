@@ -68,6 +68,8 @@ export const clearAllData = () => {
     window.localStorage.removeItem(TOKEN_KEY);
     window.localStorage.removeItem(REFRESH_TOKEN_KEY);
     window.localStorage.removeItem(SESSIONS_KEY);
+    window.localStorage.removeItem('greffio_mfa_device_token');
+    window.localStorage.removeItem('greffio_mfa_device_expires');
   } catch (error) {
     console.error('Error clearing data', error);
   }

@@ -1,4 +1,5 @@
 import { DIRECTOR_LABELS, usesActions } from '../legal/statutes/shared/formatting.js';
+import { resolveWilliamObjetSocialBullets } from '../legal/statutes/reference/williamObjetSocialCatalog.js';
 import { isLegallyMinor } from './minorAssociateRules.js';
 
 const pick = (...values) => {
@@ -166,9 +167,11 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
     questionnaire.associesSummary,
     ['SASU', 'EURL'].includes(legalForm) ? '100 % de l’associé unique' : 'Répartition à compléter',
   );
-  const objetSocialBullets = Array.isArray(questionnaire.objetSocialBullets)
-    ? questionnaire.objetSocialBullets.filter(Boolean)
-    : String(objetSocial).split(/\n+/).map((line) => line.replace(/^●\s*/, '').trim()).filter(Boolean);
+  const objetSocialBullets = resolveWilliamObjetSocialBullets({
+    ...questionnaire,
+    objetSocial,
+    activity: pick(questionnaire.activity, questionnaire.activite),
+  });
   const capitalRepartitionLines = associates.map((a) => {
     const security = usesActions(legalForm) ? 'actions' : 'parts sociales';
     const securitySingular = usesActions(legalForm) ? 'action' : 'part sociale';
@@ -265,6 +268,52 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
     missingFields: requiredChecks.filter((item) => !item.ok).map((item) => item.label),
     metadataBundle: { completeness, missingFields: requiredChecks.filter((item) => !item.ok).map((item) => item.label) },
   };
+};
+
+export const mapStatutesDataFromSimulator = ({ data = {}, answers = {}, user = null } = {}) => {
+  const legalForm = pick(
+    answers.formeJuridique,
+    data.legalForm,
+    data.formeJuridique,
+    'SASU',
+  ).toUpperCase();
+
+  const questionnaire = {
+    ...data,
+    ...answers,
+    formeJuridique: legalForm,
+    denomination: pick(answers.denomination, data.companyName, data.denomination),
+    companyName: pick(answers.denomination, data.companyName, data.denomination),
+    capital: pick(answers.capitalMontant, answers.capital, data.capital),
+    capitalAmount: pick(answers.capitalMontant, answers.capital, data.capital),
+    adresseSiege: pick(answers.adresseSiege, data.adresseSiege),
+    codePostal: pick(answers.codePostal, data.codePostal),
+    villeSiege: pick(answers.villeSiege, data.city, data.villeSiege),
+    objetSocial: pick(answers.objetSocial, data.activity, data.objetSocial),
+    dirigeant: pick(answers.dirigeantPrincipal, answers.president, data.president, data.initiatorName),
+    manager: pick(answers.dirigeantPrincipal, answers.president, data.president),
+    president: pick(answers.president, answers.dirigeantPrincipal, data.president),
+    repartition: pick(answers.repartition, answers.associesSummary),
+    registryCity: pick(answers.rcsCompetent, answers.villeSiege, data.city),
+    fiscalYearEnd: pick(answers.dateCloture, answers.fiscalYearEnd),
+    duration: pick(answers.duree, data.duree),
+    capitalVariable: answers.capitalType === 'Variable',
+    capitalMin: pick(answers.capitalPlancher, answers.capitalMin),
+    capitalMax: pick(answers.capitalPlafond, answers.capitalMax),
+    liberationCapital: pick(answers.liberationCapital, '100 %'),
+    firstName: pick(answers.firstName, data.firstName),
+    lastName: pick(answers.lastName, data.lastName),
+  };
+
+  return mapStatutesData({
+    dossier: {
+      reference: 'SIM-PREVIEW',
+      legalForm,
+      denomination: questionnaire.denomination,
+    },
+    questionnaire,
+    user,
+  });
 };
 
 export { pick, formatPerson };

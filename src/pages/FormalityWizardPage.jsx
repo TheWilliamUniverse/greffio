@@ -10,7 +10,6 @@ import {
   Download,
   FileSignature,
   FileText,
-  Info,
   Mail,
   PenLine,
   ShieldAlert,
@@ -23,6 +22,11 @@ import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { ProgressiveStepChips } from '@/components/ProgressiveStepChips.jsx';
 import { QuestionPanelSuccessOverlay } from '@/components/questionnaire/QuestionPanelSuccessOverlay.jsx';
+import { ProgressCircle } from '@/components/questionnaire/ProgressCircle.jsx';
+import { QuestionBackButton } from '@/components/questionnaire/QuestionBackButton.jsx';
+import { QuestionContinueButton } from '@/components/questionnaire/QuestionContinueButton.jsx';
+import { QuestionSectionHint } from '@/components/questionnaire/QuestionSectionHint.jsx';
+import { QuestionSelect } from '@/components/questionnaire/QuestionSelect.jsx';
 import { WizardNavButtons } from '@/components/WizardNavButtons.jsx';
 import { CompanyLookupCard } from '@/components/CompanyLookupCard.jsx';
 import { COMPANY_FORM_CATALOG, getFormAvailability, SERVICE_AVAILABILITY } from '@/config/businessCatalog.js';
@@ -34,6 +38,8 @@ import {
   getQuestionnaire,
   getWarnings,
 } from '@/utils/formalityEngine.js';
+import { fetchStatutesPreviewDraft } from '@/api/statutes.js';
+import { fullPreviewToDocumentPreview, isWilliamStatutesForm } from '@/utils/statutesPreview.js';
 import { getProjectDraft, saveProjectDraft, getUser } from '@/utils/localStorage.js';
 import { GREFFIO_CONTACT } from '@/config/legalFlow.js';
 import { getFormalityRule, isEiLikeFormality } from '@/config/formalities.js';
@@ -138,7 +144,7 @@ const targetFormGroups = COMPANY_FORM_CATALOG.reduce((groups, form) => {
   }
   return [...groups, { category: form.family, forms: [form] }];
 }, []);
-const fieldClass = 'rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring';
+const fieldClass = 'h-14 rounded-2xl border-2 border-[#d4e2f5] bg-white px-4 text-base font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/12';
 
 const typePresetByQuery = Object.freeze({
   statuts: 'statuts',
@@ -287,7 +293,45 @@ export const FormalityWizardPage = () => {
   );
   const completion = useMemo(() => getCompletion(data, answers, questionnaire), [data, answers, questionnaire]);
   const warnings = useMemo(() => getWarnings(data, answers), [data, answers]);
-  const documentPreview = useMemo(() => buildDocumentPreview(data, answers, selectedForm), [data, answers, selectedForm]);
+  const [williamStatutesPreview, setWilliamStatutesPreview] = useState(null);
+  const [williamStatutesLoading, setWilliamStatutesLoading] = useState(false);
+  const williamStatutesForm = useMemo(
+    () => (requiresStatutes && selectedForm?.hasStatutes !== false
+      ? isWilliamStatutesForm(selectedForm?.label || data.legalForm)
+      : null),
+    [requiresStatutes, selectedForm, data.legalForm],
+  );
+
+  useEffect(() => {
+    if (!williamStatutesForm) {
+      setWilliamStatutesPreview(null);
+      return undefined;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      void (async () => {
+        setWilliamStatutesLoading(true);
+        try {
+          const payload = await fetchStatutesPreviewDraft({ data, answers });
+          if (cancelled) return;
+          setWilliamStatutesPreview(fullPreviewToDocumentPreview(payload?.preview));
+        } catch (_error) {
+          if (!cancelled) setWilliamStatutesPreview(null);
+        } finally {
+          if (!cancelled) setWilliamStatutesLoading(false);
+        }
+      })();
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [data, answers, williamStatutesForm]);
+
+  const documentPreview = useMemo(() => {
+    if (williamStatutesPreview) return williamStatutesPreview;
+    return buildDocumentPreview(data, answers, selectedForm);
+  }, [williamStatutesPreview, data, answers, selectedForm]);
   const visibleForms = useMemo(
     () => targetFormGroups.find((group) => group.category === selectedFamily).forms || targetFormGroups[0].forms || [],
     [selectedFamily],
@@ -543,18 +587,23 @@ export const FormalityWizardPage = () => {
     }
   };
 
-  const generatedClauses = [
-    (selectedForm?.hasStatutes && requiresStatutes)
-      ?
-      `Forme : ${data.legalForm}, statuts préparés selon le droit français.`
-      : `Forme : ${data.legalForm}, dossier déclaratif adapté sans statuts sociaux à déposer selon l’organisme compétent.`,
-    `Dénomination : ${data.companyName || 'à compléter'}.`,
-    `Objet : ${data.activity || 'activité à préciser'} et opérations connexes.`,
-    `Siège : ${data.city || 'France'}, avec faculté de transfert selon décision compétente.`,
-    `Demandeur : ${data.initiatorType === 'personne_morale' ? `${data.initiatorName || 'société demandeuse'} (${data.initiatorLegalForm})` : data.initiatorName || 'personne physique à compléter'}.`,
-    `Capital : ${data.capital || '1'} euros, réparti entre ${data.shareholders || '1'} associé(s) ou actionnaire(s).`,
-    `Direction : ${data.president || 'dirigeant à nommer'}.`,
-  ];
+  const generatedClauses = useMemo(() => {
+    const williamClauses = williamStatutesPreview?.williamPreview?.allClauses;
+    if (williamClauses?.length) {
+      return williamClauses.map((clause) => clause.title);
+    }
+    return [
+      (selectedForm?.hasStatutes && requiresStatutes)
+        ? `Forme : ${data.legalForm}, statuts préparés selon le droit français.`
+        : `Forme : ${data.legalForm}, dossier déclaratif adapté sans statuts sociaux à déposer selon l’organisme compétent.`,
+      `Dénomination : ${data.companyName || 'à compléter'}.`,
+      `Objet : ${data.activity || 'activité à préciser'} et opérations connexes.`,
+      `Siège : ${data.city || 'France'}, avec faculté de transfert selon décision compétente.`,
+      `Demandeur : ${data.initiatorType === 'personne_morale' ? `${data.initiatorName || 'société demandeuse'} (${data.initiatorLegalForm})` : data.initiatorName || 'personne physique à compléter'}.`,
+      `Capital : ${data.capital || '1'} euros, réparti entre ${data.shareholders || '1'} associé(s) ou actionnaire(s).`,
+      `Direction : ${data.president || 'dirigeant à nommer'}.`,
+    ];
+  }, [williamStatutesPreview, selectedForm, requiresStatutes, data]);
 
   return (
     <div className="min-h-screen bg-[var(--we-bg)]">
@@ -945,7 +994,7 @@ export const FormalityWizardPage = () => {
                         {!questionnaireFinished ? (
                           <motion.div
                             key="question-panel-active"
-                            className="relative mt-5 overflow-hidden rounded-md border border-border bg-white p-5"
+                            className="relative mt-5 overflow-hidden rounded-[1.35rem] border border-[#d4e2f5] bg-white p-6 shadow-[0_14px_40px_rgba(15,31,61,0.07)] md:p-7"
                             initial={{ opacity: 1, scale: 1, y: 0 }}
                             animate={
                               questionExitPhase
@@ -960,33 +1009,25 @@ export const FormalityWizardPage = () => {
                             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
                           >
                             <QuestionPanelSuccessOverlay phase={questionExitPhase} />
-                            <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-                              <div className="flex items-center gap-3">
-                                <div className="relative h-16 w-16">
-                                  <svg viewBox="0 0 36 36" className="h-16 w-16">
-                                    <path className="stroke-muted" fill="none" strokeWidth="3" d="M18 2.5a15.5 15.5 0 1 1 0 31a15.5 15.5 0 1 1 0-31" />
-                                    <path
-                                      className="stroke-primary"
-                                      fill="none"
-                                      strokeWidth="3"
-                                      strokeLinecap="round"
-                                      strokeDasharray={`${completion}, 100`}
-                                      d="M18 2.5a15.5 15.5 0 1 1 0 31a15.5 15.5 0 1 1 0-31"
-                                    />
-                                  </svg>
-                                  <span className="absolute inset-0 flex items-center justify-center text-xs font-bold">{completion}%</span>
-                                </div>
+                            <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-[#e2ebf8] pb-5">
+                              <div className="flex items-center gap-4">
+                                <ProgressCircle percent={completion} size="lg" />
                                 <div>
-                                  <p className="text-sm font-bold uppercase text-primary">Réf. : {dossierReference}</p>
-                                  <p className="text-xs text-muted-foreground">{activeQuestionIndex + 1}/{Math.max(flattenedQuestions.length, 1)} question(s)</p>
+                                  <p className="text-xs font-extrabold uppercase tracking-wide text-primary">Réf. : {dossierReference}</p>
+                                  <p className="mt-0.5 text-sm font-semibold text-foreground">
+                                    Question {activeQuestionIndex + 1}
+                                    <span className="font-medium text-muted-foreground"> / {Math.max(flattenedQuestions.length, 1)}</span>
+                                  </p>
                                 </div>
                               </div>
-                              <p className="text-xs text-muted-foreground">Vos données sont en sécurité et transmises uniquement pour votre formalité.</p>
+                              <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
+                                Vos données sont sécurisées et utilisées uniquement pour votre formalité.
+                              </p>
                             </div>
 
                             {activeQuestion ? (
                               <motion.form
-                                className="space-y-4"
+                                className="space-y-5"
                                 animate={
                                   questionExitPhase
                                     ? { opacity: questionExitPhase === 'validated' ? 0.15 : 0.55, y: -2 }
@@ -998,35 +1039,25 @@ export const FormalityWizardPage = () => {
                                   advanceActiveQuestion();
                                 }}
                               >
-                                <div className="rounded-md bg-muted p-4">
-                                  <div className="flex gap-3">
-                                    <Info className="mt-1 h-4 w-4 shrink-0 text-primary" />
-                                    <div>
-                                      <p className="text-xs font-bold uppercase text-primary">{activeQuestion.sectionTitle}</p>
-                                      <p className="mt-1 text-xs leading-5 text-muted-foreground">{activeQuestion.sectionNote}</p>
-                                    </div>
-                                  </div>
-                                </div>
-                                <div>
-                                  <Label>
+                                <QuestionSectionHint
+                                  title={activeQuestion.sectionTitle}
+                                  note={activeQuestion.sectionNote}
+                                />
+                                <div className="rounded-2xl border border-[#e2ebf8] bg-[#fafcff] p-5">
+                                  <Label className="text-base font-extrabold text-[hsl(var(--greffio-blue-900))]">
                                     {activeQuestion.label}
                                     {activeQuestion.required ? <span className="text-primary"> *</span> : null}
                                   </Label>
                                   {activeQuestion.type === 'select' ? (
-                                    <select
-                                      className={`${fieldClass} mt-1 w-full`}
+                                    <QuestionSelect
                                       value={answers[activeQuestion.key] || ''}
                                       disabled={Boolean(questionExitPhase)}
+                                      options={activeQuestion.options}
                                       onChange={(event) => updateAnswer(activeQuestion.key, event.target.value)}
-                                    >
-                                      <option value="">À compléter</option>
-                                      {activeQuestion.options.map((option) => (
-                                        <option key={option} value={option}>{option}</option>
-                                      ))}
-                                    </select>
+                                    />
                                   ) : activeQuestion.type === 'textarea' ? (
                                     <textarea
-                                      className={`${fieldClass} mt-1 min-h-[110px] w-full`}
+                                      className={`${fieldClass} mt-2 min-h-[120px] w-full py-3`}
                                       value={answers[activeQuestion.key] || ''}
                                       placeholder={activeQuestion.placeholder || ''}
                                       disabled={Boolean(questionExitPhase)}
@@ -1034,7 +1065,7 @@ export const FormalityWizardPage = () => {
                                     />
                                   ) : (
                                     <Input
-                                      className="mt-1"
+                                      className={`${fieldClass} mt-2`}
                                       value={answers[activeQuestion.key] || ''}
                                       placeholder={activeQuestion.placeholder || ''}
                                       disabled={Boolean(questionExitPhase)}
@@ -1042,24 +1073,17 @@ export const FormalityWizardPage = () => {
                                     />
                                   )}
                                 </div>
-                                <div className="flex items-center justify-between">
-                                  <Button
+                                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e2ebf8] pt-5">
+                                  <QuestionBackButton
                                     type="button"
-                                    variant="outline"
-                                    className="bg-white"
                                     disabled={activeQuestionIndex === 0 || Boolean(questionExitPhase)}
                                     onClick={() => setActiveQuestionIndex((current) => Math.max(0, current - 1))}
-                                  >
-                                    <ArrowLeft className="h-4 w-4" />
-                                    Retour
-                                  </Button>
-                                  <Button
+                                  />
+                                  <QuestionContinueButton
                                     type="submit"
+                                    label={isLastQuestion ? 'Valider' : 'Continuer'}
                                     disabled={!canAdvanceActiveQuestion() || Boolean(questionExitPhase)}
-                                  >
-                                    {isLastQuestion ? 'Valider' : 'Continuer'}
-                                    <ArrowRight className="h-4 w-4" />
-                                  </Button>
+                                  />
                                 </div>
                                 <p className="text-xs text-muted-foreground">
                                   Numéro joignable : {GREFFIO_CONTACT.supportPhone}
@@ -1121,7 +1145,11 @@ export const FormalityWizardPage = () => {
                     <div className="rounded-md border border-border bg-muted p-5">
                       <div className="mb-4 flex items-center gap-2">
                         <Sparkles className="h-5 w-5 text-primary" />
-                        <p className="font-extrabold">{requiresStatutes ? 'Aperçu des statuts générés' : 'Aperçu du dossier déclaratif'}</p>
+                        <p className="font-extrabold">
+                          {requiresStatutes
+                            ? (williamStatutesLoading ? 'Génération des statuts complets…' : 'Statuts complets (modèle William)')
+                            : 'Aperçu du dossier déclaratif'}
+                        </p>
                       </div>
                       <div className="space-y-3">
                         {generatedClauses.map((clause) => (
@@ -1152,10 +1180,14 @@ export const FormalityWizardPage = () => {
                           <FileText className="h-5 w-5 text-primary" />
                           <div>
                             <p className="font-extrabold">{documentPreview.subtitle}</p>
-                            <p className="text-xs text-muted-foreground">Document structuré et prêt à compléter dans l’espace sécurisé.</p>
+                            <p className="text-xs text-muted-foreground">
+                              {documentPreview.isFullStatutes
+                                ? `${documentPreview.clauseCount || 0} articles rédigés — document prêt à relire et exporter.`
+                                : 'Document structuré et prêt à compléter dans l’espace sécurisé.'}
+                            </p>
                           </div>
                         </div>
-                        <div className="max-h-72 space-y-3 overflow-auto pr-2">
+                        <div className={`space-y-3 overflow-auto pr-2 ${documentPreview.isFullStatutes ? 'max-h-[32rem]' : 'max-h-72'}`}>
                           {documentPreview.sections.map((section, index) => (
                             <section key={section.title} className="rounded-md bg-white p-4">
                               <h3 className="font-extrabold">{index + 1}. {section.title}</h3>

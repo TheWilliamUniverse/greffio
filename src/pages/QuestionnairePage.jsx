@@ -67,7 +67,7 @@ const defaultData = {
   validationConfirmed: false,
 };
 
-const fieldClass = 'rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring';
+const fieldClass = 'h-14 rounded-2xl border-2 border-[#d4e2f5] bg-white px-4 text-base font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/12';
 const STEP_TITLES_BY_ID = Object.freeze({
   contact: 'Type de déclarant',
   demarche: 'Type de formalité',

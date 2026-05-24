@@ -6,6 +6,7 @@ import {
   hashRecoveryCode,
   verifyRecoveryCode,
 } from './services/mfaService.js';
+import { revokeTrustedDevicesForUser } from './mfaTrustedDeviceStore.js';
 
 const nowIso = () => new Date().toISOString();
 
@@ -116,6 +117,7 @@ const disableMfa = async (userId) => {
       WHERE id = $1
     `, [userId, updatedAt]);
     await query('DELETE FROM mfa_recovery_codes WHERE user_id = $1', [userId]);
+    await revokeTrustedDevicesForUser(userId);
     return;
   }
   sqlite.prepare(`
@@ -128,6 +130,7 @@ const disableMfa = async (userId) => {
     WHERE id = ?
   `).run(updatedAt, userId);
   sqlite.prepare('DELETE FROM mfa_recovery_codes WHERE user_id = ?').run(userId);
+  await revokeTrustedDevicesForUser(userId);
 };
 
 const getTotpSecret = async (userId, { pending = false } = {}) => {

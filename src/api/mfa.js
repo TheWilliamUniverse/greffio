@@ -1,11 +1,13 @@
 import { runtimeConfig } from '@/config/runtime.js';
 import { getToken } from '@/utils/localStorage.js';
+import { mfaDeviceAuthHeaders } from '@/utils/mfaDevice.js';
 
 const authHeaders = () => {
   const token = getToken();
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...mfaDeviceAuthHeaders(),
   };
 };
 
@@ -70,6 +72,23 @@ export const sendMfaEmailCode = async ({ mfaToken }) => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ mfaToken }),
+  });
+  return parseApi(response);
+};
+
+export const fetchMfaTrustedDeviceStatus = async () => {
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/auth/mfa/trusted-device/status`, {
+    method: 'GET',
+    headers: authHeaders(),
+  });
+  return parseApi(response);
+};
+
+export const trustMfaDevice = async () => {
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/auth/mfa/trust-device`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({}),
   });
   return parseApi(response);
 };

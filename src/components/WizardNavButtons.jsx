@@ -37,14 +37,19 @@ export const WizardNavButtons = ({
       whileHover={continueDisabled ? undefined : { y: -2, scale: 1.02 }}
       whileTap={continueDisabled ? undefined : { scale: 0.98 }}
       className={cn(
-        'group relative inline-flex h-12 min-w-[3rem] touch-manipulation items-center gap-2 overflow-hidden rounded-full bg-primary px-7 text-sm font-bold text-primary-foreground shadow-elevation-md',
+        'group relative inline-flex h-14 min-w-[10rem] touch-manipulation items-center gap-3 overflow-hidden rounded-full bg-primary px-7 text-base font-extrabold text-primary-foreground shadow-[0_14px_36px_rgba(30,77,140,0.28)]',
         'disabled:pointer-events-none disabled:opacity-45',
         !showContinue && 'hidden',
       )}
     >
       <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/0 via-white/18 to-white/0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
       <span className="relative">{continueLabel}</span>
-      <ArrowRight className="relative h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+      <span
+        className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/35 transition-transform duration-200 group-hover:translate-x-1 group-hover:bg-white/26"
+        aria-hidden
+      >
+        <ArrowRight className="h-5 w-5" strokeWidth={2.75} />
+      </span>
     </motion.button>
   </div>
 );

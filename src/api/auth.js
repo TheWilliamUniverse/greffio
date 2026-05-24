@@ -1,4 +1,5 @@
 import { runtimeConfig } from '@/config/runtime.js';
+import { mfaDeviceAuthHeaders } from '@/utils/mfaDevice.js';
 
 const parseApi = async (response) => {
   if (response.ok) return response.json();
@@ -17,7 +18,10 @@ const parseApi = async (response) => {
 export const loginWithApi = async ({ email, password }) => {
   const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/auth/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...mfaDeviceAuthHeaders(),
+    },
     body: JSON.stringify({ email, password }),
   });
   const payload = await parseApi(response);

@@ -28,6 +28,15 @@ const parseResponse = async (response) => {
   throw error;
 };
 
+export const fetchStatutesPreviewDraft = async ({ data = {}, answers = {} } = {}) => {
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/statutes/preview-draft`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data, answers }),
+  });
+  return parseResponse(response);
+};
+
 export const fetchStatutesPreview = async (dossierId) => {
   const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}/statutes/preview`, {
     method: 'GET',

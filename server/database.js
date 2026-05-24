@@ -276,6 +276,20 @@ CREATE TABLE IF NOT EXISTS mfa_recovery_codes (
 `);
 
 sqlite.exec(`
+CREATE TABLE IF NOT EXISTS mfa_trusted_devices (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  device_label TEXT,
+  user_agent TEXT,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  revoked_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+`);
+
+sqlite.exec(`
 CREATE TABLE IF NOT EXISTS push_device_tokens (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,

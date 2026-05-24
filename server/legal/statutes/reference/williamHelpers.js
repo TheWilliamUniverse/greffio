@@ -113,6 +113,9 @@ export const apportsWilliam = (data) => {
       `Apport en numéraire de ${a.contributionCash || 'à compléter'} euros, libéré à hauteur de ${a.liberationRate || '50%'} lors de la constitution${a.liberationAmount ? `, soit ${a.liberationAmount} euros` : ''}.`,
       '',
       a.contributionInKind ? `Apports en nature : ${a.contributionInKind}` : 'Pas d\'apports en nature.',
+      a.isMinor && !a.isMinorEmancipated
+        ? `\nÉtant mineur${a.civility === 'Mme' ? 'e' : ''} non émancipé${a.civility === 'Mme' ? 'e' : ''} au jour de la constitution, la souscription et la libération sont réalisées pour son compte par ses représentants légaux conformément à l’article 382 du Code civil.`
+        : '',
       '',
     ].join('\n');
   }).join('\n');
