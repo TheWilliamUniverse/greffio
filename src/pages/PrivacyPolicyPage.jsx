@@ -24,7 +24,7 @@ export const PrivacyPolicyPage = () => (
       <section className="rounded-md bg-[hsl(var(--greffio-blue))] p-6 text-white shadow-elevation-md md:p-8">
         <p className="text-sm font-bold uppercase text-white/70">Confidentialite</p>
         <h1 className="mt-2 text-3xl font-extrabold">Politique de confidentialite Greffio</h1>
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-white/78">
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-white/92">
           Cette page decrit la collecte, l'utilisation, le partage et la suppression des donnees
           dans l'application Greffio.
         </p>

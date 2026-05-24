@@ -159,7 +159,7 @@ export const TeamPage = () => {
             <section className="rounded-md bg-[hsl(var(--greffio-blue))] p-5 text-white shadow-elevation-md">
               <CheckCircle2 className="mb-4 h-6 w-6 text-[hsl(var(--greffio-citron))]" />
               <h2 className="text-lg font-extrabold">Traçabilité</h2>
-              <p className="mt-2 text-sm leading-6 text-white/78">Chaque échange peut devenir une tâche, une demande de pièce, une note interne ou une validation rattachée au dossier.</p>
+              <p className="mt-2 text-sm leading-6 text-white/92">Chaque échange peut devenir une tâche, une demande de pièce, une note interne ou une validation rattachée au dossier.</p>
             </section>
           </aside>
         </div>

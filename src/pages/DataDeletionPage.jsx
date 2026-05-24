@@ -18,7 +18,7 @@ export const DataDeletionPage = () => (
       <section className="rounded-md bg-[hsl(var(--greffio-blue))] p-6 text-white shadow-elevation-md md:p-8">
         <p className="text-sm font-bold uppercase text-white/70">Suppression des donnees</p>
         <h1 className="mt-2 text-3xl font-extrabold">Demander la suppression de vos donnees</h1>
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-white/78">
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-white/92">
           Vous pouvez demander la suppression d'une partie ou de la totalite de vos donnees sans suppression complete
           du compte, selon faisabilite technique et obligations legales.
         </p>

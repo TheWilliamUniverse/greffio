@@ -78,7 +78,7 @@ export const ResourcesPage = () => {
         <section className="rounded-md bg-[hsl(var(--greffio-citron))] p-8 md:p-10">
           <p className="text-sm font-bold uppercase text-primary">Ressources</p>
           <h1 className="mt-2 max-w-3xl text-4xl font-extrabold text-[hsl(var(--greffio-blue-900))]">Outils utiles pour préparer votre dossier sans omission.</h1>
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-[hsl(var(--greffio-blue-900))]/78">
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-[hsl(var(--greffio-blue-900))]">
             Cette page fournit des estimations et vérifications pratiques, avec des résultats compréhensibles immédiatement.
           </p>
         </section>

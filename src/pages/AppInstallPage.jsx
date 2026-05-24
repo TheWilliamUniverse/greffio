@@ -44,7 +44,7 @@ export const AppInstallPage = () => (
           <h1 className="mt-6 text-3xl font-extrabold leading-tight text-[hsl(var(--greffio-blue-900))] sm:text-4xl lg:text-6xl">
             Une plateforme prête à vivre sur web, mobile et tablette.
           </h1>
-          <p className="mt-5 max-w-xl text-base leading-7 text-[hsl(var(--greffio-blue-900))]/78 sm:text-lg sm:leading-8">
+          <p className="mt-5 max-w-xl text-base leading-7 text-[hsl(var(--greffio-blue-900))] sm:text-lg sm:leading-8">
             Le socle installable est intégré. Les stores nécessitent ensuite les comptes éditeur, les certificats et les clés de signature propres à Greffio.
           </p>
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">

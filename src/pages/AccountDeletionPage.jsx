@@ -25,7 +25,7 @@ export const AccountDeletionPage = () => (
       <section className="rounded-md bg-[hsl(var(--greffio-blue))] p-6 text-white shadow-elevation-md md:p-8">
         <p className="text-sm font-bold uppercase text-white/70">Suppression de compte</p>
         <h1 className="mt-2 text-3xl font-extrabold">Demander la suppression de votre compte Greffio</h1>
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-white/78">
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-white/92">
           Cette page est destinee aux utilisateurs qui souhaitent supprimer leur compte et les donnees
           associees.
         </p>

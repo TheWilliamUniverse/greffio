@@ -293,7 +293,7 @@ export const SignupPage = () => {
           </div>
           <div className="rounded-md bg-[hsl(var(--greffio-blue))] p-5 text-white shadow-elevation-md">
             <p className="text-sm font-bold">Équipe Greffio</p>
-            <p className="mt-2 text-sm leading-6 text-white/78">L’équipe Greffio peut demander une pièce, commenter un document et suivre l’avancement directement dans votre espace.</p>
+            <p className="mt-2 text-sm leading-6 text-white/92">L’équipe Greffio peut demander une pièce, commenter un document et suivre l’avancement directement dans votre espace.</p>
           </div>
         </aside>
       </main>
