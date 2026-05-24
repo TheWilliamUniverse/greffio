@@ -30,12 +30,13 @@ import {
 } from '@/api/questionnaire.js';
 import { lookupCompanyBySiren } from '@/api/company.js';
 import { createDossier } from '@/api/dossiers.js';
-import { getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.js';
+import { clearCurrentDossierId, getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.js';
 import { runtimeConfig } from '@/config/runtime.js';
 import { isEiLikeFormality, isStatutesSupportedForm } from '@/config/formalities.js';
 import { AssociatesMinorPanel } from '@/components/questionnaire/AssociatesMinorPanel.jsx';
 import { BirthDateMinorEncouragement } from '@/components/BirthDateMinorEncouragement.jsx';
 import { validateDirectorEligibility } from '@/config/minorAssociateRules.js';
+import { syncDirigeantFromAssociates } from '@/utils/officerFromAssociates.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { fetchUserProfile } from '@/api/profile.js';
 import { contactDetailsFromUser } from '@/utils/userProfile.js';
@@ -186,8 +187,11 @@ export const QuestionnairePage = () => {
   const lastAutoLookup = useRef('');
   const autosaveRequestId = useRef(0);
 
-  const ensureDossier = async () => {
-    if (dossierId) return dossierId;
+  const ensureDossier = async ({ forceNew = false } = {}) => {
+    if (!forceNew) {
+      const existing = dossierId || getCurrentDossierId();
+      if (existing) return existing;
+    }
     const created = await createDossier({
       userId: null,
       companyName: formData.denomination || 'Projet Greffio',
@@ -202,34 +206,50 @@ export const QuestionnairePage = () => {
     return id;
   };
 
+  const syncDossierIdFromSave = (result, fallbackId) => {
+    const resolvedId = result?.dossier?.id || fallbackId || null;
+    if (resolvedId) {
+      saveCurrentDossierId(resolvedId);
+      setDossierId(resolvedId);
+    }
+    return resolvedId;
+  };
+
   const persistQuestionnaire = async ({
     dataPatch,
     progressPercent,
     allowRecovery = true,
   }) => {
-    let targetId = dossierId || await ensureDossier();
+    let targetId = dossierId || getCurrentDossierId();
+    if (!targetId) {
+      targetId = await ensureDossier();
+    }
     if (!targetId) {
       const error = new Error('DOSSIER_MISSING');
       error.code = 'DOSSIER_MISSING';
       throw error;
     }
     try {
-      return await patchQuestionnaireState({
+      const result = await patchQuestionnaireState({
         dossierId: targetId,
         dataPatch,
         progressPercent,
       });
+      const resolvedId = syncDossierIdFromSave(result, targetId);
+      return { ...result, dossierId: resolvedId };
     } catch (error) {
       if (allowRecovery && (error?.status === 403 || error?.status === 404)) {
-        saveCurrentDossierId(null);
+        clearCurrentDossierId();
         setDossierId(null);
-        targetId = await ensureDossier();
+        targetId = await ensureDossier({ forceNew: true });
         if (targetId) {
-          return await patchQuestionnaireState({
+          const result = await patchQuestionnaireState({
             dossierId: targetId,
             dataPatch,
             progressPercent,
           });
+          const resolvedId = syncDossierIdFromSave(result, targetId);
+          return { ...result, dossierId: resolvedId };
         }
       }
       throw error;
@@ -315,7 +335,8 @@ export const QuestionnairePage = () => {
             state = await getQuestionnaireState(currentDossierId);
           } catch (loadError) {
             if (loadError?.status === 403 || loadError?.status === 404) {
-              saveCurrentDossierId(null);
+              clearCurrentDossierId();
+              setDossierId(null);
               currentDossierId = null;
             } else {
               throw loadError;
@@ -470,11 +491,11 @@ export const QuestionnairePage = () => {
     }
     try {
       setAutosaveState('saving');
-      await persistQuestionnaire({
+      const saveResult = await persistQuestionnaire({
         dataPatch: step.id === 'contact' ? contactPayload : formData,
         progressPercent: progress,
       });
-      const activeDossierId = dossierId || getCurrentDossierId();
+      const activeDossierId = saveResult?.dossierId || getCurrentDossierId();
       if (!activeDossierId) {
         setStepError('Impossible de créer le dossier. Rechargez la page.');
         setAutosaveState('error');
@@ -490,9 +511,15 @@ export const QuestionnairePage = () => {
     } catch (error) {
       const apiError = error?.payload?.error || error?.message;
       if (apiError === 'DOSSIER_FORBIDDEN') {
-        setStepError('Ce dossier n’est pas rattaché à votre compte. Rechargez la page ou créez un nouveau dossier.');
+        clearCurrentDossierId();
+        setDossierId(null);
+        setStepError('Ce dossier n’est pas rattaché à votre compte. Réessayez : un nouveau dossier sera créé.');
       } else if (apiError === 'IDENTITY_VERIFICATION_REQUIRED') {
         setStepError("La vérification d'identité sera demandée avant le dépôt officiel, pas à cette étape.");
+      } else if (apiError === 'QUESTIONNAIRE_SAVE_FAILED') {
+        setStepError(error?.payload?.message || "L'enregistrement a échoué côté serveur. Réessayez dans un instant.");
+      } else if (apiError === 'AUTH_TOKEN_MISSING' || error?.status === 401) {
+        setStepError('Session expirée. Reconnectez-vous puis réessayez.');
       } else {
         setStepError("Une erreur est survenue pendant l'enregistrement. Réessayez.");
       }
@@ -663,11 +690,15 @@ export const QuestionnairePage = () => {
           <AssociatesMinorPanel
             value={formData.associates}
             includeDirector={false}
-            onChange={(patch) => setFormData((current) => ({
-              ...current,
-              ...patch,
-              repartition: patch.associesSummary || current.repartition,
-            }))}
+            onChange={(patch) => setFormData((current) => {
+              const associates = patch.associates ?? current.associates;
+              return {
+                ...current,
+                ...patch,
+                dirigeant: syncDirigeantFromAssociates(associates, current.dirigeant),
+                repartition: patch.associesSummary || current.repartition,
+              };
+            })}
           />
         </div>
       );

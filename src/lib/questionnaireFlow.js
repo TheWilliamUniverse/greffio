@@ -259,7 +259,7 @@ export const QUESTIONNAIRE_FLOW = [
   {
     id: 'gouvernance',
     title: 'Associés et dirigeant',
-    description: 'Personnes physiques ou morales. Pour un associé mineur, précisez s’il est légalement émancipé.',
+    description: 'Personnes physiques ou morales (une PM peut être Présidente ou DG). Pour un associé mineur, précisez s’il est légalement émancipé.',
     fields: [
       {
         key: 'associates',
@@ -273,7 +273,7 @@ export const QUESTIONNAIRE_FLOW = [
         label: 'Président / dirigeant',
         type: 'text',
         required: true,
-        placeholder: 'Nom et prénom du dirigeant',
+        placeholder: 'Renseigné automatiquement si un associé est Président — sinon nom du dirigeant',
         condition: (data) => !isEiLikeFormality(data),
       },
     ],

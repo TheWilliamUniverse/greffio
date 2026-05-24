@@ -1,3 +1,5 @@
+import { isOfficerRole } from '@/utils/officerFromAssociates.js';
+
 export const ASSOCIATE_TYPES = Object.freeze({
   PERSON: 'personne_physique',
   COMPANY: 'personne_morale',
@@ -12,11 +14,15 @@ export const buildAssociateDisplayName = (associate = {}) => {
 
 export const isAssociateEntryComplete = (associate = {}) => {
   if (associate.associateType === ASSOCIATE_TYPES.COMPANY) {
-    return Boolean(
+    const base = Boolean(
       String(associate.companyName || '').trim()
       && String(associate.siren || '').trim()
       && String(associate.address || '').trim(),
     );
+    if (isOfficerRole(associate.roleLabel)) {
+      return base && String(associate.representativeName || '').trim();
+    }
+    return base;
   }
   return Boolean(String(associate.firstName || '').trim() && String(associate.lastName || '').trim());
 };
@@ -25,7 +31,8 @@ export const buildAssociatesSummary = (associates = []) => associates
   .filter((a) => isAssociateEntryComplete(a))
   .map((a) => {
     const name = buildAssociateDisplayName(a);
-    const parts = [name, a.address, a.share ? `${a.share} %` : ''].filter(Boolean);
+    const role = a.roleLabel && !/^associé/i.test(a.roleLabel) ? ` (${a.roleLabel})` : '';
+    const parts = [name + role, a.address, a.share ? `${a.share} %` : ''].filter(Boolean);
     return parts.join(', ');
   })
   .join('\n');

@@ -1,6 +1,7 @@
 import { DIRECTOR_LABELS, usesActions } from '../legal/statutes/shared/formatting.js';
 import { resolveWilliamObjetSocialBullets } from '../legal/statutes/reference/williamObjetSocialCatalog.js';
 import { isLegallyMinor } from './minorAssociateRules.js';
+import { resolveOfficersFromAssociates } from './officerFromAssociates.js';
 
 const pick = (...values) => {
   for (const value of values) {
@@ -178,6 +179,13 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
     'La société exerce toute activité compatible avec son objet social, directement ou indirectement.',
   );
   const associates = buildAssociates(questionnaire, user, legalForm);
+  const officersFromAssociates = resolveOfficersFromAssociates(questionnaire.associates || [], {
+    fallbackPresident: pick(questionnaire.president, director),
+    fallbackDirectorGeneral: pick(questionnaire.directeurGeneral, questionnaire.directeursGeneraux, 'Aucun'),
+  });
+  const presidentLabel = officersFromAssociates.president;
+  const directeurGeneralLabel = officersFromAssociates.directeurGeneral;
+  const directorResolved = pick(officersFromAssociates.president, director);
   const nombreTitres = pick(questionnaire.nombreActions, questionnaire.nombreTitres, questionnaire.shareCount, '1 000');
   const valeurNominale = pick(
     questionnaire.shareNominalValue,
@@ -232,10 +240,10 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
     repartition,
     capitalRepartitionLines,
     associates,
-    director,
-    president: pick(questionnaire.president, director),
+    director: directorResolved,
+    president: presidentLabel,
     directorRole: directorLabel,
-    directeurGeneral: pick(questionnaire.directeurGeneral, questionnaire.directeursGeneraux, 'Aucun'),
+    directeurGeneral: directeurGeneralLabel,
     beneficiairesEffectifs: pick(questionnaire.beneficiairesEffectifs, questionnaire.beneficialOwners, director),
     directeursGeneraux: pick(questionnaire.directeursGeneraux, 'Aucun'),
     apportsNumeraireTotal: pick(questionnaire.apportsNumeraireTotal, capitalFormatted),

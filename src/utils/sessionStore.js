@@ -1,7 +1,10 @@
 const CURRENT_DOSSIER_KEY = 'greffio_current_dossier_id';
 
 export const saveCurrentDossierId = (dossierId) => {
-  if (!dossierId) return;
+  if (!dossierId) {
+    clearCurrentDossierId();
+    return;
+  }
   try {
     window.localStorage.setItem(CURRENT_DOSSIER_KEY, dossierId);
   } catch (_error) {

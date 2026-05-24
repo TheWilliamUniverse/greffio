@@ -68,6 +68,8 @@ export const normalizeAssociatesFromQuestionnaire = (questionnaire = {}) => {
         label: buildAssociateLabel(entry),
         associateType: 'personne_morale',
         companyName: entry.companyName || '',
+        representativeName: entry.representativeName || '',
+        siren: entry.siren || '',
         firstName: '',
         lastName: '',
         birthDate: '',
@@ -108,6 +110,9 @@ export const getMinorDocumentRequirements = (questionnaire = {}) => {
 const namesMatch = (associate, directorName) => {
   const director = normalizeName(directorName);
   if (!director) return false;
+  if (associate.associateType === 'personne_morale') {
+    return false;
+  }
   const candidates = [
     normalizeName(associate.label),
     normalizeName(`${associate.firstName} ${associate.lastName}`),

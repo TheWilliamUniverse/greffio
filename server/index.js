@@ -1482,20 +1482,24 @@ app.post('/api/dossiers/:dossierId/complete-step', requireAuth, async (req, res)
       reference_dossier: updated.reference || updated.id,
       lien_espace_client: `${appUrl}/dashboard`,
     };
-    await sendDossierEmailById({
-      templateId: 'welcome',
-      dossierId: updated.id,
-      userId: req.auth.sub,
-      toEmail: mergedData.email,
-      variables: baseVars,
-    });
-    await sendDossierEmailById({
-      templateId: 'contact_confirmed',
-      dossierId: updated.id,
-      userId: req.auth.sub,
-      toEmail: mergedData.email,
-      variables: baseVars,
-    });
+    try {
+      await sendDossierEmailById({
+        templateId: 'welcome',
+        dossierId: updated.id,
+        userId: req.auth.sub,
+        toEmail: mergedData.email,
+        variables: baseVars,
+      });
+      await sendDossierEmailById({
+        templateId: 'contact_confirmed',
+        dossierId: updated.id,
+        userId: req.auth.sub,
+        toEmail: mergedData.email,
+        variables: baseVars,
+      });
+    } catch (emailError) {
+      console.error('[complete-step] contact emails failed:', emailError?.message || emailError);
+    }
   }
 
   return res.json({

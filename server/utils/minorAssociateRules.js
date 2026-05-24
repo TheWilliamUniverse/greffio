@@ -106,6 +106,9 @@ export const getMinorDocumentRequirements = (questionnaire = {}) => {
 const namesMatch = (associate, directorName) => {
   const director = normalizeName(directorName);
   if (!director) return false;
+  if (associate.associateType === 'personne_morale') {
+    return false;
+  }
   const candidates = [
     normalizeName(associate.label),
     normalizeName(`${associate.firstName} ${associate.lastName}`),

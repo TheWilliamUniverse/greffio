@@ -16,6 +16,10 @@ import {
   buildAssociateDisplayName,
   buildAssociatesSummary,
 } from '@/utils/associateEntry.js';
+import {
+  ASSOCIATE_ROLE_OPTIONS,
+  isOfficerRole,
+} from '@/utils/officerFromAssociates.js';
 
 const fieldClass = 'h-12 rounded-xl border-2 border-[#d4e2f5] bg-white px-3 text-sm font-medium focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/12';
 
@@ -35,8 +39,6 @@ const emptyAssociate = () => ({
   legalRepresentatives: '',
 });
 
-const ROLE_OPTIONS = ['Associé', 'Associée', 'Président désigné', 'Directeur Général'];
-
 export const AssociatesMinorPanel = ({
   value = [],
   onChange,
@@ -55,9 +57,6 @@ export const AssociatesMinorPanel = ({
         merged.isMinorEmancipated = false;
         merged.legalRepresentatives = '';
         merged.birthDate = '';
-        if (!['Associé', 'Associée'].includes(merged.roleLabel)) {
-          merged.roleLabel = 'Associé';
-        }
       } else {
         const minor = isLegallyMinor(merged.birthDate);
         if (!minor) {
@@ -104,15 +103,19 @@ export const AssociatesMinorPanel = ({
     <div className="space-y-4">
       <QuestionnaireNotice variant="info" title="Associés de la société">
         Ajoutez chaque associé en <strong>personne physique</strong> ou <strong>personne morale</strong>.
-        Pour un mineur, indiquez s&apos;il est légalement émancipé ou représenté par ses parents/tuteur.
+        Une personne morale peut être <strong>Présidente</strong> ou <strong>Directeur Général</strong> : indiquez alors le représentant légal qui signera.
+        Pour un mineur, précisez s&apos;il est légalement émancipé ou représenté par ses parents/tuteur.
       </QuestionnaireNotice>
 
       {associates.map((associate, index) => {
         const isCompany = associate.associateType === ASSOCIATE_TYPES.COMPANY;
         const minor = !isCompany && isLegallyMinor(associate.birthDate);
-        const roleOptions = minor && !associate.isMinorEmancipated
-          ? ['Associé', 'Associée']
-          : ROLE_OPTIONS;
+        const roleOptions = isCompany
+          ? ASSOCIATE_ROLE_OPTIONS.COMPANY
+          : (minor && !associate.isMinorEmancipated
+            ? ['Associé', 'Associée']
+            : ASSOCIATE_ROLE_OPTIONS.PERSON);
+        const needsRepresentative = isCompany && isOfficerRole(associate.roleLabel);
         const displayName = buildAssociateDisplayName(associate) || `Associé ${index + 1}`;
         const isExpanded = expandedId === associate.id || associates.length === 1;
 
@@ -188,12 +191,12 @@ export const AssociatesMinorPanel = ({
                       />
                     </div>
                     <div>
-                      <Label>Représentant légal</Label>
+                      <Label>{needsRepresentative ? 'Représentant légal *' : 'Représentant légal'}</Label>
                       <Input
                         className={fieldClass}
                         value={associate.representativeName || ''}
                         onChange={(e) => updateAssociate(index, { representativeName: e.target.value })}
-                        placeholder="Nom du signataire"
+                        placeholder="Nom du signataire (personne physique)"
                       />
                     </div>
                     <div className="sm:col-span-2">
@@ -220,11 +223,16 @@ export const AssociatesMinorPanel = ({
                         value={associate.roleLabel || 'Associé'}
                         onChange={(e) => updateAssociate(index, { roleLabel: e.target.value })}
                       >
-                        {['Associé', 'Associée'].map((role) => (
+                        {roleOptions.map((role) => (
                           <option key={role} value={role}>{role}</option>
                         ))}
                       </select>
                     </div>
+                    {needsRepresentative && !String(associate.representativeName || '').trim() ? (
+                      <p className="sm:col-span-2 text-sm text-amber-800">
+                        Président ou Directeur Général : le nom du représentant légal est requis pour les statuts.
+                      </p>
+                    ) : null}
                   </div>
                 ) : (
                   <div className="grid gap-3 sm:grid-cols-2">
