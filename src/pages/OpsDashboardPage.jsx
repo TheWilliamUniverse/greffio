@@ -9,6 +9,8 @@ import {
   getOpsDossiers,
   getOpsDossiersRisk,
   getOpsPayments,
+  getOpsResourceOrders,
+  updateOpsResourceOrderStatus,
   updateOpsAssignment,
 } from '@/api/ops.js';
 
@@ -38,19 +40,22 @@ export const OpsDashboardPage = () => {
   const [opsFilter, setOpsFilter] = useState('all');
   const [savingAssignment, setSavingAssignment] = useState(false);
   const [antiRejectQueue, setAntiRejectQueue] = useState([]);
+  const [resourceOrders, setResourceOrders] = useState([]);
 
   const loadData = async () => {
     setLoading(true);
     setError('');
     try {
-      const [dossiersPayload, paymentsPayload, riskPayload] = await Promise.all([
+      const [dossiersPayload, paymentsPayload, riskPayload, resourceOrdersPayload] = await Promise.all([
         getOpsDossiers(),
         getOpsPayments(),
         getOpsDossiersRisk(),
+        getOpsResourceOrders().catch(() => ({ orders: [] })),
       ]);
       setDossiers(dossiersPayload.dossiers || []);
       setPayments(paymentsPayload.payments || []);
       setAntiRejectQueue(riskPayload.queue || []);
+      setResourceOrders(resourceOrdersPayload.orders || []);
     } catch (_e) {
       setError("Impossible de charger les données Ops.");
     } finally {
@@ -150,6 +155,72 @@ export const OpsDashboardPage = () => {
         <section className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
           <p className="text-sm font-semibold text-muted-foreground">Volume encaissé</p>
           <p className="mt-2 text-2xl font-extrabold text-foreground">{fmtEuros(paidVolume)}</p>
+        </section>
+
+        <section id="resource-orders" className="rounded-md border border-border bg-white shadow-elevation-sm">
+          <div className="border-b border-border p-4">
+            <h2 className="text-lg font-extrabold">Commandes documents / ressources</h2>
+            <p className="mt-1 text-xs text-muted-foreground">File manuelle OPS — Kbis, copies certifiées, packs.</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/50 text-left">
+                  <th className="px-4 py-2 font-semibold">Service</th>
+                  <th className="px-4 py-2 font-semibold">Entreprise</th>
+                  <th className="px-4 py-2 font-semibold">Statut</th>
+                  <th className="px-4 py-2 font-semibold">Montant</th>
+                  <th className="px-4 py-2 font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {resourceOrders.length ? resourceOrders.map((order) => (
+                  <tr key={order.id} className="border-b border-border last:border-b-0">
+                    <td className="px-4 py-3">
+                      <p className="font-semibold">{order.serviceTitle}</p>
+                      <p className="text-xs text-muted-foreground">{order.id}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      {order.companyName || '—'}
+                      {order.siren && <p className="text-xs text-muted-foreground">SIREN {order.siren}</p>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={String(order.status || '').toUpperCase()} />
+                      <p className="mt-1 text-xs text-muted-foreground">{order.fulfillmentMode}</p>
+                    </td>
+                    <td className="px-4 py-3">{fmtEuros(order.priceTtcCents)}</td>
+                    <td className="px-4 py-3">
+                      {order.status === 'paid' && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void updateOpsResourceOrderStatus(order.id, { status: 'processing' }).then(loadData)}
+                        >
+                          Traiter
+                        </Button>
+                      )}
+                      {order.status === 'processing' && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => void updateOpsResourceOrderStatus(order.id, { status: 'completed' }).then(loadData)}
+                        >
+                          Terminer
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
+                      Aucune commande ressource pour le moment.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <section className="rounded-md border border-border bg-white shadow-elevation-sm">

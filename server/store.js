@@ -725,6 +725,7 @@ const getAllPayments = async () => {
       SELECT
         id,
         dossier_id AS "dossierId",
+        resource_order_id AS "resourceOrderId",
         user_id AS "userId",
         offer_code AS "offerCode",
         amount_total_cents AS "amountTotalCents",
@@ -900,7 +901,8 @@ const transitionDossierStatus = async ({
 const upsertPayment = async (payload) => {
   const payment = {
     id: payload.id || randomUUID(),
-    dossierId: payload.dossierId,
+    dossierId: payload.dossierId || null,
+    resourceOrderId: payload.resourceOrderId || null,
     userId: payload.userId || null,
     offerCode: payload.offerCode,
     amountTotalCents: payload.amountTotalCents,
@@ -920,14 +922,15 @@ const upsertPayment = async (payload) => {
   if (hasPostgres) {
     await query(`
       INSERT INTO payments (
-        id, dossier_id, user_id, offer_code, amount_total_cents, amount_service_cents, amount_legal_fees_cents,
+        id, dossier_id, resource_order_id, user_id, offer_code, amount_total_cents, amount_service_cents, amount_legal_fees_cents,
         currency, status, provider, provider_payment_id, provider_payload_json, created_at, paid_at, failed_at,
         refunded_at, updated_at
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18
       )
       ON CONFLICT (id) DO UPDATE SET
         dossier_id=EXCLUDED.dossier_id,
+        resource_order_id=EXCLUDED.resource_order_id,
         user_id=EXCLUDED.user_id,
         offer_code=EXCLUDED.offer_code,
         amount_total_cents=EXCLUDED.amount_total_cents,
@@ -945,6 +948,7 @@ const upsertPayment = async (payload) => {
     `, [
       payment.id,
       payment.dossierId,
+      payment.resourceOrderId,
       payment.userId,
       payment.offerCode,
       payment.amountTotalCents,
@@ -965,16 +969,17 @@ const upsertPayment = async (payload) => {
     sqlite
       .prepare(`
         INSERT INTO payments (
-          id, dossier_id, user_id, offer_code, amount_total_cents, amount_service_cents, amount_legal_fees_cents,
+          id, dossier_id, resource_order_id, user_id, offer_code, amount_total_cents, amount_service_cents, amount_legal_fees_cents,
           currency, status, provider, provider_payment_id, provider_payload_json, created_at, paid_at, failed_at,
           refunded_at, updated_at
         ) VALUES (
-          @id, @dossierId, @userId, @offerCode, @amountTotalCents, @amountServiceCents, @amountLegalFeesCents,
+          @id, @dossierId, @resourceOrderId, @userId, @offerCode, @amountTotalCents, @amountServiceCents, @amountLegalFeesCents,
           @currency, @status, @provider, @providerPaymentId, @providerPayloadJson, @createdAt, @paidAt, @failedAt,
           @refundedAt, @updatedAt
         )
         ON CONFLICT(id) DO UPDATE SET
           dossier_id=excluded.dossier_id,
+          resource_order_id=excluded.resource_order_id,
           user_id=excluded.user_id,
           offer_code=excluded.offer_code,
           amount_total_cents=excluded.amount_total_cents,
@@ -1005,6 +1010,7 @@ const getPaymentByProviderId = async (providerPaymentId) => {
       SELECT
         id,
         dossier_id AS "dossierId",
+        resource_order_id AS "resourceOrderId",
         user_id AS "userId",
         offer_code AS "offerCode",
         amount_total_cents AS "amountTotalCents",
@@ -1031,6 +1037,7 @@ const getPaymentByProviderId = async (providerPaymentId) => {
       SELECT
         id,
         dossier_id AS dossierId,
+        resource_order_id AS resourceOrderId,
         user_id AS userId,
         offer_code AS offerCode,
         amount_total_cents AS amountTotalCents,

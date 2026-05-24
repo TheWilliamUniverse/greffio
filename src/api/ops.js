@@ -98,6 +98,25 @@ export const createOpsNote = async ({
   return parseResponse(response);
 };
 
+export const getOpsResourceOrders = async ({ status } = {}) => {
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/ops/resource-orders?${params.toString()}`, {
+    method: 'GET',
+    headers: authHeaders(),
+  });
+  return parseResponse(response);
+};
+
+export const updateOpsResourceOrderStatus = async (orderId, { status, notes }) => {
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/ops/resource-orders/${orderId}`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify({ status, notes }),
+  });
+  return parseResponse(response);
+};
+
 export const getOpsEmailEvents = async ({
   limit = 100,
   templateId,

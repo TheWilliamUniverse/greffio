@@ -42,6 +42,18 @@ import {
   ensureDossierDocuments,
 } from './store.js';
 import { computePaymentAmounts } from './pricing.js';
+import {
+  getResourceConfig,
+  getResourceOrderForUser,
+  listOpsResourceOrders,
+  listResourceServices,
+  listUserResourceOrders,
+  searchResourceCatalog,
+  submitResourceOrder,
+  updateOpsResourceOrderStatus,
+} from './resourcesApi.js';
+import { createResourceOrderCheckout } from './resourcesCheckout.js';
+import { handleResourceOrderPaymentPaid } from './services/resourcePaymentWebhook.js';
 import { createMolliePayment, isMolliePaidStatus, retrieveMolliePayment } from './mollie.js';
 import {
   createGoCardlessCheckout,
@@ -364,6 +376,101 @@ const companyLookupResponder = async (req, res) => {
 
 app.get('/api/company-search', companyLookupPublicLimiter, companyLookupResponder);
 app.get('/api/public/company-search', companyLookupPublicLimiter, companyLookupResponder);
+
+app.get('/api/resources/config', (_req, res) => {
+  return res.json({ ok: true, ...getResourceConfig() });
+});
+
+app.get('/api/resources/services', (_req, res) => {
+  return res.json({ ok: true, services: listResourceServices() });
+});
+
+app.get('/api/resources/search', (req, res) => {
+  const query = String(req.query?.q || '').trim();
+  if (!query) {
+    return res.json({ ok: true, query: '', total: 0, groups: [], flat: [] });
+  }
+  const result = searchResourceCatalog(query);
+  return res.json({ ok: true, ...result });
+});
+
+app.get('/api/resources/orders', requireAuth, async (req, res) => {
+  const orders = await listUserResourceOrders(req.auth.sub);
+  return res.json({ ok: true, orders });
+});
+
+app.get('/api/resources/orders/:orderId', requireAuth, async (req, res) => {
+  try {
+    const order = await getResourceOrderForUser({
+      orderId: req.params.orderId,
+      userId: req.auth.sub,
+      isOps: isInternalRole(req.auth?.role),
+    });
+    return res.json({ ok: true, order });
+  } catch (error) {
+    return res.status(error?.status || 500).json({ ok: false, error: error?.message || 'ORDER_ERROR' });
+  }
+});
+
+app.post('/api/resources/orders', requireAuth, async (req, res) => {
+  try {
+    const user = await getUserById(req.auth.sub);
+    const order = await submitResourceOrder({
+      userId: req.auth.sub,
+      body: req.body,
+      appUrl,
+      customerName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '',
+    });
+    return res.status(201).json({ ok: true, order, config: getResourceConfig() });
+  } catch (error) {
+    if (error?.status === 404) {
+      return res.status(404).json({ ok: false, error: 'SERVICE_NOT_FOUND' });
+    }
+    return res.status(400).json({ ok: false, error: error?.message || 'ORDER_ERROR' });
+  }
+});
+
+app.post('/api/resources/orders/:orderId/checkout', requireAuth, async (req, res) => {
+  try {
+    const payload = await createResourceOrderCheckout({
+      orderId: req.params.orderId,
+      userId: req.auth.sub,
+      appUrl,
+      mollieWebhookUrl,
+      gocardlessWebhookUrl,
+    });
+    return res.json({ ok: true, ...payload });
+  } catch (error) {
+    return res.status(error?.status || 500).json({
+      ok: false,
+      error: error?.message || 'CHECKOUT_ERROR',
+    });
+  }
+});
+
+app.get('/api/ops/resource-orders', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
+  const status = req.query?.status ? String(req.query.status) : undefined;
+  const orders = await listOpsResourceOrders({ status });
+  return res.json({ ok: true, orders });
+});
+
+app.patch('/api/ops/resource-orders/:orderId', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
+  const { status, notes } = req.body || {};
+  if (!status) {
+    return res.status(400).json({ ok: false, error: 'STATUS_REQUIRED' });
+  }
+  try {
+    const order = await updateOpsResourceOrderStatus({
+      orderId: req.params.orderId,
+      status,
+      actorId: req.auth.sub,
+      notes,
+    });
+    return res.json({ ok: true, order });
+  } catch (error) {
+    return res.status(error?.status || 500).json({ ok: false, error: error?.message || 'UPDATE_ERROR' });
+  }
+});
 
 app.get('/api/observability/company-lookup', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), (_req, res) => {
   return res.json({
@@ -2252,14 +2359,17 @@ const handleMollieWebhook = async (req, res) => {
     payment.providerPayload = providerState.raw;
     await upsertPayment(payment);
 
-    await transitionDossierStatus({
-      dossierId: payment.dossierId,
-      nextStatus: DOSSIER_STATUSES.PAYMENT_CONFIRMED,
-      actorType: 'webhook',
-      actorRole: ROLE.WEBHOOK,
-      reason: 'mollie_paid',
-      metadata: { providerPaymentId, paymentConfirmed: true },
-    });
+    const resourceHandled = await handleResourceOrderPaymentPaid(payment);
+    if (!resourceHandled?.handled && payment.dossierId) {
+      await transitionDossierStatus({
+        dossierId: payment.dossierId,
+        nextStatus: DOSSIER_STATUSES.PAYMENT_CONFIRMED,
+        actorType: 'webhook',
+        actorRole: ROLE.WEBHOOK,
+        reason: 'mollie_paid',
+        metadata: { providerPaymentId, paymentConfirmed: true },
+      });
+    }
   }
 
   return res.json({ ok: true, paymentStatus: payment.status });
@@ -2331,14 +2441,17 @@ const handleGoCardlessWebhook = async (req, res) => {
       payment.providerPayload = providerState.raw || event.raw;
       await upsertPayment(payment);
 
-      await transitionDossierStatus({
-        dossierId: payment.dossierId,
-        nextStatus: DOSSIER_STATUSES.PAYMENT_CONFIRMED,
-        actorType: 'webhook',
-        actorRole: ROLE.WEBHOOK,
-        reason: 'gocardless_paid',
-        metadata: { providerPaymentId, paymentConfirmed: true },
-      });
+      const resourceHandled = await handleResourceOrderPaymentPaid(payment);
+      if (!resourceHandled?.handled && payment.dossierId) {
+        await transitionDossierStatus({
+          dossierId: payment.dossierId,
+          nextStatus: DOSSIER_STATUSES.PAYMENT_CONFIRMED,
+          actorType: 'webhook',
+          actorRole: ROLE.WEBHOOK,
+          reason: 'gocardless_paid',
+          metadata: { providerPaymentId, paymentConfirmed: true },
+        });
+      }
     }
   }
 

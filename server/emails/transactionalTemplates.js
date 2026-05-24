@@ -665,6 +665,66 @@ const transactionalTemplates = Object.freeze({
       ${ctaButton('Ouvrir OPS', '{{dashboardUrl}}')}
     `,
   }),
+
+  resource_order_received: defineTemplate({
+    subject: 'Demande enregistrée — {{service_title}}',
+    tags: ['resource_order', 'customer'],
+    requiredVariables: ['firstName', 'service_title', 'order_id', 'price_label', 'resources_url', 'payment_url'],
+    preheader: 'Votre demande de document a bien été enregistrée.',
+    textLines: [
+      'Bonjour {{firstName}},',
+      '',
+      'Nous avons bien enregistré votre demande : {{service_title}}.',
+      'Référence commande : {{order_id}}',
+      'Montant : {{price_label}}',
+      '',
+      'Finalisez le paiement si nécessaire : {{payment_url}}',
+      'Retour aux ressources : {{resources_url}}',
+    ],
+    bodyHtml: `
+      <p style="margin:0 0 16px;">Bonjour <strong>{{firstName}}</strong>,</p>
+      <p style="margin:0 0 16px;">Votre demande <strong>{{service_title}}</strong> est enregistrée (réf. {{order_id}}).</p>
+      <p style="margin:0 0 16px;">Montant indicatif : <strong>{{price_label}}</strong></p>
+      ${ctaButton('Finaliser ma commande', '{{payment_url}}')}
+      <p style="margin:16px 0 0;font-size:14px;color:#64748b;"><a href="{{resources_url}}">Retour aux ressources Greffio</a></p>
+    `,
+  }),
+
+  resource_order_internal: defineTemplate({
+    subject: 'Nouvelle commande ressource — {{service_title}}',
+    tags: ['ops', 'resource_order'],
+    requiredVariables: ['order_id', 'service_title', 'contact_email', 'price_label', 'status'],
+    preheader: 'Commande document/service Greffio.',
+    textLines: [
+      'Nouvelle commande ressource Greffio.',
+      'ID : {{order_id}}',
+      'Service : {{service_title}}',
+      'Entreprise : {{company_name}}',
+      'SIREN : {{siren}}',
+      'Email client : {{contact_email}}',
+      'Montant : {{price_label}}',
+      'Statut : {{status}}',
+      'Mode : {{fulfillment_mode}}',
+      'Notes : {{notes}}',
+      '',
+      'File OPS : {{ops_url}}',
+    ],
+    bodyHtml: `
+      <p style="margin:0 0 16px;"><strong>Nouvelle commande ressource</strong></p>
+      <ul style="margin:0 0 16px;padding-left:20px;font-size:14px;line-height:1.6;">
+        <li>ID : {{order_id}}</li>
+        <li>Service : {{service_title}}</li>
+        <li>Entreprise : {{company_name}}</li>
+        <li>SIREN : {{siren}}</li>
+        <li>Email : {{contact_email}}</li>
+        <li>Montant : {{price_label}}</li>
+        <li>Statut : {{status}}</li>
+        <li>Traitement : {{fulfillment_mode}}</li>
+      </ul>
+      <p style="margin:0 0 16px;font-size:14px;">Notes : {{notes}}</p>
+      ${ctaButton('Ouvrir la file OPS', '{{ops_url}}')}
+    `,
+  }),
 });
 
 export { transactionalTemplates };

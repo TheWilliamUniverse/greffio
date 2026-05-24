@@ -39,6 +39,18 @@ const computePaymentAmounts = (offerCode) => {
   };
 };
 
+const computeResourcePaymentAmounts = (priceTtcCents) => {
+  const serviceCents = Math.max(0, Math.round(Number(priceTtcCents) || 0));
+  return {
+    normalizedOffer: 'resource-document',
+    amountServiceCents: serviceCents,
+    amountLegalFeesCents: 0,
+    amountTotalCents: serviceCents,
+    currency: 'EUR',
+  };
+};
+
 export {
   computePaymentAmounts,
+  computeResourcePaymentAmounts,
 };

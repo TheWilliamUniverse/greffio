@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button.jsx';
 export const PaymentVerificationPage = () => {
   const [searchParams] = useSearchParams();
   const dossierId = searchParams.get('dossierId');
+  const resourceOrderId = searchParams.get('resourceOrderId');
 
   return (
     <main className="min-h-screen bg-background px-4 py-10 sm:px-6 lg:px-8">
@@ -27,7 +28,12 @@ export const PaymentVerificationPage = () => {
             Votre paiement a été initié. Greffio attend la confirmation serveur de Mollie
             avant de marquer le dossier comme payé et de lancer la suite.
           </p>
-          {dossierId && (
+          {resourceOrderId && (
+            <p className="mt-3 rounded-md bg-muted px-3 py-2 text-xs font-mono text-muted-foreground">
+              Commande document: {resourceOrderId}
+            </p>
+          )}
+          {dossierId && !resourceOrderId && (
             <p className="mt-3 rounded-md bg-muted px-3 py-2 text-xs font-mono text-muted-foreground">
               Dossier: {dossierId}
             </p>
@@ -42,6 +48,11 @@ export const PaymentVerificationPage = () => {
             </p>
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
+            {resourceOrderId && (
+              <Button asChild>
+                <Link to="/ressources">Retour aux ressources</Link>
+              </Button>
+            )}
             <Button asChild>
               <Link to="/dashboard">Ouvrir le dashboard</Link>
             </Button>

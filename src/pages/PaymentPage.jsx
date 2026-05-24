@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowRight, BadgeEuro, CheckCircle2, CreditCard, FileText, LockKeyhole, ReceiptText, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
@@ -6,6 +6,8 @@ import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { PAYMENT_METHODS } from '@/config/businessCatalog.js';
 import { createPayment } from '@/api/payments.js';
+import { checkoutResourceOrder, getResourceOrder } from '@/api/resources.js';
+import { getCatalogItemById } from '@/config/resourceServices.js';
 import { TotalCostSimulator } from '@/components/TotalCostSimulator.jsx';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
 
@@ -21,13 +23,48 @@ export const PaymentPage = () => {
   const [searchParams] = useSearchParams();
   const offerName = searchParams.get('offer') || 'Dossier Standard';
   const service = searchParams.get('service') || 'creation';
+  const resourceOrderId = searchParams.get('resourceOrder');
   const selectedOffer = offers[offerName] || offers['Dossier Standard'];
   const mainMethods = useMemo(() => PAYMENT_METHODS.filter((method) => method.id !== 'optional'), []);
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
+  const [resourceOrder, setResourceOrder] = useState(null);
+  const [loadingResourceOrder, setLoadingResourceOrder] = useState(Boolean(resourceOrderId));
+
+  const catalogService = resourceOrder?.serviceId
+    ? getCatalogItemById(resourceOrder.serviceId)
+    : getCatalogItemById(service);
+
+  useEffect(() => {
+    if (!resourceOrderId) {
+      setLoadingResourceOrder(false);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const payload = await getResourceOrder(resourceOrderId);
+        if (!cancelled) setResourceOrder(payload.order);
+      } catch (_error) {
+        if (!cancelled) toast.error('Commande introuvable ou accès refusé.');
+      } finally {
+        if (!cancelled) setLoadingResourceOrder(false);
+      }
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, [resourceOrderId]);
 
   const handleGoCardlessCheckout = async () => {
     try {
       setIsCreatingPayment(true);
+      if (resourceOrderId) {
+        const payload = await checkoutResourceOrder(resourceOrderId);
+        if (payload.checkoutUrl) {
+          window.location.href = payload.checkoutUrl;
+          return;
+        }
+        throw new Error('CHECKOUT_URL_MISSING');
+      }
       const dossierId = getCurrentDossierId();
       if (!dossierId) {
         toast.error('Aucun dossier actif. Créez votre compte ou dossier avant le paiement.');
@@ -49,6 +86,10 @@ export const PaymentPage = () => {
     }
   };
 
+  const resourcePriceLabel = resourceOrder
+    ? `${Number(resourceOrder.priceTtc || 0).toFixed(2).replace('.', ',')} € TTC`
+    : null;
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-white px-6 py-4">
@@ -66,13 +107,13 @@ export const PaymentPage = () => {
         <section className="space-y-6">
           <div className="rounded-md bg-[hsl(var(--greffio-blue))] p-6 text-white shadow-elevation-md md:p-8">
             <p className="text-sm font-bold uppercase text-white/70">Paiement sécurisé</p>
-            <h1 className="mt-2 text-3xl font-extrabold">Paiement sécurisé via GoCardless</h1>
+            <h1 className="mt-2 text-3xl font-extrabold">
+              {resourceOrder ? 'Paiement de votre commande document' : 'Paiement sécurisé via GoCardless'}
+            </h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-white/92">
-              Greffio utilise GoCardless pour encaisser les paiements par prélèvement SEPA ou virement instantané,
-              avec vérification serveur et webhook idempotent avant traitement du dossier.
-            </p>
-            <p className="mt-3 text-xs leading-6 text-white/85">
-              Greffio est un service privé indépendant d’assistance aux démarches administratives des entreprises. Greffio n’est pas un service officiel de l’État, des greffes des tribunaux de commerce ou d’Infogreffe.
+              {resourceOrder
+                ? 'Réglez votre commande de document ou service administratif. Après confirmation, l’équipe Greffio traite votre demande.'
+                : 'Greffio utilise GoCardless pour encaisser les paiements par prélèvement SEPA ou virement instantané, avec vérification serveur et webhook idempotent avant traitement du dossier.'}
             </p>
           </div>
 
@@ -90,26 +131,29 @@ export const PaymentPage = () => {
             ))}
           </section>
 
-          <section className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
-            <div className="mb-4 flex items-center gap-3">
-              <ShieldCheck className="h-6 w-6 text-primary" />
-              <h2 className="text-xl font-extrabold">Règle de paiement retenue</h2>
-            </div>
-            <div className="grid gap-3 md:grid-cols-3">
-              {[
-                'Paiement immédiat par carte ou wallet pour les offres standard.',
-                'Virement SEPA pour comptes pros, cabinets et montants élevés.',
-                'Prélèvement SEPA pour abonnements et offres récurrentes.',
-              ].map((item) => (
-                <div key={item} className="rounded-md bg-muted p-4 text-sm leading-6 text-muted-foreground">
-                  <CheckCircle2 className="mb-3 h-5 w-5 text-emerald-600" />
-                  {item}
+          {!resourceOrderId && (
+            <>
+              <section className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
+                <div className="mb-4 flex items-center gap-3">
+                  <ShieldCheck className="h-6 w-6 text-primary" />
+                  <h2 className="text-xl font-extrabold">Règle de paiement retenue</h2>
                 </div>
-              ))}
-            </div>
-          </section>
-
-          <TotalCostSimulator />
+                <div className="grid gap-3 md:grid-cols-3">
+                  {[
+                    'Paiement immédiat par carte ou wallet pour les offres standard.',
+                    'Virement SEPA pour comptes pros, cabinets et montants élevés.',
+                    'Prélèvement SEPA pour abonnements et offres récurrentes.',
+                  ].map((item) => (
+                    <div key={item} className="rounded-md bg-muted p-4 text-sm leading-6 text-muted-foreground">
+                      <CheckCircle2 className="mb-3 h-5 w-5 text-emerald-600" />
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </section>
+              <TotalCostSimulator />
+            </>
+          )}
         </section>
 
         <aside className="space-y-5">
@@ -117,46 +161,75 @@ export const PaymentPage = () => {
             <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-md bg-secondary text-primary">
               <BadgeEuro className="h-5 w-5" />
             </div>
-            <p className="text-sm font-bold uppercase text-primary">Offre sélectionnée</p>
-            <h2 className="mt-1 text-2xl font-extrabold">{selectedOffer.title}</h2>
-            <p className="mt-3 text-4xl font-extrabold">{selectedOffer.price}</p>
+            {resourceOrder ? (
+              <>
+                <p className="text-sm font-bold uppercase text-primary">Commande ressource</p>
+                <h2 className="mt-1 text-2xl font-extrabold">{resourceOrder.serviceTitle}</h2>
+                {loadingResourceOrder ? (
+                  <p className="mt-3 text-sm text-muted-foreground">Chargement…</p>
+                ) : (
+                  <>
+                    <p className="mt-3 text-4xl font-extrabold">{resourcePriceLabel}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">Réf. {resourceOrder.id}</p>
+                    {resourceOrder.companyName && (
+                      <p className="mt-1 text-sm text-muted-foreground">{resourceOrder.companyName}</p>
+                    )}
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-bold uppercase text-primary">Offre sélectionnée</p>
+                <h2 className="mt-1 text-2xl font-extrabold">{selectedOffer.title}</h2>
+                <p className="mt-3 text-4xl font-extrabold">{selectedOffer.price}</p>
+              </>
+            )}
             <div className="mt-5 space-y-3 text-sm text-muted-foreground">
               <div className="flex gap-2">
                 <ReceiptText className="mt-0.5 h-4 w-4 text-primary" />
-                <span>{selectedOffer.tax}</span>
+                <span>{resourceOrder ? 'TVA incluse — document administratif' : selectedOffer.tax}</span>
               </div>
-              <div className="flex gap-2">
-                <FileText className="mt-0.5 h-4 w-4 text-primary" />
-                <span>{selectedOffer.legalFees}</span>
-              </div>
+              {!resourceOrder && (
+                <div className="flex gap-2">
+                  <FileText className="mt-0.5 h-4 w-4 text-primary" />
+                  <span>{selectedOffer.legalFees}</span>
+                </div>
+              )}
               <div className="flex gap-2">
                 <LockKeyhole className="mt-0.5 h-4 w-4 text-primary" />
                 <span>Paiement sécurisé via GoCardless (SEPA / virement).</span>
               </div>
             </div>
-            <Button asChild className="mt-6 w-full justify-between">
-              <Link to={`/signup?service=${service}`}>
-                Créer le compte et payer
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
+            {!resourceOrder && (
+              <Button asChild className="mt-6 w-full justify-between">
+                <Link to={`/signup?service=${service}`}>
+                  Créer le compte et payer
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            )}
             <Button
               type="button"
               className="mt-3 w-full justify-between"
-              variant="outline"
+              variant={resourceOrder ? 'default' : 'outline'}
               onClick={handleGoCardlessCheckout}
-              disabled={isCreatingPayment}
+              disabled={isCreatingPayment || (resourceOrderId && loadingResourceOrder)}
             >
-              {isCreatingPayment ? 'Initialisation...' : 'Payer maintenant via GoCardless'}
+              {isCreatingPayment ? 'Initialisation...' : 'Payer via GoCardless'}
               <ArrowRight className="h-4 w-4" />
             </Button>
+            {resourceOrder && (
+              <Button asChild variant="outline" className="mt-3 w-full">
+                <Link to="/ressources">Retour aux ressources</Link>
+              </Button>
+            )}
           </section>
 
-          <section className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
-            <p className="font-extrabold">Options à activer selon besoin</p>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">{PAYMENT_METHODS.find((method) => method.id === 'optional').description}</p>
-            <div className="mt-4 rounded-md bg-muted p-3 text-sm font-semibold text-foreground">PayPal · Klarna · Alma</div>
-          </section>
+          {catalogService?.description && resourceOrder && (
+            <section className="rounded-md border border-border bg-muted/50 p-5 text-sm leading-6 text-muted-foreground">
+              {catalogService.description}
+            </section>
+          )}
         </aside>
       </main>
     </div>

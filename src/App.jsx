@@ -26,6 +26,7 @@ import { AccountDeletionPage } from '@/pages/AccountDeletionPage.jsx';
 import { DataDeletionPage } from '@/pages/DataDeletionPage.jsx';
 import { PaymentPage } from '@/pages/PaymentPage.jsx';
 import { ResourcesPage } from '@/pages/ResourcesPage.jsx';
+import { ResourceGuidePage } from '@/pages/ResourceGuidePage.jsx';
 import { AppInstallPage } from '@/pages/AppInstallPage.jsx';
 import { ContactPage } from '@/pages/ContactPage.jsx';
 import { GuidePage } from '@/pages/GuidePage.jsx';
@@ -69,6 +70,7 @@ const Layout = ({ children }) => {
   const location = useLocation();
   const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/services', '/paiement', '/ressources', '/app', '/guide', '/procuration', '/contact', '/credentials-unlock', '/login', '/password-reset'];
   const shouldHideHeader = hideHeaderRoutes.some((route) => location.pathname === route || location.pathname.startsWith('/service/'))
+    || location.pathname.startsWith('/ressources/guides/')
     || (isCapacitorNative() && shouldUseMobileShell(location.pathname));
 
   const content = shouldUseMobileShell(location.pathname) ? (
@@ -113,6 +115,7 @@ function App() {
             <Route path="/suppression-donnees" element={<DataDeletionPage />} />
             <Route path="/paiement" element={<PaymentPage />} />
             <Route path="/ressources" element={<ResourcesPage />} />
+            <Route path="/ressources/guides/:slug" element={<ResourceGuidePage />} />
             <Route path="/app" element={<AppInstallPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/guide" element={<GuidePage />} />

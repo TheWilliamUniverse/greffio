@@ -290,6 +290,33 @@ CREATE TABLE IF NOT EXISTS mfa_trusted_devices (
 `);
 
 sqlite.exec(`
+CREATE TABLE IF NOT EXISTS resource_orders (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  service_id TEXT NOT NULL,
+  service_title TEXT NOT NULL,
+  company_name TEXT,
+  siren TEXT,
+  dossier_id TEXT,
+  contact_email TEXT NOT NULL,
+  status TEXT NOT NULL,
+  fulfillment_mode TEXT NOT NULL DEFAULT 'manual_ops',
+  price_ttc_cents INTEGER NOT NULL,
+  notes TEXT,
+  payment_id TEXT,
+  provider_ref TEXT,
+  metadata_json TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  paid_at TEXT,
+  completed_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+`);
+
+addColumnIfMissing('payments', 'resource_order_id', 'TEXT');
+
+sqlite.exec(`
 CREATE TABLE IF NOT EXISTS push_device_tokens (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
