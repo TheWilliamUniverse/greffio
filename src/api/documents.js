@@ -29,6 +29,8 @@ const mapDocumentEditorError = (error) => {
   const code = String(error?.message || '');
   if (code === 'DOCUMENT_EDITOR_USE_CASE_REQUIRED') return 'Sélectionnez au moins un cas d’usage : pour vous ou filiation parents.';
   if (code === 'DOCUMENT_EDITOR_SIGNATURE_REQUIRED') return 'Indiquez le nom du signataire.';
+  if (code === 'DOCUMENT_EDITOR_SIGNATURE_PLACE_DATE_REQUIRED') return 'Indiquez le lieu et la date de la déclaration.';
+  if (code === 'DOCUMENT_EDITOR_ADDRESS_REQUIRED') return 'Renseignez l’adresse complète du déclarant.';
   if (code === 'DOCUMENT_EDITOR_IDENTITY_REQUIRED') return 'Renseignez l’identité du déclarant (nom et date de naissance).';
   if (code === 'DOCUMENT_EDITOR_NON_CONDAMNATION_REQUIRED') return 'Cochez la déclaration de non-condamnation.';
   if (code === 'DOCUMENT_EDITOR_FILIATION_REQUIRED') return 'Cochez la déclaration de filiation.';

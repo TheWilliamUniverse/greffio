@@ -5,6 +5,15 @@ import { getFormalityRule } from './domain/formalities.js';
 import { getMinorDocumentRequirements } from './utils/minorAssociateRules.js';
 
 const nowIso = () => new Date().toISOString();
+const parseJsonMetadata = (value, fallback = {}) => {
+  if (!value) return fallback;
+  if (typeof value === 'object') return value;
+  try {
+    return JSON.parse(value);
+  } catch (_error) {
+    return fallback;
+  }
+};
 const makeShortReference = () => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let block = '';
@@ -393,7 +402,7 @@ const listDossierDocuments = async (dossierId) => {
     `, [dossierId]);
     return result.rows.map((row) => ({
       ...row,
-      metadata: row.metadataJson ? JSON.parse(row.metadataJson) : {},
+      metadata: parseJsonMetadata(row.metadataJson),
     }));
   }
   return sqlite.prepare(`
@@ -425,7 +434,7 @@ const listDossierDocuments = async (dossierId) => {
   `).all(dossierId).map((row) => ({
     ...row,
     required: Boolean(row.required),
-    metadata: row.metadataJson ? JSON.parse(row.metadataJson) : {},
+    metadata: parseJsonMetadata(row.metadataJson),
   }));
 };
 
@@ -1358,7 +1367,7 @@ const listGeneratedDocumentsByDossier = async (dossierId) => {
     `, [dossierId]);
     return result.rows.map((item) => ({
       ...item,
-      metadata: item.metadataJson ? JSON.parse(item.metadataJson) : {},
+      metadata: parseJsonMetadata(item.metadataJson),
     }));
   }
   return sqlite.prepare(`
@@ -1378,7 +1387,7 @@ const listGeneratedDocumentsByDossier = async (dossierId) => {
     ORDER BY created_at DESC
   `).all(dossierId).map((item) => ({
     ...item,
-    metadata: item.metadataJson ? JSON.parse(item.metadataJson) : {},
+    metadata: parseJsonMetadata(item.metadataJson),
   }));
 };
 

@@ -199,11 +199,16 @@ export const validateNonConvictionFields = (fields = {}) => {
   if (!fields.statementCity || !fields.statementDate) {
     return { ok: false, error: 'DOCUMENT_EDITOR_SIGNATURE_PLACE_DATE_REQUIRED' };
   }
-  if (!fields.signatureFullName || !String(fields.signatureFullName).trim()) {
+  const signatureFullName = String(fields.signatureFullName || '').trim()
+    || `${firstName} ${lastName}`.trim();
+  if (!signatureFullName) {
     return { ok: false, error: 'DOCUMENT_EDITOR_SIGNATURE_REQUIRED' };
   }
-  if (fields.declarationNonCondamnation === false) {
+  if (!fields.declarationNonCondamnation) {
     return { ok: false, error: 'DOCUMENT_EDITOR_NON_CONDAMNATION_REQUIRED' };
+  }
+  if (fields.declarationFiliation === false) {
+    return { ok: false, error: 'DOCUMENT_EDITOR_FILIATION_REQUIRED' };
   }
   return { ok: true };
 };

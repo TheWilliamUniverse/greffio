@@ -18,6 +18,17 @@ import { runtimeConfig } from '@/config/runtime.js';
 
 const OFFICIAL_SIMULATOR = 'https://www.service-public.gouv.fr/simulateur/calcul/DeclarationDeNonCondamnationEtDeFiliation';
 
+const normalizeFields = (fields = {}) => {
+  const signatureFullName = String(fields.signatureFullName || '').trim()
+    || `${fields.declarantFirstName || ''} ${fields.declarantLastName || ''}`.trim();
+  return {
+    ...fields,
+    signatureFullName,
+    declarationNonCondamnation: fields.declarationNonCondamnation !== false,
+    declarationFiliation: fields.declarationFiliation !== false,
+  };
+};
+
 export const NonConvictionDeclarationPage = () => {
   const { dossierId } = useParams();
   const [fields, setFields] = useState(null);
@@ -30,7 +41,7 @@ export const NonConvictionDeclarationPage = () => {
     const boot = async () => {
       try {
         const payload = await loadNonConvictionEditor(dossierId);
-        setFields(payload.fields || {});
+        setFields(normalizeFields(payload.fields || {}));
       } catch (_error) {
         toast.error('Impossible de charger le formulaire.');
       }
@@ -49,8 +60,10 @@ export const NonConvictionDeclarationPage = () => {
   const onGeneratePreview = async () => {
     setSaving(true);
     try {
-      await saveNonConvictionDraft(dossierId, fields);
-      const blob = await downloadDossierDocument({
+      const normalized = normalizeFields(fields);
+      setFields(normalized);
+      await saveNonConvictionDraft(dossierId, normalized);
+      const { blob } = await downloadDossierDocument({
         dossierId,
         docKey: 'manager_non_conviction',
       });
@@ -70,7 +83,7 @@ export const NonConvictionDeclarationPage = () => {
   const onSignNow = async (signaturePayload) => {
     setSaving(true);
     try {
-      await signNonConvictionNow(dossierId, { fields, ...signaturePayload });
+      await signNonConvictionNow(dossierId, { fields: normalizeFields(fields), ...signaturePayload });
       toast.success('Déclaration signée et archivée.');
       setSignMode(null);
     } catch (error) {
@@ -84,7 +97,7 @@ export const NonConvictionDeclarationPage = () => {
     setSaving(true);
     try {
       await sendNonConvictionSignatureRequest(dossierId, {
-        fields,
+        fields: normalizeFields(fields),
         signerEmail: signaturePayload.signerEmail,
         signerFullName: signaturePayload.signerFullName,
       });
@@ -178,7 +191,43 @@ export const NonConvictionDeclarationPage = () => {
                 <Label>Le</Label>
                 <Input type="date" className="mt-1" value={fields.statementDate || ''} onChange={(e) => updateField('statementDate', e.target.value)} />
               </div>
+              <div className="sm:col-span-2">
+                <Label>Nom du signataire (tel qu&apos;il apparaîtra sur le PDF)</Label>
+                <Input
+                  className="mt-1"
+                  value={fields.signatureFullName || ''}
+                  onChange={(e) => updateField('signatureFullName', e.target.value)}
+                />
+              </div>
             </div>
+
+            <div className="mt-5 space-y-3 rounded-xl border border-[var(--we-border)] bg-[#fafcff] p-4">
+              <p className="text-xs font-bold uppercase text-primary">Attestations obligatoires</p>
+              <label className="flex items-start gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={Boolean(fields.declarationNonCondamnation)}
+                  onChange={(e) => updateField('declarationNonCondamnation', e.target.checked)}
+                />
+                <span>
+                  Je déclare sur l&apos;honneur ne pas faire l&apos;objet d&apos;une condamnation incompatible avec la gestion
+                  d&apos;une entreprise (article L. 123-5 du code de commerce).
+                </span>
+              </label>
+              <label className="flex items-start gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={Boolean(fields.declarationFiliation)}
+                  onChange={(e) => updateField('declarationFiliation', e.target.checked)}
+                />
+                <span>
+                  Je déclare sur l&apos;honneur l&apos;exactitude des renseignements relatifs à ma filiation (père et mère).
+                </span>
+              </label>
+            </div>
+
             <div className="sticky bottom-0 mt-6 flex flex-wrap gap-2 border-t border-[var(--we-border)] bg-white pt-4">
               <Button onClick={() => void onGeneratePreview()} disabled={saving}>
                 <FileText className="h-4 w-4" />

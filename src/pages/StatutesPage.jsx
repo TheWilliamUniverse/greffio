@@ -17,6 +17,16 @@ import { downloadStatutesPdf, fetchStatutesPreview, generateStatutes, listStatut
 import { getDossierById } from '@/api/dossiers.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
 
+const parseQuestionnaire = (dataJson) => {
+  if (!dataJson) return {};
+  if (typeof dataJson === 'object') return dataJson;
+  try {
+    return JSON.parse(dataJson);
+  } catch (_error) {
+    return {};
+  }
+};
+
 const ChecklistItem = ({ label, ok }) => (
   <div className={`flex items-start gap-3 rounded-xl border p-4 ${ok ? 'border-emerald-200 bg-emerald-50/60' : 'border-amber-200 bg-amber-50/60'}`}>
     {ok ? (
@@ -56,11 +66,33 @@ export const StatutesPage = () => {
       setLoadError('');
       return;
     }
+    setLoading(true);
+    setLoadError('');
+    let listOk = false;
+
     try {
-      setLoading(true);
-      setLoadError('');
+      const payload = await listStatutes(activeId);
+      listOk = true;
+      setDocuments(payload.documents || []);
+      if (payload.dossierId) {
+        saveCurrentDossierId(payload.dossierId);
+        setDossierId(payload.dossierId);
+      }
+    } catch (error) {
+      setDocuments([]);
+      const code = error?.payload?.error || error?.message;
+      if (code === 'DOSSIER_FORBIDDEN') {
+        setLoadError('Ce dossier n’est pas rattaché à votre compte. Rechargez depuis le questionnaire.');
+      } else if (code === 'DOSSIER_NOT_FOUND') {
+        setLoadError('Dossier introuvable. Recommencez le questionnaire pour créer un nouveau dossier.');
+      } else {
+        setLoadError('Impossible de charger les versions de statuts pour ce dossier.');
+      }
+    }
+
+    try {
       const dossierPayload = await getDossierById(activeId);
-      const q = dossierPayload?.dossier?.dataJson ? JSON.parse(dossierPayload.dossier.dataJson) : {};
+      const q = parseQuestionnaire(dossierPayload?.dossier?.dataJson);
       const ei = isEiLikeFormality({
         legalForm: dossierPayload?.dossier?.legalForm,
         formeJuridique: q?.formeJuridique,
@@ -68,12 +100,6 @@ export const StatutesPage = () => {
         service: dossierPayload?.dossier?.service,
       });
       setEiLike(ei);
-      const payload = await listStatutes(activeId);
-      setDocuments(payload.documents || []);
-      if (payload.dossierId) {
-        saveCurrentDossierId(payload.dossierId);
-        setDossierId(payload.dossierId);
-      }
       if (!ei) {
         try {
           const previewPayload = await fetchStatutesPreview(activeId);
@@ -85,15 +111,16 @@ export const StatutesPage = () => {
         setPreview(null);
       }
     } catch (error) {
-      setDocuments([]);
       setPreview(null);
-      const code = error?.payload?.error || error?.message;
-      if (code === 'DOSSIER_FORBIDDEN') {
-        setLoadError('Ce dossier n’est pas rattaché à votre compte. Rechargez depuis le questionnaire.');
-      } else if (code === 'DOSSIER_NOT_FOUND') {
-        setLoadError('Dossier introuvable. Recommencez le questionnaire pour créer un nouveau dossier.');
-      } else {
-        setLoadError('Impossible de charger les statuts pour ce dossier.');
+      if (!listOk) {
+        const code = error?.payload?.error || error?.message;
+        if (code === 'DOSSIER_FORBIDDEN') {
+          setLoadError('Ce dossier n’est pas rattaché à votre compte. Rechargez depuis le questionnaire.');
+        } else if (code === 'DOSSIER_NOT_FOUND') {
+          setLoadError('Dossier introuvable. Recommencez le questionnaire pour créer un nouveau dossier.');
+        } else {
+          setLoadError('Impossible de charger les statuts pour ce dossier.');
+        }
       }
     } finally {
       setLoading(false);
@@ -136,6 +163,12 @@ export const StatutesPage = () => {
         toast.error('Statuts non applicables à ce dossier.');
       } else if (code === 'DOSSIER_FORBIDDEN' || code === 'DOSSIER_NOT_FOUND') {
         toast.error('Dossier inaccessible. Ouvrez le questionnaire puis revenez ici.');
+      } else if (code === 'STATUTES_VALIDATION_FAILED') {
+        toast.error('Données incomplètes : complétez le questionnaire puis réessayez.');
+      } else if (code === 'STATUTES_INCOMPLETE') {
+        toast.error('Le modèle de statuts est incomplet. Contactez le support Greffio.');
+      } else if (code === 'LEGAL_FORM_UNSUPPORTED') {
+        toast.error('Forme juridique non prise en charge pour la génération automatique.');
       } else {
         toast.error('Génération impossible.');
       }

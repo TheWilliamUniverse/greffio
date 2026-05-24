@@ -1768,11 +1768,9 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
 });
 
 app.get('/api/dossiers/:dossierId/documents/:docKey/download', requireAuth, async (req, res) => {
-  const dossier = await getDossier(req.params.dossierId);
-  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
-  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
-  const isOps = isInternalRole(req.auth?.role);
-  if (!isOwner && !isOps) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+  const access = await resolveDossierAccess(req, req.params.dossierId);
+  if (!access.ok) return res.status(access.status).json({ ok: false, error: access.error });
+  const { dossier } = access;
 
   const documents = await listDossierDocuments(dossier.id);
   const requested = documents.find((item) => item.docKey === req.params.docKey);
@@ -1797,17 +1795,21 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/download', requireAuth, asyn
 });
 
 app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async (req, res) => {
-  const dossier = await getDossier(req.params.dossierId);
-  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
-  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
-  const isOps = isInternalRole(req.auth?.role);
-  if (!isOwner && !isOps) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+  const access = await resolveDossierAccess(req, req.params.dossierId);
+  if (!access.ok) return res.status(access.status).json({ ok: false, error: access.error });
+  const { dossier } = access;
   const docKey = String(req.params.docKey || '');
   const supported = new Set(['manager_non_conviction']);
   if (!supported.has(docKey)) {
     return res.status(409).json({ ok: false, error: 'DOCUMENT_EDITOR_NOT_SUPPORTED' });
   }
   const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+  await ensureDossierDocuments(dossier.id);
+  const documents = await listDossierDocuments(dossier.id);
+  const existing = documents.find((item) => item.docKey === docKey);
+  const savedFields = existing?.metadata?.fields && typeof existing.metadata.fields === 'object'
+    ? existing.metadata.fields
+    : {};
   const initialFields = {
     declarantFirstName: questionnaire.firstName || '',
     declarantLastName: questionnaire.lastName || '',
@@ -1829,21 +1831,28 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async 
     signatureFullName: `${questionnaire.firstName || ''} ${questionnaire.lastName || ''}`.trim(),
     signerEmail: '',
   };
+  const fields = {
+    ...initialFields,
+    ...savedFields,
+    declarationNonCondamnation: savedFields.declarationNonCondamnation !== false,
+    declarationFiliation: savedFields.declarationFiliation !== false,
+  };
+  if (!fields.signatureFullName?.trim()) {
+    fields.signatureFullName = `${fields.declarantFirstName || ''} ${fields.declarantLastName || ''}`.trim();
+  }
   return res.json({
     ok: true,
     docKey,
-    schemaVersion: 'manager_non_conviction_v1',
+    schemaVersion: 'manager_non_conviction_v3',
     title: 'Déclaration de non-condamnation et de filiation',
-    fields: initialFields,
+    fields,
   });
 });
 
 app.post('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async (req, res) => {
-  const dossier = await getDossier(req.params.dossierId);
-  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
-  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
-  const isOps = isInternalRole(req.auth?.role);
-  if (!isOwner && !isOps) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+  const access = await resolveDossierAccess(req, req.params.dossierId);
+  if (!access.ok) return res.status(access.status).json({ ok: false, error: access.error });
+  const { dossier } = access;
   const docKey = String(req.params.docKey || '');
   if (docKey !== 'manager_non_conviction') {
     return res.status(409).json({ ok: false, error: 'DOCUMENT_EDITOR_NOT_SUPPORTED' });
