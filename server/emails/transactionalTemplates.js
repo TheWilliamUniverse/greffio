@@ -690,6 +690,57 @@ const transactionalTemplates = Object.freeze({
     `,
   }),
 
+  non_conviction_signature_request: defineTemplate({
+    subject: 'Demande de signature électronique - Déclaration de non-condamnation et de filiation',
+    tags: ['signature', 'non_conviction'],
+    requiredVariables: ['firstName', 'companyName', 'signingLink'],
+    preheader: 'Un document Greffio attend votre signature.',
+    textLines: [
+      'Bonjour {{firstName}},',
+      '',
+      'Une déclaration de non-condamnation et de filiation est prête à être signée dans Greffio.',
+      '',
+      'Document : Déclaration de non-condamnation et de filiation',
+      'Dossier : {{companyName}}',
+      '',
+      'Signer le document : {{signingLink}}',
+      '',
+      'Ce lien est personnel et peut expirer pour des raisons de sécurité.',
+      '',
+      'Greffio',
+    ],
+    bodyHtml: `
+      <p style="margin:0 0 16px;">Bonjour <strong>{{firstName}}</strong>,</p>
+      <p style="margin:0 0 16px;">Une <strong>déclaration de non-condamnation et de filiation</strong> est prête à être signée dans Greffio.</p>
+      <p style="margin:0 0 8px;font-size:14px;"><strong>Dossier :</strong> {{companyName}}</p>
+      ${ctaButton('Signer le document', '{{signingLink}}')}
+      <p style="margin:16px 0 0;font-size:13px;color:#64748b;">Ce lien est personnel et peut expirer pour des raisons de sécurité.</p>
+    `,
+  }),
+
+  non_conviction_signature_completed: defineTemplate({
+    subject: 'Document signé - Déclaration de non-condamnation et de filiation',
+    tags: ['signature', 'non_conviction'],
+    requiredVariables: ['firstName', 'companyName', 'signedDownloadLink'],
+    preheader: 'Votre déclaration a été signée.',
+    textLines: [
+      'Bonjour {{firstName}},',
+      '',
+      'Votre déclaration de non-condamnation et de filiation a été signée électroniquement.',
+      'Dossier : {{companyName}}',
+      '',
+      'Retrouvez le document dans votre espace Greffio : {{signedDownloadLink}}',
+      '',
+      'Greffio',
+    ],
+    bodyHtml: `
+      <p style="margin:0 0 16px;">Bonjour <strong>{{firstName}}</strong>,</p>
+      <p style="margin:0 0 16px;">Votre <strong>déclaration de non-condamnation et de filiation</strong> a été signée électroniquement.</p>
+      <p style="margin:0 0 16px;font-size:14px;">Dossier : {{companyName}}</p>
+      ${ctaButton('Accéder à mes documents', '{{signedDownloadLink}}')}
+    `,
+  }),
+
   resource_order_internal: defineTemplate({
     subject: 'Nouvelle commande ressource — {{service_title}}',
     tags: ['ops', 'resource_order'],

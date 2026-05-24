@@ -1233,6 +1233,57 @@ const addOpsNote = async ({
   return record;
 };
 
+const syncGeneratedStatutesToDossierChecklist = async ({
+  dossierId,
+  fileUrl,
+  fileSizeBytes,
+  filename,
+  contentHash,
+  legalForm,
+}) => {
+  const docs = await listDossierDocuments(dossierId);
+  const statutesDoc = docs.find((item) => item.docKey === 'signed_statutes');
+  if (!statutesDoc) return null;
+  return updateDossierDocument({
+    dossierId,
+    docKey: 'signed_statutes',
+    status: DOCUMENT_STATUSES.UPLOADED,
+    originalFilename: filename,
+    recommendedFilename: filename,
+    fileUrl,
+    filename,
+    fileSizeBytes,
+    mimeType: 'application/pdf',
+    sha256: contentHash,
+    metadata: {
+      source: 'greffio_generated',
+      legalForm,
+      generatedAt: nowIso(),
+      awaitingSignature: true,
+    },
+  });
+};
+
+const markDossierStatutesGenerated = async ({
+  dossierId,
+  actorId = null,
+  actorRole = ROLE.CLIENT,
+}) => {
+  const dossier = await getDossier(dossierId);
+  if (!dossier) return { ok: false, code: 'DOSSIER_NOT_FOUND' };
+  if (dossier.status === DOSSIER_STATUSES.STATUTES_GENERATED) {
+    return { ok: true, dossier };
+  }
+  return transitionDossierStatus({
+    dossierId: dossier.id,
+    nextStatus: DOSSIER_STATUSES.STATUTES_GENERATED,
+    actorType: 'api',
+    actorId,
+    actorRole,
+    reason: 'statutes_pdf_generated',
+  });
+};
+
 const upsertGeneratedDocument = async ({
   dossierId,
   type,
@@ -1351,6 +1402,8 @@ export {
   addPaymentEvent,
   hasPaymentEventProviderId,
   upsertGeneratedDocument,
+  syncGeneratedStatutesToDossierChecklist,
+  markDossierStatutesGenerated,
   listGeneratedDocumentsByDossier,
   listOpsNotesByDossier,
   addOpsNote,

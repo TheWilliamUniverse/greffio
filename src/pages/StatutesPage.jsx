@@ -11,7 +11,8 @@ import {
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button.jsx';
 import { Sidebar } from '@/components/Sidebar.jsx';
-import { getCurrentDossierId } from '@/utils/sessionStore.js';
+import { QuestionnaireNotice } from '@/components/questionnaire/QuestionnaireNotice.jsx';
+import { getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.js';
 import { downloadStatutesPdf, fetchStatutesPreview, generateStatutes, listStatutes } from '@/api/statutes.js';
 import { getDossierById } from '@/api/dossiers.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
@@ -31,23 +32,34 @@ const ChecklistItem = ({ label, ok }) => (
 );
 
 export const StatutesPage = () => {
-  const dossierId = getCurrentDossierId();
+  const [dossierId, setDossierId] = useState(() => getCurrentDossierId());
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [documents, setDocuments] = useState([]);
   const [eiLike, setEiLike] = useState(false);
   const [preview, setPreview] = useState(null);
+  const [loadError, setLoadError] = useState('');
 
-  const load = async () => {
-    if (!dossierId) {
+  useEffect(() => {
+    const syncDossierId = () => setDossierId(getCurrentDossierId());
+    syncDossierId();
+    window.addEventListener('focus', syncDossierId);
+    return () => window.removeEventListener('focus', syncDossierId);
+  }, []);
+
+  const load = async (forcedDossierId = null) => {
+    const activeId = forcedDossierId || dossierId || getCurrentDossierId();
+    if (!activeId) {
       setLoading(false);
       setDocuments([]);
       setPreview(null);
+      setLoadError('');
       return;
     }
     try {
       setLoading(true);
-      const dossierPayload = await getDossierById(dossierId);
+      setLoadError('');
+      const dossierPayload = await getDossierById(activeId);
       const q = dossierPayload?.dossier?.dataJson ? JSON.parse(dossierPayload.dossier.dataJson) : {};
       const ei = isEiLikeFormality({
         legalForm: dossierPayload?.dossier?.legalForm,
@@ -56,11 +68,15 @@ export const StatutesPage = () => {
         service: dossierPayload?.dossier?.service,
       });
       setEiLike(ei);
-      const payload = await listStatutes(dossierId);
+      const payload = await listStatutes(activeId);
       setDocuments(payload.documents || []);
+      if (payload.dossierId) {
+        saveCurrentDossierId(payload.dossierId);
+        setDossierId(payload.dossierId);
+      }
       if (!ei) {
         try {
-          const previewPayload = await fetchStatutesPreview(dossierId);
+          const previewPayload = await fetchStatutesPreview(activeId);
           setPreview(previewPayload?.preview || null);
         } catch (_error) {
           setPreview(null);
@@ -68,9 +84,17 @@ export const StatutesPage = () => {
       } else {
         setPreview(null);
       }
-    } catch (_error) {
+    } catch (error) {
       setDocuments([]);
       setPreview(null);
+      const code = error?.payload?.error || error?.message;
+      if (code === 'DOSSIER_FORBIDDEN') {
+        setLoadError('Ce dossier n’est pas rattaché à votre compte. Rechargez depuis le questionnaire.');
+      } else if (code === 'DOSSIER_NOT_FOUND') {
+        setLoadError('Dossier introuvable. Recommencez le questionnaire pour créer un nouveau dossier.');
+      } else {
+        setLoadError('Impossible de charger les statuts pour ce dossier.');
+      }
     } finally {
       setLoading(false);
     }
@@ -92,7 +116,14 @@ export const StatutesPage = () => {
     try {
       setGenerating(true);
       const payload = await generateStatutes(dossierId);
-      await load();
+      if (payload?.dossierId) {
+        saveCurrentDossierId(payload.dossierId);
+        setDossierId(payload.dossierId);
+      }
+      if (Array.isArray(payload?.documents) && payload.documents.length) {
+        setDocuments(payload.documents);
+      }
+      await load(payload?.dossierId || dossierId);
       const completeness = payload?.document?.completeness;
       toast.success(
         completeness != null
@@ -103,6 +134,8 @@ export const StatutesPage = () => {
       const code = error?.payload?.error;
       if (code === 'STATUTES_NOT_REQUIRED_FOR_EI') {
         toast.error('Statuts non applicables à ce dossier.');
+      } else if (code === 'DOSSIER_FORBIDDEN' || code === 'DOSSIER_NOT_FOUND') {
+        toast.error('Dossier inaccessible. Ouvrez le questionnaire puis revenez ici.');
       } else {
         toast.error('Génération impossible.');
       }
@@ -161,6 +194,12 @@ export const StatutesPage = () => {
               </Button>
             </div>
           </div>
+
+          {loadError ? (
+            <QuestionnaireNotice variant="error" title="Chargement du dossier">
+              {loadError}
+            </QuestionnaireNotice>
+          ) : null}
 
           {!eiLike && preview ? (
             <>

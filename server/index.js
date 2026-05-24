@@ -38,6 +38,8 @@ import {
   updateDossierDocument,
   updateDossierOpsFields,
   upsertGeneratedDocument,
+  syncGeneratedStatutesToDossierChecklist,
+  markDossierStatutesGenerated,
   addOpsNote,
   upsertPayment,
   ensureDossierDocuments,
@@ -95,6 +97,8 @@ import { getCompanyLookupMetrics, lookupCompany } from './services/companyLookup
 import { buildIntelligentPrefill } from './services/intelligentIntake.js';
 import { computeDossierRisk, sortAntiRejectionQueue } from './services/opsRisk.js';
 import { draftStatutesDocument } from './services/statutesDrafting.js';
+import { resolveDossierAccess } from './utils/dossierAccess.js';
+import { registerNonConvictionSignatureRoutes } from './routes/nonConvictionSignatureRoutes.js';
 import {
   createTrustedDevice,
   hasValidTrustedDevice,
@@ -1317,15 +1321,11 @@ app.get('/api/dossiers', requireAuth, async (req, res) => {
 });
 
 app.get('/api/dossiers/:dossierId', requireAuth, async (req, res) => {
-  const dossier = await getDossier(req.params.dossierId);
-  if (!dossier) {
-    return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  const access = await resolveDossierAccess(req, req.params.dossierId);
+  if (!access.ok) {
+    return res.status(access.status).json({ ok: false, error: access.error });
   }
-  const isOps = isInternalRole(req.auth?.role);
-  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
-  if (!isOps && !isOwner) {
-    return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
-  }
+  const { dossier } = access;
   return res.json({
     ok: true,
     dossier,
@@ -1809,20 +1809,25 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async 
   }
   const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
   const initialFields = {
+    declarantFirstName: questionnaire.firstName || '',
+    declarantLastName: questionnaire.lastName || '',
     declarantFullName: `${questionnaire.firstName || ''} ${questionnaire.lastName || ''}`.trim(),
     declarantBirthDate: questionnaire.birthDate || '',
-    declarantBirthCity: questionnaire.birthCity || '',
+    declarantBirthCity: questionnaire.birthCity || questionnaire.lieuNaissance || '',
+    addressLine1: questionnaire.address || questionnaire.homeAddress || '',
+    addressLine2: '',
+    postalCode: questionnaire.postalCode || questionnaire.codePostal || '',
+    city: questionnaire.city || questionnaire.ville || '',
+    country: questionnaire.country || 'France',
     declarantAddress: questionnaire.address || questionnaire.homeAddress || '',
     parent1FullName: questionnaire.parent1FullName || '',
     parent2FullName: questionnaire.parent2FullName || '',
     statementDate: new Date().toISOString().slice(0, 10),
-    statementCity: questionnaire.city || '',
-    declarationNonCondamnation: false,
-    declarationFiliation: false,
-    useCase: 'self',
-    useCaseSelf: true,
-    useCaseParents: false,
+    statementCity: questionnaire.city || questionnaire.ville || '',
+    declarationNonCondamnation: true,
+    declarationFiliation: true,
     signatureFullName: `${questionnaire.firstName || ''} ${questionnaire.lastName || ''}`.trim(),
+    signerEmail: '',
   };
   return res.json({
     ok: true,
@@ -1854,7 +1859,11 @@ app.post('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async
     await ensureDossierDocuments(dossier.id);
     const safeReference = String(dossier.reference || dossier.id).replace(/[^a-zA-Z0-9_-]/g, '_');
     const filename = `Declaration_non_condamnation_filiation_${safeReference}_${Date.now()}.pdf`;
-    const pdfPath = await generateNonConvictionPdf({ filename, fields });
+    const pdfPath = await generateNonConvictionPdf({
+      filename,
+      fields,
+      documentId: dossier.reference || dossier.id,
+    });
     const sha256 = createHash('sha256').update(fs.readFileSync(pdfPath)).digest('hex');
     const updated = await updateDossierDocument({
       dossierId: dossier.id,
@@ -2078,11 +2087,11 @@ app.post('/api/statutes/preview-draft', statutesPreviewDraftLimiter, async (req,
 });
 
 app.get('/api/dossiers/:dossierId/statutes/preview', requireAuth, async (req, res) => {
-  const dossier = await getDossier(req.params.dossierId);
-  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
-  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
-  const isOps = isInternalRole(req.auth?.role);
-  if (!isOwner && !isOps) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+  const access = await resolveDossierAccess(req, req.params.dossierId);
+  if (!access.ok) {
+    return res.status(access.status).json({ ok: false, error: access.error });
+  }
+  const { dossier } = access;
 
   const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
   const formalityRule = getFormalityRule({ dossier, questionnaire });
@@ -2122,11 +2131,11 @@ app.get('/api/dossiers/:dossierId/statutes/preview', requireAuth, async (req, re
 });
 
 app.post('/api/dossiers/:dossierId/statutes/generate', requireAuth, async (req, res) => {
-  const dossier = await getDossier(req.params.dossierId);
-  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
-  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
-  const isOps = isInternalRole(req.auth?.role);
-  if (!isOwner && !isOps) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+  const access = await resolveDossierAccess(req, req.params.dossierId);
+  if (!access.ok) {
+    return res.status(access.status).json({ ok: false, error: access.error });
+  }
+  const { dossier } = access;
 
   const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
   const formalityRule = getFormalityRule({ dossier, questionnaire });
@@ -2166,7 +2175,7 @@ app.post('/api/dossiers/:dossierId/statutes/generate', requireAuth, async (req, 
   const fileSizeBytes = fs.statSync(filePath).size;
   const contentHash = createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
   const docType = `statutes_${legalForm.toLowerCase()}`;
-  await upsertGeneratedDocument({
+  const saved = await upsertGeneratedDocument({
     dossierId: dossier.id,
     type: docType,
     status: 'generated',
@@ -2179,38 +2188,58 @@ app.post('/api/dossiers/:dossierId/statutes/generate', requireAuth, async (req, 
       missingFields: statutesData.missingFields,
       generatedBy: 'greffio_william_template',
       template: statutesDocument.metadata?.template,
+      filename,
     },
   });
+  await syncGeneratedStatutesToDossierChecklist({
+    dossierId: dossier.id,
+    fileUrl: filePath,
+    fileSizeBytes,
+    filename,
+    contentHash,
+    legalForm,
+  });
+  await markDossierStatutesGenerated({
+    dossierId: dossier.id,
+    actorId: req.auth.sub,
+    actorRole: req.auth?.role || ROLE.CLIENT,
+  });
+  const docs = await listGeneratedDocumentsByDossier(dossier.id);
+  const statutesDocs = docs.filter((item) => /^statutes_/i.test(String(item.type || '')));
   return res.status(201).json({
     ok: true,
+    dossierId: dossier.id,
     document: {
+      id: saved.id,
       type: docType,
       filePath,
       fileSizeBytes,
       filename,
       completeness: statutesData.completeness,
       legalForm,
+      createdAt: saved.createdAt,
     },
+    documents: statutesDocs,
   });
 });
 
 app.get('/api/dossiers/:dossierId/statutes', requireAuth, async (req, res) => {
-  const dossier = await getDossier(req.params.dossierId);
-  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
-  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
-  const isOps = isInternalRole(req.auth?.role);
-  if (!isOwner && !isOps) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+  const access = await resolveDossierAccess(req, req.params.dossierId);
+  if (!access.ok) {
+    return res.status(access.status).json({ ok: false, error: access.error });
+  }
+  const { dossier } = access;
   const docs = await listGeneratedDocumentsByDossier(dossier.id);
   const statutesDocs = docs.filter((item) => /^statutes_/i.test(String(item.type || '')));
-  return res.json({ ok: true, documents: statutesDocs });
+  return res.json({ ok: true, dossierId: dossier.id, documents: statutesDocs });
 });
 
 app.get('/api/dossiers/:dossierId/statutes/pdf', requireAuth, async (req, res) => {
-  const dossier = await getDossier(req.params.dossierId);
-  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
-  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
-  const isOps = isInternalRole(req.auth?.role);
-  if (!isOwner && !isOps) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+  const access = await resolveDossierAccess(req, req.params.dossierId);
+  if (!access.ok) {
+    return res.status(access.status).json({ ok: false, error: access.error });
+  }
+  const { dossier } = access;
 
   const docs = await listGeneratedDocumentsByDossier(dossier.id);
   const latest = docs.find((item) => /^statutes_/i.test(String(item.type || '')));
@@ -2504,6 +2533,18 @@ const handleGoCardlessWebhook = async (req, res) => {
 
 app.post('/webhooks/gocardless', express.text({ type: '*/*' }), handleGoCardlessWebhook);
 app.post('/api/webhooks/gocardless', express.text({ type: '*/*' }), handleGoCardlessWebhook);
+
+registerNonConvictionSignatureRoutes(app, {
+  requireAuth,
+  isInternalRole,
+  getDossier,
+  ensureDossierDocuments,
+  updateDossierDocument,
+  listDossierDocuments,
+  DOCUMENT_STATUSES,
+  createSignatureRecord,
+  appUrl,
+});
 
 const bootstrap = async () => {
   await initSchema();

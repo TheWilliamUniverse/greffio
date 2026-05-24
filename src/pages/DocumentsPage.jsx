@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Archive, CheckCircle2, Download, Eye, FilePlus2, FileText, Search, ShieldCheck, Upload } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
@@ -14,6 +14,7 @@ import { isEiLikeFormality } from '@/config/formalities.js';
 import { getDossierById } from '@/api/dossiers.js';
 
 export const DocumentsPage = () => {
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [type, setType] = useState('Tous');
   const [uploading, setUploading] = useState(false);
@@ -266,7 +267,16 @@ export const DocumentsPage = () => {
             {uploadSuccess ? <p className="mt-2 text-xs text-emerald-700">{uploadSuccess}</p> : null}
             {!currentDossierId ? <p className="mt-2 text-xs text-amber-700">Aucun dossier actif détecté. Ouvrez un dossier puis revenez ici pour déposer vos pièces.</p> : null}
             <div className="mt-3">
-              <Button variant="outline" className="bg-white" onClick={openEditor} disabled={!currentDossierId}>
+              <Button
+                variant="outline"
+                className="bg-white"
+                disabled={!currentDossierId}
+                onClick={() => {
+                  const url = `/dossier/${currentDossierId}/declaration-non-condamnation`;
+                  window.open(url, '_blank', 'noopener,noreferrer');
+                  navigate(url);
+                }}
+              >
                 <FilePlus2 className="h-4 w-4" />
                 Remplir en ligne : non-condamnation et filiation
               </Button>
