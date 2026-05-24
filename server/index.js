@@ -118,6 +118,9 @@ import { buildTotpSetup, encryptSecret, verifyTotpCode } from './services/mfaSer
 dotenv.config();
 
 const app = express();
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
 const port = Number(process.env.PORT || 8787);
 
 const allowedOrigins = [
