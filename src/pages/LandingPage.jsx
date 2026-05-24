@@ -17,7 +17,6 @@ import {
   Users,
 } from 'lucide-react';
 import { NavbarDropdown } from '@/components/NavbarDropdown.jsx';
-import { YoungEntrepreneurOfferBanner } from '@/components/YoungEntrepreneurOfferBanner.jsx';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { CompanyLookupCard } from '@/components/CompanyLookupCard.jsx';
@@ -94,8 +93,7 @@ export const LandingPage = () => {
     <div className="min-h-screen bg-background text-foreground">
       <NavbarDropdown />
 
-      <section className="surface-grid relative overflow-visible px-4 pt-28 sm:px-6 lg:px-8 lg:pt-32">
-        <YoungEntrepreneurOfferBanner variant="hero-overlay" />
+      <section className="surface-grid overflow-hidden px-4 pt-28 sm:px-6 lg:px-8 lg:pt-32">
         <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 pb-14 lg:min-h-[720px] lg:grid-cols-[0.94fr_1.06fr] lg:gap-12 lg:pb-16">
           <motion.div initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="max-w-2xl">
             <div className="we-hero-eyebrow mb-7 inline-flex items-center gap-2 shadow-elevation-sm">
