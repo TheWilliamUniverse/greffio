@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { ProgressiveStepChips } from '@/components/ProgressiveStepChips.jsx';
+import { QuestionPanelSuccessOverlay } from '@/components/questionnaire/QuestionPanelSuccessOverlay.jsx';
 import { WizardNavButtons } from '@/components/WizardNavButtons.jsx';
 import { CompanyLookupCard } from '@/components/CompanyLookupCard.jsx';
 import { COMPANY_FORM_CATALOG, getFormAvailability, SERVICE_AVAILABILITY } from '@/config/businessCatalog.js';
@@ -215,6 +216,8 @@ export const FormalityWizardPage = () => {
   const [selectedFamily, setSelectedFamily] = useState('Formes les plus courantes');
   const [questionMode, setQuestionMode] = useState('avance');
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
+  const [questionExitPhase, setQuestionExitPhase] = useState(null);
+  const [questionnaireFinished, setQuestionnaireFinished] = useState(false);
   const [contactStep, setContactStep] = useState(0);
   const [existingCompanyIdentifier, setExistingCompanyIdentifier] = useState('');
   const [existingCompanyState, setExistingCompanyState] = useState('idle');
@@ -279,6 +282,9 @@ export const FormalityWizardPage = () => {
     [questionnaire, answers]
   );
   const activeQuestion = flattenedQuestions[activeQuestionIndex] || null;
+  const isLastQuestion = Boolean(
+    activeQuestion && flattenedQuestions.length > 0 && activeQuestionIndex === flattenedQuestions.length - 1,
+  );
   const completion = useMemo(() => getCompletion(data, answers, questionnaire), [data, answers, questionnaire]);
   const warnings = useMemo(() => getWarnings(data, answers), [data, answers]);
   const documentPreview = useMemo(() => buildDocumentPreview(data, answers, selectedForm), [data, answers, selectedForm]);
@@ -335,7 +341,22 @@ export const FormalityWizardPage = () => {
 
   useEffect(() => {
     setActiveQuestionIndex(0);
+    setQuestionExitPhase(null);
+    setQuestionnaireFinished(false);
   }, [questionMode, data.legalForm, data.journey]);
+
+  useEffect(() => {
+    if (questionExitPhase !== 'closing') return undefined;
+    const validatedTimer = window.setTimeout(() => setQuestionExitPhase('validated'), 520);
+    const doneTimer = window.setTimeout(() => {
+      setQuestionExitPhase('done');
+      setQuestionnaireFinished(true);
+    }, 1450);
+    return () => {
+      window.clearTimeout(validatedTimer);
+      window.clearTimeout(doneTimer);
+    };
+  }, [questionExitPhase]);
 
   const update = (key, value) => {
     setData((current) => ({ ...current, [key]: value }));
@@ -362,13 +383,25 @@ export const FormalityWizardPage = () => {
 
   const advanceActiveQuestion = () => {
     if (!canAdvanceActiveQuestion()) return;
-    if (activeQuestionIndex >= flattenedQuestions.length - 1) return;
+    if (isLastQuestion) {
+      completeLastQuestion();
+      return;
+    }
     setActiveQuestionIndex((current) => Math.min(flattenedQuestions.length - 1, current + 1));
+  };
+
+  const completeLastQuestion = () => {
+    if (!canAdvanceActiveQuestion() || !isLastQuestion || questionExitPhase) return;
+    setQuestionExitPhase('closing');
   };
 
   const tryWizardContinue = () => {
     if (showOffers) return;
-    if (step === 2 && activeQuestion) {
+    if (step === 2 && activeQuestion && isLastQuestion && canAdvanceActiveQuestion() && !questionnaireFinished) {
+      completeLastQuestion();
+      return;
+    }
+    if (step === 2 && activeQuestion && !questionnaireFinished) {
       advanceActiveQuestion();
       return;
     }
@@ -908,103 +941,166 @@ export const FormalityWizardPage = () => {
                         </div>
                       </div>
 
-                      <div className="mt-5 rounded-md border border-border bg-white p-5">
-                        <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-                          <div className="flex items-center gap-3">
-                            <div className="relative h-16 w-16">
-                              <svg viewBox="0 0 36 36" className="h-16 w-16">
-                                <path className="stroke-muted" fill="none" strokeWidth="3" d="M18 2.5a15.5 15.5 0 1 1 0 31a15.5 15.5 0 1 1 0-31" />
-                                <path
-                                  className="stroke-primary"
-                                  fill="none"
-                                  strokeWidth="3"
-                                  strokeLinecap="round"
-                                  strokeDasharray={`${completion}, 100`}
-                                  d="M18 2.5a15.5 15.5 0 1 1 0 31a15.5 15.5 0 1 1 0-31"
-                                />
-                              </svg>
-                              <span className="absolute inset-0 flex items-center justify-center text-xs font-bold">{completion}%</span>
-                            </div>
-                            <div>
-                              <p className="text-sm font-bold uppercase text-primary">Réf. : {dossierReference}</p>
-                              <p className="text-xs text-muted-foreground">{activeQuestionIndex + 1}/{Math.max(flattenedQuestions.length, 1)} question(s)</p>
-                            </div>
-                          </div>
-                          <p className="text-xs text-muted-foreground">Vos données sont en sécurité et transmises uniquement pour votre formalité.</p>
-                        </div>
-
-                        {activeQuestion ? (
-                          <form
-                            className="space-y-4"
-                            onSubmit={(event) => {
-                              event.preventDefault();
-                              advanceActiveQuestion();
-                            }}
+                      <AnimatePresence mode="wait">
+                        {!questionnaireFinished ? (
+                          <motion.div
+                            key="question-panel-active"
+                            className="relative mt-5 overflow-hidden rounded-md border border-border bg-white p-5"
+                            initial={{ opacity: 1, scale: 1, y: 0 }}
+                            animate={
+                              questionExitPhase
+                                ? {
+                                    opacity: questionExitPhase === 'validated' ? 0.35 : 0.72,
+                                    scale: questionExitPhase === 'validated' ? 0.94 : 0.97,
+                                    y: questionExitPhase === 'validated' ? -10 : -4,
+                                  }
+                                : { opacity: 1, scale: 1, y: 0 }
+                            }
+                            exit={{ opacity: 0, scale: 0.95, y: -12 }}
+                            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
                           >
-                            <div className="rounded-md bg-muted p-4">
-                              <div className="flex gap-3">
-                                <Info className="mt-1 h-4 w-4 shrink-0 text-primary" />
+                            <QuestionPanelSuccessOverlay phase={questionExitPhase} />
+                            <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+                              <div className="flex items-center gap-3">
+                                <div className="relative h-16 w-16">
+                                  <svg viewBox="0 0 36 36" className="h-16 w-16">
+                                    <path className="stroke-muted" fill="none" strokeWidth="3" d="M18 2.5a15.5 15.5 0 1 1 0 31a15.5 15.5 0 1 1 0-31" />
+                                    <path
+                                      className="stroke-primary"
+                                      fill="none"
+                                      strokeWidth="3"
+                                      strokeLinecap="round"
+                                      strokeDasharray={`${completion}, 100`}
+                                      d="M18 2.5a15.5 15.5 0 1 1 0 31a15.5 15.5 0 1 1 0-31"
+                                    />
+                                  </svg>
+                                  <span className="absolute inset-0 flex items-center justify-center text-xs font-bold">{completion}%</span>
+                                </div>
                                 <div>
-                                  <p className="text-xs font-bold uppercase text-primary">{activeQuestion.sectionTitle}</p>
-                                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{activeQuestion.sectionNote}</p>
+                                  <p className="text-sm font-bold uppercase text-primary">Réf. : {dossierReference}</p>
+                                  <p className="text-xs text-muted-foreground">{activeQuestionIndex + 1}/{Math.max(flattenedQuestions.length, 1)} question(s)</p>
                                 </div>
                               </div>
+                              <p className="text-xs text-muted-foreground">Vos données sont en sécurité et transmises uniquement pour votre formalité.</p>
                             </div>
-                            <div>
-                              <Label>
-                                {activeQuestion.label}
-                                {activeQuestion.required ? <span className="text-primary"> *</span> : null}
-                              </Label>
-                              {activeQuestion.type === 'select' ? (
-                                <select className={`${fieldClass} mt-1 w-full`} value={answers[activeQuestion.key] || ''} onChange={(event) => updateAnswer(activeQuestion.key, event.target.value)}>
-                                  <option value="">À compléter</option>
-                                  {activeQuestion.options.map((option) => (
-                                    <option key={option} value={option}>{option}</option>
-                                  ))}
-                                </select>
-                              ) : activeQuestion.type === 'textarea' ? (
-                                <textarea
-                                  className={`${fieldClass} mt-1 min-h-[110px] w-full`}
-                                  value={answers[activeQuestion.key] || ''}
-                                  placeholder={activeQuestion.placeholder || ''}
-                                  onChange={(event) => updateAnswer(activeQuestion.key, event.target.value)}
-                                />
-                              ) : (
-                                <Input
-                                  className="mt-1"
-                                  value={answers[activeQuestion.key] || ''}
-                                  placeholder={activeQuestion.placeholder || ''}
-                                  onChange={(event) => updateAnswer(activeQuestion.key, event.target.value)}
-                                />
-                              )}
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                className="bg-white"
-                                disabled={activeQuestionIndex === 0}
-                                onClick={() => setActiveQuestionIndex((current) => Math.max(0, current - 1))}
+
+                            {activeQuestion ? (
+                              <motion.form
+                                className="space-y-4"
+                                animate={
+                                  questionExitPhase
+                                    ? { opacity: questionExitPhase === 'validated' ? 0.15 : 0.55, y: -2 }
+                                    : { opacity: 1, y: 0 }
+                                }
+                                transition={{ duration: 0.45, ease: 'easeOut' }}
+                                onSubmit={(event) => {
+                                  event.preventDefault();
+                                  advanceActiveQuestion();
+                                }}
                               >
-                                <ArrowLeft className="h-4 w-4" />
-                                Retour
-                              </Button>
-                              <Button
-                                type="submit"
-                                disabled={!canAdvanceActiveQuestion() || activeQuestionIndex >= flattenedQuestions.length - 1}
-                              >
-                                Continuer
-                                <ArrowRight className="h-4 w-4" />
-                              </Button>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              Numéro joignable : {GREFFIO_CONTACT.supportPhone}
-                            </p>
-                          </form>
+                                <div className="rounded-md bg-muted p-4">
+                                  <div className="flex gap-3">
+                                    <Info className="mt-1 h-4 w-4 shrink-0 text-primary" />
+                                    <div>
+                                      <p className="text-xs font-bold uppercase text-primary">{activeQuestion.sectionTitle}</p>
+                                      <p className="mt-1 text-xs leading-5 text-muted-foreground">{activeQuestion.sectionNote}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div>
+                                  <Label>
+                                    {activeQuestion.label}
+                                    {activeQuestion.required ? <span className="text-primary"> *</span> : null}
+                                  </Label>
+                                  {activeQuestion.type === 'select' ? (
+                                    <select
+                                      className={`${fieldClass} mt-1 w-full`}
+                                      value={answers[activeQuestion.key] || ''}
+                                      disabled={Boolean(questionExitPhase)}
+                                      onChange={(event) => updateAnswer(activeQuestion.key, event.target.value)}
+                                    >
+                                      <option value="">À compléter</option>
+                                      {activeQuestion.options.map((option) => (
+                                        <option key={option} value={option}>{option}</option>
+                                      ))}
+                                    </select>
+                                  ) : activeQuestion.type === 'textarea' ? (
+                                    <textarea
+                                      className={`${fieldClass} mt-1 min-h-[110px] w-full`}
+                                      value={answers[activeQuestion.key] || ''}
+                                      placeholder={activeQuestion.placeholder || ''}
+                                      disabled={Boolean(questionExitPhase)}
+                                      onChange={(event) => updateAnswer(activeQuestion.key, event.target.value)}
+                                    />
+                                  ) : (
+                                    <Input
+                                      className="mt-1"
+                                      value={answers[activeQuestion.key] || ''}
+                                      placeholder={activeQuestion.placeholder || ''}
+                                      disabled={Boolean(questionExitPhase)}
+                                      onChange={(event) => updateAnswer(activeQuestion.key, event.target.value)}
+                                    />
+                                  )}
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="bg-white"
+                                    disabled={activeQuestionIndex === 0 || Boolean(questionExitPhase)}
+                                    onClick={() => setActiveQuestionIndex((current) => Math.max(0, current - 1))}
+                                  >
+                                    <ArrowLeft className="h-4 w-4" />
+                                    Retour
+                                  </Button>
+                                  <Button
+                                    type="submit"
+                                    disabled={!canAdvanceActiveQuestion() || Boolean(questionExitPhase)}
+                                  >
+                                    {isLastQuestion ? 'Valider' : 'Continuer'}
+                                    <ArrowRight className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  Numéro joignable : {GREFFIO_CONTACT.supportPhone}
+                                </p>
+                              </motion.form>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">Aucune question affichable avec cette configuration.</p>
+                            )}
+                          </motion.div>
                         ) : (
-                          <p className="text-sm text-muted-foreground">Aucune question affichable avec cette configuration.</p>
+                          <motion.div
+                            key="question-panel-complete"
+                            className="mt-5 rounded-md border border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-white to-secondary/40 p-5 shadow-[0_8px_24px_rgba(16,185,129,0.08)]"
+                            initial={{ opacity: 0, y: 14, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                          >
+                            <div className="flex items-start gap-3">
+                              <motion.span
+                                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm"
+                                initial={{ scale: 0.6, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ type: 'spring', stiffness: 360, damping: 18, delay: 0.05 }}
+                              >
+                                <CheckCircle2 className="h-5 w-5" strokeWidth={2.4} />
+                              </motion.span>
+                              <div>
+                                <p className="text-sm font-bold uppercase tracking-wide text-emerald-700">Étape validée</p>
+                                <h3 className="mt-1 text-lg font-extrabold text-[hsl(var(--greffio-blue-900))]">
+                                  Questionnaire complété
+                                </h3>
+                                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                                  {activeQuestion?.sectionTitle === 'Finances et fin de vie' || answers.affectationResultat
+                                    ? 'Le bloc « Finances et fin de vie » est enregistré. Vous pouvez passer à la synthèse Greffio.'
+                                    : 'Toutes les questions utiles ont été enregistrées. Vous pouvez passer à la synthèse Greffio.'}
+                                </p>
+                              </div>
+                            </div>
+                          </motion.div>
                         )}
-                      </div>
+                      </AnimatePresence>
                     </div>
                     <label className="flex items-start gap-3 rounded-md border border-border bg-muted p-4">
                       <input type="checkbox" checked={data.marketingConsent} onChange={(event) => update('marketingConsent', event.target.checked)} className="mt-1" />
