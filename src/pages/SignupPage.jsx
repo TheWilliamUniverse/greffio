@@ -9,7 +9,7 @@ import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
-import { COMPANY_FORM_CATALOG, LEGAL_SERVICES } from '@/utils/mockData.js';
+import { COMPANY_FORM_CATALOG, LEGAL_SERVICES } from '@/config/businessCatalog.js';
 import { getProjectDraft } from '@/utils/localStorage.js';
 import { createDossier } from '@/api/dossiers.js';
 import { saveCurrentDossierId } from '@/utils/sessionStore.js';

@@ -6,7 +6,6 @@ import { Sidebar } from '@/components/Sidebar.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
-import { getDossiers, saveDossiers } from '@/utils/localStorage.js';
 
 const STATUS_LABELS = {
   draft: 'BROUILLON',
@@ -175,15 +174,6 @@ const normalizeApiDossier = (dossier) => {
   };
 };
 
-const normalizeStoredDossier = (dossier) => ({
-  blockers: [],
-  steps: [],
-  priority: 'Normale',
-  progress: 0,
-  dueDate: dossier.updatedAt || dossier.createdAt || new Date().toISOString(),
-  ...dossier,
-});
-
 const formatDate = (value) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'À suivre';
@@ -191,7 +181,7 @@ const formatDate = (value) => {
 };
 
 export const DossiersPage = () => {
-  const [dossiers, setDossiers] = useState(() => getDossiers().map(normalizeStoredDossier));
+  const [dossiers, setDossiers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [status, setStatus] = useState('Tous');
 
@@ -204,10 +194,9 @@ export const DossiersPage = () => {
         if (!mounted || !Array.isArray(payload.dossiers)) return;
         const apiDossiers = payload.dossiers.map(normalizeApiDossier);
         setDossiers(apiDossiers);
-        saveDossiers(apiDossiers);
       } catch (_error) {
         if (!mounted) return;
-        setDossiers(getDossiers().map(normalizeStoredDossier));
+        setDossiers([]);
       }
     };
 

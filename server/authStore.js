@@ -1,4 +1,4 @@
-import { randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
+import { createHash, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
 import { hasPostgres, query, sqlite } from './dbClient.js';
 
 const nowIso = () => new Date().toISOString();
@@ -129,6 +129,95 @@ const authenticateUser = async ({ email, password }) => {
   return mapUserRow(row);
 };
 
+const createPasswordResetToken = async ({
+  userId,
+  expiresAt,
+}) => {
+  const token = randomUUID().replaceAll('-', '') + randomUUID().replaceAll('-', '');
+  const tokenHash = createHash('sha256').update(token).digest('hex');
+  const record = {
+    id: `prt_${randomUUID()}`,
+    userId,
+    tokenHash,
+    expiresAt,
+    consumedAt: null,
+    createdAt: nowIso(),
+  };
+  if (hasPostgres) {
+    await query(`
+      INSERT INTO password_reset_tokens (
+        id, user_id, token_hash, expires_at, consumed_at, created_at
+      ) VALUES ($1,$2,$3,$4,$5,$6)
+    `, [
+      record.id,
+      record.userId,
+      record.tokenHash,
+      record.expiresAt,
+      record.consumedAt,
+      record.createdAt,
+    ]);
+  } else {
+    sqlite.prepare(`
+      INSERT INTO password_reset_tokens (
+        id, user_id, token_hash, expires_at, consumed_at, created_at
+      ) VALUES (
+        @id, @userId, @tokenHash, @expiresAt, @consumedAt, @createdAt
+      )
+    `).run(record);
+  }
+  return token;
+};
+
+const consumePasswordResetToken = async ({ token }) => {
+  const tokenHash = createHash('sha256').update(String(token || '')).digest('hex');
+  const now = nowIso();
+  let row = null;
+  if (hasPostgres) {
+    const result = await query(`
+      SELECT id, user_id AS "userId", expires_at AS "expiresAt", consumed_at AS "consumedAt"
+      FROM password_reset_tokens
+      WHERE token_hash = $1
+      LIMIT 1
+    `, [tokenHash]);
+    row = result.rows[0] || null;
+  } else {
+    row = sqlite.prepare(`
+      SELECT id, user_id AS userId, expires_at AS expiresAt, consumed_at AS consumedAt
+      FROM password_reset_tokens
+      WHERE token_hash = ?
+      LIMIT 1
+    `).get(tokenHash) || null;
+  }
+  if (!row || row.consumedAt || new Date(row.expiresAt).getTime() <= Date.now()) {
+    return null;
+  }
+
+  if (hasPostgres) {
+    await query('UPDATE password_reset_tokens SET consumed_at = $1 WHERE id = $2', [now, row.id]);
+  } else {
+    sqlite.prepare('UPDATE password_reset_tokens SET consumed_at = ? WHERE id = ?').run(now, row.id);
+  }
+  return row.userId;
+};
+
+const updateUserPasswordById = async ({ userId, password }) => {
+  const passwordHash = hashPassword(password);
+  const updatedAt = nowIso();
+  if (hasPostgres) {
+    await query(`
+      UPDATE users
+      SET password_hash = $1, updated_at = $2
+      WHERE id = $3
+    `, [passwordHash, updatedAt, userId]);
+    return;
+  }
+  sqlite.prepare(`
+    UPDATE users
+    SET password_hash = ?, updated_at = ?
+    WHERE id = ?
+  `).run(passwordHash, updatedAt, userId);
+};
+
 const updateUserRoleByEmail = async ({
   email,
   role,
@@ -200,9 +289,50 @@ const updateUserRoleByEmail = async ({
   return mapUserRow(await getUserByEmail(normalized));
 };
 
+const getUserById = async (userId) => {
+  if (!userId) return null;
+  if (hasPostgres) {
+    const result = await query(`
+      SELECT
+        id,
+        email,
+        password_hash AS "passwordHash",
+        first_name AS "firstName",
+        last_name AS "lastName",
+        role,
+        company_json AS "companyJson",
+        created_at AS "createdAt",
+        updated_at AS "updatedAt"
+      FROM users
+      WHERE id = $1
+      LIMIT 1
+    `, [userId]);
+    return mapUserRow(result.rows[0] || null);
+  }
+  const row = sqlite.prepare(`
+    SELECT
+      id,
+      email,
+      password_hash AS passwordHash,
+      first_name AS firstName,
+      last_name AS lastName,
+      role,
+      company_json AS companyJson,
+      created_at AS createdAt,
+      updated_at AS updatedAt
+    FROM users
+    WHERE id = ?
+  `).get(userId);
+  return mapUserRow(row);
+};
+
 export {
   createUser,
   getUserByEmail,
+  getUserById,
   authenticateUser,
   updateUserRoleByEmail,
+  createPasswordResetToken,
+  consumePasswordResetToken,
+  updateUserPasswordById,
 };

@@ -1,10 +1,35 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
-import { getDossiers } from '@/utils/localStorage.js';
+import { listDossiers } from '@/api/dossiers.js';
+import { useEffect, useState } from 'react';
 
 const ProjectsPage = () => {
-  const dossiers = getDossiers();
+  const [dossiers, setDossiers] = useState([]);
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const payload = await listDossiers();
+        if (!mounted) return;
+        const next = Array.isArray(payload?.dossiers)
+          ? payload.dossiers.map((dossier) => ({
+              id: dossier.id,
+              name: dossier.companyName || dossier.denomination || 'Projet',
+              nextAction: 'Suivre les étapes opérationnelles depuis le dossier.',
+            }))
+          : [];
+        setDossiers(next);
+      } catch (_error) {
+        if (!mounted) return;
+        setDossiers([]);
+      }
+    };
+    void load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">

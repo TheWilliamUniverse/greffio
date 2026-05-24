@@ -36,3 +36,5 @@ _rels/
 docProps/
 word/
 assets/play-store/video/page@*.webm
+artifacts/playstore/*.aab
+artifacts/playstore/*.apk

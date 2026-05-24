@@ -17,75 +17,83 @@ import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Card, CardContent } from '@/components/ui/card.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
-import { getDocuments, getDossiers, getNotifications } from '@/utils/localStorage.js';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
-import { getDossierById } from '@/api/dossiers.js';
+import { getDossierById, listDossiers } from '@/api/dossiers.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
 
 export const DashboardPage = () => {
   const { currentUser } = useAuth();
-  const [dossiers, setDossiers] = useState(getDossiers());
-  const [documents, setDocuments] = useState(getDocuments());
-  const notifications = getNotifications();
+  const [dossiers, setDossiers] = useState([]);
+  const [documents, setDocuments] = useState([]);
+  const notifications = [];
   const [loadingApi, setLoadingApi] = useState(true);
 
   useEffect(() => {
     const load = async () => {
-      const currentDossierId = getCurrentDossierId();
-      if (!currentDossierId) {
-        setLoadingApi(false);
-        return;
-      }
       try {
-        const payload = await getDossierById(currentDossierId);
-        const dossier = payload.dossier;
-        const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
-        const eiLike = isEiLikeFormality({
-          legalForm: dossier.legalForm || questionnaire.formeJuridique,
-          typeFormalite: questionnaire.typeFormalite,
-          service: dossier.service,
-        });
-        const apiDossier = {
-          id: dossier.id,
-          name: dossier.companyName || dossier.denomination || 'Dossier entreprise',
-          legalForm: dossier.legalForm || dossier.formeJuridique || 'SASU',
-          owner: currentUser?.firstName || 'Client',
-          status: String(dossier.status || '').toUpperCase(),
-          phase: dossier.service || 'formalite',
-          nextAction: 'Suivre la checklist et compléter les pièces demandées.',
-          expert: dossier.assignedToUserId || 'Équipe Greffio',
-          createdAt: dossier.createdAt,
-          dueDate: dossier.updatedAt || dossier.createdAt,
-          progress: Number(dossier.progressPercent || 0),
-          currentStep: Math.max(1, Math.round(Number(dossier.progressPercent || 0) / 20)),
-          totalSteps: 5,
-          blockers: [],
-          steps: [],
-          project: {
-            initiatorType: questionnaire.initiatorType || 'personne_physique',
-            initiatorName: [questionnaire.firstName, questionnaire.lastName].filter(Boolean).join(' ') || currentUser?.firstName || 'Client',
-            companyName: questionnaire.companyName || questionnaire.existingBusinessName || dossier.companyName,
-            siren: questionnaire.companySiren || questionnaire.existingBusinessSiren || '',
-            nationality: questionnaire.nationality || '',
-            companyCountry: questionnaire.companyCountry || '',
-          },
-        };
-        setDossiers([apiDossier]);
-        setDocuments((payload.documents || [])
-          .filter((doc) => !(eiLike && (doc.docKey === 'signed_statutes' || doc.docKey === 'capital_certificate')))
-          .map((doc) => ({
-          id: doc.id,
-          dossierId: doc.dossierId,
-          name: doc.label,
-          status: String(doc.status || '').toUpperCase(),
-          type: doc.docKey,
-          size: doc.fileSizeBytes ? `${Math.round(Number(doc.fileSizeBytes) / 1024)} Ko` : 'N/A',
-          source: 'API',
-          providedBy: doc.reviewerId ? 'Greffio' : 'Client',
-          date: doc.updatedAt || doc.createdAt,
-        })));
+        const listPayload = await listDossiers();
+        const apiDossiers = Array.isArray(listPayload?.dossiers) ? listPayload.dossiers : [];
+        const normalized = [];
+        for (const dossier of apiDossiers) {
+          const detail = await getDossierById(dossier.id);
+          const questionnaire = detail?.dossier?.dataJson ? JSON.parse(detail.dossier.dataJson) : {};
+          normalized.push({
+            id: dossier.id,
+            name: dossier.companyName || dossier.denomination || 'Dossier entreprise',
+            legalForm: dossier.legalForm || dossier.formeJuridique || 'SASU',
+            owner: currentUser?.firstName || 'Client',
+            status: String(dossier.status || '').toUpperCase(),
+            phase: dossier.service || 'formalite',
+            nextAction: 'Suivre la checklist et compléter les pièces demandées.',
+            expert: dossier.assignedToUserId || 'Équipe Greffio',
+            createdAt: dossier.createdAt,
+            dueDate: dossier.updatedAt || dossier.createdAt,
+            progress: Number(dossier.progressPercent || 0),
+            currentStep: Math.max(1, Math.round(Number(dossier.progressPercent || 0) / 20)),
+            totalSteps: 5,
+            blockers: [],
+            steps: [],
+            project: {
+              initiatorType: questionnaire.initiatorType || 'personne_physique',
+              initiatorName: [questionnaire.firstName, questionnaire.lastName].filter(Boolean).join(' ') || currentUser?.firstName || 'Client',
+              companyName: questionnaire.companyName || questionnaire.existingBusinessName || dossier.companyName,
+              siren: questionnaire.companySiren || questionnaire.existingBusinessSiren || '',
+              nationality: questionnaire.nationality || '',
+              companyCountry: questionnaire.companyCountry || '',
+            },
+          });
+        }
+        setDossiers(normalized);
+
+        const currentDossierId = getCurrentDossierId() || normalized[0]?.id;
+        if (!currentDossierId) {
+          setDocuments([]);
+        } else {
+          const payload = await getDossierById(currentDossierId);
+          const dossier = payload.dossier;
+          const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+          const eiLike = isEiLikeFormality({
+            legalForm: dossier.legalForm || questionnaire.formeJuridique,
+            typeFormalite: questionnaire.typeFormalite,
+            service: dossier.service,
+          });
+          setDocuments((payload.documents || [])
+            .filter((doc) => !(eiLike && (doc.docKey === 'signed_statutes' || doc.docKey === 'capital_certificate')))
+            .map((doc) => ({
+              id: doc.id,
+              dossierId: doc.dossierId,
+              name: doc.label,
+              status: String(doc.status || '').toUpperCase(),
+              type: doc.docKey,
+              size: doc.fileSizeBytes ? `${Math.round(Number(doc.fileSizeBytes) / 1024)} Ko` : 'N/A',
+              source: 'API',
+              providedBy: doc.reviewerId ? 'Greffio' : 'Client',
+              date: doc.updatedAt || doc.createdAt,
+            })));
+        }
       } catch (_error) {
-        // local fallback
+        setDossiers([]);
+        setDocuments([]);
       } finally {
         setLoadingApi(false);
       }

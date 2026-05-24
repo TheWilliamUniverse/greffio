@@ -1,11 +1,34 @@
 import React from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { getDossiers } from '@/utils/localStorage.js';
+import { useEffect, useState } from 'react';
+import { getDossierById } from '@/api/dossiers.js';
 
 const ProjectDetailPage = () => {
   const { id } = useParams();
-  const project = getDossiers().find((dossier) => dossier.id === id);
+  const [project, setProject] = useState(null);
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      if (!id) return;
+      try {
+        const payload = await getDossierById(id);
+        if (!mounted) return;
+        setProject({
+          id: payload?.dossier?.id,
+          name: payload?.dossier?.companyName || payload?.dossier?.denomination || 'Projet',
+          nextAction: 'Suivre le dossier depuis les étapes réelles du backend.',
+        });
+      } catch (_error) {
+        if (!mounted) return;
+        setProject(null);
+      }
+    };
+    void load();
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">

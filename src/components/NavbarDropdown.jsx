@@ -19,16 +19,32 @@ import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 
 const menuColumns = [
   {
-    title: 'Créer',
-    links: ['SAS / SASU', 'SA', 'SARL / EURL', 'Auto-entrepreneur', 'SCI', 'Association'],
+    title: 'Formalités',
+    links: [
+      { label: 'Catalogue complet', to: '/services' },
+      { label: 'Nouvelle formalité', to: '/simulateur' },
+      { label: 'Création EI / Micro', to: '/simulateur?formality=ei' },
+      { label: 'Création SAS / SASU', to: '/simulateur?formality=sas' },
+      { label: 'Modification', to: '/simulateur?type=modification' },
+    ],
   },
   {
-    title: 'Gérer',
-    links: ['Transfert de siège', 'Changement de dirigeant', 'Dépôt de marque', 'Fermeture'],
+    title: 'Espace client',
+    links: [
+      { label: 'Dashboard', to: '/dashboard' },
+      { label: 'Dossiers', to: '/dossiers' },
+      { label: 'Documents', to: '/documents' },
+      { label: 'Assistant Greffio', to: '/chat' },
+    ],
   },
   {
-    title: 'Piloter',
-    links: ['Tableau de bord', 'Documents', 'Calendrier juridique', 'Assistant Greffio'],
+    title: 'Informations',
+    links: [
+      { label: 'Ressources', to: '/ressources' },
+      { label: 'Guide', to: '/guide' },
+      { label: 'Contact', to: '/contact' },
+      { label: 'App mobile', to: '/app' },
+    ],
   },
 ];
 
@@ -55,10 +71,10 @@ export const NavbarDropdown = () => {
             onMouseEnter={() => setIsServicesOpen(true)}
             onMouseLeave={() => setIsServicesOpen(false)}
           >
-            <button className="flex items-center gap-1 text-sm font-semibold text-foreground transition-colors hover:text-primary">
+            <Link to="/services" className="flex items-center gap-1 text-sm font-semibold text-foreground transition-colors hover:text-primary">
               Services
               <ChevronDown className={`h-4 w-4 transition-transform ${isServicesOpen ? 'rotate-180' : ''}`} />
-            </button>
+            </Link>
 
             <AnimatePresence>
               {isServicesOpen && (
@@ -76,11 +92,11 @@ export const NavbarDropdown = () => {
                         <div className="space-y-2">
                           {column.links.map((item) => (
                             <Link
-                              key={item}
-                              to="/simulateur"
+                              key={item.label}
+                              to={item.to}
                               className="block rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                             >
-                              {item}
+                              {item.label}
                             </Link>
                           ))}
                         </div>
@@ -155,8 +171,8 @@ export const NavbarDropdown = () => {
           >
             <div className="space-y-4 px-4 py-5">
               {menuColumns.flatMap((column) => column.links).map((item) => (
-                <Link key={item} to="/simulateur" className="flex items-center justify-between rounded-md bg-muted px-3 py-3 text-sm font-semibold text-foreground">
-                  {item}
+                <Link key={item.label} to={item.to} className="flex items-center justify-between rounded-md bg-muted px-3 py-3 text-sm font-semibold text-foreground">
+                  {item.label}
                   <FileCheck2 className="h-4 w-4 text-primary" />
                 </Link>
               ))}

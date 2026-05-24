@@ -1,0 +1,17 @@
+import {
+  LEGAL_STRUCTURES,
+  LEGAL_SERVICES,
+  SERVICE_AVAILABILITY,
+  PAYMENT_METHODS,
+  COMPANY_FORM_CATALOG,
+  getFormAvailability,
+} from '@/utils/mockData.js';
+
+export {
+  LEGAL_STRUCTURES,
+  LEGAL_SERVICES,
+  SERVICE_AVAILABILITY,
+  PAYMENT_METHODS,
+  COMPANY_FORM_CATALOG,
+  getFormAvailability,
+};

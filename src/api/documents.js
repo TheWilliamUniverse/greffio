@@ -114,3 +114,26 @@ export const downloadDossierDocument = async ({ dossierId, docKey }) => {
   const blob = await response.blob();
   return { filename, blob };
 };
+
+export const getDossierDocumentEditor = async ({ dossierId, docKey }) => {
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}/documents/${docKey}/editor`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${authToken()}`,
+    },
+  });
+  return parseResponse(response);
+};
+
+export const saveDossierDocumentEditor = async ({ dossierId, docKey, fields }) => {
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}/documents/${docKey}/editor`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${authToken()}`,
+    },
+    body: JSON.stringify({ fields }),
+  });
+  return parseResponse(response);
+};

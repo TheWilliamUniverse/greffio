@@ -34,6 +34,7 @@ import { QuestionnairePage } from '@/pages/QuestionnairePage.jsx';
 import { StatutesPage } from '@/pages/StatutesPage.jsx';
 import { InterfacesPage } from '@/pages/InterfacesPage.jsx';
 import { ServiceLandingPage } from '@/pages/ServiceLandingPage.jsx';
+import { ServicesPage } from '@/pages/ServicesPage.jsx';
 import { OpsLookupObservabilityPage } from '@/pages/OpsLookupObservabilityPage.jsx';
 import { SERVICE_PAGE_SLUGS } from '@/config/serviceLandingPages.js';
 import { CookieConsentBanner } from '@/components/CookieConsentBanner.jsx';
@@ -58,7 +59,7 @@ const NotFound = () => (
 
 const Layout = ({ children }) => {
   const location = useLocation();
-  const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/paiement', '/ressources', '/app', '/guide', '/procuration', '/contact'];
+  const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/services', '/paiement', '/ressources', '/app', '/guide', '/procuration', '/contact'];
   const shouldHideHeader = hideHeaderRoutes.some((route) => location.pathname === route || location.pathname.startsWith('/service/'));
 
   return (
@@ -77,6 +78,7 @@ function App() {
         <Layout>
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/services" element={<ServicesPage />} />
             <Route path="/simulateur" element={<FormalityWizardPage />} />
             <Route path="/questionnaire" element={<ProtectedRoute><QuestionnairePage /></ProtectedRoute>} />
             <Route path="/statuts-gratuits" element={<ProtectedRoute><QuestionnairePage /></ProtectedRoute>} />

@@ -10,15 +10,16 @@ import { getChatHistory, getDocuments, getDossiers } from '@/utils/localStorage.
 import { getDossierById } from '@/api/dossiers.js';
 import { saveCurrentDossierId } from '@/utils/sessionStore.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
+import { listDossiers } from '@/api/dossiers.js';
 
 export const DossierDetailPage = () => {
   const { id } = useParams();
-  const dossiers = getDossiers();
+  const [dossiers, setDossiers] = useState([]);
   const [apiDossier, setApiDossier] = useState(null);
   const [apiDocs, setApiDocs] = useState([]);
   const dossier = apiDossier || dossiers.find((item) => item.id === id);
-  const docs = apiDocs.length ? apiDocs : getDocuments().filter((document) => document.dossierId === id);
-  const messages = getChatHistory().filter((message) => !message.dossierId || message.dossierId === id);
+  const docs = apiDocs;
+  const messages = [];
   const [comment, setComment] = useState('');
   const missingDocuments = useMemo(() => docs.filter((document) => ['ATTENTE_DOCS', 'URGENT', 'EN_ANALYSE', 'A_SIGNER', 'BROUILLON'].includes(document.status)), [docs]);
   const timeline = useMemo(() => {
@@ -34,6 +35,24 @@ export const DossierDetailPage = () => {
       if (!id) return;
       saveCurrentDossierId(id);
       try {
+        const listPayload = await listDossiers();
+        const normalizedList = Array.isArray(listPayload?.dossiers) ? listPayload.dossiers.map((d) => ({
+          id: d.id,
+          name: d.companyName || d.denomination || 'Dossier',
+          legalForm: d.legalForm || d.formeJuridique || 'SASU',
+          owner: 'Client',
+          status: String(d.status || '').toUpperCase(),
+          phase: d.service || 'formalite',
+          nextAction: 'Compléter les pièces demandées et valider les informations.',
+          expert: d.assignedToUserId || 'Équipe Greffio',
+          createdAt: d.createdAt,
+          dueDate: d.updatedAt || d.createdAt,
+          progress: Number(d.progressPercent || 0),
+          currentStep: Math.max(1, Math.round(Number(d.progressPercent || 0) / 20)),
+          totalSteps: 5,
+          blockers: [],
+        })) : [];
+        setDossiers(normalizedList);
         const payload = await getDossierById(id);
         const d = payload.dossier;
         const questionnaire = d.dataJson ? JSON.parse(d.dataJson) : {};
@@ -88,7 +107,9 @@ export const DossierDetailPage = () => {
           confidence: doc.metadata?.analysis?.confidence ?? null,
         })));
       } catch (_error) {
-        // fallback to local mock
+        setApiDossier(null);
+        setApiDocs([]);
+        setDossiers([]);
       }
     };
     void load();

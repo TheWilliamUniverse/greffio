@@ -1,11 +1,43 @@
 import React from 'react';
 import { BarChart3, Clock, FileCheck2, TrendingUp } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar.jsx';
-import { getDocuments, getDossiers } from '@/utils/localStorage.js';
+import { useEffect, useState } from 'react';
+import { listDossiers, getDossierById } from '@/api/dossiers.js';
 
 export const AnalyticsPage = () => {
-  const dossiers = getDossiers();
-  const documents = getDocuments();
+  const [dossiers, setDossiers] = useState([]);
+  const [documents, setDocuments] = useState([]);
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const payload = await listDossiers();
+        const items = Array.isArray(payload?.dossiers) ? payload.dossiers : [];
+        const details = await Promise.all(items.map((item) => getDossierById(item.id)));
+        if (!mounted) return;
+        const nextDossiers = details.map((detail) => ({
+          id: detail?.dossier?.id,
+          name: detail?.dossier?.companyName || 'Dossier',
+          expert: detail?.dossier?.assignedToUserId || 'Équipe Greffio',
+          progress: Number(detail?.dossier?.progressPercent || 0),
+          nextAction: 'Suivi opérationnel du dossier.',
+        }));
+        const nextDocuments = details.flatMap((detail) => detail?.documents || []);
+        setDossiers(nextDossiers);
+        setDocuments(nextDocuments.map((document) => ({
+          status: String(document.status || '').toUpperCase(),
+        })));
+      } catch (_error) {
+        if (!mounted) return;
+        setDossiers([]);
+        setDocuments([]);
+      }
+    };
+    void load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
   const completedDocs = documents.filter((document) => ['VALIDE', 'TERMINE'].includes(document.status)).length;
   const averageProgress = dossiers.length ? Math.round(dossiers.reduce((sum, dossier) => sum + (dossier.progress || 0), 0) / dossiers.length) : 0;
 

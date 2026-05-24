@@ -1,20 +1,59 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, MailCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
+import { confirmPasswordReset, requestPasswordReset } from '@/api/auth.js';
 
 export const PasswordResetPage = () => {
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const resetToken = useMemo(() => searchParams.get('token') || '', [searchParams]);
 
-  const handleSubmit = (event) => {
+  const handleRequestSubmit = async (event) => {
     event.preventDefault();
-    setSubmitted(true);
-    toast.success('Lien de réinitialisation préparé');
+    setSaving(true);
+    try {
+      await requestPasswordReset({ email });
+      setSubmitted(true);
+      toast.success('Lien de réinitialisation envoyé');
+    } catch (_error) {
+      toast.error("Impossible d'envoyer le lien pour le moment.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetSubmit = async (event) => {
+    event.preventDefault();
+    if (newPassword.length < 8) {
+      toast.error('Le mot de passe doit contenir au moins 8 caractères.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('Les mots de passe ne correspondent pas.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await confirmPasswordReset({
+        token: resetToken,
+        password: newPassword,
+      });
+      toast.success('Votre mot de passe a été mis à jour.');
+      setSubmitted(true);
+    } catch (_error) {
+      toast.error('Lien invalide ou expiré. Redemandez un nouveau lien.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -39,8 +78,44 @@ export const PasswordResetPage = () => {
               <Link to="/login">Retour à la connexion</Link>
             </Button>
           </div>
+        ) : resetToken ? (
+          <form className="space-y-5" onSubmit={handleResetSubmit}>
+            <div>
+              <h1 className="text-2xl font-extrabold">Nouveau mot de passe</h1>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Ce lien est sécurisé et à usage unique.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-password">Nouveau mot de passe</Label>
+              <Input
+                id="new-password"
+                type="password"
+                required
+                minLength={8}
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                placeholder="8 caractères minimum"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                required
+                minLength={8}
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                placeholder="Répétez le mot de passe"
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={saving}>
+              {saving ? 'Mise à jour...' : 'Mettre à jour le mot de passe'}
+            </Button>
+          </form>
         ) : (
-          <form className="space-y-5" onSubmit={handleSubmit}>
+          <form className="space-y-5" onSubmit={handleRequestSubmit}>
             <div>
               <h1 className="text-2xl font-extrabold">Mot de passe oublié</h1>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
@@ -58,7 +133,9 @@ export const PasswordResetPage = () => {
                 placeholder="vous@entreprise.fr"
               />
             </div>
-            <Button type="submit" className="w-full">Envoyer le lien</Button>
+            <Button type="submit" className="w-full" disabled={saving}>
+              {saving ? 'Envoi...' : 'Envoyer le lien'}
+            </Button>
             <Button variant="ghost" asChild className="w-full">
               <Link to="/login">
                 <ArrowLeft className="h-4 w-4" />

@@ -94,10 +94,10 @@ export const SERVICE_AVAILABILITY = Object.freeze({
 
 export const PAYMENT_METHODS = [
   {
-    id: 'mollie-checkout',
-    name: 'Mollie Checkout',
+    id: 'gocardless-checkout',
+    name: 'GoCardless',
     type: 'Solution principale',
-    description: 'Page de paiement sécurisée, conforme SCA/3-D Secure, reliée à nos vérifications serveur et webhook idempotent.',
+    description: 'Paiement sécurisé par prélèvement SEPA ou virement instantané, avec webhook serveur et statut transactionnel fiable.',
     recommended: true,
   },
   {

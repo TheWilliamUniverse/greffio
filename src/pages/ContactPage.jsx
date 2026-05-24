@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { runtimeConfig } from '@/config/runtime.js';
+import { submitAppointmentRequest } from '@/api/contact.js';
 
 export const ContactPage = () => {
   const [form, setForm] = useState({
@@ -16,6 +17,8 @@ export const ContactPage = () => {
     phone: '',
     need: 'Demande commerciale',
     message: '',
+    preferredDate: '',
+    preferredTime: '',
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -26,22 +29,34 @@ export const ContactPage = () => {
   const onSubmit = async (event) => {
     event.preventDefault();
     setSubmitting(true);
-
-    // In production this should call a backend endpoint or CRM webhook.
-    await new Promise((resolve) => {
-      window.setTimeout(resolve, 500);
-    });
-
-    setSubmitting(false);
-    toast.success('Demande envoyée. Notre équipe revient vers vous rapidement.');
-    setForm({
-      fullName: '',
-      company: '',
-      email: '',
-      phone: '',
-      need: 'Demande commerciale',
-      message: '',
-    });
+    try {
+      const response = await submitAppointmentRequest({
+        ...form,
+        source: 'greffio_contact_page',
+      });
+      if (!response?.ok) {
+        throw new Error(response?.error || 'APPOINTMENT_REQUEST_FAILED');
+      }
+      toast.success('Demande envoyée. Notre équipe revient vers vous rapidement.');
+      setForm({
+        fullName: '',
+        company: '',
+        email: '',
+        phone: '',
+        need: 'Demande commerciale',
+        message: '',
+        preferredDate: '',
+        preferredTime: '',
+      });
+    } catch (error) {
+      if (String(error?.message || '').includes('EMAIL_DELIVERY_FAILED')) {
+        toast.error("La demande est reçue mais l'envoi email a échoué. Réessayez dans un instant.");
+      } else {
+        toast.error("Impossible d'envoyer la demande pour le moment.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -100,6 +115,14 @@ export const ContactPage = () => {
                 onChange={(event) => onChange('message', event.target.value)}
                 placeholder="Décrivez votre besoin..."
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Date souhaitée</Label>
+              <Input type="date" value={form.preferredDate} onChange={(event) => onChange('preferredDate', event.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Heure souhaitée</Label>
+              <Input type="time" value={form.preferredTime} onChange={(event) => onChange('preferredTime', event.target.value)} />
             </div>
             <div className="md:col-span-2">
               <Button type="submit" className="w-full justify-between sm:w-auto" disabled={submitting}>

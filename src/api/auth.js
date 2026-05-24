@@ -54,3 +54,21 @@ export const refreshAccessToken = async ({ refreshToken }) => {
   });
   return parseApi(response);
 };
+
+export const requestPasswordReset = async ({ email }) => {
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  return parseApi(response);
+};
+
+export const confirmPasswordReset = async ({ token, password }) => {
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, password }),
+  });
+  return parseApi(response);
+};

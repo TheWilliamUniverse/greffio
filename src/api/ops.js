@@ -97,3 +97,19 @@ export const createOpsNote = async ({
   });
   return parseResponse(response);
 };
+
+export const getOpsEmailEvents = async ({
+  limit = 100,
+  templateId,
+  recipientEmail,
+} = {}) => {
+  const params = new URLSearchParams();
+  if (limit) params.set('limit', String(limit));
+  if (templateId) params.set('templateId', String(templateId));
+  if (recipientEmail) params.set('recipientEmail', String(recipientEmail));
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/ops/email-events?${params.toString()}`, {
+    method: 'GET',
+    headers: authHeaders(),
+  });
+  return parseResponse(response);
+};

@@ -4,7 +4,9 @@ import { Sidebar } from '@/components/Sidebar.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
-import { getChatHistory, getDossiers } from '@/utils/localStorage.js';
+import { listDossiers } from '@/api/dossiers.js';
+import { getDossierById } from '@/api/dossiers.js';
+import { useEffect } from 'react';
 
 const workstreams = [
   { name: 'Équipe formalités Greffio', role: 'Contrôle statuts, formulaires, bénéficiaires effectifs', status: 'Activable' },
@@ -14,12 +16,35 @@ const workstreams = [
 
 export const TeamPage = () => {
   const [message, setMessage] = useState('');
-  const dossiers = getDossiers();
-  const messages = getChatHistory();
-  const queue = dossiers.map((dossier) => ({
-    ...dossier,
-    ownerLabel: dossier.blockers.length ? 'Action client requise' : 'Suivi équipe',
-  }));
+  const [queue, setQueue] = useState([]);
+  const messages = [];
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const payload = await listDossiers();
+        const dossiers = Array.isArray(payload?.dossiers) ? payload.dossiers : [];
+        const details = await Promise.all(dossiers.slice(0, 8).map((item) => getDossierById(item.id)));
+        if (!mounted) return;
+        setQueue(details.map((detail) => ({
+          id: detail?.dossier?.id,
+          name: detail?.dossier?.companyName || 'Dossier',
+          status: String(detail?.dossier?.status || '').toUpperCase(),
+          nextAction: 'Échanges opérationnels à traiter.',
+          progress: Number(detail?.dossier?.progressPercent || 0),
+          blockers: [],
+          ownerLabel: 'Suivi équipe',
+        })));
+      } catch (_error) {
+        if (!mounted) return;
+        setQueue([]);
+      }
+    };
+    void load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
   const currentDossier = queue[0];
 
   return (

@@ -20,6 +20,15 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TEXT NOT NULL,
+  consumed_at TEXT,
+  created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS dossiers (
   id TEXT PRIMARY KEY,
   reference TEXT UNIQUE,
@@ -156,11 +165,17 @@ CREATE TABLE IF NOT EXISTS email_events (
   recipient_email TEXT NOT NULL,
   subject TEXT NOT NULL,
   status TEXT NOT NULL,
+  provider TEXT,
   provider_message_id TEXT,
+  tags_json TEXT,
+  error_code TEXT,
   payload_json TEXT,
   error_message TEXT,
   created_at TEXT NOT NULL,
-  sent_at TEXT
+  updated_at TEXT,
+  sent_at TEXT,
+  opened_at TEXT,
+  clicked_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS ops_notes (
@@ -198,4 +213,11 @@ ALTER TABLE documents ADD COLUMN IF NOT EXISTS recommended_filename TEXT;
 ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_url TEXT;
 ALTER TABLE documents ADD COLUMN IF NOT EXISTS sha256 TEXT;
 ALTER TABLE documents ADD COLUMN IF NOT EXISTS metadata_json TEXT;
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS editor_schema_version TEXT;
 ALTER TABLE generated_documents ADD COLUMN IF NOT EXISTS file_size_bytes BIGINT;
+ALTER TABLE email_events ADD COLUMN IF NOT EXISTS provider TEXT;
+ALTER TABLE email_events ADD COLUMN IF NOT EXISTS tags_json TEXT;
+ALTER TABLE email_events ADD COLUMN IF NOT EXISTS error_code TEXT;
+ALTER TABLE email_events ADD COLUMN IF NOT EXISTS updated_at TEXT;
+ALTER TABLE email_events ADD COLUMN IF NOT EXISTS opened_at TEXT;
+ALTER TABLE email_events ADD COLUMN IF NOT EXISTS clicked_at TEXT;

@@ -16,19 +16,37 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils.js';
 import { useAuth } from '@/hooks/useAuth.js';
-import { getDocuments, getDossiers } from '@/utils/localStorage.js';
+import { useEffect, useState } from 'react';
+import { listDossiers } from '@/api/dossiers.js';
 
 export const Sidebar = ({ className }) => {
   const { currentUser } = useAuth();
-  const dossiers = getDossiers();
-  const documents = getDocuments();
+  const [dossiersCount, setDossiersCount] = useState(0);
   const company = currentUser?.company || {};
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const payload = await listDossiers();
+        if (!mounted) return;
+        setDossiersCount(Array.isArray(payload?.dossiers) ? payload.dossiers.length : 0);
+      } catch (_error) {
+        if (!mounted) return;
+        setDossiersCount(0);
+      }
+    };
+    void load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
     { to: '/simulateur', icon: FileSignature, label: 'Nouvelle démarche' },
-    { to: '/dossiers', icon: FolderKanban, label: 'Dossiers', badge: dossiers.length },
-    { to: '/documents', icon: FileText, label: 'Documents', badge: documents.length },
+    { to: '/dossiers', icon: FolderKanban, label: 'Dossiers', badge: dossiersCount },
+    { to: '/documents', icon: FileText, label: 'Documents' },
     { to: '/team', icon: MessageSquareText, label: 'Équipe & clients' },
     { to: '/interfaces', icon: Network, label: 'Interfaces' },
     { to: '/ops-observability', icon: Activity, label: 'Ops observabilité' },
@@ -86,7 +104,7 @@ export const Sidebar = ({ className }) => {
             Équipe Greffio assignée
           </div>
           <p className="text-sm text-muted-foreground">
-            {dossiers.length ? 'L’équipe Greffio suit vos formalités et reçoit vos messages depuis l’espace partagé.' : 'Une équipe sera assignée dès l’ouverture d’un dossier.'}
+            {dossiersCount ? 'L’équipe Greffio suit vos formalités et reçoit vos messages depuis l’espace partagé.' : 'Une équipe sera assignée dès l’ouverture d’un dossier.'}
           </p>
         </div>
       </div>

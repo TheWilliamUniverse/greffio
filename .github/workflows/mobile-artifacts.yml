@@ -39,6 +39,13 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      - name: Compute Android version
+        run: |
+          VERSION_CODE=$(date +'%y%j%H%M')
+          VERSION_NAME="1.0.${VERSION_CODE}"
+          echo "ANDROID_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
+          echo "ANDROID_VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
+
       - name: Prepare optional signing config
         working-directory: android
         env:
@@ -61,10 +68,16 @@ jobs:
       - name: Build APK (release)
         working-directory: android
         run: ./gradlew assembleRelease
+        env:
+          ANDROID_VERSION_CODE: ${{ env.ANDROID_VERSION_CODE }}
+          ANDROID_VERSION_NAME: ${{ env.ANDROID_VERSION_NAME }}
 
       - name: Build AAB (release)
         working-directory: android
         run: ./gradlew bundleRelease
+        env:
+          ANDROID_VERSION_CODE: ${{ env.ANDROID_VERSION_CODE }}
+          ANDROID_VERSION_NAME: ${{ env.ANDROID_VERSION_NAME }}
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

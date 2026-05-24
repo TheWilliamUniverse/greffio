@@ -1,0 +1,6 @@
+ALTER TABLE email_events ADD COLUMN IF NOT EXISTS provider TEXT;
+ALTER TABLE email_events ADD COLUMN IF NOT EXISTS tags_json TEXT;
+ALTER TABLE email_events ADD COLUMN IF NOT EXISTS error_code TEXT;
+ALTER TABLE email_events ADD COLUMN IF NOT EXISTS updated_at TEXT;
+ALTER TABLE email_events ADD COLUMN IF NOT EXISTS opened_at TEXT;
+ALTER TABLE email_events ADD COLUMN IF NOT EXISTS clicked_at TEXT;

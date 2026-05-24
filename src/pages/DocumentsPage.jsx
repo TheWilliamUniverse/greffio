@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input.jsx';
 import { INPI_UPLOAD_RULES } from '@/config/legalFlow.js';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
 import { downloadDossierDocument, getDossierDocuments, uploadDossierDocument } from '@/api/documents.js';
+import { getDossierDocumentEditor, saveDossierDocumentEditor } from '@/api/documents.js';
 import { getUser } from '@/utils/localStorage.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
 import { getDossierById } from '@/api/dossiers.js';
@@ -21,6 +22,8 @@ export const DocumentsPage = () => {
   const [uploadError, setUploadError] = useState(null);
   const [uploadSuccess, setUploadSuccess] = useState('');
   const [dossierFormalityMeta, setDossierFormalityMeta] = useState({});
+  const [editorData, setEditorData] = useState(null);
+  const [editorSaving, setEditorSaving] = useState(false);
   const currentDossierId = getCurrentDossierId();
   const user = getUser();
   const normalizedDocuments = useMemo(() => apiDocuments.map((item) => ({
@@ -55,6 +58,7 @@ export const DocumentsPage = () => {
     ['legal_notice_certificate', 'Attestation annonce légale'],
     ['registered_office_proof', 'Justificatif siège social'],
     ['ubo_declaration', 'Déclaration bénéficiaires effectifs'],
+    ['manager_non_conviction', 'Déclaration non-condamnation et filiation (en ligne)'],
     ['signed_statutes', 'Statuts signés'],
     ['capital_certificate', 'Attestation dépôt capital'],
   ].filter(([value]) => !(eiLike && (value === 'signed_statutes' || value === 'capital_certificate')))), [eiLike]);
@@ -140,6 +144,49 @@ export const DocumentsPage = () => {
     }
   };
 
+  const openEditor = async () => {
+    if (!currentDossierId) return;
+    try {
+      const payload = await getDossierDocumentEditor({
+        dossierId: currentDossierId,
+        docKey: 'manager_non_conviction',
+      });
+      setEditorData(payload);
+      setUploadError(null);
+    } catch (_error) {
+      setUploadError("Impossible d'ouvrir l'éditeur PDF pour ce document.");
+    }
+  };
+
+  const updateEditorField = (key, value) => {
+    setEditorData((current) => ({
+      ...current,
+      fields: {
+        ...(current?.fields || {}),
+        [key]: value,
+      },
+    }));
+  };
+
+  const saveEditor = async () => {
+    if (!editorData || !currentDossierId) return;
+    setEditorSaving(true);
+    try {
+      const payload = await saveDossierDocumentEditor({
+        dossierId: currentDossierId,
+        docKey: 'manager_non_conviction',
+        fields: editorData.fields || {},
+      });
+      setApiDocuments(payload.documents || []);
+      setUploadSuccess('Document PDF généré et attaché au dossier.');
+      setEditorData(null);
+    } catch (_error) {
+      setUploadError("Le document n'a pas pu être généré.");
+    } finally {
+      setEditorSaving(false);
+    }
+  };
+
   const openDocumentDownload = async (docKey) => {
     if (!currentDossierId || !docKey) return;
     try {
@@ -206,7 +253,50 @@ export const DocumentsPage = () => {
             {uploadError ? <p className="mt-2 text-xs text-red-600">{uploadError}</p> : null}
             {uploadSuccess ? <p className="mt-2 text-xs text-emerald-700">{uploadSuccess}</p> : null}
             {!currentDossierId ? <p className="mt-2 text-xs text-amber-700">Aucun dossier actif détecté. Ouvrez un dossier puis revenez ici pour déposer vos pièces.</p> : null}
+            <div className="mt-3">
+              <Button variant="outline" className="bg-white" onClick={openEditor} disabled={!currentDossierId}>
+                <FilePlus2 className="h-4 w-4" />
+                Remplir en ligne : non-condamnation et filiation
+              </Button>
+            </div>
           </section>
+
+          {editorData ? (
+            <section className="rounded-md border border-primary/25 bg-white p-5 shadow-elevation-sm">
+              <p className="text-sm font-bold uppercase text-primary">Éditeur PDF en ligne</p>
+              <h2 className="mt-1 text-xl font-extrabold">{editorData.title}</h2>
+              <p className="mt-1 text-xs text-primary">Les champs ci-dessous correspondent aux zones bleues du PDF généré.</p>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <Input placeholder="Nom complet" value={editorData.fields?.declarantFullName || ''} onChange={(event) => updateEditorField('declarantFullName', event.target.value)} />
+                <Input placeholder="Date de naissance" type="date" value={editorData.fields?.declarantBirthDate || ''} onChange={(event) => updateEditorField('declarantBirthDate', event.target.value)} />
+                <Input placeholder="Ville de naissance" value={editorData.fields?.declarantBirthCity || ''} onChange={(event) => updateEditorField('declarantBirthCity', event.target.value)} />
+                <Input placeholder="Adresse" value={editorData.fields?.declarantAddress || ''} onChange={(event) => updateEditorField('declarantAddress', event.target.value)} />
+                <Input placeholder="Nom parent 1" value={editorData.fields?.parent1FullName || ''} onChange={(event) => updateEditorField('parent1FullName', event.target.value)} />
+                <Input placeholder="Nom parent 2" value={editorData.fields?.parent2FullName || ''} onChange={(event) => updateEditorField('parent2FullName', event.target.value)} />
+                <Input placeholder="Ville de signature" value={editorData.fields?.statementCity || ''} onChange={(event) => updateEditorField('statementCity', event.target.value)} />
+                <Input placeholder="Date de signature" type="date" value={editorData.fields?.statementDate || ''} onChange={(event) => updateEditorField('statementDate', event.target.value)} />
+              </div>
+              <div className="mt-3 grid gap-2">
+                <label className="text-sm">
+                  <input type="checkbox" checked={Boolean(editorData.fields?.declarationNonCondamnation)} onChange={(event) => updateEditorField('declarationNonCondamnation', event.target.checked)} />
+                  {' '}Je confirme la déclaration de non-condamnation.
+                </label>
+                <label className="text-sm">
+                  <input type="checkbox" checked={Boolean(editorData.fields?.declarationFiliation)} onChange={(event) => updateEditorField('declarationFiliation', event.target.checked)} />
+                  {' '}Je confirme la déclaration de filiation.
+                </label>
+                <Input placeholder="Nom du signataire" value={editorData.fields?.signatureFullName || ''} onChange={(event) => updateEditorField('signatureFullName', event.target.value)} />
+              </div>
+              <div className="mt-4 flex gap-3">
+                <Button onClick={saveEditor} disabled={editorSaving}>
+                  {editorSaving ? 'Génération...' : 'Générer le PDF'}
+                </Button>
+                <Button variant="outline" className="bg-white" onClick={() => setEditorData(null)}>
+                  Annuler
+                </Button>
+              </div>
+            </section>
+          ) : null}
 
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {summary.map((item) => (

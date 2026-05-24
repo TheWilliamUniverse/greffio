@@ -4,7 +4,7 @@ import { BadgeEuro, CreditCard, FileCheck2, Scale, ShieldCheck } from 'lucide-re
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { runtimeConfig } from '@/config/runtime.js';
-import { PAYMENT_METHODS } from '@/utils/mockData.js';
+import { PAYMENT_METHODS } from '@/config/businessCatalog.js';
 
 const Section = ({ title, children }) => (
   <section className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">

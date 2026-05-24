@@ -11,6 +11,12 @@ import { DOSSIER_STATUSES } from './stateMachine.js';
 import { requireAuth, requireRole } from './authMiddleware.js';
 import { authenticateUser, createUser, getUserByEmail } from './authStore.js';
 import {
+  consumePasswordResetToken,
+  createPasswordResetToken,
+  getUserById,
+  updateUserPasswordById,
+} from './authStore.js';
+import {
   addPaymentEvent,
   createDossier,
   DOCUMENT_STATUSES,
@@ -34,10 +40,20 @@ import {
 } from './store.js';
 import { computePaymentAmounts } from './pricing.js';
 import { createMolliePayment, isMolliePaidStatus, retrieveMolliePayment } from './mollie.js';
+import {
+  createGoCardlessCheckout,
+  isGoCardlessPaidStatus,
+  parseGoCardlessWebhookEvents,
+  retrieveGoCardlessBillingRequest,
+  verifyGoCardlessWebhook,
+} from './gocardless.js';
 import { issueAccessToken, issueRefreshToken, verifyToken } from './tokens.js';
 import { buildCanonicalDocumentFilename } from './documentNaming.js';
 import { ROLE } from './stateMachine.js';
 import { sendDossierEmailById } from './emails/index.js';
+import { parseResendWebhook } from './emails/provider.js';
+import { sendTransactionalEmail, handleBrevoWebhookEvent } from './services/emailService.js';
+import { formatParisDateTime, getClientIp, parseDeviceLabel } from './utils/loginContext.js';
 import { uploadPdfOnly } from './uploads.js';
 import { analyzeDocument } from './documentAnalysis.js';
 import { createSignatureRecord, getLatestSignatureByDossier } from './signatureStore.js';
@@ -62,6 +78,7 @@ import {
   getStorageRetryQueueSnapshot,
   registerStorageFailureForOps,
 } from './services/storageRetryQueue.js';
+import { listEmailEvents, updateEmailEventByProviderMessageId } from './emailStore.js';
 
 dotenv.config();
 
@@ -90,7 +107,11 @@ const corsOptions = process.env.NODE_ENV === 'production'
 
 app.use(helmet());
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use((req, res, next) => {
+  if (req.path === '/api/webhooks/resend' || req.path === '/api/webhooks/brevo') return next();
+  if (req.path === '/webhooks/gocardless' || req.path === '/api/webhooks/gocardless') return next();
+  return express.json()(req, res, next);
+});
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -119,10 +140,23 @@ const companyLookupPublicLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+const assistantLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+const contactLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 const appUrl = process.env.APP_URL || 'https://greffio.willentreprises.com';
 const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:8787';
 const mollieWebhookUrl = process.env.MOLLIE_WEBHOOK_URL || `${apiBaseUrl}/webhooks/mollie`;
+const gocardlessWebhookUrl = process.env.GOCARDLESS_WEBHOOK_URL || `${apiBaseUrl}/webhooks/gocardless`;
 const uploadsRoot = path.resolve(process.cwd(), 'server', 'data', 'uploads');
 
 const sanitizeFilename = (value, fallback = 'document.pdf') => {
@@ -144,7 +178,7 @@ const ensureUniqueFilePath = (filePath) => {
 
 const isSafeUploadPath = (filePath) => {
   if (!filePath) return false;
-  const normalizedRoot = path.resolve(uploadsRoot);
+  const normalizedRoot = path.resolve(process.cwd(), 'server', 'data');
   const normalizedCandidate = path.resolve(filePath);
   return normalizedCandidate.startsWith(normalizedRoot);
 };
@@ -187,10 +221,14 @@ app.get('/api/interfaces/status', requireAuth, requireRole(['ADMIN', 'OPS', 'FOR
       },
       {
         key: 'payment',
-        status: process.env.MOLLIE_API_KEY ? 'healthy' : 'warning',
-        detail: process.env.MOLLIE_API_KEY
-          ? 'Mollie actif avec webhook /webhooks/mollie'
-          : 'Mollie key absente: mode simulation actif',
+        status: (process.env.GOCARDLESS_ACCESS_TOKEN || process.env.GOCARDLESS_API_KEY || process.env.MOLLIE_API_KEY)
+          ? 'healthy'
+          : 'warning',
+        detail: (process.env.GOCARDLESS_ACCESS_TOKEN || process.env.GOCARDLESS_API_KEY)
+          ? 'GoCardless actif avec webhook /webhooks/gocardless'
+          : process.env.MOLLIE_API_KEY
+            ? 'Mollie actif (legacy) avec webhook /webhooks/mollie'
+            : 'Aucun provider paiement configuré: mode simulation actif',
       },
       {
         key: 'database',
@@ -252,7 +290,7 @@ app.get('/api/observability/storage', requireAuth, requireRole(['ADMIN', 'OPS', 
   });
 });
 
-app.post('/api/assistant', requireAuth, async (req, res) => {
+app.post('/api/assistant', assistantLimiter, requireAuth, async (req, res) => {
   const { message, history = [] } = req.body || {};
   if (!message || !String(message).trim()) {
     return res.status(400).json({ ok: false, error: 'ASSISTANT_MESSAGE_REQUIRED' });
@@ -278,6 +316,116 @@ app.post('/api/assistant', requireAuth, async (req, res) => {
     console.error('ASSISTANT_API_FAILED', error);
     return res.status(502).json({ ok: false, error: 'ASSISTANT_UNAVAILABLE' });
   }
+});
+const loginFailureTracker = new Map();
+const LOGIN_FAILURE_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_FAILURE_THRESHOLD = 3;
+
+const recordLoginFailure = (email) => {
+  const key = String(email || '').toLowerCase().trim();
+  const now = Date.now();
+  const existing = loginFailureTracker.get(key);
+  const reset = !existing || now - existing.firstAt > LOGIN_FAILURE_WINDOW_MS;
+  const next = reset ? { count: 1, firstAt: now } : { count: existing.count + 1, firstAt: existing.firstAt };
+  loginFailureTracker.set(key, next);
+  return next.count;
+};
+
+const clearLoginFailures = (email) => {
+  loginFailureTracker.delete(String(email || '').toLowerCase().trim());
+};
+
+const buildGoogleCalendarLink = ({
+  title,
+  details,
+  email,
+  startIso,
+  endIso,
+}) => {
+  const encode = encodeURIComponent;
+  const start = startIso ? new Date(startIso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z') : '';
+  const end = endIso ? new Date(endIso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z') : '';
+  const dates = start && end ? `${start}/${end}` : '';
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encode(title)}&details=${encode(details)}&add=${encode(email)}${dates ? `&dates=${dates}` : ''}`;
+};
+
+app.post('/api/contact/appointment-request', contactLimiter, async (req, res) => {
+  const {
+    fullName,
+    company,
+    email,
+    phone,
+    need,
+    message,
+    preferredDate,
+    preferredTime,
+    source = 'web',
+  } = req.body || {};
+  if (!fullName || !email || !need || !message) {
+    return res.status(400).json({ ok: false, error: 'INVALID_APPOINTMENT_REQUEST_PAYLOAD' });
+  }
+
+  const supportInbox = process.env.SALES_EMAIL || process.env.SUPPORT_EMAIL || 'contact@willentreprises.com';
+  const now = new Date();
+  const requestedStart = preferredDate
+    ? new Date(`${preferredDate}T${preferredTime || '09:00'}:00`)
+    : new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const requestedEnd = new Date(requestedStart.getTime() + 45 * 60 * 1000);
+  const googleCalendarLink = buildGoogleCalendarLink({
+    title: `RDV Greffio - ${need}`,
+    details: `${message}\nEntreprise: ${company || 'N/A'}\nDemandeur: ${fullName}\nTéléphone: ${phone || 'N/A'}`,
+    email,
+    startIso: requestedStart.toISOString(),
+    endIso: requestedEnd.toISOString(),
+  });
+
+  const internalResult = await sendTransactionalEmail({
+    templateKey: 'booking_request_internal',
+    to: { email: supportInbox, name: 'Greffio Support' },
+    variables: {
+      nom_complet: String(fullName).trim(),
+      entreprise: String(company || 'N/A').trim(),
+      email: String(email).trim(),
+      telephone: String(phone || 'N/A').trim(),
+      objet: String(need).trim(),
+      message: String(message).trim(),
+      creneau_souhaite: `${requestedStart.toLocaleDateString('fr-FR')} ${requestedStart.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`,
+      source: String(source),
+      google_calendar_link: googleCalendarLink,
+    },
+    tags: ['support', 'internal'],
+  });
+  const customerResult = await sendTransactionalEmail({
+    templateKey: 'booking_request_received',
+    to: { email: String(email).trim(), name: String(fullName).trim() },
+    variables: {
+      prenom: String(fullName).trim().split(' ')[0] || 'Client',
+      firstName: String(fullName).trim().split(' ')[0] || 'Client',
+      objet: String(need).trim(),
+      ticketNumber: `RDV-${Date.now()}`,
+      expectedResponseTime: 'Réponse dans l’heure pendant les horaires ouvrés',
+      supportUrl: `${appUrl}/contact`,
+    },
+    tags: ['support'],
+  });
+  if (!internalResult.ok || !customerResult.ok) {
+    return res.status(502).json({
+      ok: false,
+      error: 'EMAIL_DELIVERY_FAILED',
+      internalNotified: internalResult.ok,
+      customerNotified: customerResult.ok,
+    });
+  }
+  return res.status(201).json({
+    ok: true,
+    internalNotified: internalResult.ok,
+    customerNotified: customerResult.ok,
+    calendar: {
+      provider: 'google_workspace',
+      action: 'email_to_calendar_link',
+      link: googleCalendarLink,
+    },
+  });
 });
 
 app.get('/api/dossiers/:dossierId/intelligent-prefill', requireAuth, async (req, res) => {
@@ -335,6 +483,17 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
     role: 'CLIENT',
     company,
   });
+  void sendTransactionalEmail({
+    to: { email: user.email, name: `${user.firstName || ''} ${user.lastName || ''}`.trim() },
+    templateKey: 'account_welcome',
+    variables: {
+      firstName: user.firstName || 'Client',
+      dashboardUrl: `${appUrl}/dashboard`,
+      supportUrl: `${appUrl}/contact`,
+    },
+    userId: user.id,
+    tags: ['auth', 'onboarding'],
+  });
   return res.status(201).json({
     ok: true,
     user,
@@ -350,8 +509,44 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
   }
   const user = await authenticateUser({ email, password });
   if (!user) {
+    const failures = recordLoginFailure(email);
+    if (failures >= LOGIN_FAILURE_THRESHOLD) {
+      const normalizedEmail = String(email).toLowerCase().trim();
+      const target = await getUserByEmail(normalizedEmail);
+      if (target) {
+        void sendTransactionalEmail({
+          to: { email: target.email, name: `${target.firstName || ''} ${target.lastName || ''}`.trim() },
+          templateKey: 'suspicious_login_attempt',
+          variables: {
+            firstName: target.firstName || 'Client',
+            attemptTime: formatParisDateTime(),
+            ipAddress: getClientIp(req),
+            locationApproximation: 'Non disponible',
+            securityUrl: `${appUrl}/settings`,
+            supportUrl: `${appUrl}/contact`,
+          },
+          userId: target.id,
+          tags: ['auth', 'security'],
+        });
+      }
+    }
     return res.status(401).json({ ok: false, error: 'INVALID_CREDENTIALS' });
   }
+  clearLoginFailures(email);
+  void sendTransactionalEmail({
+    to: { email: user.email, name: `${user.firstName || ''} ${user.lastName || ''}`.trim() },
+    templateKey: 'login_notification',
+    variables: {
+      firstName: user.firstName || 'Client',
+      loginTime: formatParisDateTime(),
+      ipAddress: getClientIp(req),
+      deviceLabel: parseDeviceLabel(req.headers['user-agent']),
+      locationApproximation: 'Non disponible',
+      securityUrl: `${appUrl}/settings`,
+    },
+    userId: user.id,
+    tags: ['auth', 'security'],
+  });
   return res.json({
     ok: true,
     user,
@@ -381,6 +576,142 @@ app.post('/api/auth/refresh', authLimiter, (req, res) => {
   } catch (_error) {
     return res.status(401).json({ ok: false, error: 'REFRESH_TOKEN_INVALID' });
   }
+});
+
+app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
+  const { email } = req.body || {};
+  if (!email || !String(email).trim()) {
+    return res.status(400).json({ ok: false, error: 'EMAIL_REQUIRED' });
+  }
+  const normalizedEmail = String(email).toLowerCase().trim();
+  const user = await getUserByEmail(normalizedEmail);
+  if (!user) {
+    return res.json({ ok: true, sent: true });
+  }
+  const expirationMinutes = Number(process.env.PASSWORD_RESET_EXPIRATION_MINUTES || 30);
+  const expiresAt = new Date(Date.now() + expirationMinutes * 60 * 1000).toISOString();
+  const token = await createPasswordResetToken({
+    userId: user.id,
+    expiresAt,
+  });
+  const resetLink = `${appUrl}/password-reset?token=${encodeURIComponent(token)}`;
+  await sendTransactionalEmail({
+    templateKey: 'password_reset',
+    to: { email: normalizedEmail, name: user.firstName || 'Client' },
+    variables: {
+      firstName: user.firstName || 'Client',
+      prenom: user.firstName || 'Client',
+      resetUrl: resetLink,
+      reset_link: resetLink,
+      expirationMinutes: String(expirationMinutes),
+      expiration_minutes: String(expirationMinutes),
+    },
+    userId: user.id,
+    tags: ['auth', 'password'],
+  });
+  return res.json({ ok: true, sent: true });
+});
+
+app.post('/api/auth/reset-password', authLimiter, async (req, res) => {
+  const { token, password } = req.body || {};
+  if (!token || !password || String(password).length < 8) {
+    return res.status(400).json({ ok: false, error: 'INVALID_RESET_PASSWORD_PAYLOAD' });
+  }
+  const userId = await consumePasswordResetToken({ token: String(token) });
+  if (!userId) {
+    return res.status(400).json({ ok: false, error: 'RESET_TOKEN_INVALID_OR_EXPIRED' });
+  }
+  await updateUserPasswordById({ userId, password: String(password) });
+  const user = await getUserById(userId);
+  if (user) {
+    void sendTransactionalEmail({
+      to: { email: user.email, name: `${user.firstName || ''} ${user.lastName || ''}`.trim() },
+      templateKey: 'password_changed',
+      variables: {
+        firstName: user.firstName || 'Client',
+        changedAt: formatParisDateTime(),
+        securityUrl: `${appUrl}/settings`,
+        supportUrl: `${appUrl}/contact`,
+      },
+      userId: user.id,
+      tags: ['auth', 'password'],
+    });
+  }
+  return res.json({ ok: true });
+});
+
+app.post('/api/webhooks/resend', express.text({ type: 'application/json' }), async (req, res) => {
+  const signature = req.headers['resend-signature'];
+  if (!signature) {
+    return res.status(401).json({ ok: false, error: 'RESEND_SIGNATURE_MISSING' });
+  }
+  const verified = await parseResendWebhook({
+    payload: req.body,
+    signature: String(signature),
+  });
+  if (!verified.ok) {
+    return res.status(401).json({ ok: false, error: 'RESEND_WEBHOOK_UNAUTHORIZED' });
+  }
+  const eventType = String(verified.event?.type || '');
+  const normalizedStatus = eventType.includes('bounced')
+    ? 'bounced'
+    : eventType.includes('complained')
+      ? 'complained'
+      : eventType.includes('delivered')
+        ? 'delivered'
+        : eventType.includes('opened')
+          ? 'opened'
+          : eventType.includes('clicked')
+            ? 'clicked'
+            : 'received';
+  const providerMessageId = verified.event?.data?.email_id || verified.event?.id || null;
+  if (providerMessageId) {
+    await updateEmailEventByProviderMessageId({
+      providerMessageId,
+      status: normalizedStatus,
+      openedAt: normalizedStatus === 'opened' ? new Date().toISOString() : null,
+      clickedAt: normalizedStatus === 'clicked' ? new Date().toISOString() : null,
+      payloadPatch: { resendEvent: eventType },
+    });
+  }
+
+  return res.json({
+    ok: true,
+    eventType: eventType || null,
+    eventCreatedAt: verified.event?.created_at || null,
+  });
+});
+
+app.post('/api/webhooks/brevo', express.json(), async (req, res) => {
+  const token = req.query.token || req.headers['x-brevo-token'];
+  const expectedSecret = process.env.BREVO_WEBHOOK_SECRET || '';
+  if (expectedSecret && String(token || '') !== expectedSecret) {
+    return res.status(401).json({ ok: false, error: 'BREVO_WEBHOOK_UNAUTHORIZED' });
+  }
+
+  const events = Array.isArray(req.body) ? req.body : [req.body];
+  const results = [];
+  for (const event of events.filter(Boolean)) {
+    results.push(await handleBrevoWebhookEvent(event));
+  }
+
+  return res.json({
+    ok: true,
+    processed: results.length,
+    results,
+  });
+});
+
+app.get('/api/ops/email-events', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
+  const events = await listEmailEvents({
+    limit: req.query?.limit ? Number(req.query.limit) : 100,
+    templateId: req.query?.templateId ? String(req.query.templateId) : null,
+    recipientEmail: req.query?.recipientEmail ? String(req.query.recipientEmail) : null,
+  });
+  return res.json({
+    ok: true,
+    events,
+  });
 });
 
 app.get('/api/ops/dossiers', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (_req, res) => {
@@ -458,6 +789,22 @@ app.post('/api/dossiers', requireAuth, async (req, res) => {
     legalForm: String(legalForm || 'SASU'),
     service: String(service || 'creation-sasu'),
   });
+  const owner = await getUserById(req.auth.sub);
+  if (owner?.email) {
+    void sendTransactionalEmail({
+      to: { email: owner.email, name: `${owner.firstName || ''} ${owner.lastName || ''}`.trim() },
+      templateKey: 'dossier_created',
+      variables: {
+        firstName: owner.firstName || 'Client',
+        dossierNumber: dossier.reference || dossier.id,
+        formalityType: dossier.service || service,
+        dashboardUrl: `${appUrl}/dossier/${dossier.id}`,
+      },
+      userId: owner.id,
+      dossierId: dossier.id,
+      tags: ['dossier'],
+    });
+  }
   return res.status(201).json({ ok: true, dossier });
 });
 
@@ -860,6 +1207,110 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/download', requireAuth, asyn
   return fs.createReadStream(requested.storageUrl).pipe(res);
 });
 
+app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async (req, res) => {
+  const dossier = await getDossier(req.params.dossierId);
+  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
+  const isOps = ['ADMIN', 'OPS', 'FORMALISTE'].includes(req.auth?.role);
+  if (!isOwner && !isOps) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+  const docKey = String(req.params.docKey || '');
+  const supported = new Set(['manager_non_conviction']);
+  if (!supported.has(docKey)) {
+    return res.status(409).json({ ok: false, error: 'DOCUMENT_EDITOR_NOT_SUPPORTED' });
+  }
+  const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+  const initialFields = {
+    declarantFullName: `${questionnaire.firstName || ''} ${questionnaire.lastName || ''}`.trim(),
+    declarantBirthDate: questionnaire.birthDate || '',
+    declarantBirthCity: questionnaire.birthCity || '',
+    declarantAddress: questionnaire.address || questionnaire.homeAddress || '',
+    parent1FullName: questionnaire.parent1FullName || '',
+    parent2FullName: questionnaire.parent2FullName || '',
+    statementDate: new Date().toISOString().slice(0, 10),
+    statementCity: questionnaire.city || '',
+    declarationNonCondamnation: false,
+    declarationFiliation: false,
+    signatureFullName: `${questionnaire.firstName || ''} ${questionnaire.lastName || ''}`.trim(),
+  };
+  return res.json({
+    ok: true,
+    docKey,
+    schemaVersion: 'manager_non_conviction_v1',
+    title: 'Déclaration de non-condamnation et de filiation',
+    fields: initialFields,
+  });
+});
+
+app.post('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async (req, res) => {
+  const dossier = await getDossier(req.params.dossierId);
+  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
+  const isOps = ['ADMIN', 'OPS', 'FORMALISTE'].includes(req.auth?.role);
+  if (!isOwner && !isOps) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+  const docKey = String(req.params.docKey || '');
+  if (docKey !== 'manager_non_conviction') {
+    return res.status(409).json({ ok: false, error: 'DOCUMENT_EDITOR_NOT_SUPPORTED' });
+  }
+
+  const fields = req.body?.fields || {};
+  const declarationDone = Boolean(fields.declarationNonCondamnation) && Boolean(fields.declarationFiliation);
+  if (!declarationDone || !fields.signatureFullName) {
+    return res.status(400).json({ ok: false, error: 'DOCUMENT_EDITOR_INCOMPLETE_FIELDS' });
+  }
+
+  const content = [
+    'DECLARATION SUR L HONNEUR',
+    '',
+    `Je soussigne(e) ${fields.declarantFullName || ''}, ne(e) le ${fields.declarantBirthDate || ''} a ${fields.declarantBirthCity || ''},`,
+    `demeurant au ${fields.declarantAddress || ''},`,
+    '',
+    'DECLARE SUR L HONNEUR ne faire l objet d aucune condamnation me privant du droit de diriger, gerer, administrer ou controler une personne morale.',
+    '',
+    'DECLARATION DE FILIATION',
+    `Nom et prenom du pere: ${fields.parent1FullName || ''}`,
+    `Nom et prenom de la mere: ${fields.parent2FullName || ''}`,
+    '',
+    `Fait a ${fields.statementCity || ''}, le ${fields.statementDate || ''}`,
+    `Signature: ${fields.signatureFullName || ''}`,
+  ].join('\n');
+
+  const safeReference = String(dossier.reference || dossier.id).replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `Declaration_non_condamnation_filiation_${safeReference}_${Date.now()}.pdf`;
+  const pdfPath = await generateMandatePdf({
+    filename,
+    bodyText: content,
+    signatureSummary: `Document complete en ligne par ${fields.signatureFullName}`,
+    evidence: {
+      schemaVersion: 'manager_non_conviction_v1',
+      generatedBy: 'greffio_pdf_editor',
+    },
+  });
+  const sha256 = createHash('sha256').update(fs.readFileSync(pdfPath)).digest('hex');
+  await updateDossierDocument({
+    dossierId: dossier.id,
+    docKey,
+    status: DOCUMENT_STATUSES.UPLOADED,
+    filename,
+    fileSizeBytes: fs.statSync(pdfPath).size,
+    mimeType: 'application/pdf',
+    storageUrl: pdfPath,
+    sha256,
+    reviewerId: null,
+    metadata: {
+      editorSchemaVersion: 'manager_non_conviction_v1',
+      generatedFromEditor: true,
+      fields,
+      generatedAt: new Date().toISOString(),
+    },
+  });
+  return res.status(201).json({
+    ok: true,
+    filename,
+    sha256,
+    documents: await listDossierDocuments(dossier.id),
+  });
+});
+
 app.get('/api/dossiers/:dossierId/mandate', requireAuth, async (req, res) => {
   const dossier = await getDossier(req.params.dossierId);
   if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
@@ -1137,8 +1588,32 @@ app.post('/api/payments/create', paymentLimiter, requireAuth, async (req, res) =
   const amounts = computePaymentAmounts(offerCode);
 
   let created;
+  const hasGoCardless = Boolean(process.env.GOCARDLESS_ACCESS_TOKEN || process.env.GOCARDLESS_API_KEY);
   const hasMollieKey = Boolean(process.env.MOLLIE_API_KEY);
-  if (hasMollieKey) {
+  const redirectUrl = `${appUrl}/paiement/verification?dossierId=${dossier.id}`;
+
+  if (hasGoCardless) {
+    try {
+      created = await createGoCardlessCheckout({
+        amountTotalCents: amounts.amountTotalCents,
+        currency: amounts.currency,
+        metadata: {
+          dossier_id: dossier.id,
+          offer_code: amounts.normalizedOffer,
+          company_name: dossier.companyName,
+        },
+        redirectUrl,
+        exitUrl: `${appUrl}/paiement?offer=${encodeURIComponent(amounts.normalizedOffer)}`,
+        description: `Greffio ${amounts.normalizedOffer} ${dossier.companyName}`,
+      });
+    } catch (error) {
+      return res.status(502).json({
+        ok: false,
+        error: 'GOCARDLESS_PAYMENT_CREATE_FAILED',
+        message: error.message,
+      });
+    }
+  } else if (hasMollieKey) {
     try {
       created = await createMolliePayment({
         amountTotalCents: amounts.amountTotalCents,
@@ -1148,7 +1623,7 @@ app.post('/api/payments/create', paymentLimiter, requireAuth, async (req, res) =
           offerCode: amounts.normalizedOffer,
           companyName: dossier.companyName,
         },
-        redirectUrl: `${appUrl}/paiement/verification?dossierId=${dossier.id}`,
+        redirectUrl,
         webhookUrl: mollieWebhookUrl,
         description: `Greffio ${amounts.normalizedOffer} ${dossier.companyName}`,
       });
@@ -1162,20 +1637,22 @@ app.post('/api/payments/create', paymentLimiter, requireAuth, async (req, res) =
   } else if (process.env.NODE_ENV === 'production') {
     return res.status(503).json({
       ok: false,
-      error: 'MOLLIE_NOT_CONFIGURED',
+      error: 'PAYMENT_PROVIDER_NOT_CONFIGURED',
     });
   } else {
     created = {
-      providerPaymentId: `mollie_demo_${Date.now()}`,
+      providerPaymentId: `gocardless_demo_${Date.now()}`,
       status: 'open',
-      checkoutUrl: `${appUrl}/paiement/verification?dossierId=${dossier.id}&mock=mollie`,
+      checkoutUrl: `${redirectUrl}&mock=gocardless`,
       raw: {
-        provider: 'mollie',
+        provider: 'gocardless',
         status: 'open',
         mode: 'mock_fallback',
       },
     };
   }
+
+  const paymentProvider = hasGoCardless ? 'gocardless' : 'mollie';
 
   const payment = await upsertPayment({
     dossierId: dossier.id,
@@ -1186,7 +1663,7 @@ app.post('/api/payments/create', paymentLimiter, requireAuth, async (req, res) =
     amountLegalFeesCents: amounts.amountLegalFeesCents,
     currency: amounts.currency,
     status: created.status || 'open',
-    provider: 'mollie',
+    provider: paymentProvider,
     providerPaymentId: created.providerPaymentId,
     providerPayload: created.raw,
   });
@@ -1269,6 +1746,85 @@ const handleMollieWebhook = async (req, res) => {
 app.post('/webhooks/mollie', handleMollieWebhook);
 app.post('/api/mollie/webhook', handleMollieWebhook);
 app.post('/api/webhooks/mollie', handleMollieWebhook);
+
+const handleGoCardlessWebhook = async (req, res) => {
+  const rawBody = req.body;
+  const signatureHeader = req.headers['webhook-signature'];
+  const secret = process.env.GOCARDLESS_WEBHOOK_SECRET || '';
+
+  const verified = verifyGoCardlessWebhook({
+    rawBody,
+    signatureHeader,
+    secret,
+  });
+  if (!verified.ok && process.env.NODE_ENV === 'production') {
+    return res.status(401).json({ ok: false, error: verified.error || 'GOCARDLESS_WEBHOOK_UNAUTHORIZED' });
+  }
+
+  let payload;
+  try {
+    payload = JSON.parse(rawBody);
+  } catch (_error) {
+    return res.status(400).json({ ok: false, error: 'INVALID_WEBHOOK_PAYLOAD' });
+  }
+
+  const events = parseGoCardlessWebhookEvents(payload);
+  for (const event of events) {
+    const providerPaymentId = event.billingRequestId || event.paymentId;
+    if (!providerPaymentId) continue;
+
+    const payment = await getPaymentByProviderId(providerPaymentId)
+      || (event.paymentId ? await getPaymentByProviderId(event.paymentId) : null);
+    if (!payment) continue;
+
+    let providerState;
+    if (payment.provider === 'gocardless' && event.billingRequestId) {
+      try {
+        providerState = await retrieveGoCardlessBillingRequest({ providerPaymentId: event.billingRequestId });
+      } catch (_error) {
+        providerState = { status: event.action, providerPaymentId: event.billingRequestId };
+      }
+    } else {
+      providerState = {
+        status: ['confirmed', 'paid_out', 'fulfilled'].includes(event.action) ? 'paid' : event.action,
+        providerPaymentId,
+      };
+    }
+
+    const providerEventId = event.id || `${providerPaymentId}:${event.action}`;
+    if (await hasPaymentEventProviderId(providerEventId)) {
+      continue;
+    }
+
+    await addPaymentEvent({
+      paymentId: payment.id,
+      eventType: `gocardless.${event.resourceType}.${event.action}`,
+      providerEventId,
+      rawPayload: event.raw,
+    });
+
+    if (isGoCardlessPaidStatus(providerState.status) && payment.status !== 'paid') {
+      payment.status = 'paid';
+      payment.paidAt = providerState.paidAt || new Date().toISOString();
+      payment.providerPayload = providerState.raw || event.raw;
+      await upsertPayment(payment);
+
+      await transitionDossierStatus({
+        dossierId: payment.dossierId,
+        nextStatus: DOSSIER_STATUSES.PAYMENT_CONFIRMED,
+        actorType: 'webhook',
+        actorRole: ROLE.WEBHOOK,
+        reason: 'gocardless_paid',
+        metadata: { providerPaymentId, paymentConfirmed: true },
+      });
+    }
+  }
+
+  return res.json({ ok: true, processed: events.length });
+};
+
+app.post('/webhooks/gocardless', express.text({ type: '*/*' }), handleGoCardlessWebhook);
+app.post('/api/webhooks/gocardless', express.text({ type: '*/*' }), handleGoCardlessWebhook);
 
 const bootstrap = async () => {
   await initSchema();

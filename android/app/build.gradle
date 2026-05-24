@@ -5,6 +5,11 @@ def keystoreProperties = new Properties()
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
+def envVersionCode = System.getenv("ANDROID_VERSION_CODE")
+def envVersionName = System.getenv("ANDROID_VERSION_NAME")
+def autoVersionCode = new Date().format("yyDDDHHmm", TimeZone.getTimeZone("UTC")).toInteger()
+def resolvedVersionCode = (envVersionCode != null && (envVersionCode ==~ /\d+/)) ? envVersionCode.toInteger() : autoVersionCode
+def resolvedVersionName = envVersionName ?: "1.1.${resolvedVersionCode}"
 
 android {
     namespace = "com.greffio.app"
@@ -13,8 +18,8 @@ android {
         applicationId "com.greffio.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode resolvedVersionCode
+        versionName resolvedVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

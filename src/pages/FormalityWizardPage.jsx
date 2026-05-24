@@ -22,8 +22,9 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { ProgressiveStepChips } from '@/components/ProgressiveStepChips.jsx';
+import { WizardNavButtons } from '@/components/WizardNavButtons.jsx';
 import { CompanyLookupCard } from '@/components/CompanyLookupCard.jsx';
-import { COMPANY_FORM_CATALOG, getFormAvailability, SERVICE_AVAILABILITY } from '@/utils/mockData.js';
+import { COMPANY_FORM_CATALOG, getFormAvailability, SERVICE_AVAILABILITY } from '@/config/businessCatalog.js';
 import {
   QUESTION_MODES,
   buildDocumentPreview,
@@ -109,6 +110,13 @@ const FORMS_WITHOUT_STATUTES = new Set([
 
 const steps = ['Démarche', 'Projet', 'Dirigeants', 'Synthèse'];
 const PROGRESSIVE_WIZARD_STEPS = steps.map((label, index) => ({ id: String(index), label }));
+const PROJECT_SUB_STEPS = [
+  { id: 'contact', label: 'Coordonnées' },
+  { id: 'initiator', label: 'Demandeur' },
+  { id: 'form_family', label: 'Famille juridique' },
+  { id: 'form_choice', label: 'Forme' },
+  { id: 'project_details', label: 'Projet' },
+];
 const targetFormGroups = COMPANY_FORM_CATALOG.reduce((groups, form) => {
   const group = groups.find((item) => item.category === form.family);
   if (group) {
@@ -184,6 +192,7 @@ export const FormalityWizardPage = () => {
   const requestedType = String(searchParams.get('type') || 'statuts').toLowerCase();
   const initialJourney = typePresetByQuery[requestedType] || 'statuts';
   const [step, setStep] = useState(0);
+  const [projectSubStep, setProjectSubStep] = useState(0);
   const [showOffers, setShowOffers] = useState(false);
   const [selectedFamily, setSelectedFamily] = useState('Formes les plus courantes');
   const [questionMode, setQuestionMode] = useState('avance');
@@ -257,7 +266,7 @@ export const FormalityWizardPage = () => {
     window.requestAnimationFrame(() => {
       wizardTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
-  }, [step, showOffers]);
+  }, [step, projectSubStep, contactStep, showOffers]);
 
   useEffect(() => {
     setActiveQuestionIndex(0);
@@ -294,7 +303,48 @@ export const FormalityWizardPage = () => {
     }
   };
 
+  const canContinueProjectSubStep = () => {
+    if (projectSubStep === 0) return canContinueContact();
+    if (projectSubStep === 1) return Boolean(String(data.initiatorName || '').trim());
+    if (projectSubStep === 2) return Boolean(selectedFamily);
+    if (projectSubStep === 3) return Boolean(data.legalForm);
+    return Boolean(String(data.companyName || '').trim() && String(data.city || '').trim());
+  };
+
+  const advanceProjectFlow = () => {
+    if (projectSubStep === 0 && contactStep < contactFields.length - 1) {
+      setContactStep((value) => value + 1);
+      return;
+    }
+    if (projectSubStep < PROJECT_SUB_STEPS.length - 1) {
+      setProjectSubStep((value) => value + 1);
+      return;
+    }
+    setStep(2);
+  };
+
+  const retreatProjectFlow = () => {
+    if (projectSubStep === 0 && contactStep > 0) {
+      setContactStep((value) => value - 1);
+      return;
+    }
+    if (projectSubStep > 0) {
+      setProjectSubStep((value) => value - 1);
+      return;
+    }
+    setStep(0);
+  };
+
   const next = () => {
+    if (step === 0) {
+      setProjectSubStep(0);
+      setStep(1);
+      return;
+    }
+    if (step === 1) {
+      advanceProjectFlow();
+      return;
+    }
     if (step === steps.length - 1) {
       setShowOffers(true);
       return;
@@ -307,8 +357,19 @@ export const FormalityWizardPage = () => {
       setShowOffers(false);
       return;
     }
+    if (step === 1) {
+      retreatProjectFlow();
+      return;
+    }
+    if (step === 2) {
+      setStep(1);
+      setProjectSubStep(PROJECT_SUB_STEPS.length - 1);
+      return;
+    }
     setStep((value) => Math.max(0, value - 1));
   };
+
+  const isProjectBackDisabled = step === 1 && projectSubStep === 0 && contactStep === 0;
 
   const detectJourneyFromCompany = (company) => {
     if (!company) return 'modification';
@@ -381,8 +442,11 @@ export const FormalityWizardPage = () => {
               <div className="h-2 rounded-full bg-primary transition-all" style={{ width: showOffers ? '100%' : `${progress}%` }} />
             </div>
             {!showOffers ? (
-              <div className="mt-4">
+              <div className="mt-4 space-y-3">
                 <ProgressiveStepChips steps={PROGRESSIVE_WIZARD_STEPS} activeIndex={step} />
+                {step === 1 ? (
+                  <ProgressiveStepChips steps={PROJECT_SUB_STEPS} activeIndex={projectSubStep} />
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -480,124 +544,121 @@ export const FormalityWizardPage = () => {
                   <div className="space-y-7">
                     <div>
                       <p className="text-sm font-bold uppercase text-primary">Projet</p>
-                      <h1 className="mt-2 text-3xl font-extrabold">Décrivez la structure.</h1>
-                      <p className="mt-2 text-muted-foreground">Une personne physique ou morale peut porter la demande, y compris une société qui crée une SA.</p>
+                      <h1 className="mt-2 text-3xl font-extrabold">
+                        {projectSubStep === 0 && 'Qui effectue la démarche ?'}
+                        {projectSubStep === 1 && 'Identifiez le demandeur.'}
+                        {projectSubStep === 2 && 'Choisissez une famille de formes.'}
+                        {projectSubStep === 3 && 'Sélectionnez la forme juridique.'}
+                        {projectSubStep === 4 && 'Précisez votre projet.'}
+                      </h1>
+                      <p className="mt-2 text-muted-foreground">
+                        {projectSubStep === 0 && 'Une question à la fois — vos coordonnées servent au dossier et aux relances Greffio.'}
+                        {projectSubStep === 1 && 'Une personne physique ou morale peut porter la demande, y compris une société qui crée une filiale.'}
+                        {projectSubStep === 2 && 'Commencez par la catégorie la plus proche de votre situation.'}
+                        {projectSubStep === 3 && 'Comparez les formes disponibles avant de renseigner le projet.'}
+                        {projectSubStep === 4 && 'Ces éléments alimentent le questionnaire et l’aperçu documentaire.'}
+                      </p>
                     </div>
-                    <div className="grid gap-5 md:grid-cols-2">
-                      <div className="space-y-4 md:col-span-2 rounded-md border border-border bg-muted p-5">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-bold uppercase text-primary">Ref. : {dossierReference}</p>
-                            <p className="text-xs text-muted-foreground">{contactCompletion}%</p>
-                          </div>
-                          <div className="relative h-16 w-16">
-                            <svg viewBox="0 0 36 36" className="h-16 w-16">
-                              <path className="stroke-white" fill="none" strokeWidth="3" d="M18 2.5a15.5 15.5 0 1 1 0 31a15.5 15.5 0 1 1 0-31" />
-                              <path
-                                className="stroke-primary"
-                                fill="none"
-                                strokeWidth="3"
-                                strokeLinecap="round"
-                                strokeDasharray={`${contactCompletion}, 100`}
-                                d="M18 2.5a15.5 15.5 0 1 1 0 31a15.5 15.5 0 1 1 0-31"
-                              />
-                            </svg>
-                            <span className="absolute inset-0 flex items-center justify-center text-xs font-bold">{contactCompletion}%</span>
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-lg font-extrabold">C est parti ! Qui effectue la demarche sur Greffio ?</p>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            Ces informations nous permettent de vous assister pendant toute la creation et seront necessaires pour votre dossier.
-                          </p>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>{activeContactField.label}</Label>
-                          <Input
-                            type={activeContactField.type}
-                            value={data[activeContactField.key]}
-                            onChange={(event) => update(activeContactField.key, event.target.value)}
-                            placeholder={activeContactField.placeholder}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="bg-white"
-                            disabled={contactStep === 0}
-                            onClick={() => setContactStep((value) => Math.max(0, value - 1))}
-                          >
-                            Retour
-                          </Button>
-                          <Button
-                            type="button"
-                            disabled={contactStep >= contactFields.length - 1 || !canContinueContact()}
-                            onClick={() => setContactStep((value) => Math.min(contactFields.length - 1, value + 1))}
-                          >
-                            Continuer
-                            <ArrowRight className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Vos donnees sont en securite et transmises uniquement a l administration francaise pour enregistrer votre entreprise.
-                        </p>
-                        {contactStep >= contactFields.length - 1 && (
-                          <p className="text-xs font-semibold text-primary">
-                            Coordonnees completes. Vous pouvez continuer vers la suite du questionnaire.
-                          </p>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Qui effectue la démarche </Label>
-                        <select className={fieldClass} value={data.initiatorType} onChange={(event) => update('initiatorType', event.target.value)}>
-                          <option value="personne_physique">Personne physique</option>
-                          <option value="personne_morale">Personne morale</option>
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>{data.initiatorType === 'personne_morale' ? 'Nom de la société demandeuse' : 'Nom du fondateur'}</Label>
-                        <Input value={data.initiatorName} onChange={(event) => update('initiatorName', event.target.value)} />
-                      </div>
-                      {data.initiatorType === 'personne_morale' && (
-                        <div className="space-y-2">
-                          <Label>Forme de la société demandeuse</Label>
-                          <select className={fieldClass} value={data.initiatorLegalForm} onChange={(event) => update('initiatorLegalForm', event.target.value)}>
-                            {['SA', 'SAS', 'SASU', 'SARL', 'EURL', 'SCI', 'Association', 'Autre personne morale'].map((item) => (
-                              <option key={item} value={item}>{item}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-                      <div className="space-y-3 md:col-span-2">
-                        <Label>Forme juridique visée</Label>
-                        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                          {targetFormGroups.map((group) => (
-                            <motion.button
-                              type="button"
-                              key={group.category}
-                              whileHover={{ y: -2 }}
-                              whileTap={{ scale: 0.98 }}
-                              onClick={() => chooseFamily(group.category)}
-                              className={`rounded-md border p-3 text-left transition ${selectedFamily === group.category ? 'border-primary bg-secondary shadow-elevation-sm' : 'border-border bg-white hover:border-primary/40'}`}
-                            >
-                              <span className="block text-sm font-extrabold">{group.category}</span>
-                              <span className="mt-1 block text-xs text-muted-foreground">{group.forms.length} formes disponibles</span>
-                            </motion.button>
-                          ))}
-                        </div>
 
-                        <AnimatePresence mode="wait">
-                          <motion.div
-                            key={selectedFamily}
-                            initial={{ opacity: 0, y: 12 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -8 }}
-                            transition={{ duration: 0.2 }}
-                            className="grid gap-3 md:grid-cols-2 xl:grid-cols-3"
-                          >
-                            {visibleForms.map((form) => (
-                              (() => {
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={`project-${projectSubStep}-${projectSubStep === 0 ? contactStep : 'static'}`}
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -12 }}
+                        transition={{ duration: 0.22 }}
+                      >
+                        {projectSubStep === 0 && (
+                          <div className="rounded-2xl border border-border bg-muted p-6 md:p-8">
+                            <div className="flex items-center justify-between gap-4">
+                              <div>
+                                <p className="text-sm font-bold uppercase text-primary">Réf. : {dossierReference}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {contactStep + 1}/{contactFields.length} — {contactCompletion}%
+                                </p>
+                              </div>
+                              <div className="relative h-16 w-16">
+                                <svg viewBox="0 0 36 36" className="h-16 w-16">
+                                  <path className="stroke-white" fill="none" strokeWidth="3" d="M18 2.5a15.5 15.5 0 1 1 0 31a15.5 15.5 0 1 1 0-31" />
+                                  <path
+                                    className="stroke-primary"
+                                    fill="none"
+                                    strokeWidth="3"
+                                    strokeLinecap="round"
+                                    strokeDasharray={`${contactCompletion}, 100`}
+                                    d="M18 2.5a15.5 15.5 0 1 1 0 31a15.5 15.5 0 1 1 0-31"
+                                  />
+                                </svg>
+                                <span className="absolute inset-0 flex items-center justify-center text-xs font-bold">{contactCompletion}%</span>
+                              </div>
+                            </div>
+                            <div className="mt-6 space-y-2">
+                              <Label>{activeContactField.label}</Label>
+                              <Input
+                                type={activeContactField.type}
+                                value={data[activeContactField.key]}
+                                onChange={(event) => update(activeContactField.key, event.target.value)}
+                                placeholder={activeContactField.placeholder}
+                                className="rounded-xl"
+                              />
+                            </div>
+                            <p className="mt-4 text-xs leading-5 text-muted-foreground">
+                              Vos données sont en sécurité et transmises uniquement à l’administration française pour enregistrer votre entreprise.
+                            </p>
+                          </div>
+                        )}
+
+                        {projectSubStep === 1 && (
+                          <div className="grid gap-5 md:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label>Qui effectue la démarche</Label>
+                              <select className={`${fieldClass} w-full rounded-xl`} value={data.initiatorType} onChange={(event) => update('initiatorType', event.target.value)}>
+                                <option value="personne_physique">Personne physique</option>
+                                <option value="personne_morale">Personne morale</option>
+                              </select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>{data.initiatorType === 'personne_morale' ? 'Nom de la société demandeuse' : 'Nom du fondateur'}</Label>
+                              <Input className="rounded-xl" value={data.initiatorName} onChange={(event) => update('initiatorName', event.target.value)} />
+                            </div>
+                            {data.initiatorType === 'personne_morale' && (
+                              <div className="space-y-2 md:col-span-2">
+                                <Label>Forme de la société demandeuse</Label>
+                                <select className={`${fieldClass} w-full rounded-xl`} value={data.initiatorLegalForm} onChange={(event) => update('initiatorLegalForm', event.target.value)}>
+                                  {['SA', 'SAS', 'SASU', 'SARL', 'EURL', 'SCI', 'Association', 'Autre personne morale'].map((item) => (
+                                    <option key={item} value={item}>{item}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {projectSubStep === 2 && (
+                          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                            {targetFormGroups.map((group) => (
+                              <motion.button
+                                type="button"
+                                key={group.category}
+                                whileHover={{ y: -3 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => chooseFamily(group.category)}
+                                className={`rounded-2xl border p-4 text-left transition ${selectedFamily === group.category ? 'border-primary bg-secondary shadow-elevation-md' : 'border-border bg-white hover:border-primary/40 hover:shadow-elevation-sm'}`}
+                              >
+                                <span className="block text-sm font-extrabold">{group.category}</span>
+                                <span className="mt-1 block text-xs text-muted-foreground">{group.forms.length} formes disponibles</span>
+                              </motion.button>
+                            ))}
+                          </div>
+                        )}
+
+                        {projectSubStep === 3 && (
+                          <div className="space-y-4">
+                            <p className="rounded-2xl border border-primary/20 bg-secondary px-4 py-3 text-sm font-semibold text-primary">
+                              {selectedFamily}
+                            </p>
+                            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                              {visibleForms.map((form) => {
                                 const availability = getFormAvailability(form.key);
                                 const availabilityLabel = availability === SERVICE_AVAILABILITY.AVAILABLE_NOW
                                   ? 'Disponible'
@@ -605,48 +666,54 @@ export const FormalityWizardPage = () => {
                                     ? 'Bientôt'
                                     : 'Sur devis';
                                 return (
-                              <motion.button
-                                type="button"
-                                key={form.key}
-                                layout
-                                onClick={() => update('legalForm', form.label)}
-                                className={`rounded-md border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-elevation-sm ${data.legalForm === form.label ? 'border-primary bg-[hsl(var(--greffio-citron))]' : 'border-border bg-white'}`}
-                              >
-                                <span className="flex items-start justify-between gap-2">
-                                  <strong className="text-base">{form.label}</strong>
-                                  <span className="rounded-full bg-white px-2 py-1 text-[11px] font-bold uppercase text-primary">
-                                    {availabilityLabel}
-                                  </span>
-                                </span>
-                                <span className="mt-2 block text-xs leading-5 text-muted-foreground">{form.description}</span>
-                              </motion.button>
+                                  <motion.button
+                                    type="button"
+                                    key={form.key}
+                                    whileHover={{ y: -3 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => update('legalForm', form.label)}
+                                    className={`rounded-2xl border p-4 text-left transition ${data.legalForm === form.label ? 'border-primary bg-[hsl(var(--greffio-citron))] shadow-elevation-md' : 'border-border bg-white hover:border-primary/40 hover:shadow-elevation-sm'}`}
+                                  >
+                                    <span className="flex items-start justify-between gap-2">
+                                      <strong className="text-base">{form.label}</strong>
+                                      <span className="rounded-full bg-white px-2 py-1 text-[11px] font-bold uppercase text-primary">
+                                        {availabilityLabel}
+                                      </span>
+                                    </span>
+                                    <span className="mt-2 block text-xs leading-5 text-muted-foreground">{form.description}</span>
+                                  </motion.button>
                                 );
-                              })()
-                            ))}
-                          </motion.div>
-                        </AnimatePresence>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Délai souhaité</Label>
-                        <select className={fieldClass} value={data.urgency} onChange={(event) => update('urgency', event.target.value)}>
-                          {['Aujourd’hui', 'Cette semaine', 'Ce mois-ci', 'Je compare encore'].map((item) => (
-                            <option key={item} value={item}>{item}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Nom envisagé</Label>
-                        <Input value={data.companyName} onChange={(event) => update('companyName', event.target.value)} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Ville du siège</Label>
-                        <Input value={data.city} onChange={(event) => update('city', event.target.value)} />
-                      </div>
-                      <div className="space-y-2 md:col-span-2">
-                        <Label>Activité principale</Label>
-                        <Input value={data.activity} onChange={(event) => update('activity', event.target.value)} />
-                      </div>
-                    </div>
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {projectSubStep === 4 && (
+                          <div className="grid gap-5 md:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label>Délai souhaité</Label>
+                              <select className={`${fieldClass} w-full rounded-xl`} value={data.urgency} onChange={(event) => update('urgency', event.target.value)}>
+                                {['Aujourd’hui', 'Cette semaine', 'Ce mois-ci', 'Je compare encore'].map((item) => (
+                                  <option key={item} value={item}>{item}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Nom envisagé</Label>
+                              <Input className="rounded-xl" value={data.companyName} onChange={(event) => update('companyName', event.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Ville du siège</Label>
+                              <Input className="rounded-xl" value={data.city} onChange={(event) => update('city', event.target.value)} />
+                            </div>
+                            <div className="space-y-2 md:col-span-2">
+                              <Label>Activité principale</Label>
+                              <Input className="rounded-xl" value={data.activity} onChange={(event) => update('activity', event.target.value)} />
+                            </div>
+                          </div>
+                        )}
+                      </motion.div>
+                    </AnimatePresence>
                   </div>
                 )}
 
@@ -954,18 +1021,27 @@ export const FormalityWizardPage = () => {
             )}
           </AnimatePresence>
 
-          <div className="flex items-center justify-between border-t border-border px-6 py-5">
-            <Button variant="outline" className="bg-white" onClick={previous} disabled={step === 0 && !showOffers}>
-              <ArrowLeft className="h-4 w-4" />
-              Retour
-            </Button>
-            {!showOffers && (
-              <Button onClick={next}>
-                {step === steps.length - 1 ? 'Voir les offres' : 'Continuer'}
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
+          {!showOffers ? (
+            <div className="border-t border-border px-6 py-5">
+              <WizardNavButtons
+                onBack={previous}
+                onContinue={next}
+                backDisabled={step === 0 || isProjectBackDisabled}
+                continueDisabled={step === 1 && !canContinueProjectSubStep()}
+                continueLabel={
+                  step === steps.length - 1
+                    ? 'Voir les offres'
+                    : step === 1 && projectSubStep === PROJECT_SUB_STEPS.length - 1 && contactStep >= contactFields.length - 1
+                      ? 'Passer aux dirigeants'
+                      : 'Continuer'
+                }
+              />
+            </div>
+          ) : (
+            <div className="border-t border-border px-6 py-5">
+              <WizardNavButtons onBack={previous} backLabel="Retour à la synthèse" showContinue={false} />
+            </div>
+          )}
         </section>
 
         <aside className="space-y-4">

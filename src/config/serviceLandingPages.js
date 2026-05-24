@@ -67,3 +67,10 @@ export const SERVICE_LANDING_ROUTES = SERVICE_PAGE_SLUGS.reduce((acc, slug) => {
   acc[`/${slug}`] = slug;
   return acc;
 }, {});
+
+export const getServiceRoute = (serviceId) => {
+  if (serviceId === 'fermeture') return '/fermeture-entreprise';
+  if (serviceId === 'modification') return '/simulateur?type=modification';
+  if (SERVICE_LANDING_PAGES[serviceId]) return `/${serviceId}`;
+  return '/simulateur?type=creation';
+};

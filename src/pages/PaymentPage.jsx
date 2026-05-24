@@ -4,7 +4,7 @@ import { ArrowRight, BadgeEuro, CheckCircle2, CreditCard, FileText, LockKeyhole,
 import { toast } from 'sonner';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
-import { PAYMENT_METHODS } from '@/utils/mockData.js';
+import { PAYMENT_METHODS } from '@/config/businessCatalog.js';
 import { createPayment } from '@/api/payments.js';
 import { TotalCostSimulator } from '@/components/TotalCostSimulator.jsx';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
@@ -23,7 +23,7 @@ export const PaymentPage = () => {
   const mainMethods = useMemo(() => PAYMENT_METHODS.filter((method) => method.id !== 'optional'), []);
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
 
-  const handleMollieCheckout = async () => {
+  const handleGoCardlessCheckout = async () => {
     try {
       setIsCreatingPayment(true);
       const dossierId = getCurrentDossierId();
@@ -41,7 +41,7 @@ export const PaymentPage = () => {
       }
       throw new Error('CHECKOUT_URL_MISSING');
     } catch (error) {
-      toast.error("Impossible d'initialiser le paiement Mollie.");
+      toast.error("Impossible d'initialiser le paiement GoCardless.");
     } finally {
       setIsCreatingPayment(false);
     }
@@ -64,10 +64,10 @@ export const PaymentPage = () => {
         <section className="space-y-6">
           <div className="rounded-md bg-[hsl(var(--greffio-blue))] p-6 text-white shadow-elevation-md md:p-8">
             <p className="text-sm font-bold uppercase text-white/70">Paiement sécurisé</p>
-            <h1 className="mt-2 text-3xl font-extrabold">Mollie comme solution de paiement Greffio</h1>
+            <h1 className="mt-2 text-3xl font-extrabold">Paiement sécurisé via GoCardless</h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-white/78">
-              Greffio utilise Mollie avec verification serveur et webhook idempotent pour garantir la
-              fiabilité du statut de paiement avant traitement du dossier.
+              Greffio utilise GoCardless pour encaisser les paiements par prélèvement SEPA ou virement instantané,
+              avec vérification serveur et webhook idempotent avant traitement du dossier.
             </p>
             <p className="mt-3 text-xs leading-6 text-white/85">
               Greffio est un service privé indépendant d’assistance aux démarches administratives des entreprises. Greffio n’est pas un service officiel de l’État, des greffes des tribunaux de commerce ou d’Infogreffe.
@@ -129,7 +129,7 @@ export const PaymentPage = () => {
               </div>
               <div className="flex gap-2">
                 <LockKeyhole className="mt-0.5 h-4 w-4 text-primary" />
-                <span>Paiement SCA/3-D Secure via Mollie.</span>
+                <span>Paiement sécurisé via GoCardless (SEPA / virement).</span>
               </div>
             </div>
             <Button asChild className="mt-6 w-full justify-between">
@@ -142,10 +142,10 @@ export const PaymentPage = () => {
               type="button"
               className="mt-3 w-full justify-between"
               variant="outline"
-              onClick={handleMollieCheckout}
+              onClick={handleGoCardlessCheckout}
               disabled={isCreatingPayment}
             >
-              {isCreatingPayment ? 'Initialisation...' : 'Payer maintenant via Mollie'}
+              {isCreatingPayment ? 'Initialisation...' : 'Payer maintenant via GoCardless'}
               <ArrowRight className="h-4 w-4" />
             </Button>
           </section>

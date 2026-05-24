@@ -6,7 +6,9 @@ import { useAuth } from '@/hooks/useAuth.js';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
-import { getSecuritySettings, getSessions, saveSecuritySettings } from '@/utils/localStorage.js';
+import { getSecuritySettings, saveSecuritySettings } from '@/utils/localStorage.js';
+import { listDossiers } from '@/api/dossiers.js';
+import { useEffect } from 'react';
 
 const securityMethods = [
   { icon: Smartphone, key: 'totpEnabled', label: 'Application TOTP', text: 'Google Authenticator, Microsoft Authenticator, 1Password.' },
@@ -22,7 +24,34 @@ export const SettingsPage = () => {
     lastName: currentUser?.lastName || '',
   });
   const [recoveryCodes, setRecoveryCodes] = useState(security.recoveryCodes || []);
-  const sessions = getSessions();
+  const [sessions, setSessions] = useState([]);
+  useEffect(() => {
+    let mounted = true;
+    const loadSessions = async () => {
+      try {
+        const payload = await listDossiers();
+        if (!mounted) return;
+        if (Array.isArray(payload?.dossiers)) {
+          setSessions([{
+            id: 'session_current',
+            label: 'Session actuelle',
+            device: 'Navigateur web',
+            location: 'Greffio sécurisé',
+            createdAt: new Date().toISOString(),
+          }]);
+        } else {
+          setSessions([]);
+        }
+      } catch (_error) {
+        if (!mounted) return;
+        setSessions([]);
+      }
+    };
+    void loadSessions();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const updateSecurity = (updates) => {
     const next = {

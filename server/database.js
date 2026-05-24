@@ -138,11 +138,17 @@ CREATE TABLE IF NOT EXISTS email_events (
   recipient_email TEXT NOT NULL,
   subject TEXT NOT NULL,
   status TEXT NOT NULL,
+  provider TEXT,
   provider_message_id TEXT,
+  tags_json TEXT,
+  error_code TEXT,
   payload_json TEXT,
   error_message TEXT,
   created_at TEXT NOT NULL,
+  updated_at TEXT,
   sent_at TEXT,
+  opened_at TEXT,
+  clicked_at TEXT,
   FOREIGN KEY (dossier_id) REFERENCES dossiers(id) ON DELETE SET NULL
 );
 
@@ -152,6 +158,16 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
   token_hash TEXT NOT NULL UNIQUE,
   expires_at TEXT NOT NULL,
   revoked_at TEXT,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TEXT NOT NULL,
+  consumed_at TEXT,
   created_at TEXT NOT NULL,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -231,7 +247,15 @@ addColumnIfMissing('documents', 'original_filename', 'TEXT');
 addColumnIfMissing('documents', 'recommended_filename', 'TEXT');
 addColumnIfMissing('documents', 'file_url', 'TEXT');
 addColumnIfMissing('documents', 'sha256', 'TEXT');
+addColumnIfMissing('documents', 'metadata_json', 'TEXT');
 addColumnIfMissing('generated_documents', 'file_size_bytes', 'INTEGER');
+addColumnIfMissing('documents', 'editor_schema_version', 'TEXT');
+addColumnIfMissing('email_events', 'provider', 'TEXT');
+addColumnIfMissing('email_events', 'tags_json', 'TEXT');
+addColumnIfMissing('email_events', 'error_code', 'TEXT');
+addColumnIfMissing('email_events', 'updated_at', 'TEXT');
+addColumnIfMissing('email_events', 'opened_at', 'TEXT');
+addColumnIfMissing('email_events', 'clicked_at', 'TEXT');
 
 export {
   sqlite,

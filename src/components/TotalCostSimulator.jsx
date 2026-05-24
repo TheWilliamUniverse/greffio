@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Calculator, CircleHelp } from 'lucide-react';
-import { LEGAL_STRUCTURES } from '@/utils/mockData.js';
+import { LEGAL_STRUCTURES } from '@/config/businessCatalog.js';
 import { Button } from '@/components/ui/button.jsx';
 
 const serviceBaseByForm = {

@@ -20,7 +20,8 @@ import { NavbarDropdown } from '@/components/NavbarDropdown.jsx';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { CompanyLookupCard } from '@/components/CompanyLookupCard.jsx';
-import { LEGAL_SERVICES } from '@/utils/mockData.js';
+import { LEGAL_SERVICES } from '@/config/businessCatalog.js';
+import { getServiceRoute } from '@/config/serviceLandingPages.js';
 import { lookupPublicCompanyBySiren } from '@/api/company.js';
 import { useNavigate } from 'react-router-dom';
 
@@ -192,13 +193,13 @@ export const LandingPage = () => {
               <p className="text-sm font-bold uppercase text-primary">Formalités</p>
               <h2 className="mt-2 text-4xl font-extrabold text-foreground">Un catalogue complet, relié au dashboard.</h2>
             </div>
-            <Button asChild variant="outline" className="w-fit bg-white">
-              <Link to="/simulateur?type=statuts">Comparer les statuts</Link>
+            <Button asChild variant="outline" className="w-fit rounded-full bg-white">
+              <Link to="/services">Voir tous les services</Link>
             </Button>
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {LEGAL_SERVICES.map((service) => (
-              <Link key={service.id} to={`/simulateur?type=${service.id.includes('fermeture') ? 'dissolution' : service.id.includes('modification') ? 'modification' : 'creation'}`} className="group rounded-md border border-border bg-white p-5 shadow-elevation-sm transition hover:-translate-y-1 hover:border-primary/40 hover:shadow-elevation-md">
+              <Link key={service.id} to={getServiceRoute(service.id)} className="group rounded-2xl border border-border bg-white p-5 shadow-elevation-sm transition hover:-translate-y-1 hover:border-primary/40 hover:shadow-elevation-md">
                 <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-md ${service.accent}`}>
                   <Building2 className="h-6 w-6 text-[hsl(var(--greffio-blue-900))]" />
                 </div>

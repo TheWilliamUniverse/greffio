@@ -48,6 +48,16 @@ const initPostgresSchema = async () => {
     );
   `);
   await query(`
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at TEXT NOT NULL,
+      consumed_at TEXT,
+      created_at TEXT NOT NULL
+    );
+  `);
+  await query(`
     CREATE TABLE IF NOT EXISTS dossiers (
       id TEXT PRIMARY KEY,
       reference TEXT UNIQUE,
@@ -151,6 +161,7 @@ const initPostgresSchema = async () => {
   await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_url TEXT;`);
   await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS sha256 TEXT;`);
   await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS metadata_json TEXT;`);
+  await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS editor_schema_version TEXT;`);
   await query(`
     CREATE TABLE IF NOT EXISTS generated_documents (
       id TEXT PRIMARY KEY,
@@ -211,6 +222,12 @@ const initPostgresSchema = async () => {
       sent_at TEXT
     );
   `);
+  await query(`ALTER TABLE email_events ADD COLUMN IF NOT EXISTS provider TEXT;`);
+  await query(`ALTER TABLE email_events ADD COLUMN IF NOT EXISTS tags_json TEXT;`);
+  await query(`ALTER TABLE email_events ADD COLUMN IF NOT EXISTS error_code TEXT;`);
+  await query(`ALTER TABLE email_events ADD COLUMN IF NOT EXISTS updated_at TEXT;`);
+  await query(`ALTER TABLE email_events ADD COLUMN IF NOT EXISTS opened_at TEXT;`);
+  await query(`ALTER TABLE email_events ADD COLUMN IF NOT EXISTS clicked_at TEXT;`);
   await query(`
     CREATE TABLE IF NOT EXISTS ops_notes (
       id TEXT PRIMARY KEY,
