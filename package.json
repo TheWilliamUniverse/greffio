@@ -13,6 +13,7 @@
     "db:check": "node server/scripts/db-check.js",
     "ops:promote-william": "node server/scripts/promote-internal-user.js",
     "ops:provision-william-admins": "node server/scripts/provision-william-admins.js",
+    "ops:send-william-admin-invitations": "node server/scripts/send-william-admin-invitations.js",
     "storage:migrate:dry": "node server/scripts/migrate-local-documents-to-supabase.js --dry-run",
     "storage:migrate": "node server/scripts/migrate-local-documents-to-supabase.js",
     "start": "vite preview --host 0.0.0.0 --port 3000",

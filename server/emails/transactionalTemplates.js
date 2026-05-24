@@ -25,6 +25,39 @@ const transactionalTemplates = Object.freeze({
     `,
   }),
 
+  admin_invitation: defineTemplate({
+    subject: 'Votre accès administrateur Greffio',
+    tags: ['auth', 'admin', 'onboarding'],
+    requiredVariables: ['firstName', 'jobTitle', 'loginUrl', 'accountActionLabel', 'accountActionUrl', 'dashboardUrl'],
+    preheader: 'Votre compte administrateur Greffio est prêt.',
+    textLines: [
+      'Bonjour {{firstName}},',
+      '',
+      'Votre compte Greffio a été configuré avec un accès administrateur.',
+      'Fonction : {{jobTitle}}',
+      '',
+      '{{accountActionLabel}} : {{accountActionUrl}}',
+      '',
+      'Page de connexion : {{loginUrl}}',
+      'Espace de travail : {{dashboardUrl}}',
+      '',
+      'En tant qu’administrateur, vous pouvez gérer les dossiers clients, suivre les formalités et accéder aux outils opérationnels Greffio.',
+      '',
+      'Besoin d’aide ? {{supportUrl}}',
+    ],
+    bodyHtml: `
+      <p style="margin:0 0 16px;">Bonjour <strong>{{firstName}}</strong>,</p>
+      <p style="margin:0 0 16px;">Votre compte Greffio a été configuré avec un accès <strong>administrateur</strong>.</p>
+      <table role="presentation" width="100%" style="margin:0 0 20px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
+        <tr><td style="padding:14px 16px;font-size:14px;"><strong>Fonction</strong><br/>{{jobTitle}}</td></tr>
+        <tr><td style="padding:0 16px 14px;font-size:14px;"><strong>Connexion</strong><br/><a href="{{loginUrl}}" style="color:#214082;">{{loginUrl}}</a></td></tr>
+      </table>
+      ${ctaButton('{{accountActionLabel}}', '{{accountActionUrl}}')}
+      <p style="margin:0 0 16px;font-size:14px;color:#64748b;">Espace de travail : <a href="{{dashboardUrl}}" style="color:#214082;">{{dashboardUrl}}</a></p>
+      <p style="margin:0;font-size:14px;color:#64748b;">En tant qu’administrateur, vous pouvez gérer les dossiers clients, suivre les formalités et accéder aux outils opérationnels Greffio.</p>
+    `,
+  }),
+
   email_verification: defineTemplate({
     subject: 'Confirmez votre adresse email',
     tags: ['auth', 'security'],
