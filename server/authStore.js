@@ -36,6 +36,7 @@ const mapUserRow = (row) => {
     role: row.role,
     company: row.companyJson ? JSON.parse(row.companyJson) : null,
     profile,
+    mfaEnabled: Boolean(row.mfaEnabled),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -55,6 +56,7 @@ const getUserByEmail = async (email) => {
         company_json AS "companyJson",
         phone,
         profile_json AS "profileJson",
+        mfa_enabled AS "mfaEnabled",
         created_at AS "createdAt",
         updated_at AS "updatedAt"
       FROM users
@@ -75,6 +77,7 @@ const getUserByEmail = async (email) => {
         company_json AS companyJson,
         phone,
         profile_json AS profileJson,
+        mfa_enabled AS mfaEnabled,
         created_at AS createdAt,
         updated_at AS updatedAt
       FROM users
@@ -263,6 +266,7 @@ const updateUserRoleByEmail = async ({
         company_json AS "companyJson",
         phone,
         profile_json AS "profileJson",
+        mfa_enabled AS "mfaEnabled",
         created_at AS "createdAt",
         updated_at AS "updatedAt"
     `, [
@@ -318,6 +322,7 @@ const getUserById = async (userId) => {
         company_json AS "companyJson",
         phone,
         profile_json AS "profileJson",
+        mfa_enabled AS "mfaEnabled",
         created_at AS "createdAt",
         updated_at AS "updatedAt"
       FROM users
@@ -337,6 +342,7 @@ const getUserById = async (userId) => {
       company_json AS companyJson,
       phone,
       profile_json AS profileJson,
+      mfa_enabled AS mfaEnabled,
       created_at AS createdAt,
       updated_at AS updatedAt
     FROM users
@@ -392,6 +398,7 @@ const updateUserProfile = async ({ userId, firstName, lastName, phone, profile }
         company_json AS "companyJson",
         phone,
         profile_json AS "profileJson",
+        mfa_enabled AS "mfaEnabled",
         created_at AS "createdAt",
         updated_at AS "updatedAt"
     `, [userId, nextFirstName, nextLastName, primaryPhone, profileJson, updatedAt]);
@@ -419,6 +426,12 @@ const updateUserProfile = async ({ userId, firstName, lastName, phone, profile }
   return getUserById(userId);
 };
 
+const verifyUserPassword = async ({ email, password }) => {
+  const row = await getUserByEmail(email);
+  if (!row) return false;
+  return verifyPassword(password, row.passwordHash);
+};
+
 export {
   createUser,
   getUserByEmail,
@@ -429,4 +442,5 @@ export {
   createPasswordResetToken,
   consumePasswordResetToken,
   updateUserPasswordById,
+  verifyUserPassword,
 };

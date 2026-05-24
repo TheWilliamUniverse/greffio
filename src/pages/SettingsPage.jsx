@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { KeyRound, LockKeyhole, Mail, MonitorCheck, ShieldCheck, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
@@ -7,21 +7,58 @@ import { useAuth } from '@/hooks/useAuth.js';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
-import { getSecuritySettings, saveSecuritySettings } from '@/utils/localStorage.js';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp.jsx';
 import { listDossiers } from '@/api/dossiers.js';
-import { useEffect } from 'react';
+import {
+  disableTotp,
+  enableTotp,
+  fetchMfaStatus,
+  regenerateRecoveryCodes,
+  setupTotp,
+} from '@/api/mfa.js';
 
 const securityMethods = [
-  { icon: Smartphone, key: 'totpEnabled', label: 'Application TOTP', text: 'Google Authenticator, Microsoft Authenticator, 1Password.' },
-  { icon: Mail, key: 'emailCodeEnabled', label: 'Code email', text: 'Code à usage unique lié à l’adresse du compte.' },
-  { icon: KeyRound, key: 'smsEnabled', label: 'Code SMS', text: 'Code court envoyé sur le téléphone de secours.' },
+  { icon: Smartphone, key: 'totp', label: 'Application TOTP', text: 'Google Authenticator, Microsoft Authenticator, 1Password.', available: true },
+  { icon: Mail, key: 'email', label: 'Code email', text: 'Code à usage unique lié à l’adresse du compte.', available: false },
+  { icon: KeyRound, key: 'sms', label: 'Code SMS', text: 'Code court envoyé sur le téléphone de secours.', available: false },
 ];
 
 export const SettingsPage = () => {
-  const { currentUser, logout } = useAuth();
-  const [security, setSecurity] = useState(getSecuritySettings());
-  const [recoveryCodes, setRecoveryCodes] = useState(security.recoveryCodes || []);
+  const { currentUser, logout, updateProfile } = useAuth();
+  const [mfaStatus, setMfaStatus] = useState({
+    mfaEnabled: false,
+    totpEnabled: false,
+    recoveryCodesRemaining: 0,
+  });
   const [sessions, setSessions] = useState([]);
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [disableOpen, setDisableOpen] = useState(false);
+  const [setupData, setSetupData] = useState(null);
+  const [setupCode, setSetupCode] = useState('');
+  const [recoveryCodes, setRecoveryCodes] = useState([]);
+  const [disablePassword, setDisablePassword] = useState('');
+  const [disableCode, setDisableCode] = useState('');
+  const [regenPassword, setRegenPassword] = useState('');
+  const [regenCode, setRegenCode] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const loadMfaStatus = async () => {
+    try {
+      const payload = await fetchMfaStatus();
+      setMfaStatus({
+        mfaEnabled: Boolean(payload.mfaEnabled),
+        totpEnabled: Boolean(payload.totpEnabled),
+        recoveryCodesRemaining: Number(payload.recoveryCodesRemaining || 0),
+      });
+    } catch (_error) {
+      toast.error('Impossible de charger l’état MFA');
+    }
+  };
+
+  useEffect(() => {
+    void loadMfaStatus();
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     const loadSessions = async () => {
@@ -50,39 +87,100 @@ export const SettingsPage = () => {
     };
   }, []);
 
-  const updateSecurity = (updates) => {
-    const next = {
-      ...security,
-      ...updates,
-      mfaEnabled: Boolean(updates.totpEnabled ?? security.totpEnabled)
-        || Boolean(updates.smsEnabled ?? security.smsEnabled)
-        || Boolean(updates.emailCodeEnabled ?? security.emailCodeEnabled),
-      updatedAt: new Date().toISOString(),
-    };
-    setSecurity(next);
-    saveSecuritySettings(next);
-    toast.success('Paramètres de sécurité enregistrés');
+  const startTotpSetup = async () => {
+    setLoading(true);
+    try {
+      const payload = await setupTotp();
+      setSetupData(payload);
+      setSetupOpen(true);
+      setSetupCode('');
+      setRecoveryCodes([]);
+    } catch (_error) {
+      toast.error('Impossible de démarrer la configuration TOTP');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const generateRecoveryCodes = () => {
-    const codes = Array.from({ length: 8 }, () => (
-      `GRF-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
-    ));
-    const next = {
-      ...security,
-      recoveryCodes: codes,
-      recoveryCodesGenerated: true,
-      updatedAt: new Date().toISOString(),
-    };
-    setSecurity(next);
-    setRecoveryCodes(codes);
-    saveSecuritySettings(next);
-    toast.success('Codes de secours générés');
+  const confirmTotpSetup = async () => {
+    if (setupCode.length !== 6) {
+      toast.error('Saisissez le code à 6 chiffres');
+      return;
+    }
+    setLoading(true);
+    try {
+      const payload = await enableTotp({ code: setupCode });
+      setRecoveryCodes(payload.recoveryCodes || []);
+      setMfaStatus({
+        mfaEnabled: true,
+        totpEnabled: true,
+        recoveryCodesRemaining: payload.recoveryCodes?.length || 8,
+      });
+      if (payload.user) updateProfile(payload.user);
+      toast.success('Authentification TOTP activée');
+    } catch (error) {
+      toast.error(error?.message === 'TOTP_CODE_INVALID' ? 'Code incorrect, réessayez.' : 'Activation impossible');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDisableTotp = async () => {
+    if (!disablePassword || disableCode.length !== 6) {
+      toast.error('Mot de passe et code TOTP requis');
+      return;
+    }
+    setLoading(true);
+    try {
+      const payload = await disableTotp({ password: disablePassword, code: disableCode });
+      setMfaStatus({ mfaEnabled: false, totpEnabled: false, recoveryCodesRemaining: 0 });
+      setRecoveryCodes([]);
+      setDisableOpen(false);
+      setDisablePassword('');
+      setDisableCode('');
+      if (payload.user) updateProfile(payload.user);
+      toast.success('Authentification TOTP désactivée');
+    } catch (error) {
+      toast.error(error?.message === 'INVALID_PASSWORD' ? 'Mot de passe incorrect' : 'Désactivation impossible');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegenerateCodes = async () => {
+    if (!regenPassword || regenCode.length !== 6) {
+      toast.error('Mot de passe et code TOTP requis');
+      return;
+    }
+    setLoading(true);
+    try {
+      const payload = await regenerateRecoveryCodes({ password: regenPassword, code: regenCode });
+      setRecoveryCodes(payload.recoveryCodes || []);
+      setMfaStatus((current) => ({
+        ...current,
+        recoveryCodesRemaining: payload.recoveryCodes?.length || 8,
+      }));
+      setRegenPassword('');
+      setRegenCode('');
+      toast.success('Nouveaux codes de secours générés');
+    } catch (_error) {
+      toast.error('Régénération impossible');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTotpToggle = () => {
+    if (mfaStatus.totpEnabled) {
+      setDisableOpen(true);
+      return;
+    }
+    void startTotpSetup();
   };
 
   const secureSpaces = [
     { label: 'Espace client', text: 'Accès aux dossiers, documents et messages partagés.', active: true },
-    { label: 'Espace équipe Greffio', text: 'Back-office de traitement, contrôle et assignation.', active: currentUser?.role === 'TEAM' },
+    { label: 'Espace équipe Greffio', text: 'Back-office de traitement, contrôle et assignation.', active: currentUser?.role === 'TEAM' || currentUser?.role === 'ADMIN' },
     { label: 'Espace professionnel', text: 'Suivi multi-clients pour partenaires et pros autorisés.', active: currentUser?.role === 'PRO' },
   ];
 
@@ -121,48 +219,135 @@ export const SettingsPage = () => {
                     <p className="mt-1 text-sm text-muted-foreground">Protège les accès aux dossiers sensibles et au coffre documentaire.</p>
                   </div>
                 </div>
-                <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${security.mfaEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                  {security.mfaEnabled ? 'Activée' : 'À activer'}
+                <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${mfaStatus.mfaEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                  {mfaStatus.mfaEnabled ? 'Activée' : 'À activer'}
                 </span>
               </div>
 
               <div className="grid gap-3 md:grid-cols-3">
-                {securityMethods.map((method) => (
-                  <button
-                    key={method.key}
-                    type="button"
-                    onClick={() => updateSecurity({ [method.key]: !security[method.key] })}
-                    className={`rounded-md border p-4 text-left transition ${security[method.key] ? 'border-primary bg-secondary' : 'border-border bg-muted hover:border-primary/50'}`}
-                  >
-                    <method.icon className="mb-3 h-5 w-5 text-primary" />
-                    <p className="text-sm font-bold">{method.label}</p>
-                    <p className="mt-1 text-xs leading-5 text-muted-foreground">{method.text}</p>
-                  </button>
-                ))}
+                {securityMethods.map((method) => {
+                  const active = method.key === 'totp' && mfaStatus.totpEnabled;
+                  return (
+                    <button
+                      key={method.key}
+                      type="button"
+                      disabled={!method.available || loading}
+                      onClick={() => {
+                        if (!method.available) {
+                          toast.message('Cette méthode sera disponible prochainement');
+                          return;
+                        }
+                        handleTotpToggle();
+                      }}
+                      className={`rounded-md border p-4 text-left transition ${active ? 'border-primary bg-secondary' : 'border-border bg-muted hover:border-primary/50'} ${!method.available ? 'opacity-60' : ''}`}
+                    >
+                      <method.icon className="mb-3 h-5 w-5 text-primary" />
+                      <p className="text-sm font-bold">{method.label}</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">{method.text}</p>
+                      {!method.available && <p className="mt-2 text-xs font-semibold text-primary">Bientôt</p>}
+                      {active && <p className="mt-2 text-xs font-semibold text-emerald-700">Active</p>}
+                    </button>
+                  );
+                })}
               </div>
 
-              <div className="mt-5 grid gap-4 md:grid-cols-[1fr_auto]">
-                <div className="space-y-2">
-                  <Label>Téléphone de secours</Label>
-                  <Input value={security.phone || ''} onChange={(event) => updateSecurity({ phone: event.target.value })} placeholder="+33 6 00 00 00 00" />
+              {setupOpen && setupData && (
+                <div className="mt-5 rounded-md border border-primary/30 bg-secondary/40 p-5">
+                  <p className="text-sm font-bold">Configurer l’application d’authentification</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Scannez le QR code ou saisissez la clé manuelle dans votre application.</p>
+                  <div className="mt-4 flex flex-col items-start gap-4 sm:flex-row">
+                    <img src={setupData.qrCodeDataUrl} alt="QR code TOTP Greffio" className="rounded-md border border-border bg-white p-2" />
+                    <div className="text-sm">
+                      <p className="font-semibold">Clé manuelle</p>
+                      <code className="mt-2 block break-all rounded bg-white px-3 py-2 text-xs">{setupData.manualSecret}</code>
+                    </div>
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    <Label>Vérification du code</Label>
+                    <InputOTP maxLength={6} value={setupCode} onChange={setSetupCode}>
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
+                  <div className="mt-4 flex gap-2">
+                    <Button type="button" onClick={confirmTotpSetup} disabled={loading || setupCode.length !== 6}>
+                      Activer TOTP
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setSetupOpen(false)}>Annuler</Button>
+                  </div>
                 </div>
-                <div className="flex items-end">
-                  <Button type="button" variant="outline" className="w-full bg-white" onClick={generateRecoveryCodes}>
-                    Générer les codes
-                  </Button>
+              )}
+
+              {disableOpen && (
+                <div className="mt-5 rounded-md border border-border bg-muted p-5">
+                  <p className="text-sm font-bold">Désactiver l’application TOTP</p>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Mot de passe</Label>
+                      <Input type="password" value={disablePassword} onChange={(event) => setDisablePassword(event.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Code TOTP actuel</Label>
+                      <InputOTP maxLength={6} value={disableCode} onChange={setDisableCode}>
+                        <InputOTPGroup>
+                          <InputOTPSlot index={0} />
+                          <InputOTPSlot index={1} />
+                          <InputOTPSlot index={2} />
+                          <InputOTPSlot index={3} />
+                          <InputOTPSlot index={4} />
+                          <InputOTPSlot index={5} />
+                        </InputOTPGroup>
+                      </InputOTP>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex gap-2">
+                    <Button type="button" variant="destructive" onClick={handleDisableTotp} disabled={loading}>Désactiver</Button>
+                    <Button type="button" variant="outline" onClick={() => setDisableOpen(false)}>Annuler</Button>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {mfaStatus.totpEnabled && (
+                <div className="mt-5 grid gap-4 md:grid-cols-[1fr_auto]">
+                  <div className="rounded-md border border-border bg-muted p-4 text-sm text-muted-foreground">
+                    Codes de secours restants : <strong>{mfaStatus.recoveryCodesRemaining}</strong>
+                  </div>
+                  <div className="space-y-2">
+                    <Input type="password" value={regenPassword} onChange={(event) => setRegenPassword(event.target.value)} placeholder="Mot de passe" />
+                    <InputOTP maxLength={6} value={regenCode} onChange={setRegenCode}>
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
+                    <Button type="button" variant="outline" className="w-full bg-white" onClick={handleRegenerateCodes} disabled={loading}>
+                      Régénérer les codes
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               <div className="mt-5 rounded-md border border-border bg-muted p-4 text-sm leading-6 text-muted-foreground">
-                Les méthodes activées protègent les dossiers sensibles, le coffre documentaire et l’espace équipe. Les codes de secours permettent de récupérer l’accès en cas de perte de téléphone.
+                L’application TOTP protège la connexion à Greffio. Conservez vos codes de secours en lieu sûr : chaque code n’est utilisable qu’une seule fois.
               </div>
 
               {recoveryCodes.length > 0 && (
-                <div className="mt-4 rounded-md border border-border bg-white p-4">
-                  <p className="mb-3 text-sm font-bold">Codes de secours</p>
+                <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-4">
+                  <p className="mb-1 text-sm font-bold text-amber-900">Codes de secours — enregistrez-les maintenant</p>
+                  <p className="mb-3 text-xs text-amber-800">Ces codes ne seront plus affichés après fermeture de cette page.</p>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {recoveryCodes.map((code) => (
-                      <code key={code} className="rounded bg-muted px-3 py-2 text-sm font-bold text-primary">{code}</code>
+                      <code key={code} className="rounded bg-white px-3 py-2 text-sm font-bold text-primary">{code}</code>
                     ))}
                   </div>
                 </div>

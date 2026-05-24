@@ -16,6 +16,13 @@ const JWT_SECRET = () => {
 const ACCESS_EXPIRES = () => required('ACCESS_TOKEN_EXPIRES_IN', '15m');
 const REFRESH_EXPIRES = () => required('REFRESH_TOKEN_EXPIRES_IN', '7d');
 
+const issueMfaPendingToken = (user) => jwt.sign({
+  sub: user.id,
+  role: user.role,
+  email: user.email,
+  typ: 'mfa_pending',
+}, JWT_SECRET(), { expiresIn: '10m' });
+
 const issueAccessToken = (user) => jwt.sign({
   sub: user.id,
   role: user.role,
@@ -34,6 +41,7 @@ const verifyToken = (token) => jwt.verify(token, JWT_SECRET());
 
 export {
   issueAccessToken,
+  issueMfaPendingToken,
   issueRefreshToken,
   verifyToken,
 };

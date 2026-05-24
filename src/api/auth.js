@@ -20,7 +20,8 @@ export const loginWithApi = async ({ email, password }) => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   });
-  return parseApi(response);
+  const payload = await parseApi(response);
+  return payload;
 };
 
 export const signupWithApi = async ({

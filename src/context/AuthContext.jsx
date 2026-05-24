@@ -11,6 +11,7 @@ import {
   saveUser,
 } from '@/utils/localStorage.js';
 import { loginWithApi, refreshAccessToken, signupWithApi } from '@/api/auth.js';
+import { verifyMfaLogin } from '@/api/mfa.js';
 
 export const AuthContext = createContext(null);
 
@@ -59,6 +60,14 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const apiPayload = await loginWithApi({ email, password });
+      if (apiPayload?.mfaRequired) {
+        return {
+          success: true,
+          mfaRequired: true,
+          mfaToken: apiPayload.mfaToken,
+          user: apiPayload.user,
+        };
+      }
       const user = apiPayload.user;
       setCurrentUser(user);
       saveUser(user);
@@ -69,6 +78,22 @@ export const AuthProvider = ({ children }) => {
       return { success: true, user };
     } catch (_error) {
       return { success: false, error: 'Connexion impossible. Vérifiez vos identifiants ou réessayez dans quelques instants.' };
+    }
+  };
+
+  const completeMfaLogin = async ({ mfaToken, code, recoveryCode }) => {
+    try {
+      const apiPayload = await verifyMfaLogin({ mfaToken, code, recoveryCode });
+      const user = apiPayload.user;
+      setCurrentUser(user);
+      saveUser(user);
+      saveToken(apiPayload.accessToken || makeSessionToken());
+      saveRefreshToken(apiPayload.refreshToken || '');
+      saveSessions([makeSession(user.email)]);
+      toast.success('Authentification multifacteur validée');
+      return { success: true, user };
+    } catch (_error) {
+      return { success: false, error: 'Code MFA invalide ou expiré.' };
     }
   };
 
@@ -143,6 +168,7 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated: !!currentUser,
         loading,
         login,
+        completeMfaLogin,
         signup,
         logout,
         updateProfile,

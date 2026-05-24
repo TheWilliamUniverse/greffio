@@ -10,7 +10,7 @@ import rateLimit from 'express-rate-limit';
 import { initSchema } from './dbClient.js';
 import { DOSSIER_STATUSES } from './stateMachine.js';
 import { requireAuth, requireRole } from './authMiddleware.js';
-import { authenticateUser, createUser, getUserByEmail } from './authStore.js';
+import { authenticateUser, createUser, getUserByEmail, verifyUserPassword } from './authStore.js';
 import {
   consumePasswordResetToken,
   createPasswordResetToken,
@@ -49,7 +49,7 @@ import {
   retrieveGoCardlessBillingRequest,
   verifyGoCardlessWebhook,
 } from './gocardless.js';
-import { issueAccessToken, issueRefreshToken, verifyToken } from './tokens.js';
+import { issueAccessToken, issueMfaPendingToken, issueRefreshToken, verifyToken } from './tokens.js';
 import { buildCanonicalDocumentFilename } from './documentNaming.js';
 import { ROLE } from './stateMachine.js';
 import { sendDossierEmailById } from './emails/index.js';
@@ -86,6 +86,17 @@ import {
   registerStorageFailureForOps,
 } from './services/storageRetryQueue.js';
 import { listEmailEvents, updateEmailEventByProviderMessageId } from './emailStore.js';
+import {
+  activateTotp,
+  consumeRecoveryCode,
+  disableMfa,
+  getMfaStatus,
+  getTotpSecret,
+  isMfaEnabled,
+  replaceRecoveryCodes,
+  savePendingTotpSecret,
+} from './mfaStore.js';
+import { buildTotpSetup, encryptSecret, verifyTotpCode } from './services/mfaService.js';
 
 dotenv.config();
 
@@ -544,6 +555,20 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     return res.status(401).json({ ok: false, error: 'INVALID_CREDENTIALS' });
   }
   clearLoginFailures(email);
+  if (await isMfaEnabled(user.id)) {
+    return res.json({
+      ok: true,
+      mfaRequired: true,
+      mfaToken: issueMfaPendingToken(user),
+      methods: ['totp'],
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      },
+    });
+  }
   void sendTransactionalEmail({
     to: { email: user.email, name: `${user.firstName || ''} ${user.lastName || ''}`.trim() },
     templateKey: 'login_notification',
@@ -649,6 +674,142 @@ app.post('/api/auth/reset-password', authLimiter, async (req, res) => {
     });
   }
   return res.json({ ok: true });
+});
+
+app.get('/api/auth/mfa/status', requireAuth, async (req, res) => {
+  const status = await getMfaStatus(req.auth.sub);
+  return res.json({ ok: true, ...status });
+});
+
+app.post('/api/auth/mfa/totp/setup', requireAuth, async (req, res) => {
+  const user = await getUserById(req.auth.sub);
+  if (!user) {
+    return res.status(404).json({ ok: false, error: 'USER_NOT_FOUND' });
+  }
+  const setup = await buildTotpSetup({ email: user.email });
+  await savePendingTotpSecret({
+    userId: user.id,
+    encryptedSecret: setup.encryptedSecret,
+  });
+  return res.json({
+    ok: true,
+    qrCodeDataUrl: setup.qrCodeDataUrl,
+    manualSecret: setup.secret,
+    otpauthUrl: setup.otpauthUrl,
+  });
+});
+
+app.post('/api/auth/mfa/totp/enable', requireAuth, async (req, res) => {
+  const { code } = req.body || {};
+  if (!code) {
+    return res.status(400).json({ ok: false, error: 'TOTP_CODE_REQUIRED' });
+  }
+  const pendingSecret = await getTotpSecret(req.auth.sub, { pending: true });
+  if (!pendingSecret) {
+    return res.status(400).json({ ok: false, error: 'TOTP_SETUP_REQUIRED' });
+  }
+  if (!verifyTotpCode({ secret: pendingSecret, token: code })) {
+    return res.status(400).json({ ok: false, error: 'TOTP_CODE_INVALID' });
+  }
+  await activateTotp({
+    userId: req.auth.sub,
+    encryptedSecret: encryptSecret(pendingSecret),
+  });
+  const recoveryCodes = await replaceRecoveryCodes(req.auth.sub);
+  const user = await getUserById(req.auth.sub);
+  return res.json({
+    ok: true,
+    recoveryCodes,
+    user,
+    mfaEnabled: true,
+    totpEnabled: true,
+  });
+});
+
+app.post('/api/auth/mfa/totp/disable', requireAuth, async (req, res) => {
+  const { password, code } = req.body || {};
+  if (!password || !code) {
+    return res.status(400).json({ ok: false, error: 'PASSWORD_AND_TOTP_REQUIRED' });
+  }
+  if (!(await verifyUserPassword({ email: req.auth.email, password }))) {
+    return res.status(401).json({ ok: false, error: 'INVALID_PASSWORD' });
+  }
+  const secret = await getTotpSecret(req.auth.sub);
+  if (!secret || !verifyTotpCode({ secret, token: code })) {
+    return res.status(400).json({ ok: false, error: 'TOTP_CODE_INVALID' });
+  }
+  await disableMfa(req.auth.sub);
+  const user = await getUserById(req.auth.sub);
+  return res.json({ ok: true, user, mfaEnabled: false, totpEnabled: false });
+});
+
+app.post('/api/auth/mfa/recovery-codes/regenerate', requireAuth, async (req, res) => {
+  const { password, code } = req.body || {};
+  if (!password || !code) {
+    return res.status(400).json({ ok: false, error: 'PASSWORD_AND_TOTP_REQUIRED' });
+  }
+  if (!(await verifyUserPassword({ email: req.auth.email, password }))) {
+    return res.status(401).json({ ok: false, error: 'INVALID_PASSWORD' });
+  }
+  const secret = await getTotpSecret(req.auth.sub);
+  if (!secret || !verifyTotpCode({ secret, token: code })) {
+    return res.status(400).json({ ok: false, error: 'TOTP_CODE_INVALID' });
+  }
+  const recoveryCodes = await replaceRecoveryCodes(req.auth.sub);
+  return res.json({ ok: true, recoveryCodes });
+});
+
+app.post('/api/auth/mfa/verify-login', authLimiter, async (req, res) => {
+  const { mfaToken, code, recoveryCode } = req.body || {};
+  if (!mfaToken || (!code && !recoveryCode)) {
+    return res.status(400).json({ ok: false, error: 'MFA_VERIFY_PAYLOAD_INVALID' });
+  }
+  let payload;
+  try {
+    payload = verifyToken(String(mfaToken));
+  } catch (_error) {
+    return res.status(401).json({ ok: false, error: 'MFA_TOKEN_INVALID' });
+  }
+  if (payload.typ !== 'mfa_pending') {
+    return res.status(401).json({ ok: false, error: 'MFA_TOKEN_INVALID' });
+  }
+  const user = await getUserById(payload.sub);
+  if (!user || !(await isMfaEnabled(user.id))) {
+    return res.status(401).json({ ok: false, error: 'MFA_NOT_ENABLED' });
+  }
+
+  let verified = false;
+  if (recoveryCode) {
+    verified = await consumeRecoveryCode({ userId: user.id, code: recoveryCode });
+  } else {
+    const secret = await getTotpSecret(user.id);
+    verified = Boolean(secret && verifyTotpCode({ secret, token: code }));
+  }
+  if (!verified) {
+    return res.status(401).json({ ok: false, error: 'MFA_CODE_INVALID' });
+  }
+
+  void sendTransactionalEmail({
+    to: { email: user.email, name: `${user.firstName || ''} ${user.lastName || ''}`.trim() },
+    templateKey: 'login_notification',
+    variables: {
+      firstName: user.firstName || 'Client',
+      loginTime: formatParisDateTime(),
+      ipAddress: getClientIp(req),
+      deviceLabel: parseDeviceLabel(req.headers['user-agent']),
+      locationApproximation: 'Non disponible',
+      securityUrl: `${appUrl}/settings`,
+    },
+    userId: user.id,
+    tags: ['auth', 'security', 'mfa'],
+  });
+
+  return res.json({
+    ok: true,
+    user,
+    accessToken: issueAccessToken(user),
+    refreshToken: issueRefreshToken(user),
+  });
 });
 
 app.get('/api/user/profile', requireAuth, async (req, res) => {

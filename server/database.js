@@ -260,6 +260,20 @@ addColumnIfMissing('email_events', 'error_code', 'TEXT');
 addColumnIfMissing('email_events', 'updated_at', 'TEXT');
 addColumnIfMissing('email_events', 'opened_at', 'TEXT');
 addColumnIfMissing('email_events', 'clicked_at', 'TEXT');
+addColumnIfMissing('users', 'mfa_enabled', 'INTEGER NOT NULL DEFAULT 0');
+addColumnIfMissing('users', 'totp_secret_encrypted', 'TEXT');
+addColumnIfMissing('users', 'totp_pending_secret_encrypted', 'TEXT');
+
+sqlite.exec(`
+CREATE TABLE IF NOT EXISTS mfa_recovery_codes (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  code_hash TEXT NOT NULL,
+  used_at TEXT,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+`);
 
 export {
   sqlite,
