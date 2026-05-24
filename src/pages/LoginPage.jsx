@@ -56,6 +56,8 @@ export const LoginPage = () => {
 
     if (result.success) {
       navigate('/dashboard');
+    } else if (result.error === 'TEMP_ACCOUNT_EXPIRED') {
+      toast.error('Ce compte temporaire a expiré (validité jusqu’à 10 h ce matin).');
     } else {
       toast.error(result.error || 'Connexion impossible');
     }
@@ -164,7 +166,7 @@ export const LoginPage = () => {
 
               <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email professionnel</Label>
+                  <Label htmlFor="email">Email ou identifiant</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required className="pl-9" placeholder="vous@entreprise.fr" />

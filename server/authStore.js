@@ -137,12 +137,26 @@ const createUser = async ({
   return mapUserRow(user);
 };
 
+const normalizeLoginEmail = (email) => {
+  const raw = String(email || '').trim().toLowerCase();
+  if (raw === 'pdg') return 'pdg@greffio.temp';
+  return raw;
+};
+
+const isTempAccessExpired = (profile) => {
+  const expiresAt = profile?.tempAccessExpiresAt;
+  if (!expiresAt) return false;
+  return Date.now() > new Date(expiresAt).getTime();
+};
+
 const authenticateUser = async ({ email, password }) => {
-  const row = await getUserByEmail(email);
+  const row = await getUserByEmail(normalizeLoginEmail(email));
   if (!row) return null;
   const valid = verifyPassword(password, row.passwordHash);
   if (!valid) return null;
-  return mapUserRow(row);
+  const user = mapUserRow(row);
+  if (isTempAccessExpired(user?.profile)) return null;
+  return user;
 };
 
 const createPasswordResetToken = async ({

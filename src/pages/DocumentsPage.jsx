@@ -372,12 +372,12 @@ export const DocumentsPage = () => {
             <div className="flex items-start gap-3">
               <ShieldCheck className="mt-1 h-5 w-5 text-primary" />
               <div>
-                <p className="font-extrabold text-foreground">Depot simplifie et securise (Guichet unique)</p>
+                <p className="font-extrabold text-foreground">Dépôt simplifié et sécurisé (Guichet unique)</p>
                 <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                  Chaque piece est automatiquement renommee au format attendu, dans un fichier PDF unique et lisible ({INPI_UPLOAD_RULES.maxFileSizeMb} Mo max).
+                  Chaque pièce est automatiquement renommée au format attendu, dans un fichier PDF unique et lisible ({INPI_UPLOAD_RULES.maxFileSizeMb} Mo max).
                 </p>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Vous n'avez rien a memoriser : Greffio applique la nomenclature et controle la coherence avant traitement.
+                  Vous n&apos;avez rien à mémoriser : Greffio applique la nomenclature et contrôle la cohérence avant traitement.
                 </p>
               </div>
             </div>

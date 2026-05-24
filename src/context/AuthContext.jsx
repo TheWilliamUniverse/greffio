@@ -96,7 +96,11 @@ export const AuthProvider = ({ children }) => {
         });
       }
       return { success: true, user };
-    } catch (_error) {
+    } catch (error) {
+      const code = error?.payload?.error || error?.message;
+      if (code === 'TEMP_ACCOUNT_EXPIRED') {
+        return { success: false, error: 'TEMP_ACCOUNT_EXPIRED' };
+      }
       return { success: false, error: 'Connexion impossible. Vérifiez vos identifiants ou réessayez dans quelques instants.' };
     }
   };

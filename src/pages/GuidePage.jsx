@@ -29,34 +29,34 @@ const processTimeline = [
     icon: Landmark,
     points: [
       'Collecte progressive des informations client pour limiter les erreurs.',
-      'Attribution d une reference dossier unique.',
-      'Sauvegarde continue du parcours pour reprise a tout moment.',
+      'Attribution d\'une référence dossier unique.',
+      'Sauvegarde continue du parcours pour reprise à tout moment.',
     ],
   },
   {
-    title: '2. Pieces justificatives',
+    title: '2. Pièces justificatives',
     icon: FolderUp,
     points: [
-      'Une piece = un fichier lisible, complet et a jour.',
-      `Format recommande : ${INPI_UPLOAD_RULES.acceptedFormats.join(', ')} - ${INPI_UPLOAD_RULES.maxFileSizeMb} Mo max par fichier.`,
-      'Controle de coherence apparente avant depot.',
+      'Une pièce = un fichier lisible, complet et à jour.',
+      `Format recommandé : ${INPI_UPLOAD_RULES.acceptedFormats.join(', ')} - ${INPI_UPLOAD_RULES.maxFileSizeMb} Mo max par fichier.`,
+      'Contrôle de cohérence apparente avant dépôt.',
     ],
   },
   {
     title: '3. Procuration et signature',
     icon: Signature,
     points: [
-      'Lecture du mandat complet dans l espace client.',
-      'Signature electronique et traçabilite de la validation.',
-      'Depot du mandat signe dans le dossier formalite.',
+      'Lecture du mandat complet dans l\'espace client.',
+      'Signature électronique et traçabilité de la validation.',
+      'Dépôt du mandat signé dans le dossier formalité.',
     ],
   },
   {
-    title: '4. Depot et suivi',
+    title: '4. Dépôt et suivi',
     icon: Gavel,
     points: [
-      'Preparation puis depot sur le guichet unique / organisme competent.',
-      'Suivi des demandes de complement et regularisation.',
+      'Préparation puis dépôt sur le guichet unique / organisme compétent.',
+      'Suivi des demandes de complément et régularisation.',
       'Transmission des retours et documents officiels.',
     ],
   },
@@ -64,32 +64,32 @@ const processTimeline = [
 
 const faqSections = [
   {
-    title: 'Comment eviter les rejets INPI / greffe ?',
+    title: 'Comment éviter les rejets INPI / greffe ?',
     points: [
-      'Transmettre une piece par fichier, en PDF, lisible et complet.',
+      'Transmettre une pièce par fichier, en PDF, lisible et complet.',
       `Respecter la limite de ${INPI_UPLOAD_RULES.maxFileSizeMb} Mo par fichier.`,
       'Nommer chaque fichier en lien direct avec son contenu.',
-      'Verifier coherence identite, adresse, forme juridique et activite.',
+      'Vérifier cohérence identité, adresse, forme juridique et activité.',
     ],
   },
   {
-    title: 'Quelles pieces minimales pour un depot ?',
+    title: 'Quelles pièces minimales pour un dépôt ?',
     points: DEFAULT_REQUIRED_DOCUMENTS,
   },
   {
-    title: 'Pieces frequentes en creation de societe',
+    title: 'Pièces fréquentes en création de société',
     points: CREATION_COMPANY_REQUIRED_DOCUMENTS,
   },
   {
-    title: "Pieces frequentes en modification d'entreprise",
+    title: "Pièces fréquentes en modification d'entreprise",
     points: MODIFICATION_REQUIRED_DOCUMENTS,
   },
   {
     title: 'Mandataire et procuration : que faut-il retenir ?',
     points: [
-      'Le mandat autorise Greffio a preparer, deposer, suivre et regulariser la formalite confiee.',
-      'Le client reste responsable de l exactitude des informations et documents transmis.',
-      'La procuration signee peut etre controlee par les organismes competents.',
+      'Le mandat autorise Greffio à préparer, déposer, suivre et régulariser la formalité confiée.',
+      'Le client reste responsable de l\'exactitude des informations et documents transmis.',
+      'La procuration signée peut être contrôlée par les organismes compétents.',
       'Le mandat ne couvre pas les actes hors mission administrative sans autorisation expresse.',
     ],
   },
@@ -97,9 +97,9 @@ const faqSections = [
     title: 'Quelles bonnes pratiques de transmission des documents ?',
     points: [
       INPI_UPLOAD_RULES.namingRule,
-      'Nommer les fichiers clairement et en lien direct avec la piece.',
-      'Verifier lisibilite recto/verso pour les pieces d identite.',
-      'Eviter les fichiers melangeant plusieurs pieces sans rapport.',
+      'Nommer les fichiers clairement et en lien direct avec la pièce.',
+      'Vérifier lisibilité recto/verso pour les pièces d\'identité.',
+      'Éviter les fichiers mélangeant plusieurs pièces sans rapport.',
     ],
   },
 ];
@@ -114,7 +114,7 @@ export const GuidePage = () => (
             <Link to="/contact">Contact</Link>
           </Button>
           <Button asChild>
-            <Link to="/simulateur">Demarrer</Link>
+            <Link to="/simulateur">Démarrer</Link>
           </Button>
         </div>
       </div>
@@ -123,9 +123,9 @@ export const GuidePage = () => (
     <main className="mx-auto max-w-7xl space-y-7 px-4 py-10 sm:px-6 lg:px-8">
       <section className="rounded-md bg-[hsl(var(--greffio-citron))] p-7 md:p-10">
         <p className="text-sm font-bold uppercase text-primary">Guide complet Greffio</p>
-        <h1 className="mt-2 text-3xl font-extrabold sm:text-4xl">FAQ complete - creation et modification d entreprise</h1>
+        <h1 className="mt-2 text-3xl font-extrabold sm:text-4xl">FAQ complète — création et modification d&apos;entreprise</h1>
         <p className="mt-4 max-w-4xl text-sm leading-7 text-muted-foreground">
-          Ce guide rassemble les questions essentielles, les exigences documentaires et les points de vigilance pratiques pour preparer un dossier propre, depose sans incoherence et suivi jusqu a l issue.
+          Ce guide rassemble les questions essentielles, les exigences documentaires et les points de vigilance pratiques pour préparer un dossier propre, déposé sans incohérence et suivi jusqu&apos;à l&apos;issue.
         </p>
       </section>
 
@@ -171,7 +171,7 @@ export const GuidePage = () => (
         <article className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
           <div className="mb-4 flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-extrabold">Exemples de noms de fichiers recommandes</h2>
+            <h2 className="text-lg font-extrabold">Exemples de noms de fichiers recommandés</h2>
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             {FILE_NAMING_EXAMPLES.map((example) => (
@@ -187,7 +187,7 @@ export const GuidePage = () => (
             <FileCheck2 className="h-5 w-5 text-primary" />
             <h2 className="text-lg font-extrabold">Statuts internes du workflow dossier</h2>
           </div>
-          <p className="mb-3 text-sm text-muted-foreground">Chaque statut peut declencher un mail type coherent dans le parcours client.</p>
+          <p className="mb-3 text-sm text-muted-foreground">Chaque statut peut déclencher un e-mail type cohérent dans le parcours client.</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {WORKFLOW_STATUSES.map((status) => (
               <span key={status} className="rounded bg-muted px-3 py-2 text-xs font-semibold text-foreground">
@@ -201,31 +201,31 @@ export const GuidePage = () => (
       <section className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
         <div className="mb-4 flex items-center gap-2">
           <FileText className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-extrabold">FAQ operationnelle (reponses rapides)</h2>
+          <h2 className="text-lg font-extrabold">FAQ opérationnelle (réponses rapides)</h2>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-md bg-muted p-4">
             <p className="font-bold">Faut-il encore des ZIP maintenant que le backend est sur VPS ?</p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Non pour le deploiement applicatif normal. Le VPS sert en continu. Les ZIP restent utiles seulement pour archivage, transfert manuel exceptionnel ou livraison hors pipeline.
+              Non pour le déploiement applicatif normal. Le VPS sert en continu. Les ZIP restent utiles seulement pour archivage, transfert manuel exceptionnel ou livraison hors pipeline.
             </p>
           </div>
           <div className="rounded-md bg-muted p-4">
             <p className="font-bold">Quand demander la procuration ?</p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Avant tout depot en tant que mandataire, idealement apres collecte des informations de base et avant la phase de validation finale client.
+              Avant tout dépôt en tant que mandataire, idéalement après collecte des informations de base et avant la phase de validation finale client.
             </p>
           </div>
           <div className="rounded-md bg-muted p-4">
-            <p className="font-bold">Quels documents minimaux pour demarrer ?</p>
+            <p className="font-bold">Quels documents minimaux pour démarrer ?</p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Piece identite, justificatif domicile, et selon le cas statuts signes, justificatif siege, attestation capital, annonce legale, DBE.
+              Pièce d&apos;identité, justificatif de domicile, et selon le cas statuts signés, justificatif de siège, attestation de capital, annonce légale, DBE.
             </p>
           </div>
           <div className="rounded-md bg-muted p-4">
             <p className="font-bold">Qui valide le dossier final ?</p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Le client valide la version finale avant depot. L acceptation reste de la competence des organismes officiels.
+              Le client valide la version finale avant dépôt. L&apos;acceptation reste de la compétence des organismes officiels.
             </p>
           </div>
         </div>

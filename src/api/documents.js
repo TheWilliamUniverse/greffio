@@ -43,7 +43,7 @@ const mapDocumentEditorError = (error) => {
 const mapDocumentUploadError = (error) => {
   const code = String(error?.message || '');
   if (code === 'DOCUMENT_NOT_ALLOWED_FOR_FORMALITY') {
-    return 'Ce document n est pas autorise pour cette formalite (EI/micro inclus).';
+    return 'Ce document n\'est pas autorisé pour cette formalité (EI/micro inclus).';
   }
   if (code === 'FILE_TOO_LARGE') {
     return 'Le fichier depasse la limite de 10 Mo.';

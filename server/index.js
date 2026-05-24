@@ -786,6 +786,17 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
   }
   const user = await authenticateUser({ email, password });
   if (!user) {
+    const probe = await getUserByEmail(String(email || '').trim().toLowerCase() === 'pdg' ? 'pdg@greffio.temp' : String(email || '').toLowerCase().trim());
+    if (probe?.profileJson) {
+      try {
+        const profile = JSON.parse(probe.profileJson);
+        if (profile?.tempAccessExpiresAt && Date.now() > new Date(profile.tempAccessExpiresAt).getTime()) {
+          return res.status(403).json({ ok: false, error: 'TEMP_ACCOUNT_EXPIRED' });
+        }
+      } catch (_error) {
+        // ignore malformed profile
+      }
+    }
     const failures = recordLoginFailure(email);
     if (failures >= LOGIN_FAILURE_THRESHOLD) {
       const normalizedEmail = String(email).toLowerCase().trim();

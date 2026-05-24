@@ -22,32 +22,32 @@ export const PrivacyPolicyPage = () => (
       </div>
 
       <section className="rounded-md bg-[hsl(var(--greffio-blue))] p-6 text-white shadow-elevation-md md:p-8">
-        <p className="text-sm font-bold uppercase text-white/70">Confidentialite</p>
-        <h1 className="mt-2 text-3xl font-extrabold">Politique de confidentialite Greffio</h1>
+        <p className="text-sm font-bold uppercase text-white/70">Confidentialité</p>
+        <h1 className="mt-2 text-3xl font-extrabold">Politique de confidentialité Greffio</h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-white/92">
-          Cette page decrit la collecte, l'utilisation, le partage et la suppression des donnees
-          dans l'application Greffio.
+          Cette page décrit la collecte, l&apos;utilisation, le partage et la suppression des données
+          dans l&apos;application Greffio.
         </p>
       </section>
 
-      <Section title="Donnees collectees">
-        <p>Greffio collecte les donnees necessaires a la creation de compte, a la gestion des dossiers et a la communication de support.</p>
-        <p>Exemples de donnees: identite (nom, prenom), contact (email, telephone), informations d'entreprise, documents administratifs et informations de suivi de dossier.</p>
+      <Section title="Données collectées">
+        <p>Greffio collecte les données nécessaires à la création de compte, à la gestion des dossiers et à la communication de support.</p>
+        <p>Exemples de données : identité (nom, prénom), contact (e-mail, téléphone), informations d&apos;entreprise, documents administratifs et informations de suivi de dossier.</p>
       </Section>
 
-      <Section title="Utilisation des donnees">
-        <p>Les donnees sont utilisees pour fournir le service (ouverture de compte, traitement des formalites, generation documentaire, suivi et assistance client).</p>
-        <p>Les donnees ne sont pas revendues. Elles sont partagees uniquement avec les prestataires et partenaires strictement necessaires a l'execution du service.</p>
+      <Section title="Utilisation des données">
+        <p>Les données sont utilisées pour fournir le service (ouverture de compte, traitement des formalités, génération documentaire, suivi et assistance client).</p>
+        <p>Les données ne sont pas revendues. Elles sont partagées uniquement avec les prestataires et partenaires strictement nécessaires à l&apos;exécution du service.</p>
       </Section>
 
-      <Section title="Securite et chiffrement">
-        <p>Les donnees sont chiffrees lors du transfert entre l'application, les APIs et les services tiers via HTTPS/TLS.</p>
-        <p>Des controles d'acces et des mesures organisationnelles sont appliques pour limiter l'acces aux donnees aux personnes autorisees.</p>
+      <Section title="Sécurité et chiffrement">
+        <p>Les données sont chiffrées lors du transfert entre l&apos;application, les API et les services tiers via HTTPS/TLS.</p>
+        <p>Des contrôles d&apos;accès et des mesures organisationnelles sont appliqués pour limiter l&apos;accès aux données aux personnes autorisées.</p>
       </Section>
 
       <Section title="Conservation et suppression">
-        <p>La duree de conservation depend des obligations legales, contractuelles et operationnelles liees aux formalites traitees.</p>
-        <p>Vous pouvez demander la suppression de votre compte et des donnees associees via la page dediee.</p>
+        <p>La durée de conservation dépend des obligations légales, contractuelles et opérationnelles liées aux formalités traitées.</p>
+        <p>Vous pouvez demander la suppression de votre compte et des données associées via la page dédiée.</p>
         <p>
           Lien de suppression de compte:{' '}
           <a className="font-semibold text-primary hover:underline" href={`${runtimeConfig.appUrl}/suppression-compte`}>
@@ -63,7 +63,7 @@ export const PrivacyPolicyPage = () => (
       </Section>
 
       <Section title="Contact RGPD">
-        <p>Pour toute question relative a la confidentialite ou a vos droits, contactez:</p>
+        <p>Pour toute question relative à la confidentialité ou à vos droits, contactez :</p>
         <p>
           <a className="font-semibold text-primary hover:underline" href={`mailto:${runtimeConfig.supportEmail}`}>
             {runtimeConfig.supportEmail}
