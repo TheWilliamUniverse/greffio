@@ -138,6 +138,8 @@ const typePresetByQuery = Object.freeze({
   dissolution: 'dissolution',
 });
 
+const DIRECT_JOURNEY_TYPES = new Set(['creation', 'modification', 'dissolution']);
+
 const compareModules = Object.freeze({
   charges: {
     title: 'Comparateur de charges',
@@ -191,7 +193,8 @@ export const FormalityWizardPage = () => {
   const draft = getProjectDraft();
   const requestedType = String(searchParams.get('type') || 'statuts').toLowerCase();
   const initialJourney = typePresetByQuery[requestedType] || 'statuts';
-  const [step, setStep] = useState(0);
+  const skipJourneyPicker = DIRECT_JOURNEY_TYPES.has(requestedType) && !compareModules[requestedType];
+  const [step, setStep] = useState(skipJourneyPicker ? 1 : 0);
   const [projectSubStep, setProjectSubStep] = useState(0);
   const [showOffers, setShowOffers] = useState(false);
   const [selectedFamily, setSelectedFamily] = useState('Formes les plus courantes');
@@ -301,6 +304,12 @@ export const FormalityWizardPage = () => {
     if (group.forms.length && !group.forms.some((form) => form.label === data.legalForm)) {
       update('legalForm', group.forms[0].label);
     }
+    setProjectSubStep(3);
+  };
+
+  const chooseLegalForm = (label) => {
+    update('legalForm', label);
+    setProjectSubStep(4);
   };
 
   const canContinueProjectSubStep = () => {
@@ -545,17 +554,17 @@ export const FormalityWizardPage = () => {
                     <div>
                       <p className="text-sm font-bold uppercase text-primary">Projet</p>
                       <h1 className="mt-2 text-3xl font-extrabold">
-                        {projectSubStep === 0 && 'Qui effectue la démarche ?'}
-                        {projectSubStep === 1 && 'Identifiez le demandeur.'}
-                        {projectSubStep === 2 && 'Choisissez une famille de formes.'}
-                        {projectSubStep === 3 && 'Sélectionnez la forme juridique.'}
-                        {projectSubStep === 4 && 'Précisez votre projet.'}
+                        {projectSubStep === 0 && 'Vos coordonnées'}
+                        {projectSubStep === 1 && 'Qui effectue la démarche ?'}
+                        {projectSubStep === 2 && 'Forme juridique visée'}
+                        {projectSubStep === 3 && 'Choisissez votre forme'}
+                        {projectSubStep === 4 && 'Précisez votre projet'}
                       </h1>
                       <p className="mt-2 text-muted-foreground">
                         {projectSubStep === 0 && 'Une question à la fois — vos coordonnées servent au dossier et aux relances Greffio.'}
                         {projectSubStep === 1 && 'Une personne physique ou morale peut porter la demande, y compris une société qui crée une filiale.'}
-                        {projectSubStep === 2 && 'Commencez par la catégorie la plus proche de votre situation.'}
-                        {projectSubStep === 3 && 'Comparez les formes disponibles avant de renseigner le projet.'}
+                        {projectSubStep === 2 && 'Sélectionnez la catégorie la plus proche de votre situation, puis continuez.'}
+                        {projectSubStep === 3 && 'Comparez les formes disponibles dans cette catégorie.'}
                         {projectSubStep === 4 && 'Ces éléments alimentent le questionnaire et l’aperçu documentaire.'}
                       </p>
                     </div>
@@ -567,6 +576,7 @@ export const FormalityWizardPage = () => {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -12 }}
                         transition={{ duration: 0.22 }}
+                        className="min-h-[320px]"
                       >
                         {projectSubStep === 0 && (
                           <div className="rounded-2xl border border-border bg-muted p-6 md:p-8">
@@ -671,7 +681,7 @@ export const FormalityWizardPage = () => {
                                     key={form.key}
                                     whileHover={{ y: -3 }}
                                     whileTap={{ scale: 0.98 }}
-                                    onClick={() => update('legalForm', form.label)}
+                                    onClick={() => chooseLegalForm(form.label)}
                                     className={`rounded-2xl border p-4 text-left transition ${data.legalForm === form.label ? 'border-primary bg-[hsl(var(--greffio-citron))] shadow-elevation-md' : 'border-border bg-white hover:border-primary/40 hover:shadow-elevation-sm'}`}
                                   >
                                     <span className="flex items-start justify-between gap-2">
@@ -1028,12 +1038,15 @@ export const FormalityWizardPage = () => {
                 onContinue={next}
                 backDisabled={step === 0 || isProjectBackDisabled}
                 continueDisabled={step === 1 && !canContinueProjectSubStep()}
+                showContinue={!(step === 1 && (projectSubStep === 2 || projectSubStep === 3))}
                 continueLabel={
                   step === steps.length - 1
                     ? 'Voir les offres'
-                    : step === 1 && projectSubStep === PROJECT_SUB_STEPS.length - 1 && contactStep >= contactFields.length - 1
-                      ? 'Passer aux dirigeants'
-                      : 'Continuer'
+                    : step === 1 && projectSubStep === 0 && contactStep < contactFields.length - 1
+                      ? 'Question suivante'
+                      : step === 1 && projectSubStep === PROJECT_SUB_STEPS.length - 1
+                        ? 'Passer aux dirigeants'
+                        : 'Continuer'
                 }
               />
             </div>
