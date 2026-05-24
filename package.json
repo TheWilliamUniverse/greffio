@@ -21,6 +21,7 @@
     "lint:warn": "eslint .",
     "screenshots:playstore": "node scripts/generate-play-store-screenshots.js",
     "assets:playstore": "node scripts/generate-play-store-assets.js",
+    "assets:email-logo": "node scripts/generate-email-logo.js",
     "video:playstore": "node scripts/generate-play-store-video.js"
   },
   "dependencies": {

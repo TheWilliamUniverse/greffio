@@ -1,4 +1,7 @@
-const logoUrl = process.env.EMAIL_LOGO_URL || 'https://greffio.willentreprises.com/icons/greffio-wordmark-tile-800x250.png';
+const apiPublicUrl = String(process.env.API_PUBLIC_URL || process.env.API_URL || 'https://api.greffio.willentreprises.com').replace(/\/$/, '');
+const logoUrl = process.env.EMAIL_LOGO_URL || `${apiPublicUrl}/assets/email/greffio-wordmark-white.png`;
+const logoWidth = 154;
+const logoHeight = 36;
 const appUrl = process.env.APP_URL || 'https://greffio.willentreprises.com';
 const supportUrl = `${appUrl}/contact`;
 const securityUrl = `${appUrl}/settings`;
@@ -44,7 +47,7 @@ const wrapGreffioEmail = ({ preheader = '', bodyHtml }) => `
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;">
           <tr>
             <td style="background:#214082;padding:22px 28px;">
-              <img src="${logoUrl}" alt="Greffio" height="36" style="display:block;height:36px;width:auto;border:0;" />
+              <img src="${logoUrl}" alt="Greffio" width="${logoWidth}" height="${logoHeight}" style="display:block;width:${logoWidth}px;height:${logoHeight}px;max-width:${logoWidth}px;border:0;outline:none;text-decoration:none;" />
             </td>
           </tr>
           <tr>

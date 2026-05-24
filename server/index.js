@@ -4,6 +4,7 @@ import express from 'express';
 import helmet from 'helmet';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import rateLimit from 'express-rate-limit';
 import { initSchema } from './dbClient.js';
@@ -112,6 +113,10 @@ const corsOptions = process.env.NODE_ENV === 'production'
     };
 
 app.use(helmet());
+app.use('/assets/email', express.static(path.join(path.dirname(fileURLToPath(import.meta.url)), 'assets', 'email'), {
+  maxAge: '7d',
+  immutable: true,
+}));
 app.use(cors(corsOptions));
 app.use((req, res, next) => {
   if (req.path === '/api/webhooks/resend' || req.path === '/api/webhooks/brevo') return next();
