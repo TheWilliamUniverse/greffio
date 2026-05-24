@@ -1,7 +1,7 @@
 import {
   getAllCatalogItems,
   getCatalogItemById,
-} from '../src/config/resourceServices.js';
+} from './config/resourceServices.js';
 import { searchResources } from './resourceSearch.js';
 import {
   createResourceOrder,

@@ -2,7 +2,7 @@ import {
   getAllCatalogItems,
   LEGACY_ESTIMATORS,
   RESOURCE_KIND_LABELS,
-} from '../src/config/resourceServices.js';
+} from './config/resourceServices.js';
 
 const normalize = (value) => String(value || '')
   .toLowerCase()
