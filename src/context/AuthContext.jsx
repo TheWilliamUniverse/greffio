@@ -95,7 +95,10 @@ export const AuthProvider = ({ children }) => {
       effectiveUser = apiSignup.user || null;
       effectiveToken = apiSignup.accessToken || effectiveToken;
       saveRefreshToken(apiSignup.refreshToken || '');
-    } catch (_error) {
+    } catch (error) {
+      if (error?.message === 'EMAIL_ALREADY_EXISTS' || error?.payload?.error === 'EMAIL_ALREADY_EXISTS') {
+        return { success: false, error: 'Un compte existe déjà avec cet email. Utilisez Connexion ou réinitialisez votre mot de passe.' };
+      }
       return { success: false, error: 'Création du compte impossible. Réessayez ou contactez l’équipe Greffio.' };
     }
     if (!effectiveUser) {

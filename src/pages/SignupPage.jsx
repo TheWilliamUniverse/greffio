@@ -44,7 +44,9 @@ export const SignupPage = () => {
   const initialService = searchParams.get('service') || 'creation-sas';
   const draft = getProjectDraft();
   const [step, setStep] = useState(1);
-  const { register, handleSubmit, watch } = useForm({
+  const [submitting, setSubmitting] = useState(false);
+  const { register, watch, trigger, getValues, formState: { errors } } = useForm({
+    shouldUnregister: false,
     defaultValues: {
       profile: 'client',
       service: resolveServiceId(draft?.data?.journey || initialService, draft?.data?.legalForm),
@@ -56,6 +58,10 @@ export const SignupPage = () => {
       companyName: draft?.data?.companyName || '',
       activity: draft?.data?.activity || '',
       email: draft?.data?.email || '',
+      firstName: '',
+      lastName: '',
+      password: '',
+      acceptedTerms: false,
     },
   });
   const { signup } = useAuth();
@@ -64,16 +70,46 @@ export const SignupPage = () => {
   const selectedProfile = watch('profile');
   const selectedService = watch('service');
   const initiatorType = watch('initiatorType');
+  const acceptedTerms = watch('acceptedTerms');
   const selectedOffer = useMemo(() => LEGAL_SERVICES.find((service) => service.id === selectedService), [selectedService]);
 
-  const onSubmit = async (data) => {
-    if (step < 4) {
-      setStep((value) => value + 1);
+  const advanceStep = async () => {
+    if (step === 2) {
+      const valid = await trigger('service');
+      if (!valid) {
+        toast.error('Choisissez une formalité pour continuer.');
+        return;
+      }
+    }
+    if (step === 3) {
+      const valid = await trigger(['firstName', 'lastName', 'email', 'password', 'companyName']);
+      if (!valid) {
+        toast.error('Complétez les champs obligatoires de l’étape identité.');
+        return;
+      }
+    }
+    setStep((value) => Math.min(4, value + 1));
+  };
+
+  const completeSignup = async () => {
+    const data = getValues();
+    if (!data.acceptedTerms) {
+      toast.error('Veuillez accepter les conditions d’utilisation pour continuer.');
+      return;
+    }
+    if (!data.email || !data.password || !data.firstName || !data.lastName || !data.companyName) {
+      toast.error('Certaines informations du compte sont manquantes. Revenez à l’étape identité.');
+      setStep(3);
       return;
     }
 
-    const result = await signup(data);
-    if (result.success) {
+    setSubmitting(true);
+    try {
+      const result = await signup(data);
+      if (!result.success) {
+        toast.error(result.error || 'Création du compte impossible.');
+        return;
+      }
       try {
         const dossierPayload = await createDossier({
           userId: result.user?.id || null,
@@ -89,7 +125,18 @@ export const SignupPage = () => {
       }
       toast.success('Espace Greffio créé. Votre dossier est prêt à être piloté.');
       navigate('/dashboard');
+    } finally {
+      setSubmitting(false);
     }
+  };
+
+  const onFormSubmit = async (event) => {
+    event.preventDefault();
+    if (step < 4) {
+      await advanceStep();
+      return;
+    }
+    await completeSignup();
   };
 
   const stepVariants = {
@@ -117,7 +164,7 @@ export const SignupPage = () => {
             <div className="h-full bg-[hsl(var(--greffio-blue))] transition-all duration-300" style={{ width: `${(step / 4) * 100}%` }} />
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="p-6 md:p-10">
+          <form onSubmit={onFormSubmit} className="p-6 md:p-10" noValidate>
             <AnimatePresence mode="wait">
               {step === 1 && (
                 <motion.div key="step1" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-7">
@@ -246,11 +293,14 @@ export const SignupPage = () => {
                     </div>
                   </div>
                   <label className="flex items-start gap-3 rounded-md border border-border bg-white p-4">
-                    <input type="checkbox" required className="mt-1" />
+                    <input type="checkbox" className="mt-1" {...register('acceptedTerms', { required: true })} />
                     <span className="text-sm leading-6 text-muted-foreground">
                       J’accepte les conditions d’utilisation, la politique de confidentialité et les mentions légales. Greffio est une marque déposée de William Establishments.
                     </span>
                   </label>
+                  {errors.acceptedTerms ? (
+                    <p className="text-sm text-destructive">L’acceptation des conditions est requise pour ouvrir votre espace.</p>
+                  ) : null}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -265,8 +315,13 @@ export const SignupPage = () => {
                 <ArrowLeft className="h-4 w-4" />
                 Retour
               </Button>
-              <Button type="submit" size="lg" className="gap-2">
-                {step === 4 ? 'Ouvrir mon dashboard' : 'Continuer'}
+              <Button
+                type="submit"
+                size="lg"
+                disabled={submitting || (step === 4 && !acceptedTerms)}
+                className="gap-2 shadow-[0_8px_20px_rgba(30,77,140,0.18)] hover:translate-y-0 hover:shadow-[0_10px_24px_rgba(30,77,140,0.2)]"
+              >
+                {submitting ? 'Création en cours…' : step === 4 ? 'Ouvrir mon dashboard' : 'Continuer'}
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
