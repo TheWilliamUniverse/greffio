@@ -37,6 +37,7 @@ const initPostgresSchema = async () => {
     );
   `);
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_json TEXT;`);
   await query(`
     CREATE TABLE IF NOT EXISTS refresh_tokens (
       id TEXT PRIMARY KEY,

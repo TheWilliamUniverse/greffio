@@ -48,8 +48,11 @@ const defaultData = {
   formeJuridique: '',
   denomination: '',
   adresseSiege: '',
+  codePostal: '',
+  villeSiege: '',
   activite: '',
   capital: '',
+  repartition: '',
   associesSummary: '',
   dirigeant: '',
   beneficiairesEffectifs: '',
@@ -488,6 +491,22 @@ export const QuestionnairePage = () => {
 
             const value = formData[field.key] ?? '';
             const invalid = !isFieldValueValid(field, value);
+
+            if (field.type === 'textarea') {
+              return (
+                <div key={field.key} className="space-y-2">
+                  <Label>{field.label}{field.required ? ' *' : ''}</Label>
+                  <textarea
+                    value={value}
+                    placeholder={field.placeholder || ''}
+                    rows={4}
+                    onChange={(event) => updateField(field, event.target.value)}
+                    className={`${fieldClass} min-h-[110px] w-full ${invalid && String(value).length > 0 ? 'border-red-400' : ''}`}
+                  />
+                </div>
+              );
+            }
+
             return (
               <div key={field.key} className="space-y-2">
                 <Label>{field.label}{field.required ? ' *' : ''}</Label>

@@ -16,6 +16,7 @@ import { DocumentsPage } from '@/pages/DocumentsPage.jsx';
 import { ChatIAPage } from '@/pages/ChatIAPage.jsx';
 import { AnalyticsPage } from '@/pages/AnalyticsPage.jsx';
 import { TeamPage } from '@/pages/TeamPage.jsx';
+import { ProfilePage } from '@/pages/ProfilePage.jsx';
 import { SettingsPage } from '@/pages/SettingsPage.jsx';
 import { ServiceDetailPage } from '@/pages/ServiceDetailPage.jsx';
 import { LegalMentionsPage } from '@/pages/LegalMentionsPage.jsx';
@@ -112,6 +113,7 @@ function App() {
             <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
             <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
             <Route path="/interfaces" element={<ProtectedRoute><InterfacesPage /></ProtectedRoute>} />
+            <Route path="/profil" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />

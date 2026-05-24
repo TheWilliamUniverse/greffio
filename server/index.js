@@ -15,6 +15,7 @@ import {
   createPasswordResetToken,
   getUserById,
   updateUserPasswordById,
+  updateUserProfile,
 } from './authStore.js';
 import {
   addPaymentEvent,
@@ -60,8 +61,13 @@ import { createSignatureRecord, getLatestSignatureByDossier } from './signatureS
 import { buildMandateText } from './mandateTemplate.js';
 import { generateMandatePdf } from './pdf/mandatePdf.js';
 import { generateStatutesPdf } from './pdf/statutesPdf.js';
-import { buildSasuStatutesSections } from './legal/statutes/sasuTemplate.js';
-import { buildSasStatutesSections } from './legal/statutes/sasTemplate.js';
+import {
+  buildStatutesByLegalForm,
+  documentToPreview,
+  isStatutesSupportedForm,
+} from './legal/statutes/index.js';
+import { mapStatutesData } from './utils/statutesDataMapper.js';
+import { resolveLegalForm } from './domain/formalities.js';
 import { getFormalityRule } from './domain/formalities.js';
 import { getCompanyLookupMetrics, lookupCompany } from './services/companyLookup.js';
 import { buildIntelligentPrefill } from './services/intelligentIntake.js';
@@ -638,6 +644,77 @@ app.post('/api/auth/reset-password', authLimiter, async (req, res) => {
     });
   }
   return res.json({ ok: true });
+});
+
+app.get('/api/user/profile', requireAuth, async (req, res) => {
+  const user = await getUserById(req.auth.sub);
+  if (!user) return res.status(404).json({ ok: false, error: 'USER_NOT_FOUND' });
+  return res.json({ ok: true, user });
+});
+
+app.patch('/api/user/profile', requireAuth, async (req, res) => {
+  const { firstName, lastName, phone, profile } = req.body || {};
+  try {
+    const user = await updateUserProfile({
+      userId: req.auth.sub,
+      firstName,
+      lastName,
+      phone,
+      profile,
+    });
+    if (!user) return res.status(404).json({ ok: false, error: 'USER_NOT_FOUND' });
+    return res.json({ ok: true, user });
+  } catch (error) {
+    if (error?.message === 'PROFILE_VALIDATION_FAILED') {
+      return res.status(400).json({ ok: false, error: 'PROFILE_VALIDATION_FAILED', details: error.details || {} });
+    }
+    throw error;
+  }
+});
+
+app.get('/api/geo/address-search', requireAuth, async (req, res) => {
+  const q = String(req.query.q || '').trim();
+  if (q.length < 3) {
+    return res.json({ ok: true, results: [] });
+  }
+  try {
+    const url = new URL('https://nominatim.openstreetmap.org/search');
+    url.searchParams.set('format', 'json');
+    url.searchParams.set('addressdetails', '1');
+    url.searchParams.set('limit', '6');
+    url.searchParams.set('q', q);
+    url.searchParams.set('countrycodes', 'fr');
+    const response = await fetch(url, {
+      headers: {
+        'Accept-Language': 'fr',
+        'User-Agent': 'Greffio/1.0 (contact@willentreprises.com)',
+      },
+    });
+    if (!response.ok) {
+      return res.status(502).json({ ok: false, error: 'ADDRESS_SEARCH_UNAVAILABLE' });
+    }
+    const payload = await response.json();
+    const results = (Array.isArray(payload) ? payload : []).map((item) => {
+      const address = item.address || {};
+      const line1 = [address.house_number, address.road].filter(Boolean).join(' ').trim()
+        || String(item.display_name || '').split(',')[0]?.trim()
+        || '';
+      return {
+        id: String(item.place_id || item.osm_id || item.display_name),
+        label: String(item.display_name || line1),
+        line1,
+        line2: '',
+        city: address.city || address.town || address.village || address.municipality || '',
+        postalCode: address.postcode || '',
+        country: address.country || 'France',
+        latitude: item.lat ? Number(item.lat) : null,
+        longitude: item.lon ? Number(item.lon) : null,
+      };
+    });
+    return res.json({ ok: true, results });
+  } catch (_error) {
+    return res.status(502).json({ ok: false, error: 'ADDRESS_SEARCH_FAILED' });
+  }
 });
 
 app.post('/api/webhooks/resend', express.text({ type: 'application/json' }), async (req, res) => {
@@ -1449,6 +1526,50 @@ app.get('/api/dossiers/:dossierId/mandate/pdf', requireAuth, async (req, res) =>
   return fs.createReadStream(mandateDoc.storageUrl).pipe(res);
 });
 
+app.get('/api/dossiers/:dossierId/statutes/preview', requireAuth, async (req, res) => {
+  const dossier = await getDossier(req.params.dossierId);
+  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
+  const isOps = ['ADMIN', 'OPS', 'FORMALISTE'].includes(req.auth?.role);
+  if (!isOwner && !isOps) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+
+  const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+  const formalityRule = getFormalityRule({ dossier, questionnaire });
+  if (!formalityRule.requiresStatutes) {
+    return res.status(409).json({ ok: false, error: 'STATUTES_NOT_REQUIRED_FOR_EI' });
+  }
+
+  const legalForm = resolveLegalForm({ dossier, questionnaire });
+  if (!isStatutesSupportedForm(legalForm)) {
+    return res.status(409).json({ ok: false, error: 'LEGAL_FORM_UNSUPPORTED', legalForm });
+  }
+
+  const user = dossier.userId ? await getUserById(dossier.userId) : null;
+  const statutesData = mapStatutesData({ dossier, questionnaire, user });
+  const document = buildStatutesByLegalForm(statutesData);
+  const preview = documentToPreview(document);
+
+  return res.json({
+    ok: true,
+    preview: {
+      ...preview,
+      metadata: { ...preview.metadata, checks: statutesData.checks, completeness: statutesData.completeness, missingFields: statutesData.missingFields },
+      incorporatedData: {
+        denomination: statutesData.denomination,
+        legalForm: statutesData.legalForm,
+        objetSocial: statutesData.objetSocial,
+        siege: statutesData.seat.full,
+        capital: statutesData.capital,
+        repartition: statutesData.repartition,
+        director: statutesData.director,
+        directorRole: statutesData.directorRole,
+        beneficiairesEffectifs: statutesData.beneficiairesEffectifs,
+        associates: statutesData.associates,
+      },
+    },
+  });
+});
+
 app.post('/api/dossiers/:dossierId/statutes/generate', requireAuth, async (req, res) => {
   const dossier = await getDossier(req.params.dossierId);
   if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
@@ -1456,67 +1577,53 @@ app.post('/api/dossiers/:dossierId/statutes/generate', requireAuth, async (req, 
   const isOps = ['ADMIN', 'OPS', 'FORMALISTE'].includes(req.auth?.role);
   if (!isOwner && !isOps) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
 
-  const data = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
-  const formalityRule = getFormalityRule({ dossier, questionnaire: data });
+  const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+  const formalityRule = getFormalityRule({ dossier, questionnaire });
   if (!formalityRule.requiresStatutes) {
     return res.status(409).json({ ok: false, error: 'STATUTES_NOT_REQUIRED_FOR_EI' });
   }
-  const legalForm = String(data.formeJuridique || dossier.legalForm || 'SASU').toUpperCase();
-  if (!['SASU', 'SAS'].includes(legalForm)) {
+  const legalForm = resolveLegalForm({ dossier, questionnaire });
+  if (!isStatutesSupportedForm(legalForm)) {
     return res.status(409).json({ ok: false, error: 'LEGAL_FORM_UNSUPPORTED', legalForm });
   }
-  const statutesData = {
-    denomination: data.denomination || dossier.companyName || 'Greffio Société',
-    objetSocial: data.activite || "La société exerce toute activité autorisée compatible avec son objet.",
-    siege: data.adresseSiege || 'Siège à compléter',
-    duree: '99 ans',
-    capital: Number(data.capital || 1000),
-    president: data.dirigeant || 'Président à compléter',
-    exerciceDebut: '1er janvier',
-    exerciceFin: '31 décembre',
-  };
-  let clauses = null;
-  let aiUsed = false;
-  try {
-    clauses = await generateAiStatutesClauses(statutesData, legalForm);
-    aiUsed = Array.isArray(clauses) && clauses.length > 0;
-  } catch (_error) {
-    clauses = null;
-  }
-  if (!clauses) {
-    clauses = legalForm === 'SAS' ? buildSasStatutesSections(statutesData) : buildSasuStatutesSections(statutesData);
-  }
+
+  const user = dossier.userId ? await getUserById(dossier.userId) : null;
+  const statutesData = mapStatutesData({ dossier, questionnaire, user });
+  const statutesDocument = buildStatutesByLegalForm(statutesData);
+
   const safeReference = String(dossier.reference || dossier.id).replace(/[^a-zA-Z0-9_-]/g, '_');
   const filename = `Statuts_${legalForm}_${safeReference}_${Date.now()}.pdf`;
   const filePath = await generateStatutesPdf({
     filename,
-    company: statutesData.denomination,
-    legalForm,
-    reference: dossier.reference || dossier.id,
-    clauses,
+    document: statutesDocument,
   });
   const fileSizeBytes = fs.statSync(filePath).size;
   const contentHash = createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+  const docType = `statutes_${legalForm.toLowerCase()}`;
   await upsertGeneratedDocument({
     dossierId: dossier.id,
-    type: legalForm === 'SAS' ? 'statutes_sas' : 'statutes_sasu',
+    type: docType,
     status: 'generated',
     version: 1,
     fileUrl: filePath,
     fileSizeBytes,
     contentHash,
     metadata: {
-      pagesTarget: 10,
-      generatedBy: aiUsed ? 'greffio_chatgpt' : 'greffio_template',
+      completeness: statutesData.completeness,
+      missingFields: statutesData.missingFields,
+      generatedBy: 'greffio_william_template',
+      template: statutesDocument.metadata?.template,
     },
   });
   return res.status(201).json({
     ok: true,
     document: {
-      type: legalForm === 'SAS' ? 'statutes_sas' : 'statutes_sasu',
+      type: docType,
       filePath,
       fileSizeBytes,
       filename,
+      completeness: statutesData.completeness,
+      legalForm,
     },
   });
 });
@@ -1528,7 +1635,7 @@ app.get('/api/dossiers/:dossierId/statutes', requireAuth, async (req, res) => {
   const isOps = ['ADMIN', 'OPS', 'FORMALISTE'].includes(req.auth?.role);
   if (!isOwner && !isOps) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
   const docs = await listGeneratedDocumentsByDossier(dossier.id);
-  const statutesDocs = docs.filter((item) => item.type === 'statutes_sas' || item.type === 'statutes_sasu');
+  const statutesDocs = docs.filter((item) => /^statutes_/i.test(String(item.type || '')));
   return res.json({ ok: true, documents: statutesDocs });
 });
 
@@ -1540,7 +1647,7 @@ app.get('/api/dossiers/:dossierId/statutes/pdf', requireAuth, async (req, res) =
   if (!isOwner && !isOps) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
 
   const docs = await listGeneratedDocumentsByDossier(dossier.id);
-  const latest = docs.find((item) => item.type === 'statutes_sasu' || item.type === 'statutes_sas');
+  const latest = docs.find((item) => /^statutes_/i.test(String(item.type || '')));
   if (!latest?.fileUrl || !fs.existsSync(latest.fileUrl)) {
     return res.status(404).json({ ok: false, error: 'STATUTES_PDF_NOT_FOUND' });
   }

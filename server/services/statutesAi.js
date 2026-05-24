@@ -1,19 +1,27 @@
 import { askGreffioAssistant } from './assistant.js';
 
 const buildPrompt = (input) => `
-Tu rediges des statuts juridiques en francais pour ${input.legalForm}.
-Contrainte: produire 10 a 14 clauses courtes, directement exploitables pour generation PDF.
-Format strict JSON:
+Tu rédiges des statuts juridiques en français pour une ${input.legalForm}.
+Contraintes impératives :
+- intégrer explicitement la dénomination, l'objet social, le siège, le capital, le président et la répartition ;
+- produire entre 24 et 30 articles numérotés, rédigés de façon professionnelle ;
+- chaque article doit commencer par "Article X — Titre" suivi du corps juridique ;
+- inclure préambule des soussignés, clauses de gouvernance, annexes de capital et pouvoirs pour formalités.
+
+Format strict JSON :
 {
-  "clauses": ["Article 1 ...", "Article 2 ..."]
+  "clauses": ["Article 1 — Forme : ...", "Article 2 — Dénomination sociale : ..."]
 }
-Contexte:
-- denomination: ${input.denomination}
+
+Contexte dossier :
+- dénomination: ${input.denomination}
 - objet social: ${input.objetSocial}
-- siege: ${input.siege}
-- duree: ${input.duree}
-- capital: ${input.capital}
-- president: ${input.president}
+- siège: ${input.seat?.full || input.siege}
+- durée: ${input.duree}
+- capital: ${input.capital} euros
+- répartition: ${input.repartition}
+- président: ${input.president}
+- bénéficiaires effectifs: ${input.beneficiairesEffectifs}
 `.trim();
 
 export const generateAiStatutesClauses = async (statutesData, legalForm) => {

@@ -124,11 +124,13 @@ export const AuthProvider = ({ children }) => {
     toast.success('Déconnexion effectuée');
   };
 
-  const updateProfile = (data) => {
-    const updated = { ...currentUser, ...data };
+  const updateProfile = (user) => {
+    const updated = typeof user === 'object' && user !== null && user.id
+      ? user
+      : { ...currentUser, ...user };
     setCurrentUser(updated);
     saveUser(updated);
-    return { success: true };
+    return { success: true, user: updated };
   };
 
   return (

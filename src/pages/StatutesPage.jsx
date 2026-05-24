@@ -1,12 +1,34 @@
 import React, { useEffect, useState } from 'react';
-import { Download, FileText, RefreshCw } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Download,
+  FileText,
+  RefreshCw,
+  ShieldCheck,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button.jsx';
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
-import { downloadStatutesPdf, generateStatutes, listStatutes } from '@/api/statutes.js';
+import { downloadStatutesPdf, fetchStatutesPreview, generateStatutes, listStatutes } from '@/api/statutes.js';
 import { getDossierById } from '@/api/dossiers.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
+
+const ChecklistItem = ({ label, ok }) => (
+  <div className={`flex items-start gap-3 rounded-xl border p-4 ${ok ? 'border-emerald-200 bg-emerald-50/60' : 'border-amber-200 bg-amber-50/60'}`}>
+    {ok ? (
+      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
+    ) : (
+      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
+    )}
+    <div>
+      <p className="text-sm font-semibold text-foreground">{label}</p>
+      <p className="text-xs text-muted-foreground">{ok ? 'Intégré dans le document' : 'À compléter dans le questionnaire'}</p>
+    </div>
+  </div>
+);
 
 export const StatutesPage = () => {
   const dossierId = getCurrentDossierId();
@@ -14,27 +36,41 @@ export const StatutesPage = () => {
   const [generating, setGenerating] = useState(false);
   const [documents, setDocuments] = useState([]);
   const [eiLike, setEiLike] = useState(false);
+  const [preview, setPreview] = useState(null);
 
   const load = async () => {
     if (!dossierId) {
       setLoading(false);
       setDocuments([]);
+      setPreview(null);
       return;
     }
     try {
       setLoading(true);
       const dossierPayload = await getDossierById(dossierId);
       const q = dossierPayload?.dossier?.dataJson ? JSON.parse(dossierPayload.dossier.dataJson) : {};
-      setEiLike(isEiLikeFormality({
+      const ei = isEiLikeFormality({
         legalForm: dossierPayload?.dossier?.legalForm,
         formeJuridique: q?.formeJuridique,
         typeFormalite: q?.typeFormalite,
         service: dossierPayload?.dossier?.service,
-      }));
+      });
+      setEiLike(ei);
       const payload = await listStatutes(dossierId);
       setDocuments(payload.documents || []);
+      if (!ei) {
+        try {
+          const previewPayload = await fetchStatutesPreview(dossierId);
+          setPreview(previewPayload?.preview || null);
+        } catch (_error) {
+          setPreview(null);
+        }
+      } else {
+        setPreview(null);
+      }
     } catch (_error) {
       setDocuments([]);
+      setPreview(null);
     } finally {
       setLoading(false);
     }
@@ -55,11 +91,21 @@ export const StatutesPage = () => {
     }
     try {
       setGenerating(true);
-      await generateStatutes(dossierId);
+      const payload = await generateStatutes(dossierId);
       await load();
-      toast.success('Statuts générés.');
-    } catch (_error) {
-      toast.error('Génération impossible.');
+      const completeness = payload?.document?.completeness;
+      toast.success(
+        completeness != null
+          ? `Statuts générés (${completeness} % des données obligatoires intégrées).`
+          : 'Statuts générés.',
+      );
+    } catch (error) {
+      const code = error?.payload?.error;
+      if (code === 'STATUTES_NOT_REQUIRED_FOR_EI') {
+        toast.error('Statuts non applicables à ce dossier.');
+      } else {
+        toast.error('Génération impossible.');
+      }
     } finally {
       setGenerating(false);
     }
@@ -80,44 +126,121 @@ export const StatutesPage = () => {
     }
   };
 
+  const incorporated = preview?.incorporatedData;
+  const completeness = preview?.metadata?.completeness ?? 0;
+
   return (
-    <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background">
+    <div className="flex min-h-[calc(100vh-4rem)] overflow-x-hidden bg-[var(--we-bg)]">
       <Sidebar />
       <main className="flex-1 overflow-y-auto p-5 md:p-8">
-        <div className="mx-auto max-w-4xl space-y-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="mx-auto max-w-5xl space-y-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-sm font-bold uppercase text-primary">Documents juridiques</p>
-              <h1 className="mt-1 text-3xl font-extrabold">{eiLike ? 'Parcours EI / micro' : 'Statuts SAS / SASU'}</h1>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <h1 className="mt-1 text-3xl font-extrabold text-foreground">
+                {eiLike ? 'Parcours EI / micro' : `Statuts ${incorporated?.legalForm || 'SAS / SASU / SARL / EURL / SCI'}`}
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
                 {eiLike
                   ? 'Les statuts ne sont pas applicables. Ce dossier suit un flux déclaratif sans génération de statuts.'
-                  : 'Génération backend en PDF long (~10 pages), puis téléchargement.'}
+                  : 'Vos réponses alimentent automatiquement le préambule, les articles, les annexes et les blocs de signature du PDF.'}
               </p>
             </div>
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" className="bg-white" onClick={load} disabled={loading}>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" className="bg-white" onClick={() => void load()} disabled={loading}>
                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                 Actualiser
               </Button>
-              <Button type="button" onClick={onGenerate} disabled={generating || eiLike}>
+              <Button type="button" onClick={() => void onGenerate()} disabled={generating || eiLike}>
                 <FileText className="h-4 w-4" />
-                {generating ? 'Génération...' : 'Générer les statuts'}
+                {generating ? 'Génération…' : 'Générer les statuts'}
               </Button>
-              <Button type="button" variant="outline" className="bg-white" onClick={onDownload} disabled={!documents.length || eiLike}>
+              <Button type="button" variant="outline" className="bg-white" onClick={() => void onDownload()} disabled={!documents.length || eiLike}>
                 <Download className="h-4 w-4" />
                 Télécharger PDF
               </Button>
             </div>
           </div>
 
-          <section className="rounded-md border border-border bg-white shadow-elevation-sm">
-            <div className="border-b border-border bg-muted px-5 py-3 text-xs font-bold uppercase text-muted-foreground">
+          {!eiLike && preview ? (
+            <>
+              <section className="we-panel p-6">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="h-5 w-5 text-primary" />
+                      <h2 className="text-lg font-extrabold">Données incorporées</h2>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Complétude : <span className="font-bold text-foreground">{completeness} %</span>
+                      {preview.metadata?.missingFields?.length ? (
+                        <> — champs manquants : {preview.metadata.missingFields.join(', ')}</>
+                      ) : null}
+                    </p>
+                  </div>
+                  <Button asChild variant="outline" className="bg-white">
+                    <Link to="/questionnaire">Compléter le questionnaire</Link>
+                  </Button>
+                </div>
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  {(preview.metadata?.checks || []).map((item) => (
+                    <ChecklistItem key={item.key} label={item.label} ok={item.ok} />
+                  ))}
+                </div>
+              </section>
+
+              <section className="grid gap-6 lg:grid-cols-2">
+                <div className="we-panel p-6">
+                  <h2 className="text-lg font-extrabold">Présentation du document</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">Structure imposée pour conformité greffe et relecture client.</p>
+                  <dl className="mt-5 space-y-3 text-sm">
+                    {[
+                      ['Couverture', `${preview.cover?.title} — ${preview.cover?.denomination || preview.cover?.subtitle}`],
+                      ['Forme juridique', incorporated?.legalForm],
+                      ['Modèle', preview.structure?.template || preview.metadata?.template],
+                      ['Capital', `${incorporated?.capital} €`],
+                      ['Siège', incorporated?.siege],
+                      [`${incorporated?.directorRole || 'Dirigeant'}`, incorporated?.director],
+                      ['Titres juridiques', (preview.structure?.sections || []).join(' · ') || `${preview.clauseCount} articles`],
+                      ['Annexes', `${preview.structure?.annexCount ?? preview.annexes?.length ?? 0} annexes`],
+                    ].map(([term, value]) => (
+                      <div key={term} className="grid grid-cols-[140px_1fr] gap-3 border-b border-[var(--we-border)] pb-3 last:border-b-0">
+                        <dt className="font-semibold text-muted-foreground">{term}</dt>
+                        <dd className="font-medium text-foreground">{value || '—'}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+
+                <div className="we-panel p-6">
+                  <h2 className="text-lg font-extrabold">Aperçu des premiers articles</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">Extrait avant génération PDF définitive.</p>
+                  <div className="mt-5 space-y-4">
+                    {(preview.sampleClauses || []).map((clause) => (
+                      <article key={clause.title} className="rounded-xl border border-[var(--we-border)] bg-white p-4">
+                        <h3 className="text-sm font-extrabold text-primary">{clause.title}</h3>
+                        <p className="mt-2 text-sm leading-relaxed text-foreground">{clause.body}</p>
+                      </article>
+                    ))}
+                  </div>
+                  {preview.preamble?.paragraphs?.length ? (
+                    <div className="mt-5 rounded-xl border border-dashed border-[var(--we-border)] bg-[#fafcff] p-4">
+                      <p className="text-xs font-bold uppercase text-primary">Préambule</p>
+                      <p className="mt-2 text-sm text-muted-foreground">{preview.preamble.paragraphs.slice(0, 3).join(' ')}</p>
+                    </div>
+                  ) : null}
+                </div>
+              </section>
+            </>
+          ) : null}
+
+          <section className="we-panel overflow-hidden">
+            <div className="border-b border-[var(--we-border)] bg-[#fafcff] px-5 py-3 text-xs font-bold uppercase text-muted-foreground">
               Versions générées
             </div>
             {documents.length ? (
               documents.map((item) => (
-                <div key={item.id} className="flex items-center justify-between border-b border-border px-5 py-4 last:border-b-0">
+                <div key={item.id} className="flex items-center justify-between border-b border-[var(--we-border)] px-5 py-4 last:border-b-0">
                   <div>
                     <p className="text-sm font-bold">{item.type}</p>
                     <p className="text-xs text-muted-foreground">v{item.version} · {new Date(item.createdAt).toLocaleString('fr-FR')}</p>
@@ -126,7 +249,9 @@ export const StatutesPage = () => {
                 </div>
               ))
             ) : (
-              <div className="px-5 py-6 text-sm text-muted-foreground">Aucun statut généré pour ce dossier.</div>
+              <div className="px-5 py-6 text-sm text-muted-foreground">
+                {eiLike ? 'Aucun statut requis pour ce dossier.' : 'Aucun statut généré pour ce dossier.'}
+              </div>
             )}
           </section>
         </div>

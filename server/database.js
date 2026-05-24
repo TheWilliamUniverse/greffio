@@ -20,8 +20,10 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   first_name TEXT NOT NULL,
   last_name TEXT NOT NULL,
+  phone TEXT,
   role TEXT NOT NULL,
   company_json TEXT,
+  profile_json TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -243,6 +245,8 @@ addColumnIfMissing('dossiers', 'assigned_to_user_id', 'TEXT');
 addColumnIfMissing('dossiers', 'ops_queue', 'TEXT');
 addColumnIfMissing('dossiers', 'ops_priority', 'TEXT');
 addColumnIfMissing('documents', 'type', 'TEXT');
+addColumnIfMissing('users', 'phone', 'TEXT');
+addColumnIfMissing('users', 'profile_json', 'TEXT');
 addColumnIfMissing('documents', 'original_filename', 'TEXT');
 addColumnIfMissing('documents', 'recommended_filename', 'TEXT');
 addColumnIfMissing('documents', 'file_url', 'TEXT');

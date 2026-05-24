@@ -66,6 +66,11 @@ export const Header = () => {
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
+                    <Link to="/profil" className="flex w-full cursor-pointer items-center">
+                      <User className="mr-2 h-4 w-4" /> Mon profil
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link to="/settings" className="flex w-full cursor-pointer items-center">
                       <User className="mr-2 h-4 w-4" /> Paramètres
                     </Link>

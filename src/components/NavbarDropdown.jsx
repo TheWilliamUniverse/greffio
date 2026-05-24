@@ -34,6 +34,7 @@ const menuColumns = [
       { label: 'Dashboard', to: '/dashboard' },
       { label: 'Dossiers', to: '/dossiers' },
       { label: 'Documents', to: '/documents' },
+      { label: 'Mon profil', to: '/profil' },
       { label: 'Assistant Greffio', to: '/chat' },
     ],
   },

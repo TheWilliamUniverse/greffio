@@ -2,101 +2,233 @@ import fs from 'node:fs';
 import path from 'node:path';
 import PDFDocument from 'pdfkit';
 
+const PAGE = {
+  marginTop: 62,
+  marginBottom: 58,
+  marginLeft: 58,
+  marginRight: 58,
+};
+
+const FONTS = {
+  regular: 'Times-Roman',
+  bold: 'Times-Bold',
+  italic: 'Times-Italic',
+  boldItalic: 'Times-BoldItalic',
+};
+
+const contentWidth = (doc) => doc.page.width - PAGE.marginLeft - PAGE.marginRight;
+
 const ensureDir = (directoryPath) => {
-  if (!fs.existsSync(directoryPath)) {
-    fs.mkdirSync(directoryPath, { recursive: true });
+  if (!fs.existsSync(directoryPath)) fs.mkdirSync(directoryPath, { recursive: true });
+};
+
+const startNewPage = (doc, companyName) => {
+  doc.addPage();
+  drawPageFooter(doc, companyName);
+  doc.y = PAGE.marginTop;
+};
+
+const drawPageFooter = (doc, companyName) => {
+  doc.save();
+  doc.font(FONTS.regular).fontSize(9).fillColor('#444444');
+  doc.text(
+    `${companyName} — Page ${doc.page.number}`,
+    PAGE.marginLeft,
+    doc.page.height - 42,
+    { width: contentWidth(doc), align: 'center', lineBreak: false },
+  );
+  doc.restore();
+  doc.fillColor('#111111');
+};
+
+const ensureSpace = (doc, companyName, heightNeeded = 72) => {
+  if (doc.y + heightNeeded > doc.page.height - PAGE.marginBottom) {
+    startNewPage(doc, companyName);
   }
 };
 
-const renderClause = (doc, clause) => {
-  doc.font('Helvetica-Bold').fontSize(12).text(clause.title, { align: 'left' });
-  doc.moveDown(0.4);
-  doc.font('Helvetica').fontSize(10.5).text(clause.body, {
-    align: 'justify',
-    lineGap: 2,
+const renderCover = (doc, cover, companyName) => {
+  doc.y = PAGE.marginTop + 28;
+  doc.font(FONTS.bold).fontSize(26).fillColor('#111111')
+    .text(cover.title || 'STATUTS', PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
+  doc.moveDown(0.9);
+  doc.font(FONTS.bold).fontSize(13)
+    .text(cover.legalFormLabel || '', PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
+  doc.moveDown(1.4);
+  doc.font(FONTS.bold).fontSize(15)
+    .text(cover.denomination || '', PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
+  if (cover.sigle) {
+    doc.moveDown(0.35);
+    doc.font(FONTS.regular).fontSize(12)
+      .text(`(${cover.sigle})`, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
+  }
+  doc.moveDown(1.2);
+  doc.font(FONTS.regular).fontSize(12).fillColor('#222222');
+  [
+    cover.capitalLine,
+    '',
+    cover.seatBlock,
+    '',
+    cover.registryLine,
+  ].forEach((line) => {
+    if (!line) { doc.moveDown(0.5); return; }
+    doc.text(line, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
+    doc.moveDown(0.35);
   });
-  doc.moveDown(0.8);
+  doc.moveDown(1);
+  doc.font(FONTS.italic).fontSize(10).fillColor('#555555')
+    .text(`Référence dossier : ${cover.reference || ''}`, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
+  doc.fillColor('#111111');
 };
 
-const drawPageFooter = (doc) => {
-  const pageText = `Page ${doc.page.number}`;
-  doc.font('Helvetica').fontSize(8).fillColor('#6B7280');
-  doc.text(pageText, 50, doc.page.height - 40, { align: 'center', width: doc.page.width - 100 });
-  doc.fillColor('#000000');
+const renderBlock = (doc, companyName, block) => {
+  if (block.kind === 'blank') {
+    doc.moveDown(0.5);
+    return;
+  }
+  if (block.kind === 'section-title') {
+    ensureSpace(doc, companyName, 48);
+    doc.moveDown(0.8);
+    doc.font(FONTS.bold).fontSize(12).fillColor('#111111')
+      .text(block.text, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'left' });
+    doc.moveDown(0.55);
+    return;
+  }
+  if (block.kind === 'legal-title') {
+    ensureSpace(doc, companyName, 52);
+    doc.moveDown(0.9);
+    doc.font(FONTS.bold).fontSize(11.5).fillColor('#111111')
+      .text(block.text, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
+    doc.moveDown(0.65);
+    return;
+  }
+  if (block.kind === 'paragraph') {
+    ensureSpace(doc, companyName, 36);
+    doc.font(FONTS.regular).fontSize(11)
+      .text(block.text, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify', lineGap: 3 });
+    doc.moveDown(0.45);
+    return;
+  }
+  if (block.kind === 'article') {
+    ensureSpace(doc, companyName, 88);
+    const heading = block.number
+      ? `Article ${block.number} - ${block.title}`
+      : String(block.title || '').replace(/^Article\s+/i, 'Article ');
+    doc.font(FONTS.bold).fontSize(11)
+      .text(heading, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'left' });
+    doc.moveDown(0.35);
+    doc.font(FONTS.regular).fontSize(11)
+      .text(block.body, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify', lineGap: 3 });
+    doc.moveDown(0.75);
+  }
 };
 
-const generateStatutesPdf = async ({
-  filename,
-  company,
-  legalForm,
-  reference,
-  clauses,
-}) => {
+const renderTable = (doc, companyName, table) => {
+  if (!table?.headers?.length) return;
+  const colCount = table.headers.length;
+  const tableWidth = contentWidth(doc);
+  const colWidth = tableWidth / colCount;
+  const startX = PAGE.marginLeft;
+  const rowHeight = 24;
+  const rows = table.rows || [];
+  ensureSpace(doc, companyName, rowHeight * (rows.length + 2));
+
+  let y = doc.y;
+  table.headers.forEach((header, index) => {
+    const x = startX + index * colWidth;
+    doc.rect(x, y, colWidth, rowHeight).fillAndStroke('#f3f3f3', '#cccccc');
+    doc.fillColor('#111111').font(FONTS.bold).fontSize(9.5)
+      .text(header, x + 4, y + 7, { width: colWidth - 8 });
+  });
+  y += rowHeight;
+  rows.forEach((row, rowIndex) => {
+    row.forEach((cell, colIndex) => {
+      const x = startX + colIndex * colWidth;
+      doc.rect(x, y, colWidth, rowHeight).fillAndStroke(rowIndex % 2 ? '#fafafa' : '#ffffff', '#dddddd');
+      doc.fillColor('#111111').font(FONTS.regular).fontSize(9.5)
+        .text(String(cell || ''), x + 4, y + 7, { width: colWidth - 8 });
+    });
+    y += rowHeight;
+  });
+  doc.y = y + 12;
+};
+
+const renderAnnexes = (doc, companyName, annexes = []) => {
+  annexes.forEach((annexe) => {
+    startNewPage(doc, companyName);
+    doc.font(FONTS.bold).fontSize(12)
+      .text(annexe.title, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'left' });
+    doc.moveDown(0.7);
+    (annexe.paragraphs || []).forEach((paragraph) => {
+      ensureSpace(doc, companyName, 36);
+      doc.font(FONTS.regular).fontSize(11)
+        .text(paragraph, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify', lineGap: 3 });
+      doc.moveDown(0.45);
+    });
+    if (annexe.table) renderTable(doc, companyName, annexe.table);
+  });
+};
+
+const renderSignatures = (doc, companyName, signatures) => {
+  startNewPage(doc, companyName);
+  doc.font(FONTS.bold).fontSize(12).text(signatures.title || 'SIGNATURES', PAGE.marginLeft, doc.y, { width: contentWidth(doc) });
+  doc.moveDown(0.7);
+  (signatures.intro || []).forEach((line) => {
+    doc.font(FONTS.regular).fontSize(11).text(line, PAGE.marginLeft, doc.y, { width: contentWidth(doc) });
+    doc.moveDown(0.3);
+  });
+  [signatures.associateBlock, signatures.directorBlock].filter(Boolean).forEach((block) => {
+    ensureSpace(doc, companyName, 130);
+    doc.moveDown(0.8);
+    doc.font(FONTS.bold).fontSize(11).text(block.role, PAGE.marginLeft, doc.y, { width: contentWidth(doc) });
+    doc.moveDown(0.35);
+    (block.names || []).forEach((name) => {
+      doc.font(FONTS.regular).fontSize(11).text(name, PAGE.marginLeft, doc.y, { width: contentWidth(doc) });
+      doc.moveDown(0.25);
+    });
+    if (block.footer) {
+      doc.moveDown(0.4);
+      doc.font(FONTS.regular).fontSize(10.5)
+        .text(block.footer, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify' });
+      doc.moveDown(0.5);
+    }
+    doc.moveDown(1);
+    doc.font(FONTS.regular).fontSize(10.5).text('Signature :', PAGE.marginLeft, doc.y, { width: contentWidth(doc) });
+    doc.moveDown(2.2);
+    doc.font(FONTS.italic).fontSize(10).fillColor('#555555')
+      .text(block.mention || 'Lu et approuvé', PAGE.marginLeft, doc.y, { width: contentWidth(doc) });
+    doc.fillColor('#111111');
+  });
+};
+
+const generateStatutesPdf = async ({ filename, document: statutesDocument }) => {
   const outputDir = path.resolve(process.cwd(), 'server', 'data', 'generated');
   ensureDir(outputDir);
   const outputPath = path.join(outputDir, filename);
+  const companyName = statutesDocument.cover?.denomination || 'Greffio';
 
   const doc = new PDFDocument({
     size: 'A4',
-    margins: { top: 56, bottom: 56, left: 54, right: 54 },
+    margins: { top: PAGE.marginTop, bottom: PAGE.marginBottom, left: PAGE.marginLeft, right: PAGE.marginRight },
     autoFirstPage: true,
   });
 
   const stream = fs.createWriteStream(outputPath);
   doc.pipe(stream);
+  drawPageFooter(doc, companyName);
 
-  doc.on('pageAdded', () => drawPageFooter(doc));
+  renderCover(doc, statutesDocument.cover || {}, companyName);
+  startNewPage(doc, companyName);
+  (statutesDocument.blocks || []).forEach((block) => renderBlock(doc, companyName, block));
+  renderAnnexes(doc, companyName, statutesDocument.annexes || []);
+  renderSignatures(doc, companyName, statutesDocument.signatures || {});
 
-  doc.font('Helvetica-Bold').fontSize(18).text(`Statuts ${legalForm}`, { align: 'center' });
-  doc.moveDown(0.2);
-  doc.font('Helvetica').fontSize(11).text(`${company}`, { align: 'center' });
-  doc.font('Helvetica').fontSize(10).text(`Référence dossier: ${reference}`, { align: 'center' });
-  doc.moveDown(1);
-
-  doc.font('Helvetica').fontSize(10).text(
-    'Document généré automatiquement par Greffio. Ce modèle doit être relu et validé avant signature définitive.',
-    { align: 'justify' },
-  );
-  doc.moveDown(1.2);
-
-  clauses.forEach((item, index) => {
-    if (index > 0 && index % 3 === 0) {
-      doc.addPage();
-    }
-    renderClause(doc, item);
-    doc.font('Helvetica').fontSize(10.5).text(
-      'Pour éviter tout rejet, vérifiez la cohérence entre statuts, formulaire, justificatifs et identité des parties.',
-      { align: 'justify', lineGap: 2 },
-    );
-    doc.moveDown(0.8);
-  });
-
-  while (doc.page.number < 10) {
-    doc.addPage();
-    doc.font('Helvetica-Bold').fontSize(12).text('Annexe technique', { align: 'left' });
-    doc.moveDown(0.5);
-    doc.font('Helvetica').fontSize(10.5).text(
-      'Cette annexe rappelle les contrôles de conformité Greffio : cohérence des clauses, données d’identité, justificatifs, mandataire, et informations déclarées au guichet unique.',
-      { align: 'justify', lineGap: 2 },
-    );
-    doc.moveDown(0.8);
-    doc.font('Helvetica').fontSize(10.5).text(
-      'Les informations peuvent être mises à jour en fonction des demandes des autorités compétentes, du greffe, et de la nature exacte de la formalité.',
-      { align: 'justify', lineGap: 2 },
-    );
-  }
-
-  drawPageFooter(doc);
   doc.end();
-
   await new Promise((resolve, reject) => {
     stream.on('finish', resolve);
     stream.on('error', reject);
   });
-
   return outputPath;
 };
 
-export {
-  generateStatutesPdf,
-};
+export { generateStatutesPdf };

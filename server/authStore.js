@@ -1,5 +1,6 @@
 import { createHash, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
 import { hasPostgres, query, sqlite } from './dbClient.js';
+import { mergeProfile, sanitizePhones, validateProfile } from './utils/userProfile.js';
 
 const nowIso = () => new Date().toISOString();
 
@@ -20,13 +21,21 @@ const verifyPassword = (password, storedHash) => {
 
 const mapUserRow = (row) => {
   if (!row) return null;
+  let profile = null;
+  try {
+    profile = row.profileJson ? JSON.parse(row.profileJson) : null;
+  } catch (_error) {
+    profile = null;
+  }
   return {
     id: row.id,
     email: row.email,
     firstName: row.firstName,
     lastName: row.lastName,
+    phone: row.phone || null,
     role: row.role,
     company: row.companyJson ? JSON.parse(row.companyJson) : null,
+    profile,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -44,6 +53,8 @@ const getUserByEmail = async (email) => {
         last_name AS "lastName",
         role,
         company_json AS "companyJson",
+        phone,
+        profile_json AS "profileJson",
         created_at AS "createdAt",
         updated_at AS "updatedAt"
       FROM users
@@ -62,6 +73,8 @@ const getUserByEmail = async (email) => {
         last_name AS lastName,
         role,
         company_json AS companyJson,
+        phone,
+        profile_json AS profileJson,
         created_at AS createdAt,
         updated_at AS updatedAt
       FROM users
@@ -248,6 +261,8 @@ const updateUserRoleByEmail = async ({
         last_name AS "lastName",
         role,
         company_json AS "companyJson",
+        phone,
+        profile_json AS "profileJson",
         created_at AS "createdAt",
         updated_at AS "updatedAt"
     `, [
@@ -301,6 +316,8 @@ const getUserById = async (userId) => {
         last_name AS "lastName",
         role,
         company_json AS "companyJson",
+        phone,
+        profile_json AS "profileJson",
         created_at AS "createdAt",
         updated_at AS "updatedAt"
       FROM users
@@ -318,6 +335,8 @@ const getUserById = async (userId) => {
       last_name AS lastName,
       role,
       company_json AS companyJson,
+      phone,
+      profile_json AS profileJson,
       created_at AS createdAt,
       updated_at AS updatedAt
     FROM users
@@ -326,12 +345,87 @@ const getUserById = async (userId) => {
   return mapUserRow(row);
 };
 
+const updateUserProfile = async ({ userId, firstName, lastName, phone, profile }) => {
+  if (!userId) return null;
+  const current = await getUserById(userId);
+  if (!current) return null;
+
+  const mergedProfile = mergeProfile(current.profile, profile || {});
+  const normalizedPhones = sanitizePhones(mergedProfile.phones);
+  mergedProfile.phones = normalizedPhones;
+  const primaryPhone = normalizedPhones.find((entry) => entry.isPrimary)?.number || phone || current.phone || null;
+
+  const errors = validateProfile({
+    firstName: firstName ?? current.firstName,
+    lastName: lastName ?? current.lastName,
+    email: current.email,
+    phones: normalizedPhones,
+    address: mergedProfile.address,
+  });
+  if (Object.keys(errors).length) {
+    const error = new Error('PROFILE_VALIDATION_FAILED');
+    error.details = errors;
+    throw error;
+  }
+
+  const updatedAt = nowIso();
+  const profileJson = JSON.stringify(mergedProfile);
+  const nextFirstName = String(firstName ?? current.firstName).trim();
+  const nextLastName = String(lastName ?? current.lastName).trim();
+
+  if (hasPostgres) {
+    const result = await query(`
+      UPDATE users
+      SET
+        first_name = $2,
+        last_name = $3,
+        phone = $4,
+        profile_json = $5,
+        updated_at = $6
+      WHERE id = $1
+      RETURNING
+        id,
+        email,
+        first_name AS "firstName",
+        last_name AS "lastName",
+        role,
+        company_json AS "companyJson",
+        phone,
+        profile_json AS "profileJson",
+        created_at AS "createdAt",
+        updated_at AS "updatedAt"
+    `, [userId, nextFirstName, nextLastName, primaryPhone, profileJson, updatedAt]);
+    return mapUserRow(result.rows[0] || null);
+  }
+
+  sqlite.prepare(`
+    UPDATE users
+    SET
+      first_name = @firstName,
+      last_name = @lastName,
+      phone = @phone,
+      profile_json = @profileJson,
+      updated_at = @updatedAt
+    WHERE id = @id
+  `).run({
+    id: userId,
+    firstName: nextFirstName,
+    lastName: nextLastName,
+    phone: primaryPhone,
+    profileJson,
+    updatedAt,
+  });
+
+  return getUserById(userId);
+};
+
 export {
   createUser,
   getUserByEmail,
   getUserById,
   authenticateUser,
   updateUserRoleByEmail,
+  updateUserProfile,
   createPasswordResetToken,
   consumePasswordResetToken,
   updateUserPasswordById,

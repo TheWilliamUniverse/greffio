@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { KeyRound, LockKeyhole, Mail, MonitorCheck, ShieldCheck, Smartphone, UserCog } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { KeyRound, LockKeyhole, Mail, MonitorCheck, ShieldCheck, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
@@ -17,12 +18,8 @@ const securityMethods = [
 ];
 
 export const SettingsPage = () => {
-  const { currentUser, logout, updateProfile } = useAuth();
+  const { currentUser, logout } = useAuth();
   const [security, setSecurity] = useState(getSecuritySettings());
-  const [profile, setProfile] = useState({
-    firstName: currentUser?.firstName || '',
-    lastName: currentUser?.lastName || '',
-  });
   const [recoveryCodes, setRecoveryCodes] = useState(security.recoveryCodes || []);
   const [sessions, setSessions] = useState([]);
   useEffect(() => {
@@ -67,11 +64,6 @@ export const SettingsPage = () => {
     toast.success('Paramètres de sécurité enregistrés');
   };
 
-  const saveProfile = () => {
-    updateProfile(profile);
-    toast.success('Profil mis à jour');
-  };
-
   const generateRecoveryCodes = () => {
     const codes = Array.from({ length: 8 }, () => (
       `GRF-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
@@ -105,30 +97,18 @@ export const SettingsPage = () => {
             <p className="mt-2 text-sm text-muted-foreground">Gérez le profil, les accès sécurisés et l’authentification multifacteur.</p>
           </div>
 
-          <section className="rounded-md border border-border bg-white p-6 shadow-elevation-sm">
-            <div className="mb-6 flex items-center gap-3">
-              <UserCog className="h-6 w-6 text-primary" />
-              <h2 className="text-xl font-extrabold">Profil personnel</h2>
+          <section className="we-panel p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-xl font-extrabold">Profil personnel</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Civilité, coordonnées, adresse, téléphones et préférences sont gérés sur la page dédiée.
+                </p>
+              </div>
+              <Button asChild>
+                <Link to="/profil">Ouvrir Mon profil</Link>
+              </Button>
             </div>
-            <div className="grid gap-5 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Prénom</Label>
-                <Input value={profile.firstName} onChange={(event) => setProfile((current) => ({ ...current, firstName: event.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Nom</Label>
-                <Input value={profile.lastName} onChange={(event) => setProfile((current) => ({ ...current, lastName: event.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input defaultValue={currentUser?.email || ''} disabled className="bg-muted text-muted-foreground" />
-              </div>
-              <div className="space-y-2">
-                <Label>Rôle</Label>
-                <Input defaultValue={currentUser?.role || 'CLIENT'} disabled className="bg-muted text-muted-foreground" />
-              </div>
-            </div>
-            <Button className="mt-6" onClick={saveProfile}>Enregistrer les modifications</Button>
           </section>
 
           <section className="grid gap-4 lg:grid-cols-[1fr_0.85fr]">

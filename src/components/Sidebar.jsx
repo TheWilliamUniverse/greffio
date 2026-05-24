@@ -13,6 +13,7 @@ import {
   Activity,
   Settings,
   ShieldCheck,
+  UserRound,
 } from 'lucide-react';
 import { cn } from '@/lib/utils.js';
 import { useAuth } from '@/hooks/useAuth.js';
@@ -52,6 +53,7 @@ export const Sidebar = ({ className }) => {
     { to: '/ops-observability', icon: Activity, label: 'Ops observabilité' },
     { to: '/analytics', icon: BarChart3, label: 'Pilotage' },
     { to: '/chat', icon: Bot, label: 'Assistant Greffio' },
+    { to: '/profil', icon: UserRound, label: 'Mon profil' },
     { to: '/settings', icon: Settings, label: 'Paramètres' },
   ];
 

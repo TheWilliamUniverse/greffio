@@ -28,6 +28,14 @@ const parseResponse = async (response) => {
   throw error;
 };
 
+export const fetchStatutesPreview = async (dossierId) => {
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}/statutes/preview`, {
+    method: 'GET',
+    headers: tokenHeaders(false),
+  });
+  return parseResponse(response);
+};
+
 export const generateStatutes = async (dossierId) => {
   const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}/statutes/generate`, {
     method: 'POST',
