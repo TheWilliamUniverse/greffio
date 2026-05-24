@@ -52,6 +52,28 @@ const parseSeat = (questionnaire = {}) => {
 };
 
 const parseAssociateEntry = (entry, fallback = {}) => {
+  if (entry?.associateType === 'personne_morale') {
+    const companyName = pick(entry.companyName, entry.raisonSociale, entry.label);
+    return {
+      id: entry.id || `associate_${Math.random().toString(36).slice(2, 8)}`,
+      associateType: 'personne_morale',
+      label: companyName || 'Société associée à compléter',
+      companyName,
+      siren: pick(entry.siren, ''),
+      representativeName: pick(entry.representativeName, ''),
+      address: pick(entry.address, fallback.address, 'Siège social à compléter'),
+      share: pick(entry.percentage, entry.share, ''),
+      titlesCount: pick(entry.sharesOrParts, entry.titlesCount, ''),
+      isMinor: false,
+      isMinorEmancipated: false,
+      legalRepresentatives: '',
+      roleLabel: pick(entry.roleLabel, entry.role, 'Associé'),
+      contributionCash: pick(entry.contributionCash, entry.apportNumeraire, ''),
+      liberationRate: pick(entry.liberationRate, '50%'),
+      liberationAmount: pick(entry.liberationAmount, ''),
+      contributionInKind: pick(entry.contributionInKind, entry.apportNature, ''),
+    };
+  }
   if (typeof entry === 'string') {
     return {
       id: `associate_${Math.random().toString(36).slice(2, 8)}`,

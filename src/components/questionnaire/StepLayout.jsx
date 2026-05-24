@@ -14,6 +14,7 @@ export const StepLayout = ({
   onNext,
   canGoBack,
   canGoNext,
+  continueLabel = 'Continuer',
   onEnterNext,
   children,
 }) => (
@@ -54,7 +55,7 @@ export const StepLayout = ({
 
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e2ebf8] bg-[#fafcff] px-6 py-5 md:px-8">
       <QuestionBackButton type="button" onClick={onBack} disabled={!canGoBack} />
-      <QuestionContinueButton type="button" onClick={onNext} disabled={!canGoNext} />
+      <QuestionContinueButton type="button" label={continueLabel} onClick={onNext} disabled={!canGoNext} />
     </div>
   </section>
 );

@@ -31,10 +31,17 @@ export const mapStatutesDataToRenderContext = (statutesData = {}) => {
   });
 
   const associates = (statutesData.associates || []).map((associate) => {
+    const isLegalEntity = associate.associateType === 'personne_morale';
     const shares = parseAmount(associate.titlesCount) || parseAmount(associate.shares);
     const sharePercentage = parseAmount(associate.share) || (nombreTitres > 0 && shares ? Math.round((shares / nombreTitres) * 1000) / 10 : null);
+    const fullName = isLegalEntity
+      ? (associate.companyName || associate.label || 'Société associée à compléter')
+      : (associate.label || associate.fullName || 'Associé à compléter');
     return {
-      fullName: associate.label || associate.fullName || 'Associé à compléter',
+      isLegalEntity,
+      fullName,
+      siren: isLegalEntity ? associate.siren : undefined,
+      representativeName: isLegalEntity ? associate.representativeName : undefined,
       address: associate.address,
       birthDate: associate.birthDate,
       birthPlace: associate.birthPlace,

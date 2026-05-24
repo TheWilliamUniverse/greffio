@@ -34,6 +34,7 @@ import {
   listOpsNotesByDossier,
   transitionDossierStatus,
   updateDossierQuestionnaire,
+  claimDossierForUser,
   updateDossierDocument,
   updateDossierOpsFields,
   upsertGeneratedDocument,
@@ -1388,9 +1389,15 @@ app.post('/api/dossiers/:dossierId/transition', requireAuth, requireRole(['ADMIN
 });
 
 app.get('/api/dossiers/:dossierId/questionnaire', requireAuth, async (req, res) => {
-  const dossier = await getDossier(req.params.dossierId);
+  let dossier = await getDossier(req.params.dossierId);
   if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
   const isOps = isInternalRole(req.auth?.role);
+  if (!isOps && dossier.userId && dossier.userId !== req.auth?.sub) {
+    return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+  }
+  if (!isOps && !dossier.userId) {
+    dossier = await claimDossierForUser(dossier.id, req.auth.sub) || dossier;
+  }
   const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
   if (!isOps && !isOwner) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
   return res.json({
@@ -1402,49 +1409,68 @@ app.get('/api/dossiers/:dossierId/questionnaire', requireAuth, async (req, res) 
 });
 
 app.patch('/api/dossiers/:dossierId/questionnaire', requireAuth, async (req, res) => {
-  const dossier = await getDossier(req.params.dossierId);
+  let dossier = await getDossier(req.params.dossierId);
   if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
   const isOps = isInternalRole(req.auth?.role);
+  if (!isOps && dossier.userId && dossier.userId !== req.auth?.sub) {
+    return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+  }
+  if (!isOps && !dossier.userId) {
+    dossier = await claimDossierForUser(dossier.id, req.auth.sub) || dossier;
+  }
   const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
   if (!isOps && !isOwner) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
 
   const { dataPatch = {}, progressPercent = null } = req.body || {};
-  const updated = await updateDossierQuestionnaire({
-    dossierId: dossier.id,
-    dataPatch,
-    progressPercent,
-  });
-  return res.json({
-    ok: true,
-    dossier: updated,
-    questionnaire: updated?.dataJson ? JSON.parse(updated.dataJson) : {},
-    progressPercent: Number(updated?.progressPercent || 0),
-  });
+  try {
+    const updated = await updateDossierQuestionnaire({
+      dossierId: dossier.id,
+      dataPatch,
+      progressPercent,
+    });
+    return res.json({
+      ok: true,
+      dossier: updated,
+      questionnaire: updated?.dataJson ? JSON.parse(updated.dataJson) : {},
+      progressPercent: Number(updated?.progressPercent || 0),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      error: 'QUESTIONNAIRE_SAVE_FAILED',
+      message: error?.message || 'Save failed',
+    });
+  }
 });
 
 app.post('/api/dossiers/:dossierId/complete-step', requireAuth, async (req, res) => {
-  const dossier = await getDossier(req.params.dossierId);
+  let dossier = await getDossier(req.params.dossierId);
   if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  const isOps = isInternalRole(req.auth?.role);
+  if (!isOps && dossier.userId && dossier.userId !== req.auth?.sub) {
+    return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+  }
+  if (!isOps && !dossier.userId) {
+    dossier = await claimDossierForUser(dossier.id, req.auth.sub) || dossier;
+  }
   const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
-  if (!isOwner) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+  if (!isOps && !isOwner) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
 
   const { stepId, dataPatch = {}, progressPercent = null } = req.body || {};
-  if (stepId === 'validation') {
-    const docsBefore = await listDossierDocuments(dossier.id);
-    const riskBefore = computeDossierRisk({ dossier, documents: docsBefore });
-    if (riskBefore.identityVerificationBlocked) {
-      return res.status(409).json({
-        ok: false,
-        error: 'IDENTITY_VERIFICATION_REQUIRED',
-        risk: riskBefore,
-      });
-    }
+  let updated;
+  try {
+    updated = await updateDossierQuestionnaire({
+      dossierId: dossier.id,
+      dataPatch,
+      progressPercent,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      error: 'QUESTIONNAIRE_SAVE_FAILED',
+      message: error?.message || 'Save failed',
+    });
   }
-  const updated = await updateDossierQuestionnaire({
-    dossierId: dossier.id,
-    dataPatch,
-    progressPercent,
-  });
 
   const mergedData = updated?.dataJson ? JSON.parse(updated.dataJson) : {};
   if (stepId === 'contact' && mergedData.email) {

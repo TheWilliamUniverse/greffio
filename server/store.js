@@ -667,6 +667,21 @@ const getAllDossiers = async () => {
     .all();
 };
 
+const claimDossierForUser = async (dossierId, userId) => {
+  if (!dossierId || !userId) return null;
+  const dossier = await getDossier(dossierId);
+  if (!dossier) return null;
+  if (dossier.userId && dossier.userId !== userId) return null;
+  if (dossier.userId === userId) return dossier;
+  const updatedAt = nowIso();
+  if (hasPostgres) {
+    await query('UPDATE dossiers SET user_id = $1, updated_at = $2 WHERE id = $3 AND (user_id IS NULL OR user_id = $1)', [userId, updatedAt, dossierId]);
+  } else {
+    sqlite.prepare('UPDATE dossiers SET user_id = ?, updated_at = ? WHERE id = ? AND (user_id IS NULL OR user_id = ?)').run(userId, updatedAt, dossierId, userId);
+  }
+  return getDossier(dossierId);
+};
+
 const updateDossierQuestionnaire = async ({
   dossierId,
   dataPatch = {},
@@ -715,7 +730,11 @@ const updateDossierQuestionnaire = async ({
       `).run(updatedAt, dossierId, ...formalityRule.excludedDocumentKeys);
     }
   }
-  await syncMinorAssociateDocuments(dossierId, mergedData);
+  try {
+    await syncMinorAssociateDocuments(dossierId, mergedData);
+  } catch (error) {
+    console.error('[questionnaire] syncMinorAssociateDocuments failed:', error?.message || error);
+  }
   return getDossier(dossierId);
 };
 
@@ -1324,6 +1343,7 @@ export {
   getAllDossiers,
   getAllPayments,
   updateDossierQuestionnaire,
+  claimDossierForUser,
   listDossierEvents,
   transitionDossierStatus,
   upsertPayment,

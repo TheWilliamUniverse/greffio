@@ -35,6 +35,12 @@ export const isEiLikeLabel = (value = '') => {
     || normalized === 'EI';
 };
 
+export const STATUTES_SUPPORTED_FORMS = Object.freeze(['SAS', 'SASU', 'SARL', 'EURL', 'SCI']);
+
+export const isStatutesSupportedForm = (legalForm) => (
+  STATUTES_SUPPORTED_FORMS.includes(String(legalForm || '').toUpperCase())
+);
+
 export const isEiLikeFormality = (payload = {}) => {
   const values = [
     payload.formeJuridique,

@@ -1,4 +1,5 @@
 import { isLegallyMinor } from '@/config/minorAssociateRules.js';
+import { ASSOCIATE_TYPES, isAssociateEntryComplete } from '@/utils/associateEntry.js';
 
 export const DEMARCHE_CATEGORIES = [
   { id: 'creation', label: 'Création', description: 'Immatriculer une nouvelle structure' },
@@ -257,16 +258,32 @@ export const QUESTIONNAIRE_FLOW = [
   },
   {
     id: 'gouvernance',
-    title: 'Associés, dirigeant et bénéficiaires effectifs',
-    description: 'Complétez les personnes clés pour vos documents juridiques. Pour tout associé mineur, précisez s’il est légalement émancipé.',
+    title: 'Associés et dirigeant',
+    description: 'Personnes physiques ou morales. Pour un associé mineur, précisez s’il est légalement émancipé.',
     fields: [
       {
         key: 'associates',
-        label: 'Associés et statut mineur',
+        label: 'Associés',
         type: 'associates_minor_panel',
         required: true,
         condition: (data) => !isEiLikeFormality(data),
       },
+      {
+        key: 'dirigeant',
+        label: 'Président / dirigeant',
+        type: 'text',
+        required: true,
+        placeholder: 'Nom et prénom du dirigeant',
+        condition: (data) => !isEiLikeFormality(data),
+      },
+    ],
+  },
+  {
+    id: 'beneficiaires',
+    title: 'Bénéficiaires effectifs',
+    description: 'Indiquez les bénéficiaires effectifs si vous les connaissez déjà (sinon, complétion ultérieure possible).',
+    condition: (data) => !isEiLikeFormality(data),
+    fields: [
       {
         key: 'beneficiairesEffectifs',
         label: 'Bénéficiaires effectifs',
@@ -289,15 +306,42 @@ export const QUESTIONNAIRE_FLOW = [
 
 export const getProgressPercent = (stepIndex) => Math.round(((stepIndex + 1) / QUESTIONNAIRE_FLOW.length) * 100);
 
+export const getApplicableFlowSteps = (formData = {}) => (
+  QUESTIONNAIRE_FLOW.filter((step) => !step.condition || step.condition(formData))
+);
+
+export const getVisibleFieldsForStep = (step, formData = {}) => {
+  if (!step) return [];
+  if (step.condition && !step.condition(formData)) return [];
+  return step.fields.filter((field) => !field.condition || field.condition(formData));
+};
+
+/** Progression fine : une question validée = un cran (parcours adaptatif EI / PM, etc.). */
+export const getQuestionnaireProgressPercent = (formData = {}, stepIndex = 0, fieldIndex = 0) => {
+  let total = 0;
+  let answered = 0;
+  QUESTIONNAIRE_FLOW.forEach((flowStep, stepIdx) => {
+    if (flowStep.condition && !flowStep.condition(formData)) return;
+    const fields = getVisibleFieldsForStep(flowStep, formData);
+    total += fields.length;
+    if (stepIdx < stepIndex) {
+      answered += fields.length;
+    } else if (stepIdx === stepIndex) {
+      answered += Math.min(fieldIndex, fields.length);
+    }
+  });
+  if (!total) return 0;
+  return Math.min(100, Math.round((answered / total) * 100));
+};
+
 export const isFieldValueValid = (field, value, formData = {}) => {
   if (field.type === 'associates_minor_panel') {
     const associates = Array.isArray(formData.associates) ? formData.associates : [];
-    const hasAssociate = associates.some((a) => String(a.firstName || '').trim() && String(a.lastName || '').trim());
-    const directorOk = Boolean(String(formData.dirigeant || '').trim());
+    const hasAssociate = associates.some((a) => isAssociateEntryComplete(a));
     const minorsComplete = associates
-      .filter((a) => isLegallyMinor(a.birthDate))
-      .every((a) => a.isMinorEmancipated || String(a.legalRepresentatives || '').trim());
-    return hasAssociate && directorOk && minorsComplete;
+      .filter((a) => (a.associateType || ASSOCIATE_TYPES.PERSON) === ASSOCIATE_TYPES.PERSON && isLegallyMinor(a.birthDate))
+      .every((a) => a.isMinorEmancipated === true || String(a.legalRepresentatives || '').trim());
+    return hasAssociate && minorsComplete;
   }
   if (!field.required) return true;
   if (field.type === 'checkbox') return Boolean(value);
@@ -308,6 +352,9 @@ export const isFieldValueValid = (field, value, formData = {}) => {
   return true;
 };
 
-export const isStepComplete = (step, formData) => step.fields
-  .filter((field) => !field.condition || field.condition(formData))
-  .every((field) => isFieldValueValid(field, formData[field.key], formData));
+export const isStepComplete = (step, formData) => {
+  if (step.condition && !step.condition(formData)) return true;
+  const visibleFields = step.fields.filter((field) => !field.condition || field.condition(formData));
+  if (!visibleFields.length) return true;
+  return visibleFields.every((field) => isFieldValueValid(field, formData[field.key], formData));
+};

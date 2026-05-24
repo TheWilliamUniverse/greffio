@@ -4,10 +4,13 @@ import { Check } from 'lucide-react';
 export const ProgressiveStepChips = ({
   steps,
   activeIndex,
+  /** N’affiche que les étapes déjà atteintes (progression séquentielle). */
+  revealThroughIndex = null,
 }) => (
   <nav aria-label="Étapes du questionnaire" className="overflow-x-auto pb-1">
     <ol className="flex min-w-max items-center gap-1">
       {steps.map((step, index) => {
+        if (revealThroughIndex != null && index > revealThroughIndex) return null;
         const done = index < activeIndex;
         const active = index === activeIndex;
         return (

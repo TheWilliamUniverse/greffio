@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { QuestionnaireNotice } from '@/components/questionnaire/QuestionnaireNotice.jsx';
 import { getAgeYears, parseBirthDate } from '@/config/minorAssociateRules.js';
 
 const isFutureBirthDate = (value) => {
@@ -32,19 +32,18 @@ export const BirthDateMinorEncouragement = ({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
-          className={`mt-2 space-y-1 ${className}`.trim()}
+          className={className}
           role="status"
           aria-live="polite"
         >
-          <p className="text-sm leading-6 text-[hsl(var(--greffio-blue-900))]/80">
-            <Sparkles className="mr-1.5 inline h-4 w-4 shrink-0 text-[hsl(var(--greffio-citron))]" aria-hidden="true" />
-            Tu t&apos;y intéresses déjà à {age} ans ? Bravo, on est là pour t&apos;aider à transformer ta curiosité en ambition.
-          </p>
-          {showLegalHint ? (
-            <p className="pl-6 text-xs leading-5 text-muted-foreground/90">
-              Certaines démarches peuvent nécessiter l&apos;accord ou l&apos;accompagnement d&apos;un représentant légal.
-            </p>
-          ) : null}
+          <QuestionnaireNotice variant="tip" title={`Tu t’as lancé à ${age} ans — bravo.`}>
+            On est là pour transformer ta curiosité en ambition.
+            {showLegalHint ? (
+              <span className="mt-2 block text-xs leading-5 opacity-90">
+                Certaines démarches peuvent nécessiter l&apos;accord ou l&apos;accompagnement d&apos;un représentant légal.
+              </span>
+            ) : null}
+          </QuestionnaireNotice>
         </motion.div>
       ) : null}
     </AnimatePresence>

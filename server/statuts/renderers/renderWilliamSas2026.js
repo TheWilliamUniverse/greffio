@@ -22,6 +22,18 @@ export const renderAssociatesPreamble = (context) => {
   const lines = ['LES SOUSSIGNÉS :'];
   (context.associates || []).forEach((associate, index) => {
     if (index > 0) lines.push('ET');
+    if (associate.isLegalEntity) {
+      const parts = [
+        associate.fullName,
+        'société associée',
+        associate.siren ? `immatriculée au SIREN ${associate.siren}` : undefined,
+        associate.address ? `dont le siège social est situé ${associate.address}` : undefined,
+        associate.representativeName ? `représentée par ${associate.representativeName}` : undefined,
+        associate.roleLabel ? `agissant en qualité de ${associate.roleLabel}` : undefined,
+      ].filter(Boolean);
+      lines.push(`${parts.join(', ')}.`);
+      return;
+    }
     const identity = [
       associate.fullName,
       associate.address ? `demeurant ${associate.address}` : undefined,

@@ -1,19 +1,32 @@
-import React, { useMemo } from 'react';
-import { AlertCircle, Plus, Trash2 } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Building2, ChevronDown, Plus, Trash2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
+import { SegmentedChoice } from '@/components/questionnaire/SegmentedChoice.jsx';
 import {
   getMinorAssociateWarnings,
   isLegallyMinor,
   validateDirectorEligibility,
 } from '@/config/minorAssociateRules.js';
 import { BirthDateMinorEncouragement } from '@/components/BirthDateMinorEncouragement.jsx';
+import { QuestionnaireNotice } from '@/components/questionnaire/QuestionnaireNotice.jsx';
+import {
+  ASSOCIATE_TYPES,
+  buildAssociateDisplayName,
+  buildAssociatesSummary,
+} from '@/utils/associateEntry.js';
+
+const fieldClass = 'h-12 rounded-xl border-2 border-[#d4e2f5] bg-white px-3 text-sm font-medium focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/12';
 
 const emptyAssociate = () => ({
   id: `associate_${Math.random().toString(36).slice(2, 8)}`,
+  associateType: ASSOCIATE_TYPES.PERSON,
   firstName: '',
   lastName: '',
+  companyName: '',
+  siren: '',
+  representativeName: '',
   birthDate: '',
   address: '',
   share: '',
@@ -24,45 +37,58 @@ const emptyAssociate = () => ({
 
 const ROLE_OPTIONS = ['Associé', 'Associée', 'Président désigné', 'Directeur Général'];
 
-const buildSummary = (associates) => associates
-  .filter((a) => a.firstName || a.lastName)
-  .map((a) => {
-    const name = [a.firstName, a.lastName].filter(Boolean).join(' ');
-    const parts = [name, a.address, a.share ? `${a.share} %` : ''].filter(Boolean);
-    return parts.join(', ');
-  })
-  .join('\n');
-
-export const AssociatesMinorPanel = ({ value = [], onChange, dirigeant = '', onDirigeantChange }) => {
+export const AssociatesMinorPanel = ({
+  value = [],
+  onChange,
+  dirigeant = '',
+  onDirigeantChange,
+  includeDirector = false,
+}) => {
   const associates = Array.isArray(value) && value.length ? value : [emptyAssociate()];
+  const [expandedId, setExpandedId] = useState(associates[0]?.id || null);
 
   const updateAssociate = (index, patch) => {
     const next = associates.map((item, i) => {
       if (i !== index) return item;
       const merged = { ...item, ...patch };
-      const minor = isLegallyMinor(merged.birthDate);
-      if (!minor) {
+      if (merged.associateType === ASSOCIATE_TYPES.COMPANY) {
         merged.isMinorEmancipated = false;
         merged.legalRepresentatives = '';
-        if (merged.roleLabel !== 'Associé' && merged.roleLabel !== 'Associée') {
+        merged.birthDate = '';
+        if (!['Associé', 'Associée'].includes(merged.roleLabel)) {
+          merged.roleLabel = 'Associé';
+        }
+      } else {
+        const minor = isLegallyMinor(merged.birthDate);
+        if (!minor) {
+          merged.isMinorEmancipated = false;
+          merged.legalRepresentatives = '';
+        }
+        if (minor && !merged.isMinorEmancipated && ['Président désigné', 'Directeur Général'].includes(merged.roleLabel)) {
           merged.roleLabel = 'Associé';
         }
       }
-      if (minor && !merged.isMinorEmancipated && ['Président désigné', 'Directeur Général'].includes(merged.roleLabel)) {
-        merged.roleLabel = 'Associé';
-      }
       return merged;
     });
-    onChange({ associates: next, associesSummary: buildSummary(next) });
+    onChange({ associates: next, associesSummary: buildAssociatesSummary(next) });
   };
 
   const addAssociate = () => {
-    onChange({ associates: [...associates, emptyAssociate()], associesSummary: buildSummary([...associates, emptyAssociate()]) });
+    const entry = emptyAssociate();
+    setExpandedId(entry.id);
+    onChange({
+      associates: [...associates, entry],
+      associesSummary: buildAssociatesSummary([...associates, entry]),
+    });
   };
 
   const removeAssociate = (index) => {
     const next = associates.filter((_, i) => i !== index);
-    onChange({ associates: next.length ? next : [emptyAssociate()], associesSummary: buildSummary(next) });
+    const fallback = next.length ? next : [emptyAssociate()];
+    if (!fallback.some((a) => a.id === expandedId)) {
+      setExpandedId(fallback[0]?.id || null);
+    }
+    onChange({ associates: fallback, associesSummary: buildAssociatesSummary(fallback) });
   };
 
   const warnings = useMemo(
@@ -76,140 +102,232 @@ export const AssociatesMinorPanel = ({ value = [], onChange, dirigeant = '', onD
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border border-border bg-muted/40 p-4 text-sm leading-6 text-muted-foreground">
-        Pour chaque associé mineur, indiquez s&apos;il ou elle est <strong>légalement émancipé(e)</strong>.
-        {' '}Un mineur émancipé pourra exercer des fonctions de direction et devra joindre son ordonnance d&apos;émancipation.
-        {' '}Un mineur non émancipé pourra être associé (représenté par ses parents ou tuteur) mais pas dirigeant ; une autorisation parentale sera demandée.
-      </div>
+      <QuestionnaireNotice variant="info" title="Associés de la société">
+        Ajoutez chaque associé en <strong>personne physique</strong> ou <strong>personne morale</strong>.
+        Pour un mineur, indiquez s&apos;il est légalement émancipé ou représenté par ses parents/tuteur.
+      </QuestionnaireNotice>
 
       {associates.map((associate, index) => {
-        const minor = isLegallyMinor(associate.birthDate);
+        const isCompany = associate.associateType === ASSOCIATE_TYPES.COMPANY;
+        const minor = !isCompany && isLegallyMinor(associate.birthDate);
         const roleOptions = minor && !associate.isMinorEmancipated
           ? ['Associé', 'Associée']
           : ROLE_OPTIONS;
+        const displayName = buildAssociateDisplayName(associate) || `Associé ${index + 1}`;
+        const isExpanded = expandedId === associate.id || associates.length === 1;
 
         return (
-          <div key={associate.id || index} className="rounded-md border border-border bg-white p-4">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <p className="text-sm font-bold">Associé {index + 1}</p>
-              {associates.length > 1 ? (
-                <Button type="button" variant="ghost" size="sm" onClick={() => removeAssociate(index)}>
-                  <Trash2 className="mr-1 h-4 w-4" />
-                  Retirer
-                </Button>
-              ) : null}
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <Label>Prénom</Label>
-                <Input value={associate.firstName || ''} onChange={(e) => updateAssociate(index, { firstName: e.target.value })} />
-              </div>
-              <div>
-                <Label>Nom</Label>
-                <Input value={associate.lastName || ''} onChange={(e) => updateAssociate(index, { lastName: e.target.value })} />
-              </div>
-              <div>
-                <Label>Date de naissance</Label>
-                <Input
-                  type="date"
-                  value={associate.birthDate?.includes('/') ? '' : (associate.birthDate || '')}
-                  onChange={(e) => updateAssociate(index, { birthDate: e.target.value })}
-                />
-                <BirthDateMinorEncouragement birthDate={associate.birthDate} showLegalHint />
-              </div>
-              <div>
-                <Label>Quote-part (%)</Label>
-                <Input value={associate.share || ''} onChange={(e) => updateAssociate(index, { share: e.target.value })} placeholder="Ex. 50" />
-              </div>
-              <div className="sm:col-span-2">
-                <Label>Adresse</Label>
-                <Input value={associate.address || ''} onChange={(e) => updateAssociate(index, { address: e.target.value })} />
-              </div>
-              <div>
-                <Label>Rôle dans la société</Label>
-                <select
-                  className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  value={associate.roleLabel || 'Associé'}
-                  onChange={(e) => updateAssociate(index, { roleLabel: e.target.value })}
-                >
-                  {roleOptions.map((role) => (
-                    <option key={role} value={role}>{role}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {minor ? (
-              <div className="mt-4 space-y-3 rounded-md border border-amber-200 bg-amber-50 p-3">
-                <p className="text-sm font-semibold text-amber-900">Associé mineur</p>
-                <div>
-                  <Label>Légalement émancipé(e) ?</Label>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {[
-                      { value: true, label: 'Oui — ordonnance d’émancipation à joindre' },
-                      { value: false, label: 'Non — représenté(e) par ses représentants légaux' },
-                    ].map((option) => (
-                      <button
-                        key={String(option.value)}
-                        type="button"
-                        className={`rounded-md border px-3 py-2 text-sm ${associate.isMinorEmancipated === option.value ? 'border-primary bg-secondary font-semibold' : 'border-border bg-white'}`}
-                        onClick={() => updateAssociate(index, { isMinorEmancipated: option.value })}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
+          <div key={associate.id || index} className="overflow-hidden rounded-xl border border-[#d4e2f5] bg-white shadow-sm">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-muted/20"
+              onClick={() => setExpandedId(isExpanded ? null : associate.id)}
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                {isCompany ? <Building2 className="h-4 w-4 shrink-0 text-primary" /> : <User className="h-4 w-4 shrink-0 text-primary" />}
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold">{displayName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {isCompany ? 'Personne morale' : 'Personne physique'}
+                    {associate.share ? ` · ${associate.share} %` : ''}
+                  </p>
                 </div>
-                {!associate.isMinorEmancipated ? (
-                  <div>
-                    <Label>Représentants légaux (parents, tuteur)</Label>
-                    <Input
-                      value={associate.legalRepresentatives || ''}
-                      onChange={(e) => updateAssociate(index, { legalRepresentatives: e.target.value })}
-                      placeholder="Ex. Mme X et M. Y, en qualité de parents"
+              </div>
+              <div className="flex items-center gap-2">
+                {associates.length > 1 ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      removeAssociate(index);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                ) : null}
+                <ChevronDown className={`h-4 w-4 transition ${isExpanded ? 'rotate-180' : ''}`} />
+              </div>
+            </button>
+
+            {isExpanded ? (
+              <div className="space-y-4 border-t border-[#d4e2f5] px-4 pb-4 pt-3">
+                <div>
+                  <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Type d&apos;associé</Label>
+                  <div className="mt-2">
+                    <SegmentedChoice
+                      options={[
+                        { key: ASSOCIATE_TYPES.PERSON, label: 'Personne physique' },
+                        { key: ASSOCIATE_TYPES.COMPANY, label: 'Personne morale' },
+                      ]}
+                      value={associate.associateType || ASSOCIATE_TYPES.PERSON}
+                      onChange={(nextType) => updateAssociate(index, { associateType: nextType })}
                     />
                   </div>
+                </div>
+
+                {isCompany ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <Label>Dénomination sociale *</Label>
+                      <Input
+                        className={fieldClass}
+                        value={associate.companyName || ''}
+                        onChange={(e) => updateAssociate(index, { companyName: e.target.value })}
+                        placeholder="Ex. William Establishments SAS"
+                      />
+                    </div>
+                    <div>
+                      <Label>SIREN *</Label>
+                      <Input
+                        className={fieldClass}
+                        value={associate.siren || ''}
+                        onChange={(e) => updateAssociate(index, { siren: e.target.value.replace(/\D/g, '').slice(0, 9) })}
+                        placeholder="9 chiffres"
+                      />
+                    </div>
+                    <div>
+                      <Label>Représentant légal</Label>
+                      <Input
+                        className={fieldClass}
+                        value={associate.representativeName || ''}
+                        onChange={(e) => updateAssociate(index, { representativeName: e.target.value })}
+                        placeholder="Nom du signataire"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Label>Siège social / adresse *</Label>
+                      <Input
+                        className={fieldClass}
+                        value={associate.address || ''}
+                        onChange={(e) => updateAssociate(index, { address: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Quote-part (%)</Label>
+                      <Input
+                        className={fieldClass}
+                        value={associate.share || ''}
+                        onChange={(e) => updateAssociate(index, { share: e.target.value })}
+                        placeholder="Ex. 50"
+                      />
+                    </div>
+                    <div>
+                      <Label>Rôle dans la société</Label>
+                      <select
+                        className={`${fieldClass} w-full`}
+                        value={associate.roleLabel || 'Associé'}
+                        onChange={(e) => updateAssociate(index, { roleLabel: e.target.value })}
+                      >
+                        {['Associé', 'Associée'].map((role) => (
+                          <option key={role} value={role}>{role}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                 ) : (
-                  <p className="text-xs leading-5 text-amber-800">
-                    Après validation du dossier, déposez l&apos;ordonnance ou le jugement d&apos;émancipation dans votre espace Documents.
-                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <Label>Prénom *</Label>
+                      <Input className={fieldClass} value={associate.firstName || ''} onChange={(e) => updateAssociate(index, { firstName: e.target.value })} />
+                    </div>
+                    <div>
+                      <Label>Nom *</Label>
+                      <Input className={fieldClass} value={associate.lastName || ''} onChange={(e) => updateAssociate(index, { lastName: e.target.value })} />
+                    </div>
+                    <div>
+                      <Label>Date de naissance</Label>
+                      <Input
+                        type="date"
+                        className={fieldClass}
+                        value={associate.birthDate?.includes('/') ? '' : (associate.birthDate || '')}
+                        onChange={(e) => updateAssociate(index, { birthDate: e.target.value })}
+                      />
+                      <BirthDateMinorEncouragement birthDate={associate.birthDate} showLegalHint />
+                    </div>
+                    <div>
+                      <Label>Quote-part (%)</Label>
+                      <Input className={fieldClass} value={associate.share || ''} onChange={(e) => updateAssociate(index, { share: e.target.value })} placeholder="Ex. 50" />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Label>Adresse</Label>
+                      <Input className={fieldClass} value={associate.address || ''} onChange={(e) => updateAssociate(index, { address: e.target.value })} />
+                    </div>
+                    <div>
+                      <Label>Rôle dans la société</Label>
+                      <select
+                        className={`${fieldClass} w-full`}
+                        value={associate.roleLabel || 'Associé'}
+                        onChange={(e) => updateAssociate(index, { roleLabel: e.target.value })}
+                      >
+                        {roleOptions.map((role) => (
+                          <option key={role} value={role}>{role}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                 )}
+
+                {minor ? (
+                  <div className="space-y-3 rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50/70 to-white p-4">
+                    <p className="text-sm font-bold text-amber-950">Associé mineur</p>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { value: true, label: 'Oui — ordonnance d’émancipation à joindre' },
+                        { value: false, label: 'Non — représenté(e) par ses représentants légaux' },
+                      ].map((option) => (
+                        <button
+                          key={String(option.value)}
+                          type="button"
+                          className={`rounded-xl border px-3 py-2 text-sm ${associate.isMinorEmancipated === option.value ? 'border-primary bg-white font-semibold shadow-sm' : 'border-border bg-white/80'}`}
+                          onClick={() => updateAssociate(index, { isMinorEmancipated: option.value })}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                    {!associate.isMinorEmancipated ? (
+                      <div>
+                        <Label>Représentants légaux</Label>
+                        <Input
+                          className={fieldClass}
+                          value={associate.legalRepresentatives || ''}
+                          onChange={(e) => updateAssociate(index, { legalRepresentatives: e.target.value })}
+                          placeholder="Ex. Mme X et M. Y"
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>
         );
       })}
 
-      <Button type="button" variant="outline" onClick={addAssociate}>
+      <Button type="button" variant="outline" className="h-12 w-full rounded-xl border-2 border-dashed border-primary/30 bg-white text-primary hover:bg-secondary/40" onClick={addAssociate}>
         <Plus className="mr-2 h-4 w-4" />
         Ajouter un associé
       </Button>
 
-      <div>
-        <Label>Président / dirigeant *</Label>
-        <Input
-          value={dirigeant}
-          onChange={(e) => onDirigeantChange?.(e.target.value)}
-          placeholder="Nom et prénom du dirigeant"
-          className={!directorCheck.ok ? 'border-red-500' : ''}
-        />
-        {!directorCheck.ok ? (
-          <p className="mt-2 text-sm text-red-600">{directorCheck.message}</p>
-        ) : null}
-      </div>
+      {includeDirector ? (
+        <div className="rounded-xl border border-[#d4e2f5] bg-white p-4">
+          <Label>Président / dirigeant *</Label>
+          <Input
+            value={dirigeant}
+            onChange={(e) => onDirigeantChange?.(e.target.value)}
+            placeholder="Nom et prénom du dirigeant"
+            className={`${fieldClass} mt-2 ${!directorCheck.ok ? 'border-red-500' : ''}`}
+          />
+          {!directorCheck.ok ? (
+            <p className="mt-2 text-sm text-red-600">{directorCheck.message}</p>
+          ) : null}
+        </div>
+      ) : null}
 
       {warnings.length ? (
-        <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          <div className="mb-2 flex items-center gap-2 font-semibold">
-            <AlertCircle className="h-4 w-4" />
-            Points de vigilance
-          </div>
-          <ul className="list-disc space-y-1 pl-5">
-            {warnings.map((warning) => (
-              <li key={warning}>{warning}</li>
-            ))}
-          </ul>
-        </div>
+        <QuestionnaireNotice variant="vigilance" title="Points de vigilance" items={warnings} />
       ) : null}
     </div>
   );

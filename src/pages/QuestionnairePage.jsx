@@ -11,13 +11,15 @@ import { DemarchePicker } from '@/components/questionnaire/DemarchePicker.jsx';
 import { SegmentedChoice } from '@/components/questionnaire/SegmentedChoice.jsx';
 import { AutosaveIndicator } from '@/components/questionnaire/AutosaveIndicator.jsx';
 import { SecurityNotice } from '@/components/questionnaire/SecurityNotice.jsx';
+import { QuestionnaireNotice } from '@/components/questionnaire/QuestionnaireNotice.jsx';
 import { ProgressiveStepChips } from '@/components/ProgressiveStepChips.jsx';
 import { CompanyLookupCard } from '@/components/CompanyLookupCard.jsx';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   EXISTING_BUSINESS_FORMALITIES,
   QUESTIONNAIRE_FLOW,
-  getProgressPercent,
+  getQuestionnaireProgressPercent,
+  getVisibleFieldsForStep,
   isFieldValueValid,
   isStepComplete,
 } from '@/lib/questionnaireFlow.js';
@@ -30,13 +32,14 @@ import { lookupCompanyBySiren } from '@/api/company.js';
 import { createDossier } from '@/api/dossiers.js';
 import { getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.js';
 import { runtimeConfig } from '@/config/runtime.js';
-import { isEiLikeFormality } from '@/config/formalities.js';
+import { isEiLikeFormality, isStatutesSupportedForm } from '@/config/formalities.js';
 import { AssociatesMinorPanel } from '@/components/questionnaire/AssociatesMinorPanel.jsx';
 import { BirthDateMinorEncouragement } from '@/components/BirthDateMinorEncouragement.jsx';
 import { validateDirectorEligibility } from '@/config/minorAssociateRules.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { fetchUserProfile } from '@/api/profile.js';
 import { contactDetailsFromUser } from '@/utils/userProfile.js';
+import { getIntelligentPrefill } from '@/api/intelligentIntake.js';
 
 const defaultData = {
   initiatorType: 'personne_physique',
@@ -73,7 +76,8 @@ const STEP_TITLES_BY_ID = Object.freeze({
   demarche: 'Type de formalité',
   forme: 'Structure',
   entreprise: 'Informations',
-  gouvernance: 'Gouvernance',
+  gouvernance: 'Associés',
+  beneficiaires: 'Bénéficiaires',
   validation: 'Validation',
 });
 const PROGRESSIVE_STEPS = QUESTIONNAIRE_FLOW.map((flowStep) => ({
@@ -114,25 +118,40 @@ export const QuestionnairePage = () => {
   const [reference, setReference] = useState(makeUiReference());
   const [formData, setFormData] = useState(defaultData);
   const [stepIndex, setStepIndex] = useState(0);
+  const [fieldIndex, setFieldIndex] = useState(0);
   const [autosaveState, setAutosaveState] = useState('idle');
+  const wizardTopRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [intakeHints, setIntakeHints] = useState({ score: null, warnings: [], issues: [] });
   const [stepError, setStepError] = useState('');
 
   const step = QUESTIONNAIRE_FLOW[stepIndex];
-  const progress = getProgressPercent(stepIndex);
   const visibleStepFields = useMemo(
-    () => step.fields.filter((field) => !field.condition || field.condition(formData)),
-    [step.fields, formData],
+    () => getVisibleFieldsForStep(step, formData),
+    [step, formData],
   );
-  const missingRequiredFields = useMemo(
-    () => visibleStepFields
-      .filter((field) => field.required && !isFieldValueValid(field, formData[field.key]))
-      .map((field) => field.label),
-    [visibleStepFields, formData],
-  );
-  const canGoNext = isStepComplete(step, formData)
+  const safeFieldIndex = visibleStepFields.length
+    ? Math.min(fieldIndex, visibleStepFields.length - 1)
+    : 0;
+  const activeField = visibleStepFields[safeFieldIndex] || null;
+  const isLastFieldInStep = visibleStepFields.length > 0 && safeFieldIndex === visibleStepFields.length - 1;
+  const progress = getQuestionnaireProgressPercent(formData, stepIndex, safeFieldIndex);
+  const canAdvanceCurrentField = useMemo(() => {
+    if (!activeField) return false;
+    const valid = isFieldValueValid(activeField, formData[activeField.key], formData);
+    if (activeField.key === 'dirigeant') {
+      return valid && validateDirectorEligibility(formData).ok;
+    }
+    return valid;
+  }, [activeField, formData]);
+  const canCompleteStep = isStepComplete(step, formData)
     && (step.id !== 'gouvernance' || validateDirectorEligibility(formData).ok);
+  const canContinue = isLastFieldInStep ? canCompleteStep : canAdvanceCurrentField;
+  const continueLabel = isLastFieldInStep && stepIndex >= QUESTIONNAIRE_FLOW.length - 1
+    ? 'Valider et continuer'
+    : isLastFieldInStep
+      ? 'Étape suivante'
+      : 'Continuer';
 
   const contactPayload = useMemo(() => ({
     initiatorType: formData.initiatorType,
@@ -165,6 +184,57 @@ export const QuestionnairePage = () => {
   const [foundCompany, setFoundCompany] = useState(null);
   const [foundCompanyFieldKey, setFoundCompanyFieldKey] = useState('companySiren');
   const lastAutoLookup = useRef('');
+  const autosaveRequestId = useRef(0);
+
+  const ensureDossier = async () => {
+    if (dossierId) return dossierId;
+    const created = await createDossier({
+      userId: null,
+      companyName: formData.denomination || 'Projet Greffio',
+      legalForm: formData.formeJuridique || 'SASU',
+      service: normalizeFormalityToService(formData.typeFormalite, formData.formeJuridique),
+    });
+    const id = created?.dossier?.id || null;
+    if (id) {
+      saveCurrentDossierId(id);
+      setDossierId(id);
+    }
+    return id;
+  };
+
+  const persistQuestionnaire = async ({
+    dataPatch,
+    progressPercent,
+    allowRecovery = true,
+  }) => {
+    let targetId = dossierId || await ensureDossier();
+    if (!targetId) {
+      const error = new Error('DOSSIER_MISSING');
+      error.code = 'DOSSIER_MISSING';
+      throw error;
+    }
+    try {
+      return await patchQuestionnaireState({
+        dossierId: targetId,
+        dataPatch,
+        progressPercent,
+      });
+    } catch (error) {
+      if (allowRecovery && (error?.status === 403 || error?.status === 404)) {
+        saveCurrentDossierId(null);
+        setDossierId(null);
+        targetId = await ensureDossier();
+        if (targetId) {
+          return await patchQuestionnaireState({
+            dossierId: targetId,
+            dataPatch,
+            progressPercent,
+          });
+        }
+      }
+      throw error;
+    }
+  };
 
   const lookupSiren = async (fieldKey = 'companySiren') => {
     const value = sanitizeCompanyIdentifier(formData[fieldKey]);
@@ -240,7 +310,38 @@ export const QuestionnairePage = () => {
 
         let mergedData = { ...defaultData };
         if (currentDossierId) {
-          const state = await getQuestionnaireState(currentDossierId);
+          let state;
+          try {
+            state = await getQuestionnaireState(currentDossierId);
+          } catch (loadError) {
+            if (loadError?.status === 403 || loadError?.status === 404) {
+              saveCurrentDossierId(null);
+              currentDossierId = null;
+            } else {
+              throw loadError;
+            }
+          }
+          if (!currentDossierId) {
+            const created = await createDossier({
+              userId: null,
+              companyName: 'Projet Greffio',
+              legalForm: 'SASU',
+              service: 'creation-sasu',
+            });
+            currentDossierId = created?.dossier?.id || null;
+            if (currentDossierId) {
+              saveCurrentDossierId(currentDossierId);
+              setDossierId(currentDossierId);
+            }
+          }
+          if (!currentDossierId) {
+            setFormData(mergedData);
+            setLoading(false);
+            return;
+          }
+          if (!state) {
+            state = await getQuestionnaireState(currentDossierId);
+          }
           const fromApi = state.reference || state?.dossier?.reference || '';
           const finalReference = isModernReference(fromApi)
             ? fromApi
@@ -290,20 +391,58 @@ export const QuestionnairePage = () => {
   useEffect(() => {
     if (!dossierId || loading) return;
     const timeout = window.setTimeout(async () => {
+      const requestId = autosaveRequestId.current + 1;
+      autosaveRequestId.current = requestId;
       try {
         setAutosaveState('saving');
-        await patchQuestionnaireState({
-          dossierId,
+        await persistQuestionnaire({
           dataPatch: formData,
           progressPercent: progress,
         });
+        if (autosaveRequestId.current !== requestId) return;
         setAutosaveState('saved');
-      } catch (_error) {
+        setStepError((current) => (
+          current && current.includes('enregistrement') ? '' : current
+        ));
+      } catch (error) {
+        if (autosaveRequestId.current !== requestId) return;
+        if (error?.status === 401) {
+          setAutosaveState('idle');
+          return;
+        }
         setAutosaveState('error');
       }
-    }, 650);
+    }, 900);
     return () => window.clearTimeout(timeout);
   }, [dossierId, formData, progress, loading]);
+
+  useEffect(() => {
+    setFieldIndex(0);
+  }, [stepIndex]);
+
+  useEffect(() => {
+    if (fieldIndex !== safeFieldIndex) {
+      setFieldIndex(safeFieldIndex);
+    }
+  }, [fieldIndex, safeFieldIndex]);
+
+  useEffect(() => {
+    if (loading || visibleStepFields.length > 0) return;
+    let next = stepIndex + 1;
+    while (next < QUESTIONNAIRE_FLOW.length) {
+      const nextStep = QUESTIONNAIRE_FLOW[next];
+      if (getVisibleFieldsForStep(nextStep, formData).length) {
+        setStepIndex(next);
+        setFieldIndex(0);
+        return;
+      }
+      next += 1;
+    }
+  }, [loading, stepIndex, visibleStepFields.length, formData]);
+
+  useEffect(() => {
+    wizardTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [stepIndex, safeFieldIndex]);
 
   const updateField = (field, value) => {
     if ((field.key === 'companySiren' || field.key === 'existingBusinessSiren') && String(value || '').trim() !== String(formData[field.key] || '').trim()) {
@@ -319,43 +458,88 @@ export const QuestionnairePage = () => {
 
   const goNext = async () => {
     setStepError('');
-    if (!canGoNext) {
-      const details = missingRequiredFields.length
-        ? `Champs manquants: ${missingRequiredFields.join(', ')}.`
-        : 'Complétez les champs requis avant de continuer.';
-      setStepError(details);
-      toast.error('Complétez les champs requis avant de continuer.');
+    if (!canContinue) {
+      const label = activeField?.label || 'ce champ';
+      setStepError(`Complétez « ${label} » avant de continuer.`);
+      toast.error('Répondez à la question affichée pour continuer.');
       return;
     }
-    if (!dossierId) return;
+    if (!isLastFieldInStep) {
+      setFieldIndex((current) => Math.min(current + 1, visibleStepFields.length - 1));
+      return;
+    }
     try {
       setAutosaveState('saving');
+      await persistQuestionnaire({
+        dataPatch: step.id === 'contact' ? contactPayload : formData,
+        progressPercent: progress,
+      });
+      const activeDossierId = dossierId || getCurrentDossierId();
+      if (!activeDossierId) {
+        setStepError('Impossible de créer le dossier. Rechargez la page.');
+        setAutosaveState('error');
+        return;
+      }
       await completeQuestionnaireStep({
-        dossierId,
+        dossierId: activeDossierId,
         stepId: step.id,
         dataPatch: step.id === 'contact' ? contactPayload : formData,
         progressPercent: progress,
       });
       setAutosaveState('saved');
-    } catch (_error) {
-      if (_error?.message === 'IDENTITY_VERIFICATION_REQUIRED') {
-        setStepError("La vérification d'identité est requise pour finaliser le dossier (dernière étape).");
-        toast.error("Finalisation bloquée: vérification d'identité requise.");
+    } catch (error) {
+      const apiError = error?.payload?.error || error?.message;
+      if (apiError === 'DOSSIER_FORBIDDEN') {
+        setStepError('Ce dossier n’est pas rattaché à votre compte. Rechargez la page ou créez un nouveau dossier.');
+      } else if (apiError === 'IDENTITY_VERIFICATION_REQUIRED') {
+        setStepError("La vérification d'identité sera demandée avant le dépôt officiel, pas à cette étape.");
       } else {
         setStepError("Une erreur est survenue pendant l'enregistrement. Réessayez.");
       }
       setAutosaveState('error');
+      toast.error('Enregistrement impossible pour le moment.');
       return;
     }
 
     if (stepIndex >= QUESTIONNAIRE_FLOW.length - 1) {
-      navigate('/dashboard');
+      toast.success('Questionnaire enregistré.');
+      const form = String(formData.formeJuridique || '').toUpperCase();
+      if (!eiLike && isStatutesSupportedForm(form)) {
+        navigate('/statuts');
+      } else {
+        navigate('/dashboard');
+      }
       return;
     }
-    setStepIndex((current) => current + 1);
+    let nextIndex = stepIndex + 1;
+    while (nextIndex < QUESTIONNAIRE_FLOW.length) {
+      const nextStep = QUESTIONNAIRE_FLOW[nextIndex];
+      const visibleFields = nextStep.fields.filter((field) => !field.condition || field.condition(formData));
+      if (visibleFields.length) break;
+      nextIndex += 1;
+    }
+    setStepIndex(nextIndex);
+    setFieldIndex(0);
   };
 
-  const goBack = () => setStepIndex((current) => Math.max(0, current - 1));
+  const goBack = () => {
+    if (safeFieldIndex > 0) {
+      setFieldIndex((current) => Math.max(0, current - 1));
+      return;
+    }
+    if (stepIndex <= 0) return;
+    let prev = stepIndex - 1;
+    while (prev >= 0) {
+      const prevStep = QUESTIONNAIRE_FLOW[prev];
+      const fields = getVisibleFieldsForStep(prevStep, formData);
+      if (fields.length) {
+        setStepIndex(prev);
+        setFieldIndex(fields.length - 1);
+        return;
+      }
+      prev -= 1;
+    }
+  };
 
   const applyFoundCompany = () => {
     if (!foundCompany) return;
@@ -408,8 +592,197 @@ export const QuestionnairePage = () => {
     );
   }
 
+  const renderQuestionField = (field) => {
+    if (!field) return null;
+    if (field.type === 'select') {
+      const options = field.options || [];
+      const normalizedOptions = options.map((option) => (
+        typeof option === 'string'
+          ? { value: option, label: option }
+          : { value: option.key, label: option.label }
+      ));
+
+      if (field.key === 'typeFormalite') {
+        return (
+          <div key={field.key}>
+            <Label className="text-base font-semibold">{field.label}{field.required ? ' *' : ''}</Label>
+            <div className="mt-3">
+              <DemarchePicker
+                value={formData.typeFormalite}
+                onChange={(nextValue) => updateField(field, nextValue)}
+              />
+            </div>
+          </div>
+        );
+      }
+
+      const isBinaryChoice = normalizedOptions.length === 2;
+      return (
+        <div key={field.key}>
+          <Label className={isBinaryChoice ? 'text-base font-semibold' : ''}>
+            {field.label}{field.required ? ' *' : ''}
+          </Label>
+          <div className={`mt-2 ${isBinaryChoice ? '' : 'grid gap-2 sm:grid-cols-2 xl:grid-cols-3'}`}>
+            {isBinaryChoice ? (
+              <SegmentedChoice
+                options={options}
+                value={formData[field.key]}
+                onChange={(nextValue) => updateField(field, nextValue)}
+              />
+            ) : normalizedOptions.map((option) => (
+              <ChoiceCard
+                key={option.value}
+                compact
+                selected={String(formData[field.key] || '') === String(option.value)}
+                title={option.label}
+                onClick={() => updateField(field, option.value)}
+              />
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (field.type === 'checkbox') {
+      return (
+        <label key={field.key} className="flex items-start gap-3 rounded-xl border border-[#d4e2f5] bg-muted/40 p-5">
+          <input
+            type="checkbox"
+            checked={Boolean(formData[field.key])}
+            onChange={(event) => updateField(field, event.target.checked)}
+            className="mt-1"
+          />
+          <span className="text-sm leading-6 text-muted-foreground">{field.label}</span>
+        </label>
+      );
+    }
+
+    if (field.type === 'associates_minor_panel') {
+      return (
+        <div key={field.key}>
+          <AssociatesMinorPanel
+            value={formData.associates}
+            includeDirector={false}
+            onChange={(patch) => setFormData((current) => ({
+              ...current,
+              ...patch,
+              repartition: patch.associesSummary || current.repartition,
+            }))}
+          />
+        </div>
+      );
+    }
+
+    if (field.key === 'dirigeant') {
+      const directorCheck = validateDirectorEligibility(formData);
+      return (
+        <div key={field.key} className="space-y-3">
+          <Label>{field.label}{field.required ? ' *' : ''}</Label>
+          <Input
+            value={formData.dirigeant || ''}
+            onChange={(event) => setFormData((current) => ({ ...current, dirigeant: event.target.value }))}
+            placeholder={field.placeholder || ''}
+            className={`${fieldClass} ${!directorCheck.ok ? 'border-red-400' : ''}`}
+          />
+          {!directorCheck.ok ? (
+            <QuestionnaireNotice variant="error" title="Fonction de direction">
+              {directorCheck.message}
+            </QuestionnaireNotice>
+          ) : null}
+        </div>
+      );
+    }
+
+    if (field.type === 'date') {
+      const dateValue = formData[field.key] || '';
+      const showLegalHint = field.key === 'birthDate';
+      return (
+        <div key={field.key} className="space-y-2">
+          <Label htmlFor={field.key}>{field.label}{field.required ? ' *' : ''}</Label>
+          <Input
+            id={field.key}
+            type="date"
+            value={dateValue}
+            onChange={(event) => updateField(field, event.target.value)}
+            className={fieldClass}
+          />
+          {showLegalHint ? (
+            <BirthDateMinorEncouragement birthDate={dateValue} showLegalHint />
+          ) : null}
+        </div>
+      );
+    }
+
+    const value = formData[field.key] ?? '';
+    const invalid = field.required && !isFieldValueValid(field, value, formData);
+
+    if (field.type === 'textarea') {
+      return (
+        <div key={field.key} className="space-y-2">
+          <Label>{field.label}{field.required ? ' *' : ''}</Label>
+          <textarea
+            value={value}
+            placeholder={field.placeholder || ''}
+            rows={4}
+            onChange={(event) => updateField(field, event.target.value)}
+            className={`${fieldClass} min-h-[110px] w-full ${invalid && String(value).length > 0 ? 'border-red-400' : ''}`}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div key={field.key} className="space-y-2">
+        <Label>{field.label}{field.required ? ' *' : ''}</Label>
+        <Input
+          type={field.type === 'number' ? 'number' : field.type}
+          value={value}
+          placeholder={field.placeholder || ''}
+          onChange={(event) => {
+            const nextValue = field.key === 'companySiren' || field.key === 'existingBusinessSiren'
+              ? sanitizeCompanyIdentifier(event.target.value)
+              : event.target.value;
+            updateField(field, nextValue);
+          }}
+          className={`${fieldClass} ${invalid && String(value).length > 0 ? 'border-red-400' : ''}`}
+        />
+        {field.key === 'companySiren' && formData.initiatorType === 'personne_morale' ? (
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="outline" className="bg-white" onClick={() => lookupSiren('companySiren')} disabled={![9, 14].includes(String(formData.companySiren || '').trim().length) || sirenLookupState === 'loading'}>
+              Recherche automatique annuaire
+            </Button>
+            {sirenLookupState === 'loading' ? <span className="text-xs text-muted-foreground">Recherche...</span> : null}
+            {sirenLookupState === 'done' ? <span className="text-xs text-emerald-600">Entreprise trouvée</span> : null}
+            {sirenLookupState === 'error' ? <span className="text-xs text-red-600">Aucune correspondance</span> : null}
+          </div>
+        ) : null}
+        {field.key === 'existingBusinessSiren' && EXISTING_BUSINESS_FORMALITIES.has(String(formData.typeFormalite || '')) ? (
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="outline" className="bg-white" onClick={() => lookupSiren('existingBusinessSiren')} disabled={![9, 14].includes(String(formData.existingBusinessSiren || '').trim().length) || sirenLookupState === 'loading'}>
+              Recherche automatique annuaire
+            </Button>
+            {sirenLookupState === 'loading' ? <span className="text-xs text-muted-foreground">Recherche...</span> : null}
+            {sirenLookupState === 'done' ? <span className="text-xs text-emerald-600">Entreprise trouvée</span> : null}
+            {sirenLookupState === 'error' ? <span className="text-xs text-red-600">Aucune correspondance</span> : null}
+          </div>
+        ) : null}
+        {(field.key === 'companySiren' || field.key === 'existingBusinessSiren') && sirenLookupMessage ? (
+          <p className={`text-xs ${sirenLookupState === 'error' ? 'text-red-600' : 'text-emerald-600'}`}>
+            {sirenLookupMessage}
+          </p>
+        ) : null}
+        {(field.key === 'companySiren' || field.key === 'existingBusinessSiren') && foundCompany && foundCompanyFieldKey === field.key ? (
+          <CompanyLookupCard company={foundCompany} onUse={applyFoundCompany} />
+        ) : null}
+        {invalid && String(value).length > 0 ? (
+          <p className="text-xs text-red-600">Ce champ est requis.</p>
+        ) : null}
+      </div>
+    );
+  };
+
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+    <div ref={wizardTopRef} className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
       <StepLayout
         title={step.title}
         description={step.description}
@@ -421,255 +794,88 @@ export const QuestionnairePage = () => {
         onBack={goBack}
         onNext={goNext}
         onEnterNext={goNext}
-        canGoBack={stepIndex > 0}
-        canGoNext={canGoNext}
+        canGoBack={stepIndex > 0 || safeFieldIndex > 0}
+        canGoNext={canContinue}
+        continueLabel={continueLabel}
       >
         {stepError ? (
-          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+          <QuestionnaireNotice variant="error" title="Enregistrement">
             {stepError}
-          </div>
+          </QuestionnaireNotice>
         ) : null}
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/15 bg-secondary/40 px-4 py-3">
-          <div>
-            <p className="text-sm font-semibold text-foreground">Auto-collecte intelligente</p>
-            <p className="text-xs text-muted-foreground">Préremplissage depuis SIREN/SIRET ou documents OCR</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+
+        <ProgressiveStepChips
+          steps={PROGRESSIVE_STEPS}
+          activeIndex={stepIndex}
+          revealThroughIndex={stepIndex}
+        />
+
+        {visibleStepFields.length > 1 ? (
+          <p className="text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Question {safeFieldIndex + 1} sur {visibleStepFields.length}
+            <span className="mx-2 text-border">·</span>
+            {STEP_TITLES_BY_ID[step.id] || step.title}
+          </p>
+        ) : null}
+
+        {step.id === 'contact' && safeFieldIndex === 0 ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/15 bg-secondary/40 px-4 py-3">
+            <div>
+              <p className="text-sm font-semibold text-foreground">Auto-collecte intelligente</p>
+              <p className="text-xs text-muted-foreground">Préremplissage depuis SIREN/SIRET ou documents OCR</p>
+            </div>
             <Button type="button" variant="outline" className="h-9 rounded-xl bg-white text-xs" onClick={applyIntelligentPrefill}>
               Préremplir
             </Button>
-            {typeof intakeHints.score === 'number' ? (
-              <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-primary ring-1 ring-primary/15">
-                Cohérence {intakeHints.score}/100
-              </span>
-            ) : null}
           </div>
-          {intakeHints.issues.length ? (
-            <p className="w-full text-xs text-red-600">Blocages : {intakeHints.issues.join(' · ')}</p>
-          ) : null}
-          {intakeHints.warnings.length ? (
-            <p className="w-full text-xs text-amber-700">À vérifier : {intakeHints.warnings.join(' · ')}</p>
-          ) : null}
-        </div>
-        <ProgressiveStepChips steps={PROGRESSIVE_STEPS} activeIndex={stepIndex} />
+        ) : null}
+
         <AnimatePresence mode="wait">
           <motion.div
-            key={step.id}
-            initial={{ opacity: 0, y: 10 }}
+            key={`${step.id}-${activeField?.key || safeFieldIndex}`}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="grid gap-4"
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.22 }}
+            className="min-h-[12rem] rounded-xl border border-[#d4e2f5] bg-[#fafcff] p-5 md:p-6"
           >
-          {step.fields
-            .filter((field) => !field.condition || field.condition(formData))
-            .map((field) => {
-            if (field.type === 'select') {
-              const options = field.options || [];
-              const normalizedOptions = options.map((option) => (
-                typeof option === 'string'
-                  ? { value: option, label: option }
-                  : { value: option.key, label: option.label }
-              ));
-
-              if (field.key === 'typeFormalite') {
-                return (
-                  <div key={field.key}>
-                    <Label className="text-base font-semibold">{field.label}{field.required ? ' *' : ''}</Label>
-                    <div className="mt-3">
-                      <DemarchePicker
-                        value={formData.typeFormalite}
-                        onChange={(nextValue) => updateField(field, nextValue)}
-                      />
-                    </div>
-                  </div>
-                );
-              }
-
-              const isBinaryChoice = normalizedOptions.length === 2;
-              return (
-                <div key={field.key}>
-                  <Label className={isBinaryChoice ? 'text-base font-semibold' : ''}>
-                    {field.label}{field.required ? ' *' : ''}
-                  </Label>
-                  <div className={`mt-2 ${isBinaryChoice ? '' : 'grid gap-2 sm:grid-cols-2 xl:grid-cols-3'}`}>
-                    {isBinaryChoice ? (
-                      <SegmentedChoice
-                        options={options}
-                        value={formData[field.key]}
-                        onChange={(nextValue) => updateField(field, nextValue)}
-                      />
-                    ) : normalizedOptions.map((option) => (
-                      <ChoiceCard
-                        key={option.value}
-                        compact
-                        selected={String(formData[field.key] || '') === String(option.value)}
-                        title={option.label}
-                        onClick={() => updateField(field, option.value)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            }
-
-            if (field.type === 'checkbox') {
-              return (
-                <label key={field.key} className="flex items-start gap-3 rounded-md border border-border bg-muted p-4">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(formData[field.key])}
-                    onChange={(event) => updateField(field, event.target.checked)}
-                    className="mt-1"
-                  />
-                  <span className="text-sm leading-6 text-muted-foreground">{field.label}</span>
-                </label>
-              );
-            }
-
-            if (field.type === 'associates_minor_panel') {
-              return (
-                <div key={field.key}>
-                  <AssociatesMinorPanel
-                    value={formData.associates}
-                    dirigeant={formData.dirigeant || ''}
-                    onDirigeantChange={(nextDirector) => setFormData((current) => ({ ...current, dirigeant: nextDirector }))}
-                    onChange={(patch) => setFormData((current) => ({
-                      ...current,
-                      ...patch,
-                      repartition: (patch.associates || current.associates || [])
-                        .map((a) => `${[a.firstName, a.lastName].filter(Boolean).join(' ')} ${a.share ? `${a.share}%` : ''}`.trim())
-                        .filter(Boolean)
-                        .join(' · '),
-                    }))}
-                  />
-                </div>
-              );
-            }
-
-            if (field.type === 'date') {
-              const dateValue = formData[field.key] || '';
-              const showLegalHint = field.key === 'birthDate';
-              return (
-                <div key={field.key} className="space-y-2">
-                  <Label htmlFor={field.key}>{field.label}{field.required ? ' *' : ''}</Label>
-                  <Input
-                    id={field.key}
-                    type="date"
-                    value={dateValue}
-                    onChange={(event) => updateField(field, event.target.value)}
-                    className={fieldClass}
-                  />
-                  {showLegalHint ? (
-                    <BirthDateMinorEncouragement birthDate={dateValue} showLegalHint />
-                  ) : null}
-                </div>
-              );
-            }
-
-            const value = formData[field.key] ?? '';
-            const invalid = !isFieldValueValid(field, value);
-
-            if (field.type === 'textarea') {
-              return (
-                <div key={field.key} className="space-y-2">
-                  <Label>{field.label}{field.required ? ' *' : ''}</Label>
-                  <textarea
-                    value={value}
-                    placeholder={field.placeholder || ''}
-                    rows={4}
-                    onChange={(event) => updateField(field, event.target.value)}
-                    className={`${fieldClass} min-h-[110px] w-full ${invalid && String(value).length > 0 ? 'border-red-400' : ''}`}
-                  />
-                </div>
-              );
-            }
-
-            return (
-              <div key={field.key} className="space-y-2">
-                <Label>{field.label}{field.required ? ' *' : ''}</Label>
-                <Input
-                  type={field.type === 'number' ? 'number' : field.type}
-                  value={value}
-                  placeholder={field.placeholder || ''}
-                  onChange={(event) => {
-                    const nextValue = field.key === 'companySiren' || field.key === 'existingBusinessSiren'
-                      ? sanitizeCompanyIdentifier(event.target.value)
-                      : event.target.value;
-                    updateField(field, nextValue);
-                  }}
-                  className={`${fieldClass} ${invalid && String(value).length > 0 ? 'border-red-400' : ''}`}
-                />
-                {field.key === 'companySiren' && formData.initiatorType === 'personne_morale' ? (
-                  <div className="flex items-center gap-2">
-                    <Button type="button" variant="outline" className="bg-white" onClick={() => lookupSiren('companySiren')} disabled={![9, 14].includes(String(formData.companySiren || '').trim().length) || sirenLookupState === 'loading'}>
-                      Recherche automatique annuaire
-                    </Button>
-                    {sirenLookupState === 'loading' ? <span className="text-xs text-muted-foreground">Recherche...</span> : null}
-                    {sirenLookupState === 'done' ? <span className="text-xs text-emerald-600">Entreprise trouvée</span> : null}
-                    {sirenLookupState === 'error' ? <span className="text-xs text-red-600">Aucune correspondance</span> : null}
-                  </div>
-                ) : null}
-                {field.key === 'existingBusinessSiren' && EXISTING_BUSINESS_FORMALITIES.has(String(formData.typeFormalite || '')) ? (
-                  <div className="flex items-center gap-2">
-                    <Button type="button" variant="outline" className="bg-white" onClick={() => lookupSiren('existingBusinessSiren')} disabled={![9, 14].includes(String(formData.existingBusinessSiren || '').trim().length) || sirenLookupState === 'loading'}>
-                      Recherche automatique annuaire
-                    </Button>
-                    {sirenLookupState === 'loading' ? <span className="text-xs text-muted-foreground">Recherche...</span> : null}
-                    {sirenLookupState === 'done' ? <span className="text-xs text-emerald-600">Entreprise trouvée</span> : null}
-                    {sirenLookupState === 'error' ? <span className="text-xs text-red-600">Aucune correspondance</span> : null}
-                  </div>
-                ) : null}
-                {(field.key === 'companySiren' || field.key === 'existingBusinessSiren') && sirenLookupMessage ? (
-                  <p className={`text-xs ${sirenLookupState === 'error' ? 'text-red-600' : 'text-emerald-600'}`}>
-                    {sirenLookupMessage}
-                  </p>
-                ) : null}
-                {(field.key === 'companySiren' || field.key === 'existingBusinessSiren') && foundCompany && foundCompanyFieldKey === field.key ? (
-                  <CompanyLookupCard company={foundCompany} onUse={applyFoundCompany} />
-                ) : null}
-                {invalid && String(value).length > 0 ? (
-                  <p className="text-xs text-red-600">Ce champ est requis.</p>
-                ) : null}
-              </div>
-            );
-          })}
+            {renderQuestionField(activeField)}
           </motion.div>
         </AnimatePresence>
-        {(formData.initiatorType === 'personne_morale'
-          || EXISTING_BUSINESS_FORMALITIES.has(String(formData.typeFormalite || ''))) ? (
-          <div className="space-y-2 rounded-md border border-border bg-white p-3 text-xs text-muted-foreground">
-            <p>Source de vérification entreprise : Annuaire des entreprises (Data.gouv).</p>
+
+        {(activeField?.key === 'companySiren' || activeField?.key === 'existingBusinessSiren')
+          && (formData.initiatorType === 'personne_morale'
+            || EXISTING_BUSINESS_FORMALITIES.has(String(formData.typeFormalite || ''))) ? (
+          <QuestionnaireNotice variant="info" title="Vérification entreprise">
+            Source : Annuaire des entreprises (Data.gouv).
             {EXISTING_BUSINESS_FORMALITIES.has(String(formData.typeFormalite || '')) ? (
-              <div className="rounded-md border border-primary/20 bg-secondary p-2">
-                <p className="font-bold text-foreground">Signature électronique qualifiée nécessaire</p>
-                <p className="mt-1">
-                  Hors formalité de création, la finalisation nécessite une signature qualifiée ou FranceConnect+.
-                </p>
-              </div>
+              <span className="mt-2 block">
+                Hors création, une signature électronique qualifiée ou FranceConnect+ pourra être demandée.
+              </span>
             ) : null}
-          </div>
+          </QuestionnaireNotice>
         ) : null}
-        {missingRequiredFields.length > 0 ? (
-          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-            Champs requis restants: {missingRequiredFields.join(', ')}
-          </div>
+
+        {step.id === 'validation' ? (
+          <QuestionnaireNotice variant="document" title="Prochaine étape">
+            Après validation, vous accéderez à la génération de vos documents (statuts si votre forme le prévoit).
+          </QuestionnaireNotice>
         ) : null}
-        <div className="rounded-md border border-border bg-muted p-3 text-xs text-muted-foreground">
-          <strong className="mr-1">i</strong>
-          {eiLike
-            ? "Pour EI/micro-entreprise, le parcours ne comporte pas de statuts ni d'exigence d'associés ou de capital social."
-            : 'L’extrait Kbis et la déclaration des bénéficiaires effectifs pourront être demandés ultérieurement selon votre dossier.'}
-        </div>
+
+        {!eiLike && step.id === 'beneficiaires' ? (
+          <QuestionnaireNotice variant="info" title="Bénéficiaires effectifs">
+            L&apos;extrait Kbis et la déclaration des bénéficiaires effectifs pourront être demandés ultérieurement selon votre dossier.
+          </QuestionnaireNotice>
+        ) : null}
       </StepLayout>
 
       <div className="mt-4 rounded-md border border-border bg-white p-4 text-xs text-muted-foreground">
         Contact Greffio: {runtimeConfig.supportPhone} — {runtimeConfig.supportEmail}
       </div>
-      {!canGoNext && !stepError ? (
-        <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-          Complétez tous les champs requis de cette étape pour continuer.
-        </div>
+      {!canContinue && !stepError ? (
+        <QuestionnaireNotice variant="vigilance" title="Pour continuer" className="mt-3">
+          Répondez à la question ci-dessus, puis cliquez sur « {continueLabel} ».
+        </QuestionnaireNotice>
       ) : null}
       <div className="mt-3 rounded-md border border-border bg-muted p-3 text-xs text-muted-foreground">
         Greffio est un service privé indépendant d’assistance aux démarches administratives des entreprises. Greffio n’est pas un service officiel de l’État, des greffes des tribunaux de commerce ou d’Infogreffe.

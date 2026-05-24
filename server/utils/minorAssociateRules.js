@@ -53,12 +53,30 @@ export const isYoungEntrepreneurEligible = (birthDateValue, maxAge = 25) => {
 const buildAssociateLabel = (entry = {}) => {
   const label = String(entry.label || '').trim();
   if (label) return label;
+  if (entry.associateType === 'personne_morale') {
+    return String(entry.companyName || entry.raisonSociale || '').trim();
+  }
   return [entry.firstName, entry.lastName].filter(Boolean).join(' ').trim();
 };
 
 export const normalizeAssociatesFromQuestionnaire = (questionnaire = {}) => {
   const list = Array.isArray(questionnaire.associates) ? questionnaire.associates : [];
   return list.map((entry, index) => {
+    if (entry.associateType === 'personne_morale') {
+      return {
+        id: entry.id || `associate_${index + 1}`,
+        label: buildAssociateLabel(entry),
+        associateType: 'personne_morale',
+        companyName: entry.companyName || '',
+        siren: entry.siren || '',
+        address: entry.address || '',
+        share: entry.share || '',
+        roleLabel: entry.roleLabel || entry.role || 'Associé',
+        isMinor: false,
+        isMinorEmancipated: false,
+        legalRepresentatives: '',
+      };
+    }
     const birthDate = entry.birthDate || '';
     const minorFromAge = isLegallyMinor(birthDate);
     const isMinor = entry.isMinor != null ? Boolean(entry.isMinor) : minorFromAge;
