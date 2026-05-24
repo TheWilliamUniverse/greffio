@@ -336,7 +336,14 @@ app.post('/api/assistant', assistantLimiter, requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error('ASSISTANT_API_FAILED', error);
-    return res.status(502).json({ ok: false, error: 'ASSISTANT_UNAVAILABLE' });
+    return res.json({
+      ok: true,
+      answer: 'Je n’ai pas pu générer la réponse pour le moment. Réessayez dans quelques secondes.',
+      provider: 'local_fallback',
+      model: null,
+      configured: isAssistantConfigured(),
+      degraded: true,
+    });
   }
 });
 const loginFailureTracker = new Map();

@@ -46,7 +46,7 @@ export default function IntegratedAiChat() {
     } catch (_error) {
       setMessages((current) => [
         ...current,
-        { role: 'assistant', content: 'Assistant temporairement indisponible. Réessayez dans quelques secondes.' },
+        { role: 'assistant', content: 'Je n’ai pas pu joindre l’assistant pour le moment. Réessayez dans quelques secondes ou contactez l’équipe Greffio.' },
       ]);
     } finally {
       setSending(false);
