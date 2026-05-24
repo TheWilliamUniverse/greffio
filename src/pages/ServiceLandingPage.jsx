@@ -25,9 +25,7 @@ export const ServiceLandingPage = () => {
     <main className="min-h-screen bg-background">
       <header className="border-b border-border bg-white px-6 py-4">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <Link to="/">
-            <GreffioLogo variant="full" />
-          </Link>
+          <GreffioLogo variant="full" to="/" />
           <Button asChild variant="outline" className="bg-white">
             <Link to="/questionnaire">Démarrer</Link>
           </Button>

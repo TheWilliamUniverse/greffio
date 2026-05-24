@@ -1,19 +1,20 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils.js';
 
-export const GreffioLogo = ({ variant = 'full', className = '' }) => {
+export const GreffioLogo = ({ variant = 'full', className = '', to }) => {
   const isIconOnly = variant === 'icon-only' || variant === 'mark';
   const isTile = variant === 'tile' || variant === 'inverse';
 
-  return (
-    <motion.div
+  const logo = (
+    <motion.span
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -1 }}
       transition={{ duration: 0.25 }}
-      className={cn('inline-flex items-center select-none', className)}
-      aria-label="Greffio"
+      className={cn('inline-flex items-center select-none', !to && className)}
+      aria-hidden={Boolean(to)}
     >
       {isIconOnly ? (
         <span className="logo-sheen inline-flex h-11 w-11 items-center justify-center rounded-md bg-[hsl(var(--greffio-blue))] text-xl font-extrabold text-white shadow-elevation-sm">
@@ -32,6 +33,23 @@ export const GreffioLogo = ({ variant = 'full', className = '' }) => {
           Greffio
         </span>
       )}
-    </motion.div>
+    </motion.span>
   );
+
+  if (to) {
+    return (
+      <Link
+        to={to}
+        className={cn(
+          'inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+          className,
+        )}
+        aria-label="Greffio — Retour à l’accueil"
+      >
+        {logo}
+      </Link>
+    );
+  }
+
+  return logo;
 };

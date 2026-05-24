@@ -60,7 +60,7 @@ export const PasswordResetPage = () => {
     <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-background px-4 py-12">
       <section className="w-full max-w-md rounded-md border border-border bg-white p-8 shadow-elevation-md">
         <div className="mb-7">
-          <GreffioLogo variant="full" />
+          <GreffioLogo variant="full" to="/" />
         </div>
 
         {submitted ? (

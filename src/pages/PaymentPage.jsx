@@ -94,9 +94,7 @@ export const PaymentPage = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-white px-6 py-4">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <Link to="/">
-            <GreffioLogo variant="full" />
-          </Link>
+          <GreffioLogo variant="full" to="/" />
           <Button variant="outline" asChild className="bg-white">
             <Link to="/mentions-legales">CGV</Link>
           </Button>

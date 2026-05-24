@@ -11,11 +11,13 @@ import { ServiceOrderDrawer } from '@/components/resources/ServiceOrderDrawer.js
 import { getGuideById } from '@/config/resourceGuides.js';
 import {
   CERTIFIED_COPIES,
+  FREE_RESOURCE_HIGHLIGHTS,
   getCatalogItemById,
   GUIDES,
   OFFICIAL_DOCUMENTS,
   PACKS,
   QUICK_TOOLS,
+  sortFreeFirst,
 } from '@/config/resourceServices.js';
 import { searchResources } from '@/utils/resourceSearch.js';
 import { useAuth } from '@/hooks/useAuth.js';
@@ -124,9 +126,7 @@ export const ResourcesPage = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-white px-6 py-4">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <Link to="/">
-            <GreffioLogo variant="full" />
-          </Link>
+          <GreffioLogo variant="full" to="/" />
           <Button asChild>
             <Link to="/simulateur">
               Démarrer
@@ -153,10 +153,20 @@ export const ResourcesPage = () => {
         />
 
         <ResourceSectionGrid
+          id="gratuit"
+          title="Gratuit pour démarrer"
+          subtitle="Guides, outils et vérifications accessibles sans frais — commencez ici."
+          items={FREE_RESOURCE_HIGHLIGHTS}
+          onAction={handleResourceAction}
+          columns="md:grid-cols-2 xl:grid-cols-4"
+          highlight
+        />
+
+        <ResourceSectionGrid
           id="documents-officiels"
           title="Documents officiels"
           subtitle="Extraits et attestations pour sécuriser vos démarches, sans quitter Greffio."
-          items={OFFICIAL_DOCUMENTS}
+          items={sortFreeFirst(OFFICIAL_DOCUMENTS)}
           onAction={handleResourceAction}
         />
 
@@ -164,7 +174,7 @@ export const ResourcesPage = () => {
           id="copies-actes"
           title="Copies et actes"
           subtitle="Reproductions certifiées et pièces déposées au registre."
-          items={CERTIFIED_COPIES}
+          items={sortFreeFirst(CERTIFIED_COPIES)}
           onAction={handleResourceAction}
         />
 
@@ -172,7 +182,7 @@ export const ResourcesPage = () => {
           id="packs-greffio"
           title="Packs Greffio"
           subtitle="Ensembles documentaires premium pour vos formalités récurrentes."
-          items={PACKS}
+          items={sortFreeFirst(PACKS)}
           onAction={handleResourceAction}
           columns="md:grid-cols-2 xl:grid-cols-3"
         />

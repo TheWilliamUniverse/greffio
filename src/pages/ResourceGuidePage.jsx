@@ -20,9 +20,7 @@ export const ResourceGuidePage = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-white px-6 py-4">
         <div className="mx-auto flex max-w-3xl items-center justify-between">
-          <Link to="/">
-            <GreffioLogo variant="full" />
-          </Link>
+          <GreffioLogo variant="full" to="/" />
           <Button variant="outline" asChild size="sm">
             <Link to="/ressources">
               <ArrowLeft className="mr-2 h-4 w-4" />

@@ -108,9 +108,7 @@ export const GuidePage = () => (
   <div className="min-h-screen bg-background">
     <header className="border-b border-border bg-white px-6 py-4">
       <div className="mx-auto flex max-w-7xl items-center justify-between">
-        <Link to="/">
-          <GreffioLogo variant="full" />
-        </Link>
+        <GreffioLogo variant="full" to="/" />
         <div className="flex gap-2">
           <Button variant="outline" asChild className="bg-white">
             <Link to="/contact">Contact</Link>

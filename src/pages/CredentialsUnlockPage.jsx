@@ -64,7 +64,7 @@ export const CredentialsUnlockPage = () => {
         </Link>
 
         <div className="mb-8 flex justify-center">
-          <GreffioLogo variant="full" />
+          <GreffioLogo variant="full" to="/" />
         </div>
 
         <div className="rounded-md border border-border bg-white p-6 shadow-elevation-sm">

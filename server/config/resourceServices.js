@@ -38,12 +38,23 @@ const item = (entry) => ({
 });
 
 export const QUICK_ACCESS = [
+  { id: 'qa-guides', guideId: 'guide-kbis', label: 'Guides gratuits', icon: 'book' },
+  { id: 'qa-verify', serviceId: 'company-verify', label: 'Vérifier une entreprise', icon: 'search' },
+  { id: 'qa-siren', toolId: 'tool-siren', label: 'Vérifier un SIREN', icon: 'search' },
   { id: 'qa-kbis', serviceId: 'kbis-extract', label: 'Obtenir un Kbis', icon: 'file-badge' },
   { id: 'qa-certified', serviceId: 'certified-statutes', label: 'Copie certifiée', icon: 'stamp' },
-  { id: 'qa-verify', serviceId: 'company-verify', label: 'Vérifier une entreprise', icon: 'search' },
   { id: 'qa-dossier-docs', toolId: 'tool-dossier-docs', label: 'Documents de mon dossier', icon: 'folder', requiresAuth: true },
-  { id: 'qa-guides', guideId: 'guide-kbis', label: 'Consulter les guides', icon: 'book' },
 ];
+
+export const isResourceFree = (item) => !item?.priceTtc || Number(item.priceTtc) <= 0;
+
+/** Tri psychologique : gratuits d’abord */
+export const sortFreeFirst = (items) => [...items].sort((a, b) => {
+  const aFree = isResourceFree(a);
+  const bFree = isResourceFree(b);
+  if (aFree !== bFree) return aFree ? -1 : 1;
+  return 0;
+});
 
 export const POPULAR_SEARCHES = [
   'Extrait Kbis',
@@ -561,6 +572,12 @@ export const QUICK_TOOLS = [
     requiresAuth: true,
   }),
 ];
+
+export const FREE_RESOURCE_HIGHLIGHTS = sortFreeFirst([
+  ...SIMPLE_SERVICES.filter(isResourceFree),
+  ...QUICK_TOOLS,
+  ...GUIDES,
+]).slice(0, 8);
 
 export const LEGACY_ESTIMATORS = [
   { id: 'legacy-form', title: 'Simulateur de forme juridique', text: 'Comparer SAS, SARL, SA, EI, SCI et autres formes.', to: '/simulateur?type=statuts' },

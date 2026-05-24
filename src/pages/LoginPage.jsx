@@ -128,7 +128,7 @@ export const LoginPage = () => {
   return (
     <div className="grid min-h-[calc(100vh-4rem)] bg-background lg:grid-cols-[1.05fr_0.95fr]">
       <section className="hidden bg-[hsl(var(--greffio-blue))] p-10 text-white lg:flex lg:flex-col lg:justify-between">
-        <GreffioLogo variant="inverse" />
+        <GreffioLogo variant="inverse" to="/" />
         <div className="max-w-xl">
           <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-bold">
             <ShieldCheck className="h-4 w-4" />
@@ -153,6 +153,9 @@ export const LoginPage = () => {
         >
           {step === 'credentials' ? (
             <>
+              <div className="mb-6 lg:hidden">
+                <GreffioLogo variant="full" to="/" />
+              </div>
               <div>
                 <LockKeyhole className="mb-5 h-9 w-9 text-primary" />
                 <h2 className="text-3xl font-extrabold">Connexion</h2>

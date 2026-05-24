@@ -36,7 +36,7 @@ export const CookiesPage = () => (
   <main className="min-h-screen bg-background px-4 py-10 sm:px-6 lg:px-8">
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex items-center justify-between gap-4">
-        <GreffioLogo variant="full" />
+        <GreffioLogo variant="full" to="/" />
         <Button variant="outline" asChild className="bg-white">
           <Link to="/">Accueil</Link>
         </Button>
