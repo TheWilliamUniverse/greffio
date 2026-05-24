@@ -8,6 +8,7 @@ import { LandingPage } from '@/pages/LandingPage.jsx';
 import { FormalityWizardPage } from '@/pages/FormalityWizardPage.jsx';
 import { SignupPage } from '@/pages/SignupPage.jsx';
 import { LoginPage } from '@/pages/LoginPage.jsx';
+import { PasswordResetPage } from '@/pages/PasswordResetPage.jsx';
 import { CredentialsUnlockPage } from '@/pages/CredentialsUnlockPage.jsx';
 import { DashboardPage } from '@/pages/DashboardPage.jsx';
 import { DossiersPage } from '@/pages/DossiersPage.jsx';
