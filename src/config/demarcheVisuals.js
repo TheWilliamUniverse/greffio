@@ -10,7 +10,6 @@ const ICONS = {
 const defaultsByCategory = {
   creation: {
     icon: ICONS.creation,
-    iconBg: 'bg-sky-100',
     badge: 'Essentiel',
     groupLabel: 'CRÉATION',
     footerLabel: 'Dossier guidé',
@@ -18,7 +17,6 @@ const defaultsByCategory = {
   },
   etablissements: {
     icon: ICONS.etablissementAdd,
-    iconBg: 'bg-amber-100',
     badge: 'Déploiement',
     groupLabel: 'ÉTABLISSEMENT',
     footerLabel: 'Parcours cadré',
@@ -26,7 +24,6 @@ const defaultsByCategory = {
   },
   modifications: {
     icon: ICONS.modification,
-    iconBg: 'bg-emerald-100',
     badge: 'Courant',
     groupLabel: 'VIE SOCIALE',
     footerLabel: 'Suivi greffe',
@@ -34,7 +31,6 @@ const defaultsByCategory = {
   },
   gestion: {
     icon: ICONS.modification,
-    iconBg: 'bg-violet-100',
     badge: 'Vie sociale',
     groupLabel: 'GESTION',
     footerLabel: 'Suivi dossier',
@@ -42,7 +38,6 @@ const defaultsByCategory = {
   },
   autres: {
     icon: ICONS.creation,
-    iconBg: 'bg-slate-100',
     badge: 'Spécifique',
     groupLabel: 'AUTRES',
     footerLabel: 'Accompagnement',
@@ -59,7 +54,6 @@ export const DEMARCHE_VISUALS = {
     eta: '48h',
     badge: 'Essentiel',
     icon: ICONS.creation,
-    iconBg: 'bg-sky-100',
   },
   creation_sasu: {
     groupLabel: 'CRÉATION',
@@ -121,7 +115,6 @@ export const DEMARCHE_VISUALS = {
     groupLabel: 'CESSATION',
     description: 'Radiation ou fermeture d’un établissement secondaire.',
     icon: ICONS.etablissementClose,
-    iconBg: 'bg-orange-100',
     badge: 'Clôture',
     footerLabel: 'Suivi dossier',
     eta: '5j',
@@ -137,7 +130,6 @@ export const DEMARCHE_VISUALS = {
     groupLabel: 'SIÈGE SOCIAL',
     description: 'Déplacement de l’adresse officielle de l’entreprise.',
     icon: ICONS.siegeTransfer,
-    iconBg: 'bg-sky-100',
     badge: 'Adresse',
     footerLabel: 'Pièces guidées',
     eta: '72h',
@@ -146,7 +138,6 @@ export const DEMARCHE_VISUALS = {
     groupLabel: 'GOUVERNANCE',
     description: 'Nomination, remplacement ou cessation d’un mandataire.',
     icon: ICONS.dirigeant,
-    iconBg: 'bg-emerald-100',
     badge: 'Gouvernance',
     footerLabel: 'Dossier guidé',
     eta: '96h',
@@ -213,7 +204,6 @@ export const DEMARCHE_VISUALS = {
     groupLabel: 'CESSATION',
     description: 'Clôture définitive de la société avec dissolution et radiation.',
     icon: ICONS.etablissementClose,
-    iconBg: 'bg-orange-100',
     badge: 'Clôture',
     footerLabel: 'Suivi dossier',
     eta: '15j',

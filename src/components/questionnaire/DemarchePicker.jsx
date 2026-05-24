@@ -93,7 +93,7 @@ export const DemarchePicker = ({ value, onChange }) => {
                 <p className="text-xs text-muted-foreground">{category.description}</p>
               </div>
             ) : null}
-            <ul className="grid gap-3 sm:grid-cols-2">
+            <ul className="grid gap-4 sm:grid-cols-2">
               {items.map((item) => (
                 <li key={item.key}>
                   <FormalityChoiceCard
