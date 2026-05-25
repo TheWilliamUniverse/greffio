@@ -107,13 +107,13 @@ export const LandingPage = () => {
               Création, modifications, documents, signature, échanges avec l’équipe Greffio et suivi greffe dans un espace client complet.
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <Button asChild size="lg" className="h-12 justify-between px-6 text-base">
+              <Button asChild size="lg" className="relative h-12 w-full justify-center px-12 text-center text-base sm:w-auto sm:justify-between sm:px-6">
                 <Link to="/simulateur?type=statuts">
-                  Générer mes statuts
-                  <ArrowRight className="h-5 w-5" />
+                  <span className="block w-full text-center sm:w-auto">Générer mes statuts</span>
+                  <ArrowRight className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 sm:static sm:translate-y-0" />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="h-12 bg-white px-6 text-base">
+              <Button asChild size="lg" variant="outline" className="h-12 w-full justify-center bg-white px-6 text-center text-base sm:w-auto">
                 <Link to="/login">Accéder au dashboard</Link>
               </Button>
             </div>
@@ -277,13 +277,22 @@ export const LandingPage = () => {
           </div>
           <div className="grid gap-4 md:grid-cols-[1fr_auto]">
             <input
-              className="h-11 rounded-md border border-input px-3 text-sm"
+              type="search"
+              inputMode="numeric"
+              autoComplete="off"
+              className="h-11 rounded-md border border-input px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--greffio-blue))]/30"
               placeholder="SIREN (9) ou SIRET (14)"
               value={lookupIdentifier}
               onChange={(event) => {
                 setLookupIdentifier(event.target.value);
                 setLookupError('');
                 setLookupCompany(null);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !lookupLoading) {
+                  event.preventDefault();
+                  void performLookup();
+                }
               }}
             />
             <Button className="h-11" onClick={() => void performLookup()} disabled={lookupLoading}>

@@ -13,6 +13,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar.jsx';
+import { MobileSidebarDrawer, MobileSidebarTrigger } from '@/components/MobileSidebarDrawer.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Card, CardContent } from '@/components/ui/card.jsx';
@@ -30,6 +31,7 @@ export const DashboardPage = () => {
   const { currentUser, updateProfile } = useAuth();
   const [dossiers, setDossiers] = useState([]);
   const [documents, setDocuments] = useState([]);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const notifications = [];
   const [loadingApi, setLoadingApi] = useState(true);
   const [showLoginAlertsPrompt, setShowLoginAlertsPrompt] = useState(
@@ -170,8 +172,15 @@ export const DashboardPage = () => {
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto p-5 md:p-8">
+      <MobileSidebarDrawer open={isMobileNavOpen} onClose={() => setIsMobileNavOpen(false)} />
+      <main className="flex-1 overflow-y-auto p-5 pb-28 md:p-8">
         <div className="mx-auto max-w-7xl space-y-7">
+          <div className="flex items-center justify-between gap-3 md:hidden">
+            <MobileSidebarTrigger onClick={() => setIsMobileNavOpen(true)} />
+            <p className="truncate text-sm font-semibold text-muted-foreground">
+              Cockpit Greffio
+            </p>
+          </div>
           <RememberMfaDeviceBanner />
           {showLoginAlertsPrompt ? (
             <LoginAlertsPromptBanner

@@ -49,6 +49,7 @@ import { MobileAccountPage } from '@/mobile/MobileAccountPage.jsx';
 import { DashboardEntry } from '@/mobile/DashboardEntry.jsx';
 import { BiometricSessionProvider } from '@/context/BiometricSessionContext.jsx';
 import { shouldUseMobileShell, isCapacitorNative } from '@/utils/platform.js';
+import { WebMobileBottomNav } from '@/components/WebMobileBottomNav.jsx';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -85,6 +86,7 @@ const Layout = ({ children }) => {
     <div className="flex min-h-screen flex-col font-['Inter']">
       {!shouldHideHeader && <Header />}
       {content}
+      <WebMobileBottomNav />
     </div>
   );
 };

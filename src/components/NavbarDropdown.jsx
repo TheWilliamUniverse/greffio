@@ -157,9 +157,36 @@ export const NavbarDropdown = () => {
           </Button>
         </div>
 
-        <button onClick={() => setIsMobileOpen((value) => !value)} className="inline-flex rounded-md border border-border p-2 lg:hidden">
-          {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        <div className="flex items-center gap-1.5 lg:hidden">
+          <a
+            href="/#inpi-like-lookup"
+            aria-label="Recherche entreprise"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-white text-[#0a1220] transition hover:bg-muted"
+          >
+            <Search className="h-4 w-4" />
+          </a>
+          <Link
+            to="/login"
+            aria-label="Connexion"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-white text-[#0a1220] transition hover:bg-muted"
+          >
+            <User className="h-4 w-4" />
+          </Link>
+          <Link
+            to="/simulateur?type=creation"
+            className="hidden h-9 items-center gap-1 rounded-md bg-[#0f1f3d] px-3 text-xs font-semibold text-white transition hover:bg-[#0f1f3d]/92 sm:inline-flex"
+          >
+            Créer mon espace
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+          <button
+            onClick={() => setIsMobileOpen((value) => !value)}
+            aria-label={isMobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-white text-[#0a1220] transition hover:bg-muted"
+          >
+            {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       <AnimatePresence>
@@ -179,10 +206,16 @@ export const NavbarDropdown = () => {
               ))}
               <div className="grid grid-cols-2 gap-3 pt-2">
                 <Button variant="outline" asChild className="bg-white">
-                  <Link to="/login">Connexion</Link>
+                  <Link to="/login" onClick={() => setIsMobileOpen(false)}>
+                    <User className="h-4 w-4" />
+                    Connexion
+                  </Link>
                 </Button>
-                <Button asChild>
-                  <Link to="/simulateur">Démarrer</Link>
+                <Button asChild className="bg-[#0f1f3d] hover:bg-[#0f1f3d]/92">
+                  <Link to="/simulateur?type=creation" onClick={() => setIsMobileOpen(false)}>
+                    Créer mon espace
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
                 </Button>
               </div>
             </div>
