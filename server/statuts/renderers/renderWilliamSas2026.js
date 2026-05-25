@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { sanitizeWilliamTemplateParagraphs } from './williamParagraphSanitizer.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_PATH = path.join(__dirname, '../templates/williamEstablishmentsSas2026.model.json');
@@ -18,10 +19,47 @@ const parseFrenchAmount = (value) => {
   return Number(normalized) || 0;
 };
 
+const formatBirthDateFr = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) return raw;
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+  const parsed = new Date(raw);
+  if (!Number.isNaN(parsed.getTime())) {
+    return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(parsed);
+  }
+  return raw;
+};
+
+const renderDefinitionsAndObjetActe = (context) => {
+  const unique = (context.associates || []).length <= 1;
+  const lines = [
+    'Définitions :',
+    'Aux fins des présents statuts, les termes ci-dessous ont la signification suivante :',
+    unique
+      ? `Associé unique : désigne ${context.associates?.[0]?.fullName || 'l\'associé identifié aux présentes'}.`
+      : 'Associé(s) : désigne toute personne physique ou morale titulaire d\'au moins une action dans la Société, à la date de constitution ou ultérieurement.',
+    'Dirigeant(s) : désigne le Président de la Société, ainsi que tout Directeur Général nommé par la Société.',
+    'Société : désigne la Société par Actions Simplifiée en formation, régie par les présents statuts et les textes juridiques en vigueur, et destinée à acquérir la personnalité morale à son immatriculation au Registre du Commerce et des Sociétés.',
+    'Objet du présent acte :',
+    unique
+      ? 'L\'associé unique convient d\'établir les présents statuts, qui régissent l\'organisation, et le fonctionnement de la Société.'
+      : 'Les Associés conviennent d\'établir entre eux les présents statuts, qui régissent l\'organisation, et le fonctionnement de la Société.',
+    unique
+      ? 'Ces statuts s\'appliquent également à toute personne qui deviendrait ultérieurement associé de la Société.'
+      : 'Ces statuts s\'appliquent également à toute personne qui deviendrait ultérieurement Associé.',
+    'IL A ÉTÉ CONVENU ET DÉCIDÉ CE QUI SUIT :',
+  ];
+  return lines;
+};
+
 export const renderAssociatesPreamble = (context) => {
-  const lines = ['LES SOUSSIGNÉS :'];
-  (context.associates || []).forEach((associate, index) => {
-    if (index > 0) lines.push('ET');
+  const associates = context.associates || [];
+  const unique = associates.length <= 1;
+  const lines = [unique ? 'L\'ASSOCIÉ UNIQUE :' : 'LES SOUSSIGNÉS :'];
+  associates.forEach((associate, index) => {
+    if (index > 0 && !unique) lines.push('ET');
     if (associate.isLegalEntity) {
       const parts = [
         associate.fullName,
@@ -34,11 +72,12 @@ export const renderAssociatesPreamble = (context) => {
       lines.push(`${parts.join(', ')}.`);
       return;
     }
+    const birthDate = formatBirthDateFr(associate.birthDate);
     const identity = [
       associate.fullName,
       associate.address ? `demeurant ${associate.address}` : undefined,
-      associate.birthDate || associate.birthPlace
-        ? `né(e) le ${associate.birthDate ?? '[date à compléter]'} à ${associate.birthPlace ?? '[lieu à compléter]'}`
+      birthDate || associate.birthPlace
+        ? `né(e) le ${birthDate ?? '[date à compléter]'}${associate.birthPlace ? ` à ${associate.birthPlace}` : ''}`
         : undefined,
       associate.nationality ? `de nationalité ${associate.nationality}` : undefined,
       associate.isMinor && associate.isEmancipated ? 'mineur émancipé' : undefined,
@@ -46,10 +85,12 @@ export const renderAssociatesPreamble = (context) => {
     ].filter(Boolean).join(', ');
     lines.push(`${identity}.`);
     if (associate.isMinor && !associate.isEmancipated && associate.legalRepresentatives?.length) {
-      lines.push(`Représenté(e) légalement par ${associate.legalRepresentatives.join(' et ')}, jusqu’à sa majorité.`);
+      lines.push(`Représenté(e) légalement par ${associate.legalRepresentatives.join(' et ')}, jusqu'à sa majorité.`);
     }
   });
-  lines.push('Ci-après dénommés collectivement « les Associés »,');
+  if (!unique && associates.length > 1) {
+    lines.push('Ci-après dénommés collectivement « les Associés »,');
+  }
   return lines;
 };
 
@@ -61,7 +102,7 @@ export const renderCapitalDistribution = (context) => {
       : '[pourcentage à compléter]';
     const shares = associate.shares != null
       ? `soit ${associate.shares.toLocaleString('fr-FR')} actions`
-      : '[nombre d’actions à compléter]';
+      : '[nombre d\'actions à compléter]';
     lines.push(`${associate.fullName} : ${percent}, ${shares}.`);
   });
   return lines;
@@ -85,10 +126,10 @@ export const renderApports = (context) => {
         .reduce((a, b) => a + b, 0);
       lines.push(`Total apports en nature : ${total.toLocaleString('fr-FR')} euros.`);
     } else {
-      lines.push('Pas d’apports en nature.');
+      lines.push('Pas d\'apports en nature.');
     }
     if (associate.isMinor && !associate.isEmancipated) {
-      lines.push('Étant mineur(e) non émancipé(e) au jour de la constitution, la souscription et la libération sont réalisées pour son compte par ses représentants légaux conformément à l’article 382 du Code civil.');
+      lines.push('Étant mineur(e) non émancipé(e) au jour de la constitution, la souscription et la libération sont réalisées pour son compte par ses représentants légaux conformément à l\'article 382 du Code civil.');
     }
   });
   lines.push('Les associés ont décidé de ne pas recourir à un commissaire aux apports conformément à la loi.');
@@ -99,6 +140,43 @@ export const renderApports = (context) => {
   return lines;
 };
 
+const renderArticle6 = (context) => {
+  const minors = (context.associates || []).filter((a) => a.isMinor);
+  if (!minors.length) {
+    return ['Les associés déclarent qu\'aucun d\'entre eux n\'est mineur au jour de la constitution.'];
+  }
+  const lines = [];
+  if (minors.some((a) => a.isEmancipated)) {
+    lines.push(
+      'L\'associé mineur émancipé peut exercer pleinement ses droits d\'associé dans la Société, notamment en matière de vote, de gestion et de représentation, conformément aux dispositions légales en vigueur.',
+      'L\'émancipation ne dispense pas, en conséquence, l\'associé mineur des obligations statutaires et légales liées à sa qualité d\'associé.',
+    );
+  }
+  if (minors.some((a) => !a.isEmancipated)) {
+    lines.push(
+      'L\'associé mineur non émancipé exerce ses droits sociaux par l\'intermédiaire de ses représentants légaux.',
+      'Les représentants légaux agissent pour le compte de l\'associé mineur dans tous les actes relatifs à la Société, notamment vote, souscription, cession, décision collective.',
+      'Toute décision engageant significativement le patrimoine de l\'associé mineur devra respecter les dispositions du Code civil relatives à l\'administration légale des biens des mineurs.',
+    );
+  }
+  return lines;
+};
+
+const renderArticle27 = () => [
+  'Les associés conviennent que les dispositions suivantes s\'appliquent :',
+  '27.1 - Langue officielle des documents juridiques :',
+  'Conformément à l\'article 2 de la Constitution française, la langue officielle des statuts et de tous les documents juridiques de la Société, tels que les procès-verbaux, registres et correspondances, est le français. En cas de traduction, seule la version française fait foi.',
+  '27.2 - Droit applicable et Tribunal compétent :',
+  'Les statuts sont soumis au droit français.',
+  'En cas de litige, compétence exclusive est attribuée au Tribunal compétent du siège social.',
+  '27.3 - Frais de constitution avancés par les associés :',
+  'Tous les frais, droits et honoraires engagés pour la constitution de la Société sont avancés par les associés agissant au nom et pour le compte de la Société en formation. Le détail de ces frais figure en annexe aux présents statuts.',
+  'Ces sommes donnent lieu à ouverture d\'un compte courant d\'associé au bénéfice des associés ayant supporté ces dépenses.',
+  'La Société rembourse ces avances dans un délai raisonnable à compter de son immatriculation au Registre du Commerce et des Sociétés, sous réserve de justification des dépenses.',
+  '27.4 - Disposition transitoire :',
+  'La Société accepte l\'usage de la signature électronique pour les convocations, consultations écrites et signatures de procès-verbaux, dans les conditions prévues par la loi.',
+];
+
 const renderArticleBody = (article, context) => {
   switch (article.number) {
     case 1:
@@ -106,21 +184,22 @@ const renderArticleBody = (article, context) => {
     case 2: {
       const bullets = context.objectSocialBullets?.length
         ? context.objectSocialBullets
-        : article.paragraphs.slice(1, -2);
+        : sanitizeWilliamTemplateParagraphs(article.paragraphs).slice(1, -2);
       return [
         'La Société a pour objet social, directement ou indirectement, tant en France qu\'à l\'étranger :',
         ...bullets,
         `${context.company.name} est habilitée à exercer ses activités sous toute enseigne, marque ou nom commercial de son choix, et à commercialiser tous biens ou services non réglementés, directement ou indirectement, à ses clients dans ses marchés.`,
-        'Et plus généralement, toutes opérations industrielles, commerciales, financières, mobilières et/ou immobilières se rapportant directement ou indirectement à l’objet social ci-dessus et à tous objets ou connexes pouvant favoriser son développement.',
+        'Et plus généralement, toutes opérations industrielles, commerciales, financières, mobilières et/ou immobilières se rapportant directement ou indirectement à l\'objet social ci-dessus et à tous objets ou connexes pouvant favoriser son développement.',
       ];
     }
     case 3:
       return [`Le siège social est fixé au ${context.company.registeredOffice}.`];
     case 4:
       return [`La Société est constituée pour une durée de ${context.company.durationYears ?? 99} années à compter de son immatriculation au Registre du Commerce et des Sociétés, sauf dissolution anticipée ou prorogation.`];
-    case 5:
+    case 5: {
+      const shareCount = context.company.shareCount || context.company.capitalAmount;
       return [
-        `Le capital social est fixé à la somme de ${context.company.capitalFormatted}, divisé en ${context.company.capitalAmount.toLocaleString('fr-FR')} actions de 1 euro chacune.`,
+        `Le capital social est fixé à la somme de ${context.company.capitalFormatted}, divisé en ${shareCount.toLocaleString('fr-FR')} actions de 1 euro chacune.`,
         ...(context.options?.variableCapital ? [
           `Le capital est variable conformément aux articles L.231-1 à L.231-8 du Code de commerce, avec un minimum de ${context.options.capitalMinFormatted ?? '[minimum à compléter]'} et un maximum de ${context.options.capitalMaxFormatted ?? '[maximum à compléter]'}.`,
           'Les augmentations ou réductions dans la fourchette du capital variable sont décidées par décision collective ordinaire des associés. Celles-ci sont constatées par le Président au registre, sans modification statutaire.',
@@ -129,18 +208,32 @@ const renderArticleBody = (article, context) => {
         `L'exercice social se termine le ${context.company.fiscalYearEnd ?? '[date à compléter]'} de chaque année et recommence le jour suivant.`,
         `Par exception, le premier exercice sera clôturé le ${context.company.firstFiscalYearEnd ?? '[date à compléter]'}.`,
       ];
+    }
+    case 6:
+      return renderArticle6(context);
     case 7:
       return renderApports(context);
-    case 8:
-      return [
+    case 8: {
+      const lines = [
         'La société est dirigée par un Président nommé par décision collective des associés.',
         `Le Président est ${context.officers?.president ?? '[Président à compléter]'}.`,
-        ...(context.officers?.directorGeneral ? [`Le Directeur Général est ${context.officers.directorGeneral}.`] : []),
       ];
+      if (context.officers?.directorGeneral) {
+        lines.push(`Le Directeur Général est ${context.officers.directorGeneral}.`);
+      }
+      return lines;
+    }
+    case 9: {
+      const sanitized = sanitizeWilliamTemplateParagraphs(article.paragraphs);
+      if (!context.officers?.directorGeneral) {
+        return sanitized.filter((p) => !/Directeur Général est investi/i.test(p));
+      }
+      return sanitized;
+    }
     case 27:
-      return article.paragraphs.filter((p) => !p.includes('Établi à') && !p.includes('Lu et approuvé') && !p.includes('William ABDOU'));
+      return renderArticle27();
     default:
-      return article.paragraphs;
+      return sanitizeWilliamTemplateParagraphs(article.paragraphs);
   }
 };
 
@@ -148,37 +241,13 @@ export const renderWilliamSas2026Blocks = (context) => {
   const template = loadWilliamTemplate();
   const blocks = [];
 
-  blocks.push({ kind: 'cover', sourcePage: 1, text: 'STATUTS' });
-  blocks.push({ kind: 'cover', sourcePage: 1, text: context.company.legalFormLabel });
-  blocks.push({
-    kind: 'cover',
-    sourcePage: 1,
-    text: `${context.company.name}${context.company.sigle ? ` (${context.company.sigle})` : ''}`,
-  });
-  blocks.push({
-    kind: 'cover',
-    sourcePage: 1,
-    text: `${context.company.legalFormLabel} au capital de ${context.company.capitalFormatted}`,
-  });
-  blocks.push({ kind: 'cover', sourcePage: 1, text: `Siège social : ${context.company.registeredOffice}` });
-  if (context.company.rcsCity) {
-    blocks.push({
-      kind: 'cover',
-      sourcePage: 1,
-      text: `Immatriculée au Registre du Commerce et des Sociétés de ${context.company.rcsCity}`,
-    });
-  }
-
   renderAssociatesPreamble(context).forEach((text) => {
-    blocks.push({ kind: 'preamble', sourcePage: 2, text, pageBreakBefore: text === 'LES SOUSSIGNÉS :' });
+    blocks.push({ kind: 'preamble', sourcePage: 2, text });
   });
 
-  const defsIndex = (template.preamble || []).findIndex((line) => String(line).startsWith('Définitions'));
-  if (defsIndex >= 0) {
-    template.preamble.slice(defsIndex).forEach((text) => {
-      blocks.push({ kind: 'preamble', sourcePage: 2, text });
-    });
-  }
+  renderDefinitionsAndObjetActe(context).forEach((text) => {
+    blocks.push({ kind: 'preamble', sourcePage: 2, text });
+  });
 
   let lastTitleGroup = '';
   template.articles.forEach((article) => {
@@ -187,7 +256,6 @@ export const renderWilliamSas2026Blocks = (context) => {
         kind: 'title',
         sourcePage: article.sourcePage,
         text: article.titleGroup,
-        pageBreakBefore: article.sourcePage > 1,
       });
       lastTitleGroup = article.titleGroup;
     }
@@ -210,34 +278,6 @@ export const renderWilliamSas2026Blocks = (context) => {
     });
   });
 
-  blocks.push({ kind: 'signature', sourcePage: 16, text: `Établi à ${context.execution?.city ?? '[ville]'},` });
-  blocks.push({ kind: 'signature', sourcePage: 16, text: `Le ${context.execution?.date ?? '[date]'},` });
-  blocks.push({ kind: 'signature', sourcePage: 16, text: `En ${context.execution?.originalsCount ?? 4} exemplaires originaux.` });
-  blocks.push({
-    kind: 'signature',
-    sourcePage: 16,
-    text: 'Chaque associé reconnaît avoir pris connaissance de l’intégralité des présents statuts et les accepter sans réserve.',
-  });
-  blocks.push({
-    kind: 'signature',
-    sourcePage: 16,
-    text: 'Signatures des associés précédées de la mention : « Lu et approuvé »',
-  });
-  (context.associates || []).forEach((associate) => {
-    blocks.push({
-      kind: 'signature',
-      sourcePage: 16,
-      text: `${associate.fullName} - ${associate.roleLabel ?? 'Associé(e)'} - Lu et approuvé`,
-    });
-    if (associate.isMinor && !associate.isEmancipated && associate.legalRepresentatives?.length) {
-      blocks.push({
-        kind: 'signature',
-        sourcePage: 16,
-        text: `${associate.fullName}, mineur(e) non émancipé(e) au jour de la constitution, est représenté(e) légalement pour les besoins des présentes, jusqu'à sa majorité, par ${associate.legalRepresentatives.join(' et ')}, agissant en qualité d'administrateurs légaux conformément aux articles 382 et suivants du Code civil.`,
-      });
-    }
-  });
-
   return blocks;
 };
 
@@ -250,6 +290,7 @@ export const countWilliamArticles = (blocks) => {
 };
 
 export const estimatePageCount = (blocks) => {
-  const pages = new Set(blocks.map((b) => b.sourcePage).filter(Boolean));
-  return pages.size || loadWilliamTemplate().pageCount || 16;
+  const template = loadWilliamTemplate();
+  const fromBlocks = new Set(blocks.map((b) => b.sourcePage).filter(Boolean)).size;
+  return Math.max(fromBlocks, template.pageCount || 16);
 };

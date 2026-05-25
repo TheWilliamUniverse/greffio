@@ -93,6 +93,7 @@ import {
 import { mapStatutesData, mapStatutesDataFromSimulator } from './utils/statutesDataMapper.js';
 import { resolveLegalForm } from './domain/formalities.js';
 import { getFormalityRule } from './domain/formalities.js';
+import { resolveFormalityPublicLabel } from './domain/formalityLabels.js';
 import { getCompanyLookupMetrics, lookupCompany } from './services/companyLookup.js';
 import { buildIntelligentPrefill } from './services/intelligentIntake.js';
 import { computeDossierRisk, sortAntiRejectionQueue } from './services/opsRisk.js';
@@ -1368,7 +1369,15 @@ app.post('/api/dossiers', requireAuth, async (req, res) => {
       variables: {
         firstName: owner.firstName || 'Client',
         dossierNumber: dossier.reference || dossier.id,
-        formalityType: dossier.service || service,
+        service: dossier.service || service,
+        typeFormalite: dossier.typeFormalite,
+        legalForm: dossier.legalForm || dossier.formeJuridique || legalForm,
+        formalityType: resolveFormalityPublicLabel({
+          service: dossier.service || service,
+          typeFormalite: dossier.typeFormalite,
+          formeJuridique: dossier.formeJuridique || dossier.legalForm || legalForm,
+          legalForm: dossier.legalForm || legalForm,
+        }),
         dashboardUrl: `${appUrl}/dossier/${dossier.id}`,
       },
       userId: owner.id,

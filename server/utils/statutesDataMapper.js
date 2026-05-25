@@ -207,10 +207,14 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
     const securitySingular = usesActions(legalForm) ? 'action' : 'part sociale';
     return `${a.label} : ${a.share || '—'} des ${security}, soit ${a.titlesCount || '—'} ${securitySingular}${Number(a.titlesCount) > 1 ? 's' : ''}.`;
   });
-  const hasMinor = associates.some((a) => a.isMinor && !a.isMinorEmancipated);
   const minorAssociate = associates.find((a) => a.isMinor && !a.isMinorEmancipated);
-  const minorRepresentationNote = hasMinor && minorAssociate
-    ? `${minorAssociate.label}, mineure${minorAssociate.civility === 'M.' ? '' : ''} non émancipée au jour de la constitution, est représentée légalement pour les besoins des présentes, jusqu'à sa majorité, par ${minorAssociate.legalRepresentatives || 'ses représentants légaux'}, agissant en qualités d'administrateurs légaux conformément aux articles 382 et suivants du Code civil.`
+  const minorReps = minorAssociate ? String(minorAssociate.legalRepresentatives || '').trim() : '';
+  const minorRepresentationNote = minorAssociate && minorReps
+    ? (() => {
+      const isFemale = minorAssociate.civility === 'Mme';
+      const qualite = minorReps.includes(' et ') ? 'qualités' : 'qualité';
+      return `${minorAssociate.label}, ${isFemale ? 'mineure' : 'mineur'} non émancipé${isFemale ? 'e' : ''} au jour de la constitution, est représenté${isFemale ? 'e' : ''} légalement pour les besoins des présentes, jusqu'à sa majorité, par ${minorReps}, agissant en ${qualite} d'administrateurs légaux conformément aux articles 382 et suivants du Code civil.`;
+    })()
     : '';
 
   const data = {

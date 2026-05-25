@@ -22,17 +22,19 @@ const ensureDir = (directoryPath) => {
   if (!fs.existsSync(directoryPath)) fs.mkdirSync(directoryPath, { recursive: true });
 };
 
-const startNewPage = (doc, companyName) => {
-  doc.addPage();
-  drawPageFooter(doc, companyName);
-  doc.y = PAGE.marginTop;
+const createPageTracker = () => {
+  let current = 1;
+  return {
+    get current() { return current; },
+    next() { current += 1; return current; },
+  };
 };
 
-const drawPageFooter = (doc, companyName) => {
+const drawPageFooter = (doc, companyName, pageNumber) => {
   doc.save();
   doc.font(FONTS.regular).fontSize(9).fillColor('#444444');
   doc.text(
-    `${companyName} — Page ${doc.page.number}`,
+    `${companyName} — Page ${pageNumber}`,
     PAGE.marginLeft,
     doc.page.height - 42,
     { width: contentWidth(doc), align: 'center', lineBreak: false },
@@ -41,9 +43,16 @@ const drawPageFooter = (doc, companyName) => {
   doc.fillColor('#111111');
 };
 
-const ensureSpace = (doc, companyName, heightNeeded = 72) => {
+const startNewPage = (doc, companyName, pages) => {
+  doc.addPage();
+  const pageNumber = pages.next();
+  drawPageFooter(doc, companyName, pageNumber);
+  doc.y = PAGE.marginTop;
+};
+
+const ensureSpace = (doc, companyName, pages, heightNeeded = 72) => {
   if (doc.y + heightNeeded > doc.page.height - PAGE.marginBottom) {
-    startNewPage(doc, companyName);
+    startNewPage(doc, companyName, pages);
   }
 };
 
@@ -81,13 +90,13 @@ const renderCover = (doc, cover, companyName) => {
   doc.fillColor('#111111');
 };
 
-const renderBlock = (doc, companyName, block) => {
+const renderBlock = (doc, companyName, pages, block) => {
   if (block.kind === 'blank') {
     doc.moveDown(0.5);
     return;
   }
   if (block.kind === 'section-title') {
-    ensureSpace(doc, companyName, 48);
+    ensureSpace(doc, companyName, pages, 48);
     doc.moveDown(0.8);
     doc.font(FONTS.bold).fontSize(12).fillColor('#111111')
       .text(block.text, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'left' });
@@ -95,7 +104,7 @@ const renderBlock = (doc, companyName, block) => {
     return;
   }
   if (block.kind === 'legal-title') {
-    ensureSpace(doc, companyName, 52);
+    ensureSpace(doc, companyName, pages, 52);
     doc.moveDown(0.9);
     doc.font(FONTS.bold).fontSize(11.5).fillColor('#111111')
       .text(block.text, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
@@ -103,14 +112,14 @@ const renderBlock = (doc, companyName, block) => {
     return;
   }
   if (block.kind === 'paragraph') {
-    ensureSpace(doc, companyName, 36);
+    ensureSpace(doc, companyName, pages, 36);
     doc.font(FONTS.regular).fontSize(11)
       .text(block.text, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify', lineGap: 3 });
     doc.moveDown(0.45);
     return;
   }
   if (block.kind === 'article') {
-    ensureSpace(doc, companyName, 88);
+    ensureSpace(doc, companyName, pages, 88);
     const heading = block.number
       ? `Article ${block.number} - ${block.title}`
       : String(block.title || '').replace(/^Article\s+/i, 'Article ');
@@ -123,7 +132,7 @@ const renderBlock = (doc, companyName, block) => {
   }
 };
 
-const renderTable = (doc, companyName, table) => {
+const renderTable = (doc, companyName, pages, table) => {
   if (!table?.headers?.length) return;
   const colCount = table.headers.length;
   const tableWidth = contentWidth(doc);
@@ -131,7 +140,7 @@ const renderTable = (doc, companyName, table) => {
   const startX = PAGE.marginLeft;
   const rowHeight = 24;
   const rows = table.rows || [];
-  ensureSpace(doc, companyName, rowHeight * (rows.length + 2));
+  ensureSpace(doc, companyName, pages, rowHeight * (rows.length + 2));
 
   let y = doc.y;
   table.headers.forEach((header, index) => {
@@ -153,25 +162,25 @@ const renderTable = (doc, companyName, table) => {
   doc.y = y + 12;
 };
 
-const renderAnnexes = (doc, companyName, annexes = []) => {
+const renderAnnexes = (doc, companyName, pages, annexes = []) => {
   annexes.forEach((annexe) => {
-    startNewPage(doc, companyName);
+    startNewPage(doc, companyName, pages);
     doc.font(FONTS.bold).fontSize(12)
       .text(annexe.title, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'left' });
     doc.moveDown(0.7);
     (annexe.paragraphs || []).forEach((paragraph) => {
-      ensureSpace(doc, companyName, 36);
+      ensureSpace(doc, companyName, pages, 36);
       doc.font(FONTS.regular).fontSize(11)
         .text(paragraph, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify', lineGap: 3 });
       doc.moveDown(0.45);
     });
-    if (annexe.table) renderTable(doc, companyName, annexe.table);
+    if (annexe.table) renderTable(doc, companyName, pages, annexe.table);
   });
 };
 
-const renderSignatureBlock = (doc, companyName, block) => {
+const renderSignatureBlock = (doc, companyName, pages, block) => {
   if (block.layout === 'grid' && block.columns?.length) {
-    ensureSpace(doc, companyName, 160);
+    ensureSpace(doc, companyName, pages, 160);
     doc.moveDown(0.8);
     const width = contentWidth(doc);
     const colWidth = width / block.columns.length;
@@ -192,7 +201,7 @@ const renderSignatureBlock = (doc, companyName, block) => {
     return;
   }
 
-  ensureSpace(doc, companyName, 130);
+  ensureSpace(doc, companyName, pages, 130);
   doc.moveDown(0.8);
   if (block.role) {
     doc.font(FONTS.bold).fontSize(11).text(block.role, PAGE.marginLeft, doc.y, { width: contentWidth(doc) });
@@ -218,8 +227,8 @@ const renderSignatureBlock = (doc, companyName, block) => {
   doc.fillColor('#111111');
 };
 
-const renderSignatures = (doc, companyName, signatures) => {
-  startNewPage(doc, companyName);
+const renderSignatures = (doc, companyName, pages, signatures) => {
+  startNewPage(doc, companyName, pages);
   doc.font(FONTS.bold).fontSize(12).text(signatures.title || 'SIGNATURES', PAGE.marginLeft, doc.y, { width: contentWidth(doc) });
   doc.moveDown(0.7);
   (signatures.intro || []).forEach((line) => {
@@ -227,7 +236,7 @@ const renderSignatures = (doc, companyName, signatures) => {
     doc.moveDown(0.3);
   });
   [signatures.associateBlock, signatures.directorBlock, signatures.generalDirectorBlock].filter(Boolean).forEach((block) => {
-    renderSignatureBlock(doc, companyName, block);
+    renderSignatureBlock(doc, companyName, pages, block);
   });
   if (signatures.minorRepresentationNote) {
     doc.moveDown(0.6);
@@ -241,6 +250,7 @@ const generateStatutesPdf = async ({ filename, document: statutesDocument }) => 
   ensureDir(outputDir);
   const outputPath = path.join(outputDir, filename);
   const companyName = statutesDocument.cover?.denomination || 'Greffio';
+  const pages = createPageTracker();
 
   const doc = new PDFDocument({
     size: 'A4',
@@ -250,13 +260,13 @@ const generateStatutesPdf = async ({ filename, document: statutesDocument }) => 
 
   const stream = fs.createWriteStream(outputPath);
   doc.pipe(stream);
-  drawPageFooter(doc, companyName);
+  drawPageFooter(doc, companyName, pages.current);
 
   renderCover(doc, statutesDocument.cover || {}, companyName);
-  startNewPage(doc, companyName);
-  (statutesDocument.blocks || []).forEach((block) => renderBlock(doc, companyName, block));
-  renderAnnexes(doc, companyName, statutesDocument.annexes || []);
-  renderSignatures(doc, companyName, statutesDocument.signatures || {});
+  startNewPage(doc, companyName, pages);
+  (statutesDocument.blocks || []).forEach((block) => renderBlock(doc, companyName, pages, block));
+  renderAnnexes(doc, companyName, pages, statutesDocument.annexes || []);
+  renderSignatures(doc, companyName, pages, statutesDocument.signatures || {});
 
   doc.end();
   await new Promise((resolve, reject) => {

@@ -1,3 +1,5 @@
+import { resolveFormalityPublicLabel } from '../domain/formalityLabels.js';
+
 const apiPublicUrl = String(process.env.API_PUBLIC_URL || process.env.API_URL || 'https://api.greffio.willentreprises.com').replace(/\/$/, '');
 const logoUrl = process.env.EMAIL_LOGO_URL || `${apiPublicUrl}/assets/email/greffio-wordmark-white.png`;
 const logoWidth = 154;
@@ -137,7 +139,12 @@ const normalizeEmailVariables = (variables = {}) => {
     replyUrl: variables.replyUrl || supportUrl,
     ratingUrl: variables.ratingUrl || supportUrl,
     opsUrl: variables.opsUrl || `${appUrl}/ops`,
-    formalityType: variables.formalityType || variables.type_formalite || '',
+    formalityType: resolveFormalityPublicLabel({
+      service: variables.service || variables.formalityType,
+      typeFormalite: variables.typeFormalite || variables.type_formalite,
+      formeJuridique: variables.formeJuridique || variables.legalForm,
+      legalForm: variables.legalForm,
+    }),
     documentName: variables.documentName || '',
     actionLabel: variables.actionLabel || 'Vérification de sécurité',
     verificationCode: variables.verificationCode || '',

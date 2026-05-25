@@ -1,4 +1,5 @@
-import { countWilliamArticles } from '../renderers/renderWilliamSas2026.js';
+import { countWilliamArticles, estimatePageCount } from '../renderers/renderWilliamSas2026.js';
+import { blocksContainSampleParasiteText } from '../renderers/williamParagraphSanitizer.js';
 
 const REQUIRED_TITLES = [
   'TITRE I – FORMATION DE LA SOCIÉTÉ',
@@ -21,9 +22,13 @@ export const validateGeneratedStatuts = ({ blocks = [], context = {}, legalForm 
     errors.push(`Document incomplet : ${articleCount}/27 articles détectés.`);
   }
 
-  ['cover', 'preamble', 'title', 'article', 'signature'].forEach((kind) => {
+  ['preamble', 'title', 'article'].forEach((kind) => {
     if (!blocks.some((b) => b.kind === kind)) errors.push(`Bloc manquant : ${kind}.`);
   });
+
+  if (blocksContainSampleParasiteText(blocks)) {
+    errors.push('Texte parasite du modèle échantillon (noms ou clauses non issues du dossier).');
+  }
 
   REQUIRED_TITLES.forEach((title) => {
     if (!blocks.some((b) => b.kind === 'title' && String(b.text).trim() === title)) {
@@ -57,7 +62,7 @@ export const validateGeneratedStatuts = ({ blocks = [], context = {}, legalForm 
     ok: errors.length === 0,
     errors,
     articleCount,
-    pageCount: new Set(blocks.map((b) => b.sourcePage).filter(Boolean)).size || 16,
+    pageCount: estimatePageCount(blocks),
   };
 };
 

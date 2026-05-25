@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.j
 import { fetchDossierDetail, listDossiers } from '@/api/dossiers.js';
 import { saveCurrentDossierId } from '@/utils/sessionStore.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
+import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 import { parseJsonField } from '@/utils/jsonField.js';
 import { isInternalUser } from '@/utils/roles.js';
 import { useAuth } from '@/hooks/useAuth.js';
@@ -27,7 +28,12 @@ const mapDossierFromApi = (d) => {
     owner: 'Client',
     status: String(d.status || '').toUpperCase(),
     priority: 'Normale',
-    phase: d.service || 'formalite',
+    phase: resolveFormalityPublicLabel({
+      service: d.service,
+      typeFormalite: questionnaire.typeFormalite || d.typeFormalite,
+      formeJuridique: d.legalForm || d.formeJuridique || questionnaire.formeJuridique,
+      legalForm: d.legalForm,
+    }),
     nextAction: 'Compléter les pièces demandées et valider les informations.',
     expert: d.assignedToUserId || 'Équipe Greffio',
     createdAt: d.createdAt,

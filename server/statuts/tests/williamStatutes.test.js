@@ -95,4 +95,37 @@ test('generateStatutesDocument — document legacy avec métadonnées', () => {
   assert.equal(doc.metadata.articleCount, 27);
   assert.equal(doc.metadata.pageCount, 16);
   assert.equal(doc.blocks.filter((b) => b.kind === 'article').length, 27);
+  assert.ok(doc.cover?.capitalLine);
+  assert.ok(doc.signatures?.intro?.length);
+});
+
+test('dossier sans mineur non émancipé — pas de clause Ibtissam parasite', () => {
+  const doc = generateStatutesDocument({
+    legalForm: 'SAS',
+    denomination: 'FONDATION ABDOU ALI',
+    capital: '10000',
+    nombreTitres: '10000',
+    seat: { line1: '1 rue Test', postalCode: '75001', city: 'Paris', country: 'France', full: '1 rue Test, 75001 Paris, France' },
+    greffe: 'Paris',
+    duree: '99',
+    exerciceFin: '31/12',
+    associates: [
+      {
+        label: 'Monsieur Jean DUPONT',
+        address: '1 rue Test, 75001 Paris',
+        share: '100 %',
+        titlesCount: '10000',
+        isMinor: false,
+        roleLabel: 'Président',
+      },
+    ],
+    president: 'Monsieur Jean DUPONT',
+    directeurGeneral: 'Aucun',
+    signatureCity: 'Paris',
+    signatureDate: '24 mai 2026',
+  });
+
+  const body = doc.blocks.map((b) => b.body || b.text || '').join('\n');
+  assert.ok(!/Ibtissam\s+ABDOU/i.test(body), 'clause échantillon Ibtissam dans le corps');
+  assert.ok(!doc.signatures?.minorRepresentationNote, 'note mineur sans mineur non émancipé');
 });

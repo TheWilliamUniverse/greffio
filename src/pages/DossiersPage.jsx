@@ -8,6 +8,7 @@ import { isInternalUser } from '@/utils/roles.js';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
+import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 
 const STATUS_LABELS = {
   draft: 'BROUILLON',
@@ -53,17 +54,6 @@ const PRIORITY_LABELS = {
   medium: 'Moyenne',
   high: 'Haute',
   urgent: 'Urgente',
-};
-
-const SERVICE_LABELS = {
-  'creation-sasu': 'Création SASU',
-  'creation-sas': 'Création SAS',
-  'creation-sarl': 'Création SARL',
-  'creation-eurl': 'Création EURL',
-  'creation-sa': 'Création SA',
-  'creation-sci': 'Création SCI',
-  modification: 'Modification d’entreprise',
-  dissolution: 'Dissolution / fermeture',
 };
 
 const NEXT_ACTIONS = {
@@ -162,7 +152,12 @@ const normalizeApiDossier = (dossier) => {
     status: toVisualStatus(status),
     rawStatus: status,
     priority: PRIORITY_LABELS[String(dossier.opsPriority || 'normal').toLowerCase()] || dossier.opsPriority || 'Normale',
-    phase: SERVICE_LABELS[dossier.service] || dossier.typeFormalite || 'Formalité Greffio',
+    phase: resolveFormalityPublicLabel({
+      service: dossier.service,
+      typeFormalite: dossier.typeFormalite,
+      formeJuridique: dossier.formeJuridique || dossier.legalForm,
+      legalForm: dossier.legalForm,
+    }),
     nextAction: NEXT_ACTIONS[status] || 'Suivre la prochaine étape depuis votre espace sécurisé.',
     expert: dossier.assignedToUserId ? 'Équipe Greffio assignée' : 'Équipe Greffio',
     createdAt: dossier.createdAt,

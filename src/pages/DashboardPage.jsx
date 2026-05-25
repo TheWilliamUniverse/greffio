@@ -23,6 +23,7 @@ import { fetchUserProfile } from '@/api/profile.js';
 import { LoginAlertsPromptBanner } from '@/components/security/LoginAlertsPromptBanner.jsx';
 import { RememberMfaDeviceBanner } from '@/components/security/RememberMfaDeviceBanner.jsx';
 import { isEiLikeFormality } from '@/config/formalities.js';
+import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 import { isLoginAlertsConfigured, getLoginAlertsSettings, rememberLoginAlertsChoice } from '@/utils/userProfile.js';
 
 export const DashboardPage = () => {
@@ -81,7 +82,12 @@ export const DashboardPage = () => {
             legalForm: dossier.legalForm || dossier.formeJuridique || 'SASU',
             owner: currentUser?.firstName || 'Client',
             status: String(dossier.status || '').toUpperCase(),
-            phase: dossier.service || 'formalite',
+            phase: resolveFormalityPublicLabel({
+              service: dossier.service,
+              typeFormalite: questionnaire.typeFormalite,
+              formeJuridique: dossier.legalForm || dossier.formeJuridique || questionnaire.formeJuridique,
+              legalForm: dossier.legalForm,
+            }),
             nextAction: 'Suivre la checklist et compléter les pièces demandées.',
             expert: dossier.assignedToUserId || 'Équipe Greffio',
             createdAt: dossier.createdAt,

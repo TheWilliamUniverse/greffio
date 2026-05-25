@@ -20,7 +20,7 @@ const legalFormLabel = (form) => {
 
 export const mapStatutesDataToRenderContext = (statutesData = {}) => {
   const legalForm = String(statutesData.legalForm || 'SAS').toUpperCase();
-  const capitalAmount = parseAmount(statutesData.capital);
+  const capitalAmount = parseAmount(statutesData.capital) || parseAmount(statutesData.capitalRaw);
   const nombreTitres = parseAmount(statutesData.nombreTitres) || capitalAmount || 5000;
   const objectSocialBullets = resolveWilliamObjetSocialBullets({
     objetSocialBullets: statutesData.objetSocialBullets,
@@ -82,7 +82,8 @@ export const mapStatutesDataToRenderContext = (statutesData = {}) => {
       sigle: statutesData.sigle && statutesData.sigle !== 'Non prévu' ? statutesData.sigle : undefined,
       legalFormLabel: legalFormLabel(legalForm),
       capitalAmount: capitalAmount || nombreTitres,
-      capitalFormatted: formatEurosLabel(statutesData.capital) || `${capitalAmount || nombreTitres} euros`,
+      shareCount: nombreTitres,
+      capitalFormatted: formatEurosLabel(statutesData.capital) || formatEurosLabel(statutesData.capitalRaw) || `${capitalAmount || nombreTitres} euros`,
       registeredOffice: registeredOffice || 'Siège social à compléter',
       rcsCity: statutesData.greffe,
       durationYears: parseAmount(String(statutesData.duree || '99').replace(/\D/g, '')) || 99,

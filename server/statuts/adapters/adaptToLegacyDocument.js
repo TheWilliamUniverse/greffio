@@ -1,9 +1,17 @@
 import { buildStandardAnnexes } from '../../legal/statutes/shared/annexes.js';
+import { buildWilliamCover, buildWilliamSignatures } from '../../legal/statutes/reference/williamHelpers.js';
 import { estimatePageCount, countWilliamArticles } from '../renderers/renderWilliamSas2026.js';
 
 const articleTitleFromHeading = (heading, number) => {
   const match = String(heading || '').match(/Article\s+\d+\s*[-–]\s*(.+)/i);
   return match ? match[1].trim() : `Article ${number}`;
+};
+
+const legalFormShortLabel = (legalForm) => {
+  const f = String(legalForm || 'SAS').toUpperCase();
+  if (f === 'SASU') return 'Société par Actions Simplifiée Unipersonnelle';
+  if (f === 'SAS') return 'Société par Actions Simplifiée';
+  return f;
 };
 
 export const adaptRenderedBlocksToLegacyDocument = ({
@@ -12,24 +20,26 @@ export const adaptRenderedBlocksToLegacyDocument = ({
   templateId = 'william-establishments-sas-2026',
 }) => {
   const legalForm = String(statutesData.legalForm || 'SAS').toUpperCase();
-  const cover = {
-    denomination: statutesData.denomination,
-    legalForm,
-    legalFormLabel: statutesData.legalFormLabel,
-    subtitle: `${statutesData.denomination || ''} · Statuts ${legalForm}`,
+  const seat = statutesData.seat || {};
+
+  const cover = buildWilliamCover({
+    ...statutesData,
+    legalFormLabel: statutesData.legalFormLabel || (legalForm === 'SASU'
+      ? 'Société par Actions Simplifiée Unipersonnelle (SASU)'
+      : 'Société par Actions Simplifiée (SAS)'),
+    legalFormShort: legalFormShortLabel(legalForm),
+    seat,
+    greffe: statutesData.greffe,
+    isRegistered: Boolean(statutesData.isRegistered),
     reference: statutesData.reference,
-    capital: statutesData.capital,
-    siege: statutesData.seat?.full,
-  };
+    dateDocument: statutesData.dateDocument,
+  });
 
   const articleBodies = new Map();
   const legacyBlocks = [];
 
   blocks.forEach((block) => {
-    if (block.kind === 'cover') {
-      legacyBlocks.push({ kind: 'section-title', text: block.text });
-      return;
-    }
+    if (block.kind === 'cover' || block.kind === 'signature') return;
     if (block.kind === 'preamble') {
       legacyBlocks.push({ kind: 'paragraph', text: block.text });
       return;
@@ -56,10 +66,6 @@ export const adaptRenderedBlocksToLegacyDocument = ({
       };
       if (block.text) entry.paragraphs.push(block.text);
       articleBodies.set(block.articleNumber, entry);
-      return;
-    }
-    if (block.kind === 'signature') {
-      legacyBlocks.push({ kind: 'paragraph', text: block.text });
     }
   });
 
@@ -81,15 +87,7 @@ export const adaptRenderedBlocksToLegacyDocument = ({
     legacyBlocks.push(...articles);
   }
 
-  const signatures = {
-    place: statutesData.signatureCity,
-    date: statutesData.signatureDate,
-    blocks: (statutesData.associates || []).map((a) => ({
-      label: a.roleLabel || 'Associé',
-      name: a.label || a.fullName,
-      mention: 'Lu et approuvé',
-    })),
-  };
+  const signatures = buildWilliamSignatures(statutesData);
 
   const articleCount = articles.length || countWilliamArticles(blocks);
   const pageCount = estimatePageCount(blocks);
