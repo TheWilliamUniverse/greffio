@@ -929,6 +929,9 @@ const transitionDossierStatus = async ({
 const upsertPayment = async (payload) => {
   const payment = {
     id: payload.id || randomUUID(),
+    customerId: payload.customerId || null,
+    customerType: payload.customerType || null,
+    invoiceId: payload.invoiceId || null,
     dossierId: payload.dossierId || null,
     resourceOrderId: payload.resourceOrderId || null,
     userId: payload.userId || null,
@@ -937,26 +940,37 @@ const upsertPayment = async (payload) => {
     amountServiceCents: payload.amountServiceCents,
     amountLegalFeesCents: payload.amountLegalFeesCents,
     currency: payload.currency || 'EUR',
-    status: payload.status || 'created',
+    status: payload.status || 'pending',
     provider: payload.provider || 'mollie',
     providerPaymentId: payload.providerPaymentId || null,
+    providerCheckoutUrl: payload.providerCheckoutUrl || null,
     providerPayload: payload.providerPayload || {},
+    paymentMethod: payload.paymentMethod || null,
+    metadata: payload.metadata || null,
+    qontoTransactionId: payload.qontoTransactionId || null,
     createdAt: payload.createdAt || nowIso(),
     paidAt: payload.paidAt || null,
     failedAt: payload.failedAt || null,
+    cancelledAt: payload.cancelledAt || null,
     refundedAt: payload.refundedAt || null,
     updatedAt: nowIso(),
   };
   if (hasPostgres) {
     await query(`
       INSERT INTO payments (
-        id, dossier_id, resource_order_id, user_id, offer_code, amount_total_cents, amount_service_cents, amount_legal_fees_cents,
-        currency, status, provider, provider_payment_id, provider_payload_json, created_at, paid_at, failed_at,
-        refunded_at, updated_at
+        id, customer_id, customer_type, invoice_id,
+        dossier_id, resource_order_id, user_id, offer_code,
+        amount_total_cents, amount_service_cents, amount_legal_fees_cents,
+        currency, status, provider, provider_payment_id, provider_checkout_url,
+        provider_payload_json, payment_method, metadata_json, qonto_transaction_id,
+        created_at, paid_at, failed_at, cancelled_at, refunded_at, updated_at
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26
       )
       ON CONFLICT (id) DO UPDATE SET
+        customer_id=EXCLUDED.customer_id,
+        customer_type=EXCLUDED.customer_type,
+        invoice_id=EXCLUDED.invoice_id,
         dossier_id=EXCLUDED.dossier_id,
         resource_order_id=EXCLUDED.resource_order_id,
         user_id=EXCLUDED.user_id,
@@ -968,13 +982,21 @@ const upsertPayment = async (payload) => {
         status=EXCLUDED.status,
         provider=EXCLUDED.provider,
         provider_payment_id=EXCLUDED.provider_payment_id,
+        provider_checkout_url=EXCLUDED.provider_checkout_url,
         provider_payload_json=EXCLUDED.provider_payload_json,
+        payment_method=EXCLUDED.payment_method,
+        metadata_json=COALESCE(EXCLUDED.metadata_json, payments.metadata_json),
+        qonto_transaction_id=COALESCE(EXCLUDED.qonto_transaction_id, payments.qonto_transaction_id),
         paid_at=EXCLUDED.paid_at,
         failed_at=EXCLUDED.failed_at,
+        cancelled_at=EXCLUDED.cancelled_at,
         refunded_at=EXCLUDED.refunded_at,
         updated_at=EXCLUDED.updated_at
     `, [
       payment.id,
+      payment.customerId,
+      payment.customerType,
+      payment.invoiceId,
       payment.dossierId,
       payment.resourceOrderId,
       payment.userId,
@@ -986,10 +1008,15 @@ const upsertPayment = async (payload) => {
       payment.status,
       payment.provider,
       payment.providerPaymentId,
+      payment.providerCheckoutUrl,
       JSON.stringify(payment.providerPayload || {}),
+      payment.paymentMethod,
+      payment.metadata ? JSON.stringify(payment.metadata) : null,
+      payment.qontoTransactionId,
       payment.createdAt,
       payment.paidAt,
       payment.failedAt,
+      payment.cancelledAt,
       payment.refundedAt,
       payment.updatedAt,
     ]);
@@ -997,15 +1024,24 @@ const upsertPayment = async (payload) => {
     sqlite
       .prepare(`
         INSERT INTO payments (
-          id, dossier_id, resource_order_id, user_id, offer_code, amount_total_cents, amount_service_cents, amount_legal_fees_cents,
-          currency, status, provider, provider_payment_id, provider_payload_json, created_at, paid_at, failed_at,
-          refunded_at, updated_at
+          id, customer_id, customer_type, invoice_id,
+          dossier_id, resource_order_id, user_id, offer_code,
+          amount_total_cents, amount_service_cents, amount_legal_fees_cents,
+          currency, status, provider, provider_payment_id, provider_checkout_url,
+          provider_payload_json, payment_method, metadata_json, qonto_transaction_id,
+          created_at, paid_at, failed_at, cancelled_at, refunded_at, updated_at
         ) VALUES (
-          @id, @dossierId, @resourceOrderId, @userId, @offerCode, @amountTotalCents, @amountServiceCents, @amountLegalFeesCents,
-          @currency, @status, @provider, @providerPaymentId, @providerPayloadJson, @createdAt, @paidAt, @failedAt,
-          @refundedAt, @updatedAt
+          @id, @customerId, @customerType, @invoiceId,
+          @dossierId, @resourceOrderId, @userId, @offerCode,
+          @amountTotalCents, @amountServiceCents, @amountLegalFeesCents,
+          @currency, @status, @provider, @providerPaymentId, @providerCheckoutUrl,
+          @providerPayloadJson, @paymentMethod, @metadataJson, @qontoTransactionId,
+          @createdAt, @paidAt, @failedAt, @cancelledAt, @refundedAt, @updatedAt
         )
         ON CONFLICT(id) DO UPDATE SET
+          customer_id=excluded.customer_id,
+          customer_type=excluded.customer_type,
+          invoice_id=excluded.invoice_id,
           dossier_id=excluded.dossier_id,
           resource_order_id=excluded.resource_order_id,
           user_id=excluded.user_id,
@@ -1017,18 +1053,100 @@ const upsertPayment = async (payload) => {
           status=excluded.status,
           provider=excluded.provider,
           provider_payment_id=excluded.provider_payment_id,
+          provider_checkout_url=excluded.provider_checkout_url,
           provider_payload_json=excluded.provider_payload_json,
+          payment_method=excluded.payment_method,
+          metadata_json=COALESCE(excluded.metadata_json, metadata_json),
+          qonto_transaction_id=COALESCE(excluded.qonto_transaction_id, qonto_transaction_id),
           paid_at=excluded.paid_at,
           failed_at=excluded.failed_at,
+          cancelled_at=excluded.cancelled_at,
           refunded_at=excluded.refunded_at,
           updated_at=excluded.updated_at
       `)
       .run({
         ...payment,
         providerPayloadJson: JSON.stringify(payment.providerPayload || {}),
+        metadataJson: payment.metadata ? JSON.stringify(payment.metadata) : null,
       });
   }
   return payment;
+};
+
+const getPaymentById = async (paymentId) => {
+  if (!paymentId) return null;
+  let row;
+  if (hasPostgres) {
+    const result = await query(
+      `SELECT
+         id,
+         customer_id AS "customerId",
+         customer_type AS "customerType",
+         invoice_id AS "invoiceId",
+         dossier_id AS "dossierId",
+         resource_order_id AS "resourceOrderId",
+         user_id AS "userId",
+         offer_code AS "offerCode",
+         amount_total_cents AS "amountTotalCents",
+         amount_service_cents AS "amountServiceCents",
+         amount_legal_fees_cents AS "amountLegalFeesCents",
+         currency,
+         status,
+         provider,
+         provider_payment_id AS "providerPaymentId",
+         provider_checkout_url AS "providerCheckoutUrl",
+         provider_payload_json AS "providerPayloadJson",
+         payment_method AS "paymentMethod",
+         metadata_json AS "metadataJson",
+         qonto_transaction_id AS "qontoTransactionId",
+         created_at AS "createdAt",
+         paid_at AS "paidAt",
+         failed_at AS "failedAt",
+         cancelled_at AS "cancelledAt",
+         refunded_at AS "refundedAt",
+         updated_at AS "updatedAt"
+       FROM payments WHERE id = $1 LIMIT 1`,
+      [paymentId],
+    );
+    row = result.rows[0] || null;
+  } else {
+    row = sqlite.prepare(`
+      SELECT
+        id,
+        customer_id AS customerId,
+        customer_type AS customerType,
+        invoice_id AS invoiceId,
+        dossier_id AS dossierId,
+        resource_order_id AS resourceOrderId,
+        user_id AS userId,
+        offer_code AS offerCode,
+        amount_total_cents AS amountTotalCents,
+        amount_service_cents AS amountServiceCents,
+        amount_legal_fees_cents AS amountLegalFeesCents,
+        currency,
+        status,
+        provider,
+        provider_payment_id AS providerPaymentId,
+        provider_checkout_url AS providerCheckoutUrl,
+        provider_payload_json AS providerPayloadJson,
+        payment_method AS paymentMethod,
+        metadata_json AS metadataJson,
+        qonto_transaction_id AS qontoTransactionId,
+        created_at AS createdAt,
+        paid_at AS paidAt,
+        failed_at AS failedAt,
+        cancelled_at AS cancelledAt,
+        refunded_at AS refundedAt,
+        updated_at AS updatedAt
+      FROM payments WHERE id = ? LIMIT 1
+    `).get(paymentId);
+  }
+  if (!row) return null;
+  return {
+    ...row,
+    providerPayload: row.providerPayloadJson ? JSON.parse(row.providerPayloadJson) : {},
+    metadata: row.metadataJson ? JSON.parse(row.metadataJson) : null,
+  };
 };
 
 const getPaymentByProviderId = async (providerPaymentId) => {
@@ -1407,6 +1525,7 @@ export {
   listDossierEvents,
   transitionDossierStatus,
   upsertPayment,
+  getPaymentById,
   getPaymentByProviderId,
   addPaymentEvent,
   hasPaymentEventProviderId,

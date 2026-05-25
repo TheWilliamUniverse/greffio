@@ -1,0 +1,44 @@
+import { CawlPaymentAdapter } from './CawlPaymentAdapter.js';
+import { GoCardlessAdapter } from './GoCardlessAdapter.js';
+import { ManualBankTransferAdapter } from './ManualBankTransferAdapter.js';
+import { QontoReconciliationAdapter } from './QontoReconciliationAdapter.js';
+import {
+  MollieStubAdapter,
+  PayPlugStubAdapter,
+  StripeStubAdapter,
+} from './StubAdapters.js';
+import { PAYMENT_PROVIDERS } from '../types.js';
+
+/**
+ * Registre des adapters. L'ordre de déclaration sert aussi à figer la liste
+ * proposée à l'UI ops.
+ *
+ * @returns {Record<import('../types.js').PaymentProviderName, import('../types.js').PaymentProviderAdapter>}
+ */
+export const buildProviderRegistry = (overrides = {}) => ({
+  [PAYMENT_PROVIDERS.CAWL]: overrides.cawl || new CawlPaymentAdapter(),
+  [PAYMENT_PROVIDERS.GOCARDLESS]: overrides.gocardless || new GoCardlessAdapter(),
+  [PAYMENT_PROVIDERS.QONTO]: overrides.qonto || new QontoReconciliationAdapter(),
+  [PAYMENT_PROVIDERS.MANUAL_BANK_TRANSFER]: overrides.manual_bank_transfer || new ManualBankTransferAdapter(),
+  [PAYMENT_PROVIDERS.STRIPE]: overrides.stripe || new StripeStubAdapter(),
+  [PAYMENT_PROVIDERS.MOLLIE]: overrides.mollie || new MollieStubAdapter(),
+  [PAYMENT_PROVIDERS.PAYPLUG]: overrides.payplug || new PayPlugStubAdapter(),
+});
+
+export const getConfiguredProviders = (registry) => {
+  const set = new Set();
+  for (const [name, adapter] of Object.entries(registry)) {
+    if (adapter?.isConfigured?.()) set.add(name);
+  }
+  return set;
+};
+
+export {
+  CawlPaymentAdapter,
+  GoCardlessAdapter,
+  ManualBankTransferAdapter,
+  QontoReconciliationAdapter,
+  MollieStubAdapter,
+  PayPlugStubAdapter,
+  StripeStubAdapter,
+};

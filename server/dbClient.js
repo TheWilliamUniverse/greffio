@@ -282,6 +282,14 @@ const ensurePostgresDocumentColumns = async () => {
   await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS sha256 TEXT;`);
   await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS metadata_json TEXT;`);
   await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS editor_schema_version TEXT;`);
+  await query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS customer_id TEXT;`);
+  await query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS customer_type TEXT;`);
+  await query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS invoice_id TEXT;`);
+  await query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS provider_checkout_url TEXT;`);
+  await query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS payment_method TEXT;`);
+  await query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS metadata_json TEXT;`);
+  await query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS cancelled_at TEXT;`);
+  await query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS qonto_transaction_id TEXT;`);
 };
 
 const initSchema = async () => {

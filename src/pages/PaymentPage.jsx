@@ -6,6 +6,7 @@ import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { PAYMENT_METHODS } from '@/config/businessCatalog.js';
 import { createPayment } from '@/api/payments.js';
+import { inferCustomerType, isB2B } from '@/utils/customerType.js';
 import { checkoutResourceOrder, getResourceOrder } from '@/api/resources.js';
 import { getCatalogItemById } from '@/config/resourceServices.js';
 import { TotalCostSimulator } from '@/components/TotalCostSimulator.jsx';
@@ -29,6 +30,10 @@ export const PaymentPage = () => {
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
   const [resourceOrder, setResourceOrder] = useState(null);
   const [loadingResourceOrder, setLoadingResourceOrder] = useState(Boolean(resourceOrderId));
+  // Le type de client est inféré (best-effort) à partir des données de session.
+  // La décision définitive (provider PSP) est faite côté serveur.
+  const customerType = useMemo(() => inferCustomerType(null, null), []);
+  const showB2BProviders = isB2B(customerType);
 
   const catalogService = resourceOrder?.serviceId
     ? getCatalogItemById(resourceOrder.serviceId)
@@ -54,7 +59,7 @@ export const PaymentPage = () => {
     return () => { cancelled = true; };
   }, [resourceOrderId]);
 
-  const handleGoCardlessCheckout = async () => {
+  const handleCheckout = async () => {
     try {
       setIsCreatingPayment(true);
       if (resourceOrderId) {
@@ -73,6 +78,7 @@ export const PaymentPage = () => {
       const payload = await createPayment({
         dossierId,
         offerCode: offerName,
+        customerType,
       });
       if (payload.checkoutUrl) {
         window.location.href = payload.checkoutUrl;
@@ -80,7 +86,12 @@ export const PaymentPage = () => {
       }
       throw new Error('CHECKOUT_URL_MISSING');
     } catch (error) {
-      toast.error("Impossible d'initialiser le paiement GoCardless.");
+      const code = error?.payload?.error || error?.message;
+      if (code === 'GOCARDLESS_FORBIDDEN_FOR_B2C' || code === 'B2C_REQUIRES_CAWL') {
+        toast.error('Paiement B2C indisponible : configuration CAWL en attente. Contactez le support.');
+      } else {
+        toast.error("Impossible d'initialiser le paiement sécurisé.");
+      }
     } finally {
       setIsCreatingPayment(false);
     }
@@ -106,12 +117,12 @@ export const PaymentPage = () => {
           <div className="rounded-md bg-[hsl(var(--greffio-blue))] p-6 text-white shadow-elevation-md md:p-8">
             <p className="text-sm font-bold uppercase text-white/70">Paiement sécurisé</p>
             <h1 className="mt-2 text-3xl font-extrabold">
-              {resourceOrder ? 'Paiement de votre commande document' : 'Paiement sécurisé via GoCardless'}
+              {resourceOrder ? 'Paiement de votre commande document' : 'Paiement sécurisé'}
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-white/92">
               {resourceOrder
                 ? 'Réglez votre commande de document ou service administratif. Après confirmation, l’équipe Greffio traite votre demande.'
-                : 'Greffio utilise GoCardless pour encaisser les paiements par prélèvement SEPA ou virement instantané, avec vérification serveur et webhook idempotent avant traitement du dossier.'}
+                : 'Paiement traité par notre prestataire de paiement sécurisé, avec vérification serveur et confirmation par webhook signé avant validation du dossier.'}
             </p>
           </div>
 
@@ -195,7 +206,11 @@ export const PaymentPage = () => {
               )}
               <div className="flex gap-2">
                 <LockKeyhole className="mt-0.5 h-4 w-4 text-primary" />
-                <span>Paiement sécurisé via GoCardless (SEPA / virement).</span>
+                <span>
+                  {showB2BProviders
+                    ? 'Paiement sécurisé professionnel (SEPA / virement).'
+                    : 'Paiement sécurisé par carte ou wallet.'}
+                </span>
               </div>
             </div>
             {!resourceOrder && (
@@ -210,10 +225,10 @@ export const PaymentPage = () => {
               type="button"
               className="mt-3 w-full justify-between"
               variant={resourceOrder ? 'default' : 'outline'}
-              onClick={handleGoCardlessCheckout}
+              onClick={handleCheckout}
               disabled={isCreatingPayment || (resourceOrderId && loadingResourceOrder)}
             >
-              {isCreatingPayment ? 'Initialisation...' : 'Payer via GoCardless'}
+              {isCreatingPayment ? 'Initialisation...' : 'Payer maintenant'}
               <ArrowRight className="h-4 w-4" />
             </Button>
             {resourceOrder && (

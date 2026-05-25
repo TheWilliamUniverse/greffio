@@ -27,6 +27,7 @@ import {
   getAllPayments,
   getDossier,
   getPaymentByProviderId,
+  getPaymentById,
   hasPaymentEventProviderId,
   listGeneratedDocumentsByDossier,
   listDossierDocuments,
@@ -56,6 +57,7 @@ import {
   updateOpsResourceOrderStatus,
 } from './resourcesApi.js';
 import { createResourceOrderCheckout } from './resourcesCheckout.js';
+import { getResourceOrderById } from './resourceOrderStore.js';
 import { handleResourceOrderPaymentPaid } from './services/resourcePaymentWebhook.js';
 import { createMolliePayment, isMolliePaidStatus, retrieveMolliePayment } from './mollie.js';
 import {
@@ -100,6 +102,7 @@ import { computeDossierRisk, sortAntiRejectionQueue } from './services/opsRisk.j
 import { draftStatutesDocument } from './services/statutesDrafting.js';
 import { resolveDossierAccess } from './utils/dossierAccess.js';
 import { registerNonConvictionSignatureRoutes } from './routes/nonConvictionSignatureRoutes.js';
+import { registerPaymentsRoutes } from './routes/paymentsRoutes.js';
 import {
   createTrustedDevice,
   hasValidTrustedDevice,
@@ -2324,6 +2327,18 @@ app.post('/api/payments/create', paymentLimiter, requireAuth, async (req, res) =
 
   const amounts = computePaymentAmounts(offerCode);
 
+  // Garde-fou architecture multi-prestataires : si le frontend précise
+  // explicitement un type B2C, on refuse de router vers GoCardless.
+  // Le fallback CAWL est géré par POST /api/payments (multi-providers).
+  const declaredCustomerType = String(req.body?.customerType || '').toLowerCase();
+  if (declaredCustomerType === 'b2c') {
+    return res.status(409).json({
+      ok: false,
+      error: 'GOCARDLESS_FORBIDDEN_FOR_B2C',
+      message: 'Les paiements B2C doivent passer par CAWL (POST /api/payments).',
+    });
+  }
+
   let created;
   const hasGoCardless = Boolean(process.env.GOCARDLESS_ACCESS_TOKEN || process.env.GOCARDLESS_API_KEY);
   const hasMollieKey = Boolean(process.env.MOLLIE_API_KEY);
@@ -2579,6 +2594,36 @@ registerNonConvictionSignatureRoutes(app, {
   DOCUMENT_STATUSES,
   createSignatureRecord,
   appUrl,
+});
+
+// Webhook CAWL : on accepte le corps brut (texte) pour permettre la
+// vérification HMAC à venir. Doit être enregistré AVANT le router générique
+// JSON afin de ne pas perdre le payload.
+app.post('/api/webhooks/cawl', express.text({ type: '*/*' }), async (req, res, next) => {
+  if (typeof req.body === 'string') {
+    try {
+      req.rawBody = req.body;
+      req.body = JSON.parse(req.body || '{}');
+    } catch (_error) {
+      req.body = {};
+    }
+  }
+  return next();
+});
+
+registerPaymentsRoutes(app, {
+  requireAuth,
+  requireRole,
+  getUserById,
+  store: {
+    upsertPayment,
+    getPaymentById,
+    getPaymentByProviderId,
+    addPaymentEvent,
+    hasPaymentEventProviderId,
+    getDossier,
+    getResourceOrderById,
+  },
 });
 
 const bootstrap = async () => {
