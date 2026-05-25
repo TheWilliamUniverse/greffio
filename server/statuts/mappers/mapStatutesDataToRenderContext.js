@@ -1,15 +1,7 @@
 import { resolveWilliamObjetSocialBullets } from '../catalogs/objectSocialCatalog.js';
+import { formatFrEuros, formatFrInteger, parseFrenchAmount } from '../shared/numberFormat.js';
 
-const formatEurosLabel = (value) => {
-  const amount = Number(String(value || '').replace(/\s/g, '').replace(',', '.'));
-  if (!Number.isFinite(amount) || amount <= 0) return null;
-  return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(amount)} euros`;
-};
-
-const parseAmount = (value) => {
-  const amount = Number(String(value || '').replace(/\s/g, '').replace(',', '.'));
-  return Number.isFinite(amount) ? amount : 0;
-};
+const parseAmount = parseFrenchAmount;
 
 const legalFormLabel = (form) => {
   const f = String(form || 'SAS').toUpperCase();
@@ -32,8 +24,18 @@ export const mapStatutesDataToRenderContext = (statutesData = {}) => {
 
   const associates = (statutesData.associates || []).map((associate) => {
     const isLegalEntity = associate.associateType === 'personne_morale';
-    const shares = parseAmount(associate.titlesCount) || parseAmount(associate.shares);
-    const sharePercentage = parseAmount(associate.share) || (nombreTitres > 0 && shares ? Math.round((shares / nombreTitres) * 1000) / 10 : null);
+    let sharePercentage = parseAmount(String(associate.share || '').replace('%', ''));
+    if (!sharePercentage && associate.share) {
+      const pctMatch = String(associate.share).match(/([\d,.]+)\s*%/);
+      if (pctMatch) sharePercentage = parseAmount(pctMatch[1]);
+    }
+    let shares = parseAmount(associate.titlesCount) || parseAmount(associate.shares);
+    if (!shares && sharePercentage && nombreTitres > 0) {
+      shares = Math.round((nombreTitres * sharePercentage) / 100);
+    }
+    if (!sharePercentage && shares && nombreTitres > 0) {
+      sharePercentage = Math.round((shares / nombreTitres) * 1000) / 10;
+    }
     const fullName = isLegalEntity
       ? (associate.companyName || associate.label || 'Société associée à compléter')
       : (associate.label || associate.fullName || 'Associé à compléter');
@@ -55,13 +57,13 @@ export const mapStatutesDataToRenderContext = (statutesData = {}) => {
       sharePercentage,
       roleLabel: associate.roleLabel || 'Associé',
       cashContributionFormatted: associate.contributionCash
-        ? `${formatEurosLabel(associate.contributionCash) || associate.contributionCash}`
+        ? (formatFrEuros(associate.contributionCash) || associate.contributionCash)
         : undefined,
       cashReleasedFormatted: associate.liberationAmount
-        ? `${formatEurosLabel(associate.liberationAmount) || associate.liberationAmount}`
+        ? (formatFrEuros(associate.liberationAmount) || associate.liberationAmount)
         : undefined,
       inKindContributions: associate.contributionInKind && associate.contributionInKind !== 'Aucun'
-        ? [{ label: String(associate.contributionInKind), valueFormatted: formatEurosLabel(statutesData.apportsNatureTotal) || 'à compléter' }]
+        ? [{ label: String(associate.contributionInKind), valueFormatted: formatFrEuros(statutesData.apportsNatureTotal) || 'à compléter' }]
         : [],
     };
   });
@@ -83,7 +85,7 @@ export const mapStatutesDataToRenderContext = (statutesData = {}) => {
       legalFormLabel: legalFormLabel(legalForm),
       capitalAmount: capitalAmount || nombreTitres,
       shareCount: nombreTitres,
-      capitalFormatted: formatEurosLabel(statutesData.capital) || formatEurosLabel(statutesData.capitalRaw) || `${capitalAmount || nombreTitres} euros`,
+      capitalFormatted: formatFrEuros(statutesData.capital) || formatFrEuros(statutesData.capitalRaw) || `${formatFrInteger(capitalAmount || nombreTitres)} euros`,
       registeredOffice: registeredOffice || 'Siège social à compléter',
       rcsCity: statutesData.greffe,
       durationYears: parseAmount(String(statutesData.duree || '99').replace(/\D/g, '')) || 99,
@@ -99,9 +101,9 @@ export const mapStatutesDataToRenderContext = (statutesData = {}) => {
         : undefined,
     },
     apports: {
-      cashTotalFormatted: formatEurosLabel(statutesData.apportsNumeraireTotal) || formatEurosLabel(statutesData.capital),
-      inKindTotalFormatted: formatEurosLabel(statutesData.apportsNatureTotal) || '0 euro',
-      depositedFundsFormatted: formatEurosLabel(statutesData.depotFonds) || formatEurosLabel(statutesData.apportsLibérés),
+      cashTotalFormatted: formatFrEuros(statutesData.apportsNumeraireTotal) || formatFrEuros(statutesData.capital),
+      inKindTotalFormatted: formatFrEuros(statutesData.apportsNatureTotal) || '0 euro',
+      depositedFundsFormatted: formatFrEuros(statutesData.depotFonds) || formatFrEuros(statutesData.apportsLibérés),
       liberationRate: statutesData.liberationCapital || '50 %',
     },
     execution: {
@@ -111,8 +113,8 @@ export const mapStatutesDataToRenderContext = (statutesData = {}) => {
     },
     options: {
       variableCapital: Boolean(statutesData.capitalVariable || statutesData.capitalType === 'Variable'),
-      capitalMinFormatted: formatEurosLabel(statutesData.capitalMin),
-      capitalMaxFormatted: formatEurosLabel(statutesData.capitalMax),
+      capitalMinFormatted: formatFrEuros(statutesData.capitalMin),
+      capitalMaxFormatted: formatFrEuros(statutesData.capitalMax),
     },
   };
 };

@@ -1,5 +1,6 @@
 import { buildStandardAnnexes } from '../../legal/statutes/shared/annexes.js';
 import { buildWilliamCover, buildWilliamSignatures } from '../../legal/statutes/reference/williamHelpers.js';
+import { formatFrEuros } from '../shared/numberFormat.js';
 import { estimatePageCount, countWilliamArticles } from '../renderers/renderWilliamSas2026.js';
 
 const articleTitleFromHeading = (heading, number) => {
@@ -14,6 +15,33 @@ const legalFormShortLabel = (legalForm) => {
   return f;
 };
 
+const buildArticleBodiesMap = (blocks = []) => {
+  const articleBodies = new Map();
+
+  blocks.forEach((block) => {
+    if (block.kind !== 'article' || typeof block.articleNumber !== 'number') return;
+    if (block.heading && block.text === block.heading) {
+      if (!articleBodies.has(block.articleNumber)) {
+        articleBodies.set(block.articleNumber, {
+          number: block.articleNumber,
+          title: articleTitleFromHeading(block.heading, block.articleNumber),
+          paragraphs: [],
+        });
+      }
+      return;
+    }
+    const entry = articleBodies.get(block.articleNumber) || {
+      number: block.articleNumber,
+      title: articleTitleFromHeading(block.heading, block.articleNumber),
+      paragraphs: [],
+    };
+    if (block.text) entry.paragraphs.push(block.text);
+    articleBodies.set(block.articleNumber, entry);
+  });
+
+  return articleBodies;
+};
+
 export const adaptRenderedBlocksToLegacyDocument = ({
   blocks = [],
   statutesData = {},
@@ -21,9 +49,11 @@ export const adaptRenderedBlocksToLegacyDocument = ({
 }) => {
   const legalForm = String(statutesData.legalForm || 'SAS').toUpperCase();
   const seat = statutesData.seat || {};
+  const capitalLabel = formatFrEuros(statutesData.capital || statutesData.capitalRaw) || formatFrEuros(statutesData.capitalAmount);
 
   const cover = buildWilliamCover({
     ...statutesData,
+    capital: capitalLabel ? capitalLabel.replace(/\s+euros$/i, '') : statutesData.capital,
     legalFormLabel: statutesData.legalFormLabel || (legalForm === 'SASU'
       ? 'Société par Actions Simplifiée Unipersonnelle (SASU)'
       : 'Société par Actions Simplifiée (SAS)'),
@@ -35,61 +65,42 @@ export const adaptRenderedBlocksToLegacyDocument = ({
     dateDocument: statutesData.dateDocument,
   });
 
-  const articleBodies = new Map();
+  const articleBodies = buildArticleBodiesMap(blocks);
   const legacyBlocks = [];
+  const emittedArticles = new Set();
 
   blocks.forEach((block) => {
     if (block.kind === 'cover' || block.kind === 'signature') return;
+
     if (block.kind === 'preamble') {
       legacyBlocks.push({ kind: 'paragraph', text: block.text });
       return;
     }
+
     if (block.kind === 'title') {
       legacyBlocks.push({ kind: 'legal-title', text: block.text });
       return;
     }
+
     if (block.kind === 'article' && typeof block.articleNumber === 'number') {
-      if (block.heading && block.text === block.heading) {
-        if (!articleBodies.has(block.articleNumber)) {
-          articleBodies.set(block.articleNumber, {
-            number: block.articleNumber,
-            title: articleTitleFromHeading(block.heading, block.articleNumber),
-            paragraphs: [],
-          });
-        }
-        return;
-      }
-      const entry = articleBodies.get(block.articleNumber) || {
-        number: block.articleNumber,
-        title: articleTitleFromHeading(block.heading, block.articleNumber),
-        paragraphs: [],
-      };
-      if (block.text) entry.paragraphs.push(block.text);
-      articleBodies.set(block.articleNumber, entry);
+      if (block.heading && block.text === block.heading) return;
+      if (emittedArticles.has(block.articleNumber)) return;
+
+      const entry = articleBodies.get(block.articleNumber);
+      if (!entry || !entry.paragraphs.length) return;
+
+      legacyBlocks.push({
+        kind: 'article',
+        number: entry.number,
+        title: entry.title,
+        body: entry.paragraphs.join('\n\n'),
+      });
+      emittedArticles.add(block.articleNumber);
     }
   });
 
-  const articles = [...articleBodies.values()]
-    .sort((a, b) => a.number - b.number)
-    .map((article) => ({
-      kind: 'article',
-      number: article.number,
-      title: article.title,
-      body: article.paragraphs.join('\n\n'),
-    }));
-
-  const titleOneIndex = legacyBlocks.findIndex(
-    (b) => b.kind === 'legal-title' && String(b.text).includes('TITRE I'),
-  );
-  if (titleOneIndex >= 0) {
-    legacyBlocks.splice(titleOneIndex + 1, 0, ...articles);
-  } else {
-    legacyBlocks.push(...articles);
-  }
-
   const signatures = buildWilliamSignatures(statutesData);
-
-  const articleCount = articles.length || countWilliamArticles(blocks);
+  const articleCount = articleBodies.size || countWilliamArticles(blocks);
   const pageCount = estimatePageCount(blocks);
 
   return {

@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { sanitizeWilliamTemplateParagraphs } from './williamParagraphSanitizer.js';
+import { formatFrEuros, formatFrInteger, parseFrenchAmount } from '../shared/numberFormat.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_PATH = path.join(__dirname, '../templates/williamEstablishmentsSas2026.model.json');
@@ -12,11 +13,6 @@ export const loadWilliamTemplate = () => {
     cachedTemplate = JSON.parse(fs.readFileSync(TEMPLATE_PATH, 'utf8'));
   }
   return cachedTemplate;
-};
-
-const parseFrenchAmount = (value) => {
-  const normalized = String(value || '').replace(/[^0-9,.-]/g, '').replace(',', '.');
-  return Number(normalized) || 0;
 };
 
 const formatBirthDateFr = (value) => {
@@ -101,7 +97,7 @@ export const renderCapitalDistribution = (context) => {
       ? `${associate.sharePercentage}% des actions`
       : '[pourcentage à compléter]';
     const shares = associate.shares != null
-      ? `soit ${associate.shares.toLocaleString('fr-FR')} actions`
+      ? `soit ${formatFrInteger(associate.shares)} actions`
       : '[nombre d\'actions à compléter]';
     lines.push(`${associate.fullName} : ${percent}, ${shares}.`);
   });
@@ -124,7 +120,7 @@ export const renderApports = (context) => {
       const total = associate.inKindContributions
         .map((item) => parseFrenchAmount(item.valueFormatted))
         .reduce((a, b) => a + b, 0);
-      lines.push(`Total apports en nature : ${total.toLocaleString('fr-FR')} euros.`);
+      lines.push(`Total apports en nature : ${formatFrInteger(total)} euros.`);
     } else {
       lines.push('Pas d\'apports en nature.');
     }
@@ -199,7 +195,7 @@ const renderArticleBody = (article, context) => {
     case 5: {
       const shareCount = context.company.shareCount || context.company.capitalAmount;
       return [
-        `Le capital social est fixé à la somme de ${context.company.capitalFormatted}, divisé en ${shareCount.toLocaleString('fr-FR')} actions de 1 euro chacune.`,
+        `Le capital social est fixé à la somme de ${context.company.capitalFormatted}, divisé en ${formatFrInteger(shareCount)} actions de 1 euro chacune.`,
         ...(context.options?.variableCapital ? [
           `Le capital est variable conformément aux articles L.231-1 à L.231-8 du Code de commerce, avec un minimum de ${context.options.capitalMinFormatted ?? '[minimum à compléter]'} et un maximum de ${context.options.capitalMaxFormatted ?? '[maximum à compléter]'}.`,
           'Les augmentations ou réductions dans la fourchette du capital variable sont décidées par décision collective ordinaire des associés. Celles-ci sont constatées par le Président au registre, sans modification statutaire.',
