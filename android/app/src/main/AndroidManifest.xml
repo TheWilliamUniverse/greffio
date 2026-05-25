@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <application
         android:allowBackup="true"
@@ -53,7 +54,20 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+
+    <!--
+        Conformite politique Google Play "Photo and Video Permissions".
+        Greffio n'a qu'un usage ponctuel des photos (piece d'identite,
+        justificatif) - le plugin @capacitor/camera utilise alors
+        automatiquement le Photo Picker systeme Android 13+, qui ne
+        necessite aucune autorisation runtime. On force le retrait des
+        permissions READ_MEDIA_IMAGES et READ_MEDIA_VIDEO que le plugin
+        Capacitor pourrait re-injecter via le manifest merger.
+    -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" tools:node="remove" />
+
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>
