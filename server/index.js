@@ -103,6 +103,7 @@ import { draftStatutesDocument } from './services/statutesDrafting.js';
 import { resolveDossierAccess } from './utils/dossierAccess.js';
 import { registerNonConvictionSignatureRoutes } from './routes/nonConvictionSignatureRoutes.js';
 import { registerPaymentsRoutes } from './routes/paymentsRoutes.js';
+import { registerAppVersionRoutes } from './routes/appVersionRoutes.js';
 import {
   createTrustedDevice,
   hasValidTrustedDevice,
@@ -2625,6 +2626,8 @@ registerPaymentsRoutes(app, {
     getResourceOrderById,
   },
 });
+
+registerAppVersionRoutes(app);
 
 const bootstrap = async () => {
   await initSchema();

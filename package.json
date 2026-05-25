@@ -29,6 +29,7 @@
     "test:statutes": "node --test server/statuts/tests/williamStatutes.test.js",
     "test:login-alerts": "node --test server/utils/loginAlerts.test.js",
     "test:mfa-email-code": "node --test server/mfaEmailCodeStore.test.js",
+    "test:app-update": "node --test src/services/appUpdate/tests/appUpdateLogic.test.js",
     "cap:sync": "npm run build && npx cap sync",
     "cap:sync:android": "npm run build && npx cap sync android",
     "cap:open:android": "npx cap open android",

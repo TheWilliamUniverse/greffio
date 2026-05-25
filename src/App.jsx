@@ -50,6 +50,7 @@ import { DashboardEntry } from '@/mobile/DashboardEntry.jsx';
 import { BiometricSessionProvider } from '@/context/BiometricSessionContext.jsx';
 import { shouldUseMobileShell, isCapacitorNative } from '@/utils/platform.js';
 import { WebMobileBottomNav } from '@/components/WebMobileBottomNav.jsx';
+import { AppUpdateGate } from '@/components/AppUpdateGate.jsx';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -148,6 +149,7 @@ function App() {
           </Routes>
         </Layout>
         <CookieConsentBanner />
+        <AppUpdateGate />
         <Toaster richColors position="top-right" />
         </BiometricSessionProvider>
       </Router>
