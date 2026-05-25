@@ -1,27 +1,37 @@
 import { SECURITY_LABELS, usesActions } from './formatting.js';
+import { formatFrInteger, parseFrenchAmount } from '../../../statuts/shared/numberFormat.js';
 
 export const buildCapitalAnnexe = (data) => {
   const isAction = usesActions(data.legalForm);
   const securities = SECURITY_LABELS[data.legalForm];
   const unitLabel = isAction ? 'Nombre d’actions' : 'Nombre de parts sociales';
+  const capitalAmount = parseFrenchAmount(data.capital) || parseFrenchAmount(data.capitalRaw);
+  const totalShares = parseFrenchAmount(data.nombreTitres) || capitalAmount;
+  const nominal = parseFrenchAmount(data.valeurNominale) || 1;
 
   return {
     title: 'Annexe 1 — Répartition du capital',
     paragraphs: [
       `Société : ${data.denomination} (${data.legalForm})`,
-      `Capital social : ${data.capital} euros`,
-      `${unitLabel} : ${data.nombreTitres}`,
+      `Capital social : ${formatFrInteger(capitalAmount)} euros`,
+      `${unitLabel} : ${formatFrInteger(totalShares)}`,
       `Valeur nominale : ${data.valeurNominale} euro(s)`,
     ],
     table: {
       headers: ['Associé', unitLabel, 'Valeur nominale', 'Montant souscrit', 'Pourcentage'],
-      rows: data.associates.map((associate) => [
-        associate.label,
-        associate.titlesCount || data.nombreTitres,
-        `${data.valeurNominale} €`,
-        `${data.capital} €`,
-        associate.share || data.repartition,
-      ]),
+      rows: (data.associates || []).map((associate) => {
+        const sharePct = parseFrenchAmount(String(associate.share || '').replace('%', '').trim());
+        const shares = parseFrenchAmount(associate.titlesCount)
+          || (sharePct > 0 ? Math.max(1, Math.round((totalShares * sharePct) / 100)) : 0);
+        const subscribed = shares * nominal;
+        return [
+          associate.label,
+          formatFrInteger(shares),
+          `${data.valeurNominale} €`,
+          `${formatFrInteger(subscribed)} €`,
+          associate.share || data.repartition,
+        ];
+      }),
     },
   };
 };

@@ -1,5 +1,6 @@
 import { DIRECTOR_LABELS, usesActions } from '../legal/statutes/shared/formatting.js';
 import { resolveWilliamObjetSocialBullets } from '../legal/statutes/reference/williamObjetSocialCatalog.js';
+import { formatFrInteger, parseFrenchAmount } from '../statuts/shared/numberFormat.js';
 import { isLegallyMinor } from './minorAssociateRules.js';
 import { resolveOfficersFromAssociates } from './officerFromAssociates.js';
 
@@ -12,9 +13,32 @@ const pick = (...values) => {
 };
 
 const formatEuros = (value) => {
-  const amount = Number(String(value || '').replace(/\s/g, '').replace(',', '.'));
-  if (!Number.isFinite(amount) || amount <= 0) return null;
-  return new Intl.NumberFormat('fr-FR', { style: 'decimal', maximumFractionDigits: 0 }).format(amount);
+  const amount = parseFrenchAmount(value);
+  if (!amount) return null;
+  return formatFrInteger(amount);
+};
+
+const enrichAssociatesForCapital = (associates = [], { capitalAmount, totalShares, nominalValue, liberationRate = '50 %' }) => {
+  const nominal = parseFrenchAmount(nominalValue) || 1;
+  const total = parseFrenchAmount(totalShares) || parseFrenchAmount(capitalAmount) || 1000;
+  const liberationPct = parseFrenchAmount(String(liberationRate).replace('%', '').trim()) / 100 || 0.5;
+
+  return associates.map((associate) => {
+    let sharePct = parseFrenchAmount(String(associate.share || '').replace('%', '').trim());
+    let shares = parseFrenchAmount(associate.titlesCount);
+    if (!shares && sharePct > 0) shares = Math.max(1, Math.round((total * sharePct) / 100));
+    if (!sharePct && shares > 0) sharePct = Math.round((shares / total) * 1000) / 10;
+    const subscribed = (shares || 0) * nominal;
+    const cashFormatted = associate.contributionCash || (subscribed ? formatEuros(subscribed) : '');
+    const released = associate.liberationAmount || (subscribed ? formatEuros(Math.round(subscribed * liberationPct)) : '');
+    return {
+      ...associate,
+      share: sharePct ? `${sharePct} %` : associate.share,
+      titlesCount: shares ? String(shares) : associate.titlesCount,
+      contributionCash: cashFormatted,
+      liberationAmount: released,
+    };
+  });
 };
 
 const formatPerson = ({ civility, firstName, lastName }) => {
@@ -178,7 +202,21 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
     questionnaire.activity,
     'La société exerce toute activité compatible avec son objet social, directement ou indirectement.',
   );
-  const associates = buildAssociates(questionnaire, user, legalForm);
+  const nombreTitres = pick(questionnaire.nombreActions, questionnaire.nombreTitres, questionnaire.shareCount, '1 000');
+  const valeurNominale = pick(
+    questionnaire.shareNominalValue,
+    questionnaire.valeurNominale,
+    formatEuros(Number(String(capitalRaw).replace(/\s/g, '')) / Number(String(nombreTitres).replace(/\s/g, ''))) || '1',
+  );
+  let associates = buildAssociates(questionnaire, user, legalForm);
+  const capitalAmountNum = parseFrenchAmount(capitalRaw) || 1000;
+  const totalSharesNum = parseFrenchAmount(nombreTitres) || capitalAmountNum;
+  associates = enrichAssociatesForCapital(associates, {
+    capitalAmount: capitalAmountNum,
+    totalShares: totalSharesNum,
+    nominalValue: valeurNominale,
+    liberationRate: pick(questionnaire.liberationCapital, '50 %'),
+  });
   const officersFromAssociates = resolveOfficersFromAssociates(questionnaire.associates || [], {
     fallbackPresident: pick(questionnaire.president, director),
     fallbackDirectorGeneral: pick(questionnaire.directeurGeneral, questionnaire.directeursGeneraux, 'Aucun'),
@@ -186,12 +224,6 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
   const presidentLabel = officersFromAssociates.president;
   const directeurGeneralLabel = officersFromAssociates.directeurGeneral;
   const directorResolved = pick(officersFromAssociates.president, director);
-  const nombreTitres = pick(questionnaire.nombreActions, questionnaire.nombreTitres, questionnaire.shareCount, '1 000');
-  const valeurNominale = pick(
-    questionnaire.shareNominalValue,
-    questionnaire.valeurNominale,
-    formatEuros(Number(String(capitalRaw).replace(/\s/g, '')) / Number(String(nombreTitres).replace(/\s/g, ''))) || '1',
-  );
   const repartition = pick(
     questionnaire.repartition,
     questionnaire.associesSummary,
@@ -252,8 +284,16 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
     directeursGeneraux: pick(questionnaire.directeursGeneraux, 'Aucun'),
     apportsNumeraireTotal: pick(questionnaire.apportsNumeraireTotal, capitalFormatted),
     apportsNatureTotal: pick(questionnaire.apportsNatureTotal, ''),
-    depotFonds: pick(questionnaire.depotFonds, questionnaire.apportsLibérés, ''),
-    premierExerciceFin: pick(questionnaire.premierExerciceFin, questionnaire.premierExerciceCloture, ''),
+    depotFonds: pick(
+      questionnaire.depotFonds,
+      questionnaire.apportsLibérés,
+      formatEuros(Math.round(capitalAmountNum * (parseFrenchAmount(String(pick(questionnaire.liberationCapital, '50')).replace('%', '')) / 100 || 0.5))),
+    ),
+    premierExerciceFin: pick(
+      questionnaire.premierExerciceFin,
+      questionnaire.premierExerciceCloture,
+      `31 décembre ${new Date().getFullYear()}`,
+    ),
     inalienabiliteAnnees: pick(questionnaire.inalienabiliteAnnees, questionnaire.dureeInalienabilite, 'cinq (5)'),
     exemplairesOriginaux: pick(questionnaire.exemplairesOriginaux, ''),
     minorRepresentationNote,

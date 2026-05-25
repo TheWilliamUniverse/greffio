@@ -42,8 +42,17 @@ export const NonConvictionDeclarationPage = () => {
       try {
         const payload = await loadNonConvictionEditor(dossierId);
         setFields(normalizeFields(payload.fields || {}));
-      } catch (_error) {
-        toast.error('Impossible de charger le formulaire.');
+      } catch (error) {
+        const code = String(error?.message || error?.payload?.error || '');
+        if (code === 'AUTH_TOKEN_MISSING') {
+          toast.error('Session expirée. Reconnectez-vous.');
+        } else if (code === 'DOSSIER_FORBIDDEN' || error?.status === 403) {
+          toast.error('Accès refusé à ce dossier.');
+        } else if (code === 'DOCUMENT_EDITOR_LOAD_FAILED') {
+          toast.error('Erreur serveur documents. Réessayez dans quelques instants.');
+        } else {
+          toast.error('Impossible de charger le formulaire.');
+        }
       }
     };
     void boot();

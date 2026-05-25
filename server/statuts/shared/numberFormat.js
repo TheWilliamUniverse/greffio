@@ -14,8 +14,15 @@ export const formatFrInteger = (value) => {
   if (!Number.isFinite(amount) || amount <= 0) return '0';
   return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 })
     .format(amount)
-    .replace(/\u202F/g, ' ');
+    .replace(/\u202F/g, '\u00A0')
+    .replace(/ /g, '\u00A0');
 };
+
+/** Applique des espaces insécables aux groupes de chiffres dans un texte (évite « 1 /000 » en PDF). */
+export const pdfSafeAmountsInText = (text) => String(text || '').replace(
+  /(\d{1,3}(?:[\s\u00A0\u202F]\d{3})+|\d{4,})/g,
+  (match) => match.replace(/[\s\u202F]/g, '\u00A0'),
+);
 
 export const formatFrEuros = (value, { suffix = true } = {}) => {
   const formatted = formatFrInteger(value);

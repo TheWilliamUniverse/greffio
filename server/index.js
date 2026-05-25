@@ -1824,12 +1824,18 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async 
     return res.status(409).json({ ok: false, error: 'DOCUMENT_EDITOR_NOT_SUPPORTED' });
   }
   const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
-  await ensureDossierDocuments(dossier.id);
-  const documents = await listDossierDocuments(dossier.id);
-  const existing = documents.find((item) => item.docKey === docKey);
-  const savedFields = existing?.metadata?.fields && typeof existing.metadata.fields === 'object'
-    ? existing.metadata.fields
-    : {};
+  let savedFields = {};
+  try {
+    await ensureDossierDocuments(dossier.id);
+    const documents = await listDossierDocuments(dossier.id);
+    const existing = documents.find((item) => item.docKey === docKey);
+    savedFields = existing?.metadata?.fields && typeof existing.metadata.fields === 'object'
+      ? existing.metadata.fields
+      : {};
+  } catch (error) {
+    console.error('DOCUMENT_EDITOR_LOAD_FAILED', error);
+    return res.status(500).json({ ok: false, error: 'DOCUMENT_EDITOR_LOAD_FAILED' });
+  }
   const initialFields = {
     declarantFirstName: questionnaire.firstName || '',
     declarantLastName: questionnaire.lastName || '',

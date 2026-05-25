@@ -277,9 +277,17 @@ const initPostgresSchema = async () => {
   `);
 };
 
+const ensurePostgresDocumentColumns = async () => {
+  if (!hasPostgres) return;
+  await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS sha256 TEXT;`);
+  await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS metadata_json TEXT;`);
+  await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS editor_schema_version TEXT;`);
+};
+
 const initSchema = async () => {
   if (hasPostgres) {
     await runPostgresMigrations();
+    await ensurePostgresDocumentColumns();
   }
 };
 

@@ -101,6 +101,13 @@ test('generateStatutesDocument — document legacy avec métadonnées', () => {
   const titleTwoIdx = doc.blocks.findIndex((b) => b.kind === 'legal-title' && String(b.text).includes('TITRE II'));
   const article8Idx = doc.blocks.findIndex((b) => b.kind === 'article' && b.number === 8);
   assert.ok(titleTwoIdx >= 0 && article8Idx > titleTwoIdx, 'Article 8 doit suivre TITRE II, pas être regroupé sous TITRE I uniquement');
+
+  const lastArticleIdx = doc.blocks.findLastIndex((b) => b.kind === 'article' && b.number === 27);
+  const trailingTitles = doc.blocks.slice(lastArticleIdx + 1).filter((b) => b.kind === 'legal-title');
+  assert.equal(trailingTitles.length, 0, `Titres orphelins en fin de document : ${trailingTitles.map((t) => t.text).join(', ')}`);
+
+  const article17 = doc.blocks.find((b) => b.kind === 'article' && b.number === 17);
+  assert.ok(article17?.title?.toLowerCase().includes('exclusion'), 'Article 17 doit porter sur l\'exclusion');
 });
 
 test('dossier sans mineur non émancipé — pas de clause Ibtissam parasite', () => {

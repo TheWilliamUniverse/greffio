@@ -1,6 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import PDFDocument from 'pdfkit';
+import { pdfSafeAmountsInText } from '../statuts/shared/numberFormat.js';
+
+const pdfText = (value) => pdfSafeAmountsInText(String(value || ''));
 
 const PAGE = {
   marginTop: 62,
@@ -81,7 +84,7 @@ const renderCover = (doc, cover, companyName) => {
     cover.registryLine,
   ].forEach((line) => {
     if (!line) { doc.moveDown(0.5); return; }
-    doc.text(line, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
+    doc.text(pdfText(line), PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
     doc.moveDown(0.35);
   });
   doc.moveDown(1);
@@ -99,7 +102,7 @@ const renderBlock = (doc, companyName, pages, block) => {
     ensureSpace(doc, companyName, pages, 48);
     doc.moveDown(0.8);
     doc.font(FONTS.bold).fontSize(12).fillColor('#111111')
-      .text(block.text, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'left' });
+      .text(pdfText(block.text), PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'left' });
     doc.moveDown(0.55);
     return;
   }
@@ -107,14 +110,14 @@ const renderBlock = (doc, companyName, pages, block) => {
     ensureSpace(doc, companyName, pages, 52);
     doc.moveDown(0.9);
     doc.font(FONTS.bold).fontSize(11.5).fillColor('#111111')
-      .text(block.text, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
+      .text(pdfText(block.text), PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
     doc.moveDown(0.65);
     return;
   }
   if (block.kind === 'paragraph') {
     ensureSpace(doc, companyName, pages, 36);
     doc.font(FONTS.regular).fontSize(11)
-      .text(block.text, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify', lineGap: 3 });
+      .text(pdfText(block.text), PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify', lineGap: 3 });
     doc.moveDown(0.45);
     return;
   }
@@ -127,7 +130,7 @@ const renderBlock = (doc, companyName, pages, block) => {
       .text(heading, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'left' });
     doc.moveDown(0.35);
     doc.font(FONTS.regular).fontSize(11)
-      .text(block.body, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify', lineGap: 3 });
+      .text(pdfText(block.body), PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify', lineGap: 3 });
     doc.moveDown(0.75);
   }
 };
@@ -155,7 +158,7 @@ const renderTable = (doc, companyName, pages, table) => {
       const x = startX + colIndex * colWidth;
       doc.rect(x, y, colWidth, rowHeight).fillAndStroke(rowIndex % 2 ? '#fafafa' : '#ffffff', '#dddddd');
       doc.fillColor('#111111').font(FONTS.regular).fontSize(9.5)
-        .text(String(cell || ''), x + 4, y + 7, { width: colWidth - 8 });
+        .text(pdfText(String(cell || '')), x + 4, y + 7, { width: colWidth - 8 });
     });
     y += rowHeight;
   });
