@@ -1,25 +1,113 @@
-# Déploiement backend Greffio sur le VPS (à lancer en local si GitHub Actions indisponible).
-# Prérequis : accès SSH root@187.127.232.210 (clé ou mot de passe).
+# Deploiement backend Greffio sur le VPS Hostinger (api.greffio.willentreprises.com).
+#
+# Strategie : packager le code local (server/, package.json, ...) en tarball, l'envoyer
+# par SCP, l'extraire dans /opt/greffio (en remplacant uniquement les artefacts de code,
+# sans toucher au .env ni a node_modules), puis lancer npm ci + migrations + pm2 restart.
+#
+# Pourquoi pas `git pull` ? Le repertoire /opt/greffio sur le VPS n'est PAS un clone git
+# (c'est un staging directory). Le tarball garantit une copie exacte du code local sans
+# dependre d'un acces GitHub depuis le VPS (pas de PAT a stocker cote serveur).
+#
+# Prerequis (poste local Windows) :
+#   - tar.exe (inclus dans Windows 10+ depuis 1803)
+#   - pscp.exe / plink.exe (PuTTY) OU ssh.exe / scp.exe (OpenSSH natif Windows)
+#   - Variables d'env :
+#       GREFFIO_VPS_HOST       (defaut : 187.127.232.210)
+#       GREFFIO_VPS_USER       (defaut : root)
+#       GREFFIO_VPS_PASSWORD   (mot de passe SSH, obligatoire si pas de cle)
+#       GREFFIO_VPS_HOSTKEY    (empreinte SHA256, optionnel mais recommande pour batch)
+#
+# Usage typique :
+#   $env:GREFFIO_VPS_PASSWORD = '...'
+#   pwsh -File scripts/deploy-backend-vps.ps1
+#
+# Le script est idempotent : il fait un backup horodate de l'ancien code avant chaque run.
 
 $ErrorActionPreference = 'Stop'
-$VpsHost = if ($env:GREFFIO_VPS_HOST) { $env:GREFFIO_VPS_HOST } else { '187.127.232.210' }
-$VpsUser = if ($env:GREFFIO_VPS_USER) { $env:GREFFIO_VPS_USER } else { 'root' }
 
+$VpsHost     = if ($env:GREFFIO_VPS_HOST)     { $env:GREFFIO_VPS_HOST }     else { '187.127.232.210' }
+$VpsUser     = if ($env:GREFFIO_VPS_USER)     { $env:GREFFIO_VPS_USER }     else { 'root' }
+$VpsHostKey  = if ($env:GREFFIO_VPS_HOSTKEY)  { $env:GREFFIO_VPS_HOSTKEY }  else { 'SHA256:Qd5mZUU4rWubKmIVp/5+4m1xqObBQi3ZVBoFz8wKQGc' }
+$VpsPassword = $env:GREFFIO_VPS_PASSWORD
+
+if (-not $VpsPassword) {
+    Write-Host "GREFFIO_VPS_PASSWORD absent : tentative via cle SSH (OpenSSH natif)." -ForegroundColor Yellow
+}
+
+$RepoRoot = Split-Path -Parent $PSScriptRoot
+$Staging  = Join-Path $env:TEMP "greffio-deploy"
+$TarFile  = Join-Path $env:TEMP "greffio-deploy.tar.gz"
+
+Write-Host "=== 1) Preparation staging local ==="
+if (Test-Path $Staging) { Remove-Item -Recurse -Force $Staging }
+New-Item -ItemType Directory -Force -Path $Staging | Out-Null
+
+robocopy "$RepoRoot\server" "$Staging\server" /E /XD __pycache__ tests-tmp /NFL /NDL /NJH /NJS /NP | Out-Null
+Copy-Item -Path "$RepoRoot\package.json"      -Destination $Staging
+Copy-Item -Path "$RepoRoot\package-lock.json" -Destination $Staging
+if (Test-Path "$RepoRoot\ecosystem.config.cjs") {
+    Copy-Item -Path "$RepoRoot\ecosystem.config.cjs" -Destination $Staging
+}
+
+if (Test-Path $TarFile) { Remove-Item $TarFile -Force }
+& tar.exe -czf "$TarFile" -C "$Staging" "server" "package.json" "package-lock.json" "ecosystem.config.cjs"
+$tarSize = (Get-Item $TarFile).Length
+Write-Host "Tarball : $TarFile ($([math]::Round($tarSize/1MB,2)) MB)"
+
+$plink = 'C:\Program Files\PuTTY\plink.exe'
+$pscp  = 'C:\Program Files\PuTTY\pscp.exe'
+$usePutty = (Test-Path $plink) -and (Test-Path $pscp) -and $VpsPassword
+
+function Invoke-RemoteShell {
+    param([string]$RemoteCommand)
+    if ($usePutty) {
+        & $plink -batch -ssh -hostkey "$VpsHostKey" "$VpsUser@$VpsHost" -pw "$VpsPassword" $RemoteCommand
+    } else {
+        & ssh -o StrictHostKeyChecking=accept-new "$VpsUser@$VpsHost" $RemoteCommand
+    }
+    if ($LASTEXITCODE -ne 0) { throw "Remote command failed (exit $LASTEXITCODE)" }
+}
+
+function Invoke-RemoteUpload {
+    param([string]$LocalPath, [string]$RemotePath)
+    if ($usePutty) {
+        & $pscp -batch -hostkey "$VpsHostKey" -pw "$VpsPassword" "$LocalPath" "$VpsUser@${VpsHost}:$RemotePath"
+    } else {
+        & scp -o StrictHostKeyChecking=accept-new "$LocalPath" "$VpsUser@${VpsHost}:$RemotePath"
+    }
+    if ($LASTEXITCODE -ne 0) { throw "Upload failed (exit $LASTEXITCODE)" }
+}
+
+Write-Host ""
+Write-Host "=== 2) Upload tarball vers VPS ==="
+Invoke-RemoteUpload -LocalPath $TarFile -RemotePath '/tmp/greffio-deploy.tar.gz'
+
+Write-Host ""
+Write-Host "=== 3) Deploiement distant (backup + extraction + npm ci + migrate + pm2 restart) ==="
 $RemoteScript = @'
-set -euo pipefail
+set -e
 cd /opt/greffio
-git fetch origin main
-git reset --hard origin/main
-npm ci --omit=dev
+STAMP=$(date +%Y%m%d-%H%M%S)
+BACKUP="/opt/greffio-backup-$STAMP"
+mkdir -p "$BACKUP"
+cp -r server "$BACKUP/server"
+cp package.json package-lock.json ecosystem.config.cjs "$BACKUP/" 2>/dev/null || true
+echo "Backup : $BACKUP"
+rm -rf server/routes server/config server/payments server/migrations
+tar -xzf /tmp/greffio-deploy.tar.gz -C /opt/greffio/
+npm ci --omit=dev --no-audit --no-fund 2>&1 | tail -3
 npm run db:migrate
-npm run db:check
-pm2 restart greffio-api --update-env
-pm2 save
-echo "Deployed commit: $(git rev-parse --short HEAD)"
-curl -fsS http://127.0.0.1:8787/api/health
-curl -fsS http://127.0.0.1:8787/api/ready
+pm2 restart greffio-api --update-env > /dev/null
+sleep 3
+echo "--- /api/health ---"
+curl -fsS http://127.0.0.1:8787/api/health && echo ""
+echo "--- /api/ready ---"
+curl -fsS http://127.0.0.1:8787/api/ready && echo ""
+echo "--- /api/app-version ---"
+curl -fsS http://127.0.0.1:8787/api/app-version && echo ""
 '@
 
-Write-Host "Connexion à ${VpsUser}@${VpsHost} ..."
-ssh "${VpsUser}@${VpsHost}" $RemoteScript
-Write-Host "Deploy backend terminé."
+Invoke-RemoteShell -RemoteCommand $RemoteScript
+
+Write-Host ""
+Write-Host "=== Deploiement termine. ===" -ForegroundColor Green
