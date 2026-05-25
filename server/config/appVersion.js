@@ -34,7 +34,7 @@ const parseChangelog = (value) => {
     .filter(Boolean);
 };
 
-const DEFAULT_LATEST_VERSION_CODE = 261500200;
+const DEFAULT_LATEST_VERSION_CODE = 261500300;
 const DEFAULT_MIN_VERSION_CODE = 261422041;
 const DEFAULT_LATEST_VERSION_NAME = '1.2.1';
 
