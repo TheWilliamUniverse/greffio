@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button.jsx';
-import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { SERVICE_LANDING_PAGES, SERVICE_LANDING_ROUTES } from '@/config/serviceLandingPages.js';
 
 export const ServiceLandingPage = () => {
@@ -23,22 +22,19 @@ export const ServiceLandingPage = () => {
 
   return (
     <main className="min-h-screen bg-background">
-      <header className="border-b border-border bg-white px-6 py-4">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <GreffioLogo variant="full" to="/" />
-          <Button asChild variant="outline" className="bg-white">
-            <Link to="/questionnaire">Démarrer</Link>
-          </Button>
-        </div>
-      </header>
-
-      <section className="mx-auto max-w-5xl space-y-6 px-4 py-12 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
         <div className="rounded-md bg-[hsl(var(--greffio-citron))] p-6">
           <p className="text-sm font-bold uppercase text-primary">Formalité</p>
           <h1 className="mt-2 text-4xl font-extrabold">{page.title}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Dossier guidé, documents structurés, suivi administratif et accompagnement humain.
           </p>
+          {page.contextNote ? (
+            <p className="mt-4 rounded-md border border-primary/15 bg-white/70 px-3 py-2.5 text-xs leading-relaxed text-foreground/80">
+              <span className="font-bold text-primary">À retenir · </span>
+              {page.contextNote}
+            </p>
+          ) : null}
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">

@@ -34,6 +34,8 @@ export const SERVICE_LANDING_PAGES = {
     price: 'Parcours de démarrage dès 0 €',
     delay: 'Préparation rapide selon les informations déclarées',
     legalFees: 'Selon formalités annexes éventuelles',
+    contextNote:
+      'La micro-entreprise est une entreprise individuelle au régime simplifié : création légère, comptabilité allégée et cotisations sur le chiffre d’affaires (avec plafonds). L’EI classique suit les règles standards, sans plafond de CA ni ce régime simplifié.',
   },
   'transfert-siege': {
     title: 'Transfert de siège social',
