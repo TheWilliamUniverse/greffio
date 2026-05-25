@@ -287,9 +287,8 @@ export const QUESTIONNAIRE_FLOW = [
       {
         key: 'beneficiairesEffectifs',
         label: 'Bénéficiaires effectifs',
-        type: 'text',
+        type: 'beneficial_owners_picker',
         required: false,
-        placeholder: 'Noms des bénéficiaires effectifs',
         condition: (data) => !isEiLikeFormality(data),
       },
     ],
@@ -335,6 +334,15 @@ export const getQuestionnaireProgressPercent = (formData = {}, stepIndex = 0, fi
 };
 
 export const isFieldValueValid = (field, value, formData = {}) => {
+  if (field.type === 'beneficial_owners_picker') {
+    const selected = Array.isArray(formData.beneficiairesEffectifsSelected)
+      ? formData.beneficiairesEffectifsSelected
+      : [];
+    const other = String(formData.beneficiairesEffectifsAutre || '').trim();
+    const summary = String(formData.beneficiairesEffectifs || value || '').trim();
+    if (!field.required) return selected.length > 0 || Boolean(other) || Boolean(summary);
+    return selected.length > 0 || Boolean(other);
+  }
   if (field.type === 'associates_minor_panel') {
     const associates = Array.isArray(formData.associates) ? formData.associates : [];
     const hasAssociate = associates.some((a) => isAssociateEntryComplete(a));

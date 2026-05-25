@@ -34,6 +34,7 @@ import { clearCurrentDossierId, getCurrentDossierId, saveCurrentDossierId } from
 import { runtimeConfig } from '@/config/runtime.js';
 import { isEiLikeFormality, isStatutesSupportedForm } from '@/config/formalities.js';
 import { AssociatesMinorPanel } from '@/components/questionnaire/AssociatesMinorPanel.jsx';
+import { BeneficialOwnersPicker } from '@/components/questionnaire/BeneficialOwnersPicker.jsx';
 import { BirthDateMinorEncouragement } from '@/components/BirthDateMinorEncouragement.jsx';
 import { validateDirectorEligibility } from '@/config/minorAssociateRules.js';
 import { syncDirigeantFromAssociates } from '@/utils/officerFromAssociates.js';
@@ -68,6 +69,8 @@ const defaultData = {
   dirigeant: '',
   birthDate: '',
   beneficiairesEffectifs: '',
+  beneficiairesEffectifsSelected: [],
+  beneficiairesEffectifsAutre: '',
   validationConfirmed: false,
 };
 
@@ -681,6 +684,24 @@ export const QuestionnairePage = () => {
           />
           <span className="text-sm leading-6 text-muted-foreground">{field.label}</span>
         </label>
+      );
+    }
+
+    if (field.type === 'beneficial_owners_picker') {
+      return (
+        <div key={field.key} className="space-y-3">
+          <Label className="text-base font-semibold">
+            {field.label}{field.required ? ' *' : ''}
+          </Label>
+          <BeneficialOwnersPicker
+            formData={formData}
+            selectedIds={formData.beneficiairesEffectifsSelected || []}
+            summaryText={formData.beneficiairesEffectifs || ''}
+            otherName={formData.beneficiairesEffectifsAutre || ''}
+            fieldClass={fieldClass}
+            onChange={(patch) => setFormData((current) => ({ ...current, ...patch }))}
+          />
+        </div>
       );
     }
 
