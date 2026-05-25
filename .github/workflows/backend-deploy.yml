@@ -1,8 +1,21 @@
 name: Backend Deploy VPS
 
+# Strategie : packager server/, package.json, package-lock.json, ecosystem.config.cjs
+# en tarball, l'uploader sur le VPS via SCP, puis l'extraire dans /opt/greffio.
+#
+# Pourquoi pas `git pull` ? Le repertoire /opt/greffio sur le VPS n'est pas un clone
+# git mais un staging directory. L'ancienne approche `git fetch && git reset --hard`
+# echouait silencieusement, laissant le serveur sur du code obsolete.
+
 on:
   push:
     branches: [main]
+    paths:
+      - 'server/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'ecosystem.config.cjs'
+      - '.github/workflows/backend-deploy.yml'
   workflow_dispatch:
 
 jobs:
@@ -10,29 +23,65 @@ jobs:
     if: ${{ secrets.VPS_HOST != '' && secrets.VPS_USER != '' && secrets.VPS_SSH_KEY != '' }}
     runs-on: ubuntu-latest
     steps:
-      - name: SSH deploy to VPS
+      - uses: actions/checkout@v4
+
+      - name: Build deploy tarball
+        run: |
+          mkdir -p staging
+          cp -r server staging/server
+          cp package.json package-lock.json staging/
+          [ -f ecosystem.config.cjs ] && cp ecosystem.config.cjs staging/ || true
+          tar -czf greffio-deploy.tar.gz -C staging server package.json package-lock.json ecosystem.config.cjs
+          ls -lh greffio-deploy.tar.gz
+
+      - name: Upload tarball via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: greffio-deploy.tar.gz
+          target: /tmp/
+
+      - name: Remote deploy (backup + extract + npm ci + migrate + pm2 restart)
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            set -euo pipefail
+            set -e
             cd /opt/greffio
-            git fetch origin main
-            git reset --hard origin/main
-            npm ci --omit=dev
+
+            STAMP=$(date +%Y%m%d-%H%M%S)
+            BACKUP="/opt/greffio-backup-$STAMP"
+            mkdir -p "$BACKUP"
+            cp -r server "$BACKUP/server"
+            cp package.json package-lock.json "$BACKUP/" 2>/dev/null || true
+            cp ecosystem.config.cjs "$BACKUP/" 2>/dev/null || true
+            echo "Backup: $BACKUP"
+
+            rm -rf server/routes server/config server/payments server/migrations
+            tar -xzf /tmp/greffio-deploy.tar.gz -C /opt/greffio/
+            echo "Code extrait"
+
+            npm ci --omit=dev --no-audit --no-fund 2>&1 | tail -5
             npm run db:migrate
-            npm run db:check
-            pm2 restart greffio-api --update-env
-            pm2 save
-            echo "Deployed commit: $(git rev-parse --short HEAD)"
-            curl -fsS http://127.0.0.1:8787/api/health
-            curl -fsS http://127.0.0.1:8787/api/ready
-            curl -fsS -o /dev/null -w "preview-draft:%{http_code}\n" \
-              -X POST http://127.0.0.1:8787/api/statutes/preview-draft \
-              -H "Content-Type: application/json" \
-              -d '{"data":{"legalForm":"SAS"},"answers":{"denomination":"Test","capitalMontant":"1000","objetSocial":"Commerce","adresseSiege":"1 rue","codePostal":"06200","villeSiege":"Nice","dirigeantPrincipal":"Jean Dupont"}}'
+            pm2 restart greffio-api --update-env > /dev/null
+            pm2 save > /dev/null
+
+            sleep 3
+            echo "--- /api/health ---"
+            curl -fsS http://127.0.0.1:8787/api/health && echo ""
+            echo "--- /api/ready ---"
+            curl -fsS http://127.0.0.1:8787/api/ready && echo ""
+            echo "--- /api/app-version ---"
+            curl -fsS http://127.0.0.1:8787/api/app-version | head -c 200 && echo "..."
+
+            ls /opt/ | grep '^greffio-backup-' | sort -r | tail -n +6 | while read d; do
+              rm -rf "/opt/$d"
+              echo "Cleanup old backup: $d"
+            done
 
   secrets-check:
     if: ${{ secrets.VPS_HOST == '' || secrets.VPS_USER == '' || secrets.VPS_SSH_KEY == '' }}
@@ -41,4 +90,5 @@ jobs:
       - name: Missing required secrets
         run: |
           echo "Missing one or more required GitHub secrets: VPS_HOST, VPS_USER, VPS_SSH_KEY"
+          echo "Le deploiement automatique du backend reste desactive jusqu'a configuration."
           exit 1

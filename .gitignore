@@ -39,3 +39,5 @@ word/
 assets/play-store/video/page@*.webm
 artifacts/playstore/*.aab
 artifacts/playstore/*.apk
+artifacts/playstore/archive/
+_statuts_templates_import/
