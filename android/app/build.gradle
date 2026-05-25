@@ -7,9 +7,16 @@ if (keystorePropertiesFile.exists()) {
 }
 def envVersionCode = System.getenv("ANDROID_VERSION_CODE")
 def envVersionName = System.getenv("ANDROID_VERSION_NAME")
+def releaseVersionFile = rootProject.file("release-version.properties")
+def releaseVersion = new Properties()
+if (releaseVersionFile.exists()) {
+    releaseVersion.load(new FileInputStream(releaseVersionFile))
+}
 def autoVersionCode = new Date().format("yyDDDHHmm", TimeZone.getTimeZone("UTC")).toInteger()
-def resolvedVersionCode = (envVersionCode != null && (envVersionCode ==~ /\d+/)) ? envVersionCode.toInteger() : autoVersionCode
-def resolvedVersionName = envVersionName ?: "1.1.${resolvedVersionCode}"
+def resolvedVersionCode = (envVersionCode != null && (envVersionCode ==~ /\d+/))
+    ? envVersionCode.toInteger()
+    : (releaseVersion.getProperty("versionCode")?.isInteger() ? releaseVersion.getProperty("versionCode").toInteger() : autoVersionCode)
+def resolvedVersionName = envVersionName ?: releaseVersion.getProperty("versionName") ?: "1.1.${resolvedVersionCode}"
 
 android {
     namespace = "com.greffio.app"
