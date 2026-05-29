@@ -40,6 +40,7 @@ import {
   updateDossierQuestionnaire,
   claimDossierForUser,
   updateDossierDocument,
+  clearDossierDocumentAttachment,
   updateDossierOpsFields,
   upsertGeneratedDocument,
   syncGeneratedStatutesToDossierChecklist,
@@ -114,6 +115,7 @@ import {
 import { askGreffioAssistant, isAssistantConfigured } from './services/assistant.js';
 import {
   createSupabaseSignedDownloadUrl,
+  deleteDocumentFromConfiguredStorage,
   objectStorageConfig,
   uploadDocumentToConfiguredStorage,
 } from './services/objectStorage.js';
@@ -1829,6 +1831,52 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
   });
 });
 
+app.delete('/api/dossiers/:dossierId/documents/:docKey', requireAuth, async (req, res) => {
+  const access = await resolveDossierAccess(req, req.params.dossierId);
+  if (!access.ok) return res.status(access.status).json({ ok: false, error: access.error });
+  const { dossier } = access;
+
+  const docKey = String(req.params.docKey || '').trim();
+  if (!docKey) return res.status(400).json({ ok: false, error: 'DOC_KEY_REQUIRED' });
+
+  const documents = await listDossierDocuments(dossier.id);
+  const existing = documents.find((item) => item.docKey === docKey);
+  if (!existing) return res.status(404).json({ ok: false, error: 'DOCUMENT_SLOT_NOT_FOUND' });
+
+  const hasFile = Boolean(existing.filename || existing.storageUrl || existing.fileUrl);
+  if (!hasFile) {
+    return res.status(409).json({ ok: false, error: 'DOCUMENT_NOT_UPLOADED' });
+  }
+
+  const isOps = isInternalRole(req.auth?.role);
+  if (existing.status === DOCUMENT_STATUSES.VALID && !isOps) {
+    return res.status(409).json({ ok: false, error: 'DOCUMENT_VALIDATED_LOCKED' });
+  }
+
+  const cleared = await clearDossierDocumentAttachment({
+    dossierId: dossier.id,
+    docKey,
+    actorId: req.auth.sub,
+    actorType: isOps ? 'ops' : 'client',
+  });
+  if (!cleared?.removed) {
+    return res.status(409).json({ ok: false, error: 'DOCUMENT_NOT_UPLOADED' });
+  }
+
+  if (cleared.previousStorageUrl) {
+    try {
+      await deleteDocumentFromConfiguredStorage(cleared.previousStorageUrl);
+    } catch (storageError) {
+      console.error('DOCUMENT_STORAGE_DELETE_FAILED', storageError);
+    }
+  }
+
+  return res.json({
+    ok: true,
+    documents: await listDossierDocuments(dossier.id),
+  });
+});
+
 app.get('/api/dossiers/:dossierId/documents/:docKey/download', requireAuth, async (req, res) => {
   const access = await resolveDossierAccess(req, req.params.dossierId);
   if (!access.ok) return res.status(access.status).json({ ok: false, error: access.error });
@@ -1911,7 +1959,7 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async 
   return res.json({
     ok: true,
     docKey,
-    schemaVersion: 'manager_non_conviction_v3',
+    schemaVersion: 'manager_non_conviction_v4',
     title: 'Déclaration de non-condamnation et de filiation',
     fields,
   });
@@ -1953,7 +2001,7 @@ app.post('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async
       sha256,
       reviewerId: null,
       metadata: {
-        editorSchemaVersion: 'manager_non_conviction_v2',
+        editorSchemaVersion: 'manager_non_conviction_v4',
         generatedFromEditor: true,
         fields,
         generatedAt: new Date().toISOString(),

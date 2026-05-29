@@ -89,3 +89,31 @@ export const createSupabaseSignedDownloadUrl = async (storageUrl, expiresInSecon
   if (!signedPath) return null;
   return signedPath.startsWith('http') ? signedPath : `${SUPABASE_URL}/storage/v1${signedPath}`;
 };
+
+export const deleteDocumentFromConfiguredStorage = async (storageUrl) => {
+  const source = String(storageUrl || '');
+  if (!source) return { deleted: false };
+
+  const parsed = parseSupabaseStorageUrl(source);
+  if (parsed && hasSupabaseCredentials) {
+    const response = await fetch(
+      `${SUPABASE_URL}/storage/v1/object/${parsed.bucket}/${encodePath(parsed.objectPath)}`,
+      {
+        method: 'DELETE',
+        headers: supabaseHeaders(),
+      },
+    );
+    return { deleted: response.ok, provider: 'supabase' };
+  }
+
+  if (source.startsWith('supabase://')) {
+    return { deleted: false, provider: 'supabase' };
+  }
+
+  try {
+    await fs.unlink(source);
+    return { deleted: true, provider: 'local' };
+  } catch (_error) {
+    return { deleted: false, provider: 'local' };
+  }
+};

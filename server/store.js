@@ -569,6 +569,102 @@ const updateDossierDocument = async ({
   return next;
 };
 
+const clearDossierDocumentAttachment = async ({
+  dossierId,
+  docKey,
+  actorId = null,
+  actorType = 'client',
+}) => {
+  const existing = (await listDossierDocuments(dossierId)).find((item) => item.docKey === docKey);
+  if (!existing) return null;
+  const hadFile = Boolean(existing.filename || existing.storageUrl || existing.fileUrl);
+  if (!hadFile) return { document: existing, removed: false };
+
+  const updatedAt = nowIso();
+  const previousMetadata = existing.metadata && typeof existing.metadata === 'object' ? existing.metadata : {};
+  const nextMetadata = previousMetadata.fields
+    ? { fields: previousMetadata.fields, clearedAt: updatedAt, clearedBy: actorId }
+    : { clearedAt: updatedAt, clearedBy: actorId };
+
+  if (hasPostgres) {
+    await query(`
+      UPDATE documents
+      SET
+        status = $1,
+        original_filename = NULL,
+        recommended_filename = NULL,
+        file_url = NULL,
+        filename = NULL,
+        file_size_bytes = NULL,
+        mime_type = NULL,
+        storage_url = NULL,
+        sha256 = NULL,
+        rejected_reason = NULL,
+        uploaded_at = NULL,
+        reviewed_at = NULL,
+        reviewer_id = NULL,
+        metadata_json = $2,
+        updated_at = $3
+      WHERE dossier_id = $4 AND doc_key = $5
+    `, [
+      DOCUMENT_STATUSES.REQUESTED,
+      JSON.stringify(nextMetadata),
+      updatedAt,
+      dossierId,
+      docKey,
+    ]);
+  } else {
+    sqlite.prepare(`
+      UPDATE documents
+      SET
+        status = @status,
+        original_filename = NULL,
+        recommended_filename = NULL,
+        file_url = NULL,
+        filename = NULL,
+        file_size_bytes = NULL,
+        mime_type = NULL,
+        storage_url = NULL,
+        sha256 = NULL,
+        rejected_reason = NULL,
+        uploaded_at = NULL,
+        reviewed_at = NULL,
+        reviewer_id = NULL,
+        metadata_json = @metadataJson,
+        updated_at = @updatedAt
+      WHERE dossier_id = @dossierId AND doc_key = @docKey
+    `).run({
+      status: DOCUMENT_STATUSES.REQUESTED,
+      metadataJson: JSON.stringify(nextMetadata),
+      updatedAt,
+      dossierId,
+      docKey,
+    });
+  }
+
+  const next = (await listDossierDocuments(dossierId)).find((item) => item.docKey === docKey) || null;
+  if (next) {
+    await addDocumentEvent({
+      documentId: next.id,
+      dossierId,
+      previousStatus: existing.status,
+      newStatus: next.status,
+      actorType,
+      actorId,
+      reason: 'document_attachment_removed',
+      metadata: {
+        docKey,
+        previousFilename: existing.filename || null,
+      },
+    });
+  }
+  return {
+    document: next,
+    removed: true,
+    previousStorageUrl: existing.storageUrl || existing.fileUrl || null,
+  };
+};
+
 const getDossier = async (dossierId) => {
   const key = String(dossierId || '').trim();
   if (!key) return null;
@@ -1594,6 +1690,7 @@ export {
   ensureDossierDocuments,
   listDossierDocuments,
   updateDossierDocument,
+  clearDossierDocumentAttachment,
   DOCUMENT_STATUSES,
   DOSSIER_DOCUMENT_TEMPLATES,
   getDossier,

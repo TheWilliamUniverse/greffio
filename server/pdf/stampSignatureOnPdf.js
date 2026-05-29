@@ -27,7 +27,7 @@ export const stampSignatureOnPdf = async ({
   const { width, height } = page.getSize();
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const yBase = 120;
+  const yBase = 168;
 
   const proof = buildProofFingerprint(documentId);
   page.drawText(proof, {

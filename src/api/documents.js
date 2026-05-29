@@ -57,6 +57,33 @@ const mapDocumentUploadError = (error) => {
   return code || "L upload a echoue.";
 };
 
+const mapDocumentDeleteError = (error) => {
+  const code = String(error?.message || '');
+  if (code === 'DOCUMENT_NOT_UPLOADED') return 'Aucune pièce jointe à supprimer pour ce document.';
+  if (code === 'DOCUMENT_VALIDATED_LOCKED') return 'Ce document a été validé par Greffio. Contactez le support pour le retirer.';
+  if (code === 'DOCUMENT_SLOT_NOT_FOUND') return 'Emplacement document introuvable.';
+  if (code === 'DOSSIER_FORBIDDEN') return 'Accès refusé à ce dossier.';
+  return code || 'La suppression a échoué.';
+};
+
+export const deleteDossierDocument = async ({ dossierId, docKey }) => {
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}/documents/${encodeURIComponent(docKey)}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${authToken()}`,
+    },
+  });
+  try {
+    return await parseResponse(response);
+  } catch (error) {
+    const mapped = new Error(mapDocumentDeleteError(error));
+    mapped.status = error?.status;
+    mapped.payload = error?.payload;
+    throw mapped;
+  }
+};
+
 export const uploadDossierDocument = async ({
   dossierId,
   docKey,

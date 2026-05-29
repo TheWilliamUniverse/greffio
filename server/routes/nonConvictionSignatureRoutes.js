@@ -48,7 +48,7 @@ export const registerNonConvictionSignatureRoutes = (app, {
       storageUrl: pdfPath,
       sha256,
       metadata: {
-        editorSchemaVersion: 'manager_non_conviction_v3',
+        editorSchemaVersion: 'manager_non_conviction_v4',
         declarationStatus: 'preview_ready',
         fields,
         generatedAt: new Date().toISOString(),

@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Archive, CheckCircle2, Download, Eye, FilePlus2, FileText, Search, ShieldCheck, Upload } from 'lucide-react';
+import { Archive, CheckCircle2, Download, Eye, FilePlus2, FileText, Search, ShieldCheck, Trash2, Upload } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { INPI_UPLOAD_RULES } from '@/config/legalFlow.js';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
-import { downloadDossierDocument, getDossierDocuments, uploadDossierDocument } from '@/api/documents.js';
+import { downloadDossierDocument, deleteDossierDocument, getDossierDocuments, uploadDossierDocument } from '@/api/documents.js';
 import { getDossierDocumentEditor, saveDossierDocumentEditor } from '@/api/documents.js';
 import { getUser } from '@/utils/localStorage.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
@@ -27,11 +27,13 @@ export const DocumentsPage = () => {
   const [dossierFormalityMeta, setDossierFormalityMeta] = useState({});
   const [editorData, setEditorData] = useState(null);
   const [editorSaving, setEditorSaving] = useState(false);
+  const [deletingDocKey, setDeletingDocKey] = useState(null);
   const currentDossierId = getCurrentDossierId();
   const user = getUser();
   const internalView = isInternalUser(user);
   const normalizedDocuments = useMemo(() => apiDocuments.map((item) => ({
     id: item.id,
+    docKey: item.docKey,
     dossierId: item.dossierId,
     name: item.label || getDocumentTypeLabel(item.docKey),
     label: item.label || getDocumentTypeLabel(item.docKey),
@@ -208,6 +210,24 @@ export const DocumentsPage = () => {
       window.URL.revokeObjectURL(url);
     } catch (_error) {
       setUploadError('Impossible de télécharger ce document pour le moment.');
+    }
+  };
+
+  const removeAttachment = async (docKey, label) => {
+    if (!currentDossierId || !docKey) return;
+    const confirmed = window.confirm(`Supprimer la pièce jointe « ${label} » ? Vous pourrez en déposer une nouvelle ensuite.`);
+    if (!confirmed) return;
+    setUploadError(null);
+    setUploadSuccess('');
+    setDeletingDocKey(docKey);
+    try {
+      const payload = await deleteDossierDocument({ dossierId: currentDossierId, docKey });
+      setApiDocuments(payload.documents || []);
+      setUploadSuccess('Pièce jointe supprimée.');
+    } catch (error) {
+      setUploadError(error?.message || 'La suppression a échoué.');
+    } finally {
+      setDeletingDocKey(null);
     }
   };
 
@@ -396,13 +416,13 @@ export const DocumentsPage = () => {
             </section>
           ) : (
             <section className="overflow-hidden rounded-md border border-border bg-white shadow-elevation-sm">
-              <div className="grid grid-cols-[1.4fr_140px_120px] gap-4 border-b border-border bg-muted px-5 py-3 text-xs font-bold uppercase text-muted-foreground max-lg:hidden">
+              <div className="grid grid-cols-[1.4fr_140px_160px] gap-4 border-b border-border bg-muted px-5 py-3 text-xs font-bold uppercase text-muted-foreground max-lg:hidden">
                 <span>Document</span>
                 <span>Statut</span>
                 <span>Actions</span>
               </div>
               {filteredDocuments.map((document) => (
-                <div key={document.id} className="grid gap-4 border-b border-border px-5 py-4 last:border-b-0 lg:grid-cols-[1.4fr_140px_120px] lg:items-center">
+                <div key={document.id} className="grid gap-4 border-b border-border px-5 py-4 last:border-b-0 lg:grid-cols-[1.4fr_140px_160px] lg:items-center">
                   <div className="flex items-start gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-md bg-secondary text-primary">
                       <FileText className="h-5 w-5" />
@@ -421,7 +441,7 @@ export const DocumentsPage = () => {
                       size="icon"
                       className="bg-white"
                       aria-label="Aperçu"
-                      onClick={() => openDocumentDownload(apiDocuments.find((item) => item.id === document.id)?.docKey)}
+                      onClick={() => openDocumentDownload(document.docKey)}
                       disabled={!currentDossierId || !document.hasFile}
                     >
                       <Eye className="h-4 w-4" />
@@ -431,10 +451,20 @@ export const DocumentsPage = () => {
                       size="icon"
                       className="bg-white"
                       aria-label="Télécharger"
-                      onClick={() => openDocumentDownload(apiDocuments.find((item) => item.id === document.id)?.docKey)}
+                      onClick={() => openDocumentDownload(document.docKey)}
                       disabled={!currentDossierId || !document.hasFile}
                     >
                       <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="bg-white text-red-700 hover:bg-red-50 hover:text-red-800"
+                      aria-label="Supprimer la pièce jointe"
+                      onClick={() => removeAttachment(document.docKey, document.name)}
+                      disabled={!currentDossierId || !document.hasFile || deletingDocKey === document.docKey}
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
