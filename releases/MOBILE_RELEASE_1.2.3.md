@@ -22,3 +22,5 @@ Greffio 1.2.3 — stabilité et liens profonds
 
 - AAB : `artifacts/playstore/app-release-1.2.3-261510002.aab`
 - Bureau : `%USERPROFILE%\Downloads\Greffio-1.2.3-261510002.aab`
+- Taille : 8 445 760 octets (~8,1 Mo)
+- SHA256 : `310B6CBDF2C15E9FA7EF961B46B6BE3E729197BB53AC5EBDA54DFF435A9C937A`
