@@ -27,6 +27,7 @@
     "assets:email-logo": "node scripts/generate-email-logo.js",
     "video:playstore": "node scripts/generate-play-store-video.js",
     "test:statutes": "node --test server/statuts/tests/williamStatutes.test.js",
+    "build:tribunal-catalog": "node scripts/build-tribunal-commerce-catalog.mjs",
     "test:login-alerts": "node --test server/utils/loginAlerts.test.js",
     "test:mfa-email-code": "node --test server/mfaEmailCodeStore.test.js",
     "test:app-update": "node --test src/services/appUpdate/tests/appUpdateLogic.test.js",

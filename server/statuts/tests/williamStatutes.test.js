@@ -8,6 +8,7 @@ import { renderWilliamSas2026Blocks, countWilliamArticles, estimatePageCount } f
 import { validateGeneratedStatuts } from '../validators/validateGeneratedStatuts.js';
 import { generateStatutesDocument } from '../index.js';
 import { joinStatutesArticleBody } from '../shared/normalizeStatutesParagraphs.js';
+import { getTribunalCatalogStats } from '../catalogs/tribunalCommerceCatalog.js';
 import { formatStatutesFiscalEnd } from '../shared/statutesDates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -263,6 +264,11 @@ test('commune sans TC — rattachement catalogue (Cannes → Grasse)', () => {
 
   const body = doc.blocks.filter((b) => b.kind === 'article').map((b) => b.body).join('\n');
   assert.ok(body.includes('Tribunal de commerce de Grasse'), 'Cannes rattachée à Grasse');
+});
+test('catalogue tribunal — couverture nationale exhaustive', () => {
+  const stats = getTribunalCatalogStats();
+  assert.ok(stats?.communes >= 34000, `au moins 34000 communes, obtenu ${stats?.communes}`);
+  assert.ok(stats?.seats >= 100, 'sièges TC référencés');
 });
 test('dates de naissance sans slash dans le préambule', () => {
   const doc = generateStatutesDocument({

@@ -51,4 +51,4 @@ export const personalizeTribunalMentions = (text, tribunalLabel) => {
     .replace(/Tribunal de commerce du siège social/gi, tribunalLabel);
 };
 
-export { normalizeCommuneKey, resolveTribunalCommerceCity } from '../catalogs/tribunalCommerceCatalog.js';
+export { normalizeCommuneKey, resolveTribunalCommerceCity, resolveDepartmentCode, getTribunalCatalogStats } from '../catalogs/tribunalCommerceCatalog.js';
