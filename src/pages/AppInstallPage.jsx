@@ -1,30 +1,30 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowUpRight, BadgeCheck, MonitorSmartphone, PackageCheck, QrCode, ShieldCheck, Smartphone } from 'lucide-react';
+import { ArrowLeft, BadgeCheck, MonitorSmartphone, PackageCheck, QrCode, ShieldCheck, Smartphone } from 'lucide-react';
 import { NavbarDropdown } from '@/components/NavbarDropdown.jsx';
 import { Button } from '@/components/ui/button.jsx';
-import { runtimeConfig } from '@/config/runtime.js';
+import { GooglePlayStoreLink } from '@/components/store/GooglePlayStoreLink.jsx';
 
 const installTracks = [
   {
     icon: MonitorSmartphone,
     title: 'Installation web immédiate',
-    text: 'Greffio est installable depuis Chrome, Edge et Safari compatible grâce au manifeste PWA et au service worker.',
+    text: 'Greffio s’installe depuis Chrome, Edge et Safari compatible : icône Greffio, mode plein écran et accès rapide à vos dossiers.',
     points: ['Icône Greffio', 'Mode plein écran', 'Cache de secours', 'Raccourcis dashboard'],
   },
   {
     icon: PackageCheck,
     title: 'Google Play',
-    text: 'L’application Android Greffio est disponible sur le Play Store : dossiers, documents et suivi de formalités depuis votre mobile.',
+    text: 'L’application Android officielle est disponible : dossiers, documents et suivi de formalités depuis votre mobile.',
     points: ['Version 1.2.3 publiée', 'Liens profonds Android', 'Notifications de mise à jour', 'Même espace client'],
-    href: runtimeConfig.playStoreUrl,
-    cta: 'Télécharger sur Google Play',
+    playStore: true,
   },
   {
     icon: Smartphone,
     title: 'App Store',
-    text: 'Le même build peut être synchronisé vers iOS avec Capacitor, puis finalisé dans Xcode et App Store Connect.',
-    points: ['Bundle iOS', 'Certificats Apple', 'Notifications', 'Soumission App Store'],
+    text: 'Application iOS à venir prochainement, avec le même espace client et le même suivi de dossier.',
+    points: ['Version iOS en préparation', 'Même compte Greffio', 'Notifications prévues', 'Soumission App Store à venir'],
+    soon: true,
   },
 ];
 
@@ -45,18 +45,14 @@ export const AppInstallPage = () => (
             Application Greffio
           </div>
           <h1 className="mt-6 text-3xl font-extrabold leading-tight text-[hsl(var(--greffio-blue-900))] sm:text-4xl lg:text-6xl">
-            Une plateforme prête à vivre sur web, mobile et tablette.
+            Web, Android disponible, iOS bientôt.
           </h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-[hsl(var(--greffio-blue-900))] sm:text-lg sm:leading-8">
-            Installez Greffio depuis votre navigateur ou téléchargez l’application Android sur Google Play pour suivre vos formalités où que vous soyez.
+            Installez Greffio depuis votre navigateur ou téléchargez l’application Android sur Google Play.
+            L’application iOS arrive prochainement sur l’App Store.
           </p>
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-            <Button asChild size="lg" className="w-full sm:w-auto">
-              <a href={runtimeConfig.playStoreUrl} target="_blank" rel="noopener noreferrer">
-                Google Play
-                <ArrowUpRight className="h-4 w-4" />
-              </a>
-            </Button>
+          <div className="mt-7 flex flex-col gap-5">
+            <GooglePlayStoreLink size="lg" />
             <Button asChild size="lg" variant="outline" className="w-full bg-white sm:w-auto">
               <Link to="/login">Ouvrir l’espace client</Link>
             </Button>
@@ -70,24 +66,28 @@ export const AppInstallPage = () => (
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-secondary">
                   <track.icon className="h-5 w-5 text-primary" />
                 </span>
-                <div>
-                  <h2 className="text-base font-extrabold sm:text-lg">{track.title}</h2>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-base font-extrabold sm:text-lg">{track.title}</h2>
+                    {track.soon ? (
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                        Bientôt
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">{track.text}</p>
                   <div className="mt-4 grid gap-2 sm:grid-cols-2">
                     {track.points.map((point) => (
                       <div key={point} className="flex items-center gap-2 text-sm font-semibold">
-                        <BadgeCheck className="h-4 w-4 text-emerald-600" />
+                        <BadgeCheck className="h-4 w-4 shrink-0 text-emerald-600" />
                         {point}
                       </div>
                     ))}
                   </div>
-                  {track.href ? (
-                    <Button asChild size="sm" className="mt-4">
-                      <a href={track.href} target="_blank" rel="noopener noreferrer">
-                        {track.cta}
-                        <ArrowUpRight className="h-4 w-4" />
-                      </a>
-                    </Button>
+                  {track.playStore ? (
+                    <div className="mt-5 border-t border-border/70 pt-5">
+                      <GooglePlayStoreLink size="mdInline" className="w-full max-w-md" />
+                    </div>
                   ) : null}
                 </div>
               </div>
@@ -99,8 +99,8 @@ export const AppInstallPage = () => (
       <section className="mx-auto grid max-w-7xl gap-4 py-12 md:grid-cols-3">
         {[
           ['Sécurité', 'MFA, sessions, espace client et documents restent côté espace sécurisé.'],
-          ['Déploiement', 'Hostinger peut servir le build Vite/PWA, puis les stores utilisent le même dossier dist.'],
-          ['Production', 'Les SMS, emails et SSO devront être reliés à des fournisseurs réels côté backend.'],
+          ['Multi-support', 'Même espace client sur navigateur, application Android et prochainement iOS.'],
+          ['Mises à jour', 'L’application Android évolue via Google Play ; la PWA se met à jour à chaque visite.'],
         ].map(([title, text]) => (
           <div key={title} className="rounded-md border border-border bg-white p-5">
             <ShieldCheck className="mb-4 h-5 w-5 text-primary" />

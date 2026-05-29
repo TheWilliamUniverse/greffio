@@ -23,7 +23,8 @@ import { CompanyLookupCard } from '@/components/CompanyLookupCard.jsx';
 import { LEGAL_SERVICES } from '@/config/businessCatalog.js';
 import { getServiceRoute } from '@/config/serviceLandingPages.js';
 import { lookupPublicCompanyBySiren } from '@/api/company.js';
-import { runtimeConfig } from '@/config/runtime.js';
+import { GooglePlayStoreLink } from '@/components/store/GooglePlayStoreLink.jsx';
+import { cn } from '@/lib/utils.js';
 import { useNavigate } from 'react-router-dom';
 
 const platformFeatures = [
@@ -316,59 +317,66 @@ export const LandingPage = () => {
       </section>
 
       <section id="app-mobile" className="px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto grid max-w-7xl gap-8 rounded-md border border-border bg-white p-6 shadow-elevation-md md:p-10 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="mx-auto grid max-w-7xl gap-8 rounded-md border border-border bg-white p-6 shadow-elevation-md md:p-10 lg:grid-cols-[0.92fr_1.08fr]">
           <div>
             <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-md bg-secondary">
               <MonitorSmartphone className="h-6 w-6 text-primary" />
             </div>
             <p className="text-sm font-bold uppercase text-primary">Web, mobile, tablette</p>
-            <h2 className="mt-2 text-3xl font-extrabold sm:text-4xl">Greffio peut s’installer comme une vraie application.</h2>
+            <h2 className="mt-2 text-3xl font-extrabold sm:text-4xl">
+              Greffio sur ordinateur, Android et bientôt iOS.
+            </h2>
             <p className="mt-4 text-sm leading-7 text-muted-foreground sm:text-base">
-              Le site est préparé en PWA : installation depuis le navigateur, icône Greffio, mode plein écran et socle technique compatible avec un empaquetage Android/iOS.
+              Installez Greffio comme une application depuis Chrome, Edge ou Safari (PWA : icône Greffio, mode plein écran).
+              L’application Android est disponible sur Google Play. Application iOS à venir prochainement.
             </p>
-            <Button asChild className="mt-6">
-              <Link to="/app">
-                Préparer l’application mobile
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
+            <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center">
+              <GooglePlayStoreLink size="lg" />
+              <Button asChild variant="outline" className="h-auto bg-white px-5 py-3">
+                <Link to="/app">
+                  Options PWA et mobile
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             {[
-              { title: 'PWA', text: 'Installation immédiate depuis Chrome, Edge ou Safari compatible.' },
+              {
+                title: 'PWA',
+                text: 'Installation immédiate depuis Chrome, Edge ou Safari compatible.',
+              },
               {
                 title: 'Google Play',
-                text: 'Application Android Greffio disponible sur le Play Store.',
-                href: runtimeConfig.playStoreUrl,
+                text: 'Suivez vos dossiers, documents et formalités depuis l’application Android officielle.',
+                playStore: true,
               },
-              { title: 'App Store', text: 'Synchronisation iOS possible puis finalisation dans Xcode.' },
+              {
+                title: 'App Store',
+                text: 'Application iOS à venir prochainement.',
+                soon: true,
+              },
             ].map((card) => (
-              <div key={card.title} className="rounded-md border border-border bg-background p-4">
-                <p className="font-extrabold">{card.title}</p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{card.text}</p>
-                {card.href ? (
-                  <a
-                    href={card.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Télécharger Greffio sur Google Play"
-                    className="group mt-4 inline-flex flex-col items-start gap-3"
-                  >
-                    <img
-                      src="/images/store/greffio-app-icon.png"
-                      alt="Icône de l’application Greffio"
-                      width={64}
-                      height={64}
-                      className="h-16 w-16 rounded-[22%] border border-border bg-white shadow-elevation-sm transition-transform group-hover:scale-[1.03]"
-                    />
-                    <img
-                      src="/images/store/google-play-badge-fr.png"
-                      alt="Disponible sur Google Play"
-                      width={646}
-                      height={250}
-                      className="h-10 w-auto"
-                    />
-                  </a>
+              <div
+                key={card.title}
+                className={cn(
+                  'flex flex-col rounded-md border border-border bg-background p-4 sm:p-5',
+                  card.playStore && 'border-primary/15 bg-secondary/20',
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <p className="font-extrabold">{card.title}</p>
+                  {card.soon ? (
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                      Bientôt
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-2 flex-1 text-sm leading-6 text-muted-foreground">{card.text}</p>
+                {card.playStore ? (
+                  <div className="mt-5 border-t border-border/70 pt-5">
+                    <GooglePlayStoreLink size="mdInline" className="w-full" />
+                  </div>
                 ) : null}
               </div>
             ))}
