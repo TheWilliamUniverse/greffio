@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, CalendarClock, CheckCircle2, CircleDollarSign, FolderKanban, RefreshCw } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { AlertCircle, CalendarClock, CheckCircle2, CircleDollarSign, FileText, FolderKanban, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Input } from '@/components/ui/input.jsx';
@@ -131,7 +132,7 @@ export const OpsDashboardPage = () => {
             <p className="text-sm font-bold uppercase text-primary">Ops</p>
             <h1 className="mt-1 text-3xl font-extrabold">Pilotage opérationnel Greffio</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Vue rapide dossiers/paiements branchée sur l’API.
+              Vue rapide dossiers/paiements — accès global à tous les dossiers clients (hors assignation personnelle).
             </p>
           </div>
           <Button type="button" variant="outline" className="bg-white" onClick={loadData} disabled={loading}>
@@ -333,9 +334,26 @@ export const OpsDashboardPage = () => {
                 <p className="mt-1 text-xs text-muted-foreground">{selectedDossier.companyName}</p>
               </div>
               <div className="space-y-4 p-4">
+                <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
+                  <p className="font-semibold text-foreground">Formalités & statuts</p>
+                  <p className="mt-1">L’équipe ops consulte et génère les statuts de tous les clients sans être rattachée au dossier. Seul le dossier WILLIAM ESTABLISHMENTS peut porter une assignation interne.</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" className="bg-white" asChild>
+                      <Link to={`/statuts?dossierId=${selectedDossier.id}`}>
+                        <FileText className="h-4 w-4" />
+                        Statuts & exports
+                      </Link>
+                    </Button>
+                    <Button type="button" variant="outline" className="bg-white" asChild>
+                      <Link to={`/dossier/${selectedDossier.id}`}>
+                        Ouvrir le dossier client
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
                 <div>
-                  <p className="mb-1 text-xs font-bold uppercase text-muted-foreground">Assignation formaliste</p>
-                  <Input value={selectedDossier.assignedToUserId || ''} onChange={(event) => setSelectedDossier((current) => ({ ...current, assignedToUserId: event.target.value }))} placeholder="ID formaliste (usr_...)" />
+                  <p className="mb-1 text-xs font-bold uppercase text-muted-foreground">Assignation formaliste (optionnelle)</p>
+                  <Input value={selectedDossier.assignedToUserId || ''} onChange={(event) => setSelectedDossier((current) => ({ ...current, assignedToUserId: event.target.value }))} placeholder="ID formaliste externe (usr_...) — laisser vide pour dossiers clients" />
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <div>

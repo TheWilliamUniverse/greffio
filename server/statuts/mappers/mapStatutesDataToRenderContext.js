@@ -1,5 +1,7 @@
 import { resolveWilliamObjetSocialBullets } from '../catalogs/objectSocialCatalog.js';
 import { formatFrEuros, formatFrInteger, parseFrenchAmount } from '../shared/numberFormat.js';
+import { formatStatutesFiscalEnd } from '../shared/statutesDates.js';
+import { resolveGreffeCity, resolveTribunalCommerceLabel } from '../shared/resolveTribunalCommerce.js';
 
 const parseAmount = parseFrenchAmount;
 
@@ -77,6 +79,9 @@ export const mapStatutesDataToRenderContext = (statutesData = {}) => {
     statutesData.domiciliation ? `chez ${statutesData.domiciliation}` : '',
   ].filter(Boolean).join(', ');
 
+  const greffeCity = resolveGreffeCity({ greffe: statutesData.greffe, seat });
+  const tribunalCommerce = resolveTribunalCommerceLabel({ greffe: statutesData.greffe, seat });
+
   return {
     legalForm,
     company: {
@@ -87,10 +92,10 @@ export const mapStatutesDataToRenderContext = (statutesData = {}) => {
       shareCount: nombreTitres,
       capitalFormatted: formatFrEuros(statutesData.capital) || formatFrEuros(statutesData.capitalRaw) || `${formatFrInteger(capitalAmount || nombreTitres)} euros`,
       registeredOffice: registeredOffice || 'Siège social à compléter',
-      rcsCity: statutesData.greffe,
+      rcsCity: greffeCity || statutesData.greffe,
       durationYears: parseAmount(String(statutesData.duree || '99').replace(/\D/g, '')) || 99,
-      fiscalYearEnd: statutesData.exerciceFin,
-      firstFiscalYearEnd: statutesData.premierExerciceFin,
+      fiscalYearEnd: formatStatutesFiscalEnd(statutesData.exerciceFin),
+      firstFiscalYearEnd: formatStatutesFiscalEnd(statutesData.premierExerciceFin),
     },
     objectSocialBullets,
     associates,
@@ -115,6 +120,10 @@ export const mapStatutesDataToRenderContext = (statutesData = {}) => {
       variableCapital: Boolean(statutesData.capitalVariable || statutesData.capitalType === 'Variable'),
       capitalMinFormatted: formatFrEuros(statutesData.capitalMin),
       capitalMaxFormatted: formatFrEuros(statutesData.capitalMax),
+    },
+    jurisdiction: {
+      greffeCity,
+      tribunalCommerce,
     },
   };
 };

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -16,6 +16,9 @@ import { getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.
 import { downloadStatutesPdf, fetchStatutesPreview, generateStatutes, listStatutes } from '@/api/statutes.js';
 import { getDossierById } from '@/api/dossiers.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
+import { downloadPreview } from '@/utils/formalityEngine.js';
+import { fullPreviewToDocumentPreview } from '@/utils/statutesPreview.js';
+import { useAuth } from '@/context/AuthContext.jsx';
 
 const parseQuestionnaire = (dataJson) => {
   if (!dataJson) return {};
@@ -56,7 +59,9 @@ const ChecklistItem = ({ label, ok }) => (
 );
 
 export const StatutesPage = () => {
-  const [dossierId, setDossierId] = useState(() => getCurrentDossierId());
+  const [searchParams] = useSearchParams();
+  const { currentUser } = useAuth();
+  const [dossierId, setDossierId] = useState(() => searchParams.get('dossierId') || getCurrentDossierId());
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [documents, setDocuments] = useState([]);
@@ -65,11 +70,23 @@ export const StatutesPage = () => {
   const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    const syncDossierId = () => setDossierId(getCurrentDossierId());
+    const fromUrl = searchParams.get('dossierId');
+    if (fromUrl) {
+      saveCurrentDossierId(fromUrl);
+      setDossierId(fromUrl);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const syncDossierId = () => {
+      const fromUrl = searchParams.get('dossierId');
+      if (fromUrl) return;
+      setDossierId(getCurrentDossierId());
+    };
     syncDossierId();
     window.addEventListener('focus', syncDossierId);
     return () => window.removeEventListener('focus', syncDossierId);
-  }, []);
+  }, [searchParams]);
 
   const load = async (forcedDossierId = null) => {
     const activeId = forcedDossierId || dossierId || getCurrentDossierId();
@@ -206,6 +223,20 @@ export const StatutesPage = () => {
     }
   };
 
+  const exportDocument = async (format) => {
+    if (!preview) {
+      toast.error('Aperçu indisponible.');
+      return;
+    }
+    try {
+      await downloadPreview(fullPreviewToDocumentPreview(preview), format);
+      toast.success(`Export ${format.toUpperCase()} lancé.`);
+    } catch (_error) {
+      toast.error(`Export ${format.toUpperCase()} impossible.`);
+    }
+  };
+
+  const isOpsViewer = ['ADMIN', 'OPS', 'FORMALISTE', 'TEAM'].includes(currentUser?.role);
   const incorporated = preview?.incorporatedData;
   const completeness = preview?.metadata?.completeness ?? 0;
 
@@ -223,7 +254,9 @@ export const StatutesPage = () => {
               <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
                 {eiLike
                   ? 'Les statuts ne sont pas applicables. Ce dossier suit un flux déclaratif sans génération de statuts.'
-                  : 'Vos réponses alimentent automatiquement le préambule, les articles, les annexes et les blocs de signature du PDF.'}
+                  : isOpsViewer
+                    ? 'Vue équipe Greffio : consultation et génération pour tout dossier client (sans assignation personnelle requise).'
+                    : 'Vos réponses alimentent automatiquement le préambule, les articles, les annexes et les blocs de signature du PDF.'}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -239,6 +272,16 @@ export const StatutesPage = () => {
                 <Download className="h-4 w-4" />
                 Télécharger PDF
               </Button>
+              {!eiLike && preview ? (
+                <>
+                  <Button type="button" variant="outline" className="bg-white" onClick={() => void exportDocument('docx')}>
+                    Export DOCX
+                  </Button>
+                  <Button type="button" variant="outline" className="bg-white" onClick={() => void exportDocument('odt')}>
+                    Export ODT
+                  </Button>
+                </>
+              ) : null}
             </div>
           </div>
 
@@ -287,7 +330,7 @@ export const StatutesPage = () => {
                       ['Capital', `${incorporated?.capital} €`],
                       ['Siège', incorporated?.siege],
                       [`${incorporated?.directorRole || 'Dirigeant'}`, incorporated?.director],
-                      ['Titres juridiques', (preview.structure?.sections || []).join(' · ') || `${preview.clauseCount} articles`],
+                      ['Titres juridiques', `${preview.structure?.sections?.length || 8} titres répartis dans le corps du document`],
                       ['Annexes', `${preview.structure?.annexCount ?? preview.annexes?.length ?? 0} annexes`],
                     ].map(([term, value]) => (
                       <div key={term} className="grid grid-cols-[140px_1fr] gap-3 border-b border-[var(--we-border)] pb-3 last:border-b-0">
@@ -314,12 +357,34 @@ export const StatutesPage = () => {
                     </div>
                   ) : null}
                   <div className="mt-5 max-h-[36rem] space-y-4 overflow-y-auto pr-1">
-                    {(preview.allClauses || preview.sampleClauses || []).map((clause) => (
-                      <article key={clause.title} className="rounded-xl border border-[var(--we-border)] bg-white p-4">
-                        <h3 className="text-sm font-extrabold text-primary">{clause.title}</h3>
-                        <StatutesArticleBody body={clause.body} />
-                      </article>
-                    ))}
+                    {(preview.blocks || []).map((block, index) => {
+                      if (block.kind === 'legal-title') {
+                        return (
+                          <div key={`title-${block.text}-${index}`} className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-center">
+                            <p className="text-sm font-extrabold uppercase tracking-wide text-primary">{block.text}</p>
+                          </div>
+                        );
+                      }
+                      if (block.kind === 'article') {
+                        return (
+                          <article key={`article-${block.number}`} className="rounded-xl border border-[var(--we-border)] bg-white p-4">
+                            <h3 className="text-sm font-extrabold text-primary">{`Article ${block.number} — ${block.title}`}</h3>
+                            <StatutesArticleBody body={block.body} />
+                          </article>
+                        );
+                      }
+                      if (block.kind === 'section-title' && block.text) {
+                        return (
+                          <p key={`section-${index}`} className="text-xs font-bold uppercase text-primary">{block.text}</p>
+                        );
+                      }
+                      if (block.kind === 'paragraph' && block.text) {
+                        return (
+                          <p key={`para-${index}`} className="text-sm leading-relaxed text-foreground">{block.text}</p>
+                        );
+                      }
+                      return null;
+                    })}
                   </div>
                   {(preview.annexes || []).length ? (
                     <div className="mt-5 space-y-3">

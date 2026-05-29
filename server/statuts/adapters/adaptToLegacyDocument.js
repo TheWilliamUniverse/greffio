@@ -3,6 +3,7 @@ import { buildWilliamCover, buildWilliamSignatures } from '../../legal/statutes/
 import { formatFrEuros } from '../shared/numberFormat.js';
 import { joinStatutesArticleBody } from '../shared/normalizeStatutesParagraphs.js';
 import { estimatePageCount, countWilliamArticles } from '../renderers/renderWilliamSas2026.js';
+import { todayStatutesFrenchDate } from '../shared/statutesDates.js';
 
 const articleTitleFromHeading = (heading, number) => {
   const match = String(heading || '').match(/Article\s+\d+\s*[-–]\s*(.+)/i);
@@ -105,7 +106,13 @@ export const adaptRenderedBlocksToLegacyDocument = ({
     }
   });
 
-  const signatures = buildWilliamSignatures(statutesData);
+  const generationDate = todayStatutesFrenchDate();
+  const signatures = buildWilliamSignatures({
+    ...statutesData,
+    signatureDate: generationDate,
+    dateDocument: generationDate,
+    minorRepresentationNote: null,
+  });
   const articleCount = articleBodies.size || countWilliamArticles(blocks);
   const pageCount = estimatePageCount(blocks);
 

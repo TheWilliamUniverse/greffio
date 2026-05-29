@@ -135,8 +135,9 @@ export const apportsWilliam = (data) => {
 };
 
 export const buildWilliamSignatures = (data) => {
-  const city = data.signatureCity || data.seat.city;
-  const date = data.signatureDate || data.dateDocument;
+  const city = data.signatureCity || data.seat?.city || 'Ville à compléter';
+  const date = data.signatureDate || data.dateDocument
+    || new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
   const copies = data.exemplairesOriginaux || `${Math.max((data.associates || []).length, 1) + 1} exemplaires originaux`;
   const associates = data.associates || [];
   const useGrid = associates.length > 1 && ['SAS', 'SASU'].includes(String(data.legalForm || '').toUpperCase());

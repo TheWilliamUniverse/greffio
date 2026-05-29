@@ -239,15 +239,8 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
     const securitySingular = usesActions(legalForm) ? 'action' : 'part sociale';
     return `${a.label} : ${a.share || '—'} des ${security}, soit ${a.titlesCount || '—'} ${securitySingular}${Number(a.titlesCount) > 1 ? 's' : ''}.`;
   });
-  const minorAssociate = associates.find((a) => a.isMinor && !a.isMinorEmancipated);
-  const minorReps = minorAssociate ? String(minorAssociate.legalRepresentatives || '').trim() : '';
-  const minorRepresentationNote = minorAssociate && minorReps
-    ? (() => {
-      const isFemale = minorAssociate.civility === 'Mme';
-      const qualite = minorReps.includes(' et ') ? 'qualités' : 'qualité';
-      return `${minorAssociate.label}, ${isFemale ? 'mineure' : 'mineur'} non émancipé${isFemale ? 'e' : ''} au jour de la constitution, est représenté${isFemale ? 'e' : ''} légalement pour les besoins des présentes, jusqu'à sa majorité, par ${minorReps}, agissant en ${qualite} d'administrateurs légaux conformément aux articles 382 et suivants du Code civil.`;
-    })()
-    : '';
+  // Représentation des mineurs : couverte dans le préambule (« Représenté(e) légalement par… »).
+  const minorRepresentationNote = null;
 
   const data = {
     reference: pick(dossier?.reference, dossier?.id, 'GF-REF'),
@@ -311,10 +304,7 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
     mandataire: 'WILLIAM ESTABLISHMENTS / Greffio',
     isRegistered: Boolean(questionnaire.isRegistered),
     signatureCity: pick(questionnaire.signatureCity, seat.city),
-    signatureDate: pick(
-      questionnaire.signatureDate,
-      new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date()),
-    ),
+    signatureDate: new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date()),
     dateDocument: new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date()),
     actsInFormation: Array.isArray(questionnaire.actsInFormation) ? questionnaire.actsInFormation : [],
     usesActions: usesActions(legalForm),

@@ -118,11 +118,11 @@ const renderBlock = (doc, companyName, pages, block) => {
     return;
   }
   if (block.kind === 'legal-title') {
-    ensureSpace(doc, companyName, pages, 52);
-    doc.moveDown(0.9);
+    ensureSpace(doc, companyName, pages, 64);
+    doc.moveDown(1.1);
     doc.font(FONTS.bold).fontSize(11.5).fillColor('#111111')
       .text(pdfText(block.text), PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
-    doc.moveDown(0.65);
+    doc.moveDown(0.75);
     return;
   }
   if (block.kind === 'paragraph') {
@@ -140,8 +140,13 @@ const renderBlock = (doc, companyName, pages, block) => {
     doc.font(FONTS.bold).fontSize(11)
       .text(heading, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'left' });
     doc.moveDown(0.35);
-    doc.font(FONTS.regular).fontSize(11)
-      .text(pdfText(block.body), PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify', lineGap: 3 });
+    const paragraphs = String(block.body || '').split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
+    paragraphs.forEach((paragraph, index) => {
+      ensureSpace(doc, companyName, pages, 36);
+      doc.font(FONTS.regular).fontSize(11)
+        .text(pdfText(paragraph), PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify', lineGap: 3 });
+      if (index < paragraphs.length - 1) doc.moveDown(0.45);
+    });
     doc.moveDown(0.75);
   }
 };
@@ -177,8 +182,11 @@ const renderTable = (doc, companyName, pages, table) => {
 };
 
 const renderAnnexes = (doc, companyName, pages, annexes = []) => {
-  annexes.forEach((annexe) => {
-    startNewPage(doc, companyName, pages);
+  annexes.forEach((annexe, index) => {
+    ensureSpace(doc, companyName, pages, 120);
+    if (index > 0 || doc.y > PAGE.marginTop + 40) {
+      startNewPage(doc, companyName, pages);
+    }
     doc.font(FONTS.bold).fontSize(12)
       .text(annexe.title, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'left' });
     doc.moveDown(0.7);
@@ -189,6 +197,7 @@ const renderAnnexes = (doc, companyName, pages, annexes = []) => {
       doc.moveDown(0.45);
     });
     if (annexe.table) renderTable(doc, companyName, pages, annexe.table);
+    doc.moveDown(0.6);
   });
 };
 
@@ -242,11 +251,14 @@ const renderSignatureBlock = (doc, companyName, pages, block) => {
 };
 
 const renderSignatures = (doc, companyName, pages, signatures) => {
-  startNewPage(doc, companyName, pages);
+  ensureSpace(doc, companyName, pages, 180);
+  if (doc.y > PAGE.marginTop + 48) {
+    startNewPage(doc, companyName, pages);
+  }
   doc.font(FONTS.bold).fontSize(12).text(signatures.title || 'SIGNATURES', PAGE.marginLeft, doc.y, { width: contentWidth(doc) });
   doc.moveDown(0.7);
   (signatures.intro || []).forEach((line) => {
-    doc.font(FONTS.regular).fontSize(11).text(line, PAGE.marginLeft, doc.y, { width: contentWidth(doc) });
+    doc.font(FONTS.regular).fontSize(11).text(pdfText(line), PAGE.marginLeft, doc.y, { width: contentWidth(doc) });
     doc.moveDown(0.3);
   });
   [signatures.associateBlock, signatures.directorBlock, signatures.generalDirectorBlock].filter(Boolean).forEach((block) => {

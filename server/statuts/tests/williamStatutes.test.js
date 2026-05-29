@@ -8,6 +8,7 @@ import { renderWilliamSas2026Blocks, countWilliamArticles, estimatePageCount } f
 import { validateGeneratedStatuts } from '../validators/validateGeneratedStatuts.js';
 import { generateStatutesDocument } from '../index.js';
 import { joinStatutesArticleBody } from '../shared/normalizeStatutesParagraphs.js';
+import { formatStatutesFiscalEnd } from '../shared/statutesDates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturePath = path.join(__dirname, '../fixtures/williamEstablishments.fixture.json');
@@ -170,4 +171,89 @@ test('dossier sans mineur non émancipé — pas de clause Ibtissam parasite', (
   const body = doc.blocks.map((b) => b.body || b.text || '').join('\n');
   assert.ok(!/Ibtissam\s+ABDOU/i.test(body), 'clause échantillon Ibtissam dans le corps');
   assert.ok(!doc.signatures?.minorRepresentationNote, 'note mineur sans mineur non émancipé');
+});
+
+test('dossier avec mineur — pas de clause boilerplate art. 382 en signatures', () => {
+  const doc = generateStatutesDocument({
+    legalForm: 'SAS',
+    denomination: fixture.company.name,
+    sigle: fixture.company.sigle,
+    capital: '5000',
+    nombreTitres: '5000',
+    seat: { line1: '470 Promenade des Anglais', postalCode: '06200', city: 'Nice', country: 'France', full: fixture.company.registeredOffice },
+    greffe: fixture.company.rcsCity,
+    duree: '99',
+    associates: fixture.associates.map((a) => ({
+      label: a.fullName,
+      civility: a.fullName.startsWith('Ibtissam') ? 'Mme' : 'M.',
+      address: a.address,
+      birthDate: a.birthDate,
+      birthPlace: a.birthPlace,
+      nationality: a.nationality,
+      isMinor: a.isMinor,
+      isMinorEmancipated: a.isEmancipated,
+      legalRepresentatives: (a.legalRepresentatives || []).join(' et '),
+      titlesCount: String(a.shares),
+      share: String(a.sharePercentage),
+      roleLabel: a.roleLabel,
+    })),
+    president: fixture.officers.president,
+    directeurGeneral: fixture.officers.directorGeneral,
+  });
+
+  const body = doc.blocks.map((b) => b.body || b.text || '').join('\n');
+  assert.ok(!/administrateurs légaux conformément aux articles 382/i.test(body));
+  assert.ok(!doc.signatures?.minorRepresentationNote);
+  assert.match(doc.signatures?.intro?.[1] || '', /^Le \d/);
+});
+
+test('tribunal de commerce déterminé par la ville du siège', () => {
+  const doc = generateStatutesDocument({
+    legalForm: 'SAS',
+    denomination: 'TRUE POWER',
+    capital: '1000',
+    nombreTitres: '1000',
+    seat: { line1: '1 rue Test', postalCode: '06200', city: 'Nice', country: 'France', full: '1 rue Test, 06200 Nice' },
+    greffe: 'Nice',
+    duree: '99',
+    associates: [{ label: 'Jean DUPONT', address: 'Nice', share: '100', titlesCount: '1000' }],
+    president: 'Jean DUPONT',
+    directeurGeneral: 'Aucun',
+  });
+
+  const art25 = doc.blocks.find((b) => b.number === 25);
+  const art26 = doc.blocks.find((b) => b.number === 26);
+  const art27 = doc.blocks.find((b) => b.number === 27);
+  assert.ok(art25?.body.includes('Tribunal de commerce de Nice'), 'médiation : TC de Nice');
+  assert.ok(art26?.body.includes('Tribunal de commerce de Nice'), 'litiges : TC de Nice');
+  assert.ok(art27?.body.includes('Tribunal de commerce de Nice'), 'art. 27 : TC de Nice');
+  assert.ok(!/Tribunal compétent du siège social/i.test(doc.blocks.map((b) => b.body || '').join('\n')));
+});
+test('dates de naissance sans slash dans le préambule', () => {
+  const doc = generateStatutesDocument({
+    legalForm: 'SAS',
+    denomination: 'TEST DATES',
+    capital: '1000',
+    nombreTitres: '1000',
+    seat: { line1: '1 rue Test', postalCode: '75001', city: 'Paris', country: 'France' },
+    greffe: 'Paris',
+    duree: '99',
+    exerciceFin: '31/12',
+    premierExerciceFin: '31/12/2026',
+    associates: [{
+      label: 'Jean DUPONT',
+      address: 'Paris',
+      birthDate: '14/08/2008',
+      birthPlace: 'Paris',
+      share: '100',
+      titlesCount: '1000',
+    }],
+    president: 'Jean DUPONT',
+    directeurGeneral: 'Aucun',
+  });
+
+  const preamble = doc.blocks.filter((b) => b.kind === 'paragraph').map((b) => b.text).join('\n');
+  assert.ok(!/\d{2}\/\d{2}\/\d{4}/.test(preamble), 'pas de date JJ/MM/AAAA dans le préambule');
+  const art5 = doc.blocks.find((b) => b.number === 5);
+  assert.ok(art5?.body.includes('31 décembre'), 'clôture sans slash');
 });

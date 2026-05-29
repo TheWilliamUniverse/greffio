@@ -4,6 +4,8 @@ import { fileURLToPath } from 'url';
 import { sanitizeWilliamTemplateParagraphs, personalizeWilliamTemplateParagraphs } from './williamParagraphSanitizer.js';
 import { formatFrEuros, formatFrInteger, parseFrenchAmount } from '../shared/numberFormat.js';
 import { mergeWrapFragments } from '../shared/normalizeStatutesParagraphs.js';
+import { formatStatutesFrenchDate, formatStatutesFiscalEnd } from '../shared/statutesDates.js';
+import { personalizeTribunalMentions, resolveTribunalCommerceLabel } from '../shared/resolveTribunalCommerce.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_PATH = path.join(__dirname, '../templates/williamEstablishmentsSas2026.model.json');
@@ -17,16 +19,8 @@ export const loadWilliamTemplate = () => {
 };
 
 const formatBirthDateFr = (value) => {
-  const raw = String(value || '').trim();
-  if (!raw) return null;
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) return raw;
-  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
-  const parsed = new Date(raw);
-  if (!Number.isNaN(parsed.getTime())) {
-    return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(parsed);
-  }
-  return raw;
+  const formatted = formatStatutesFrenchDate(value);
+  return formatted || null;
 };
 
 const renderDefinitionsAndObjetActe = (context) => {
@@ -160,20 +154,24 @@ const renderArticle6 = (context) => {
   return lines;
 };
 
-const renderArticle27 = () => [
-  'Les associés conviennent que les dispositions suivantes s\'appliquent :',
-  '27.1 - Langue officielle des documents juridiques :',
-  'Conformément à l\'article 2 de la Constitution française, la langue officielle des statuts et de tous les documents juridiques de la Société, tels que les procès-verbaux, registres et correspondances, est le français. En cas de traduction, seule la version française fait foi.',
-  '27.2 - Droit applicable et Tribunal compétent :',
-  'Les statuts sont soumis au droit français.',
-  'En cas de litige, compétence exclusive est attribuée au Tribunal compétent du siège social.',
-  '27.3 - Frais de constitution avancés par les associés :',
-  'Tous les frais, droits et honoraires engagés pour la constitution de la Société sont avancés par les associés agissant au nom et pour le compte de la Société en formation. Le détail de ces frais figure en annexe aux présents statuts.',
-  'Ces sommes donnent lieu à ouverture d\'un compte courant d\'associé au bénéfice des associés ayant supporté ces dépenses.',
-  'La Société rembourse ces avances dans un délai raisonnable à compter de son immatriculation au Registre du Commerce et des Sociétés, sous réserve de justification des dépenses.',
-  '27.4 - Disposition transitoire :',
-  'La Société accepte l\'usage de la signature électronique pour les convocations, consultations écrites et signatures de procès-verbaux, dans les conditions prévues par la loi.',
-];
+const renderArticle27 = (context) => {
+  const tribunal = context?.jurisdiction?.tribunalCommerce
+    || resolveTribunalCommerceLabel({ greffe: context?.company?.rcsCity, seat: { city: context?.company?.rcsCity } });
+  return [
+    'Les associés conviennent que les dispositions suivantes s\'appliquent :',
+    '27.1 - Langue officielle des documents juridiques :',
+    'Conformément à l\'article 2 de la Constitution française, la langue officielle des statuts et de tous les documents juridiques de la Société, tels que les procès-verbaux, registres et correspondances, est le français. En cas de traduction, seule la version française fait foi.',
+    '27.2 - Droit applicable et Tribunal compétent :',
+    'Les statuts sont soumis au droit français.',
+    `En cas de litige, compétence exclusive est attribuée au ${tribunal}.`,
+    '27.3 - Frais de constitution avancés par les associés :',
+    'Tous les frais, droits et honoraires engagés pour la constitution de la Société sont avancés par les associés agissant au nom et pour le compte de la Société en formation. Le détail de ces frais figure en annexe aux présents statuts.',
+    'Ces sommes donnent lieu à ouverture d\'un compte courant d\'associé au bénéfice des associés ayant supporté ces dépenses.',
+    'La Société rembourse ces avances dans un délai raisonnable à compter de son immatriculation au Registre du Commerce et des Sociétés, sous réserve de justification des dépenses.',
+    '27.4 - Disposition transitoire :',
+    'La Société accepte l\'usage de la signature électronique pour les convocations, consultations écrites et signatures de procès-verbaux, dans les conditions prévues par la loi.',
+  ];
+};
 
 const renderArticleBody = (article, context) => {
   let lines = [];
@@ -209,8 +207,8 @@ const renderArticleBody = (article, context) => {
           'Les augmentations ou réductions dans la fourchette du capital variable sont décidées par décision collective ordinaire des associés. Celles-ci sont constatées par le Président au registre, sans modification statutaire.',
         ] : []),
         ...renderCapitalDistribution(context),
-        `L'exercice social se termine le ${context.company.fiscalYearEnd ?? '[date à compléter]'} de chaque année et recommence le jour suivant.`,
-        `Par exception, le premier exercice sera clôturé le ${context.company.firstFiscalYearEnd ?? '[date à compléter]'}.`,
+        `L'exercice social se termine le ${formatStatutesFiscalEnd(context.company.fiscalYearEnd) || '[date à compléter]'} de chaque année et recommence le jour suivant.`,
+        `Par exception, le premier exercice sera clôturé le ${formatStatutesFiscalEnd(context.company.firstFiscalYearEnd) || '[date à compléter]'}.`,
       ];
       break;
     }
@@ -238,7 +236,7 @@ const renderArticleBody = (article, context) => {
       break;
     }
     case 27:
-      lines = renderArticle27();
+      lines = renderArticle27(context);
       break;
     default:
       lines = personalizeWilliamTemplateParagraphs(article.paragraphs, context);
