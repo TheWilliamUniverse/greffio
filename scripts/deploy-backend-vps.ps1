@@ -27,8 +27,18 @@ $ErrorActionPreference = 'Stop'
 
 $VpsHost     = if ($env:GREFFIO_VPS_HOST)     { $env:GREFFIO_VPS_HOST }     else { '187.127.232.210' }
 $VpsUser     = if ($env:GREFFIO_VPS_USER)     { $env:GREFFIO_VPS_USER }     else { 'root' }
-$VpsHostKey  = if ($env:GREFFIO_VPS_HOSTKEY)  { $env:GREFFIO_VPS_HOSTKEY }  else { 'SHA256:Qd5mZUU4rWubKmIVp/5+4m1xqObBQi3ZVBoFz8wKQGc' }
+$VpsHostKey  = if ($env:GREFFIO_VPS_HOSTKEY)  { $env:GREFFIO_VPS_HOSTKEY }  else { 'ssh-ed25519 255 SHA256:Qd5mZUU4rWubKmIVp/5+4m1xqObBQi3ZVBoFz8wKQGc' }
 $VpsPassword = $env:GREFFIO_VPS_PASSWORD
+
+if (-not $VpsPassword) {
+    $secretPath = Join-Path $env:USERPROFILE 'Desktop\SECRET\VPS.txt'
+    if (Test-Path $secretPath) {
+        $secretContent = Get-Content $secretPath -Raw
+        if ($secretContent -match 'MDP\s*:\s*(.+)') {
+            $VpsPassword = $Matches[1].Trim()
+        }
+    }
+}
 
 if (-not $VpsPassword) {
     Write-Host "GREFFIO_VPS_PASSWORD absent : tentative via cle SSH (OpenSSH natif)." -ForegroundColor Yellow
@@ -107,7 +117,7 @@ echo "--- /api/app-version ---"
 curl -fsS http://127.0.0.1:8787/api/app-version && echo ""
 '@
 
-Invoke-RemoteShell -RemoteCommand $RemoteScript
+Invoke-RemoteShell -RemoteCommand ($RemoteScript -replace "`r", '')
 
 Write-Host ""
 Write-Host "=== Deploiement termine. ===" -ForegroundColor Green

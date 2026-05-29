@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "com.greffio.app",
       "sha256_cert_fingerprints": [
-        "REPLACE_WITH_UPLOAD_KEY_SHA256_FINGERPRINT"
+        "9D:22:A5:82:5A:46:3A:2A:99:9B:C0:1A:0F:1A:6E:1A:DD:66:18:FC:0A:97:A3:6E:ED:EC:D3:0C:07:59:99:5B",
+        "F7:4F:72:96:22:4E:C1:0D:C9:56:A3:89:7E:68:0A:A9:2E:35:33:B9:59:75:C3:0F:6B:2B:7B:3D:6E:36:52:55"
       ]
     }
   }

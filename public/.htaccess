@@ -3,10 +3,12 @@
   AddType "text/html; charset=UTF-8" .html
   AddType "text/css; charset=UTF-8" .css
   AddType "application/javascript; charset=UTF-8" .js .mjs
+  AddType "application/json" .json
 
   RewriteEngine On
   RewriteBase /
   RewriteRule ^index\.html$ - [L]
+  RewriteRule ^\.well-known/ - [L]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule . /index.html [L]

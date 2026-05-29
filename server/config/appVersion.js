@@ -34,15 +34,15 @@ const parseChangelog = (value) => {
     .filter(Boolean);
 };
 
-const DEFAULT_LATEST_VERSION_CODE = 261510000;
+const DEFAULT_LATEST_VERSION_CODE = 261510001;
 const DEFAULT_MIN_VERSION_CODE = 261422041;
-const DEFAULT_LATEST_VERSION_NAME = '1.2.1';
+const DEFAULT_LATEST_VERSION_NAME = '1.2.2';
 
 const DEFAULT_CHANGELOG = [
-  "Système de mise à jour automatique de l'application",
-  "Architecture paiements multi-prestataires (CAWL B2C / GoCardless B2B)",
-  "Navigation mobile premium (drawer cockpit + barre d'actions)",
-  "Corrections de bugs et améliorations de performance",
+  'Liens profonds Android : domaine greffio.willentreprises.com associé à l’app',
+  'Parcours démarches en grille 2 colonnes sur l’app mobile',
+  'Connexion : affichage mot de passe et verrouillage après 30 min d’inactivité',
+  'Statuts PDF personnalisés, copies certifiées à 1,49 €, page Documents simplifiée',
 ];
 
 export const getAppVersionConfig = () => ({
