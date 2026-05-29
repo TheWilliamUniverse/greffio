@@ -26,6 +26,7 @@ import { RememberMfaDeviceBanner } from '@/components/security/RememberMfaDevice
 import { isEiLikeFormality } from '@/config/formalities.js';
 import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 import { isLoginAlertsConfigured, getLoginAlertsSettings, rememberLoginAlertsChoice } from '@/utils/userProfile.js';
+import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 
 export const DashboardPage = () => {
   const { currentUser, updateProfile } = useAuth();
@@ -131,7 +132,7 @@ export const DashboardPage = () => {
             .map((doc) => ({
               id: doc.id,
               dossierId: doc.dossierId,
-              name: doc.label,
+              name: getDocumentTypeLabel(doc.docKey, doc.label),
               status: String(doc.status || '').toUpperCase(),
               type: doc.docKey,
               size: doc.fileSizeBytes ? `${Math.round(Number(doc.fileSizeBytes) / 1024)} Ko` : 'N/A',

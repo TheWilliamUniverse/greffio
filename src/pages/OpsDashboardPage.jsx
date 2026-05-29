@@ -13,6 +13,7 @@ import {
   updateOpsResourceOrderStatus,
   updateOpsAssignment,
 } from '@/api/ops.js';
+import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 
 const Card = ({ title, value, icon: Icon, tone = 'default' }) => (
   <div className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
@@ -411,7 +412,7 @@ export const OpsDashboardPage = () => {
               {selectedDocuments.length ? selectedDocuments.map((doc) => (
                 <div key={doc.id} className="flex items-center justify-between border-b border-border px-4 py-3 last:border-b-0">
                   <div>
-                    <p className="text-sm font-bold">{doc.label}</p>
+                    <p className="text-sm font-bold">{getDocumentTypeLabel(doc.docKey, doc.label)}</p>
                     <p className="text-xs text-muted-foreground">{doc.docKey} · {doc.filename || 'non uploadé'}</p>
                     {doc.metadata?.analysis ? (
                       <p className="mt-1 text-xs font-semibold text-primary">

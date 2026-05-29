@@ -14,6 +14,7 @@ import { parseJsonField } from '@/utils/jsonField.js';
 import { isInternalUser } from '@/utils/roles.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { toast } from 'sonner';
+import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 
 const mapDossierFromApi = (d) => {
   const questionnaire = parseJsonField(d.dataJson, {});
@@ -63,8 +64,8 @@ const mapDossierFromApi = (d) => {
 
 const mapDocumentsFromApi = (documents = []) => documents.map((doc) => ({
   id: doc.id,
-  name: doc.filename || doc.recommendedFilename || doc.label,
-  type: doc.docKey,
+  name: getDocumentTypeLabel(doc.docKey, doc.label),
+  type: getDocumentTypeLabel(doc.docKey, doc.label),
   size: doc.fileSizeBytes ? `${Math.round(Number(doc.fileSizeBytes) / 1024)} Ko` : 'N/A',
   providedBy: doc.reviewerId ? 'Greffio' : 'Client',
   source: 'API',
@@ -282,7 +283,12 @@ export const DossierDetailPage = () => {
                       </div>
                       <div>
                         <p className="font-bold">{document.name}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">{document.type} · {document.size} · fourni par {document.providedBy}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {document.date
+                            ? `Mis à jour le ${new Date(document.date).toLocaleDateString('fr-FR')}`
+                            : 'En attente de dépôt'}
+                          {' · '}fourni par {document.providedBy}
+                        </p>
                         <p className="mt-1 text-xs font-semibold text-primary">{document.reviewHint}{typeof document.confidence === 'number' ? ` (${document.confidence}%)` : ''}</p>
                       </div>
                     </div>

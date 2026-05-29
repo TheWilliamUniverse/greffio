@@ -1,8 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, BadgeCheck, MonitorSmartphone, PackageCheck, QrCode, ShieldCheck, Smartphone } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, BadgeCheck, MonitorSmartphone, PackageCheck, QrCode, ShieldCheck, Smartphone } from 'lucide-react';
 import { NavbarDropdown } from '@/components/NavbarDropdown.jsx';
 import { Button } from '@/components/ui/button.jsx';
+import { runtimeConfig } from '@/config/runtime.js';
 
 const installTracks = [
   {
@@ -14,8 +15,10 @@ const installTracks = [
   {
     icon: PackageCheck,
     title: 'Google Play',
-    text: 'La base Capacitor est prête pour générer une application Android lorsque le compte Play Console et la clé de signature seront disponibles.',
-    points: ['Bundle id com.greffio.app', 'WebDir dist', 'Signature AAB', 'Asset links'],
+    text: 'L’application Android Greffio est disponible sur le Play Store : dossiers, documents et suivi de formalités depuis votre mobile.',
+    points: ['Version 1.2.3 publiée', 'Liens profonds Android', 'Notifications de mise à jour', 'Même espace client'],
+    href: runtimeConfig.playStoreUrl,
+    cta: 'Télécharger sur Google Play',
   },
   {
     icon: Smartphone,
@@ -45,11 +48,14 @@ export const AppInstallPage = () => (
             Une plateforme prête à vivre sur web, mobile et tablette.
           </h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-[hsl(var(--greffio-blue-900))] sm:text-lg sm:leading-8">
-            Le socle installable est intégré. Les stores nécessitent ensuite les comptes éditeur, les certificats et les clés de signature propres à Greffio.
+            Installez Greffio depuis votre navigateur ou téléchargez l’application Android sur Google Play pour suivre vos formalités où que vous soyez.
           </p>
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg" className="w-full sm:w-auto">
-              <Link to="/simulateur">Lancer une formalité</Link>
+              <a href={runtimeConfig.playStoreUrl} target="_blank" rel="noopener noreferrer">
+                Google Play
+                <ArrowUpRight className="h-4 w-4" />
+              </a>
             </Button>
             <Button asChild size="lg" variant="outline" className="w-full bg-white sm:w-auto">
               <Link to="/login">Ouvrir l’espace client</Link>
@@ -75,6 +81,14 @@ export const AppInstallPage = () => (
                       </div>
                     ))}
                   </div>
+                  {track.href ? (
+                    <Button asChild size="sm" className="mt-4">
+                      <a href={track.href} target="_blank" rel="noopener noreferrer">
+                        {track.cta}
+                        <ArrowUpRight className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  ) : null}
                 </div>
               </div>
             </div>

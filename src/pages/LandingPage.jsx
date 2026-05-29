@@ -23,6 +23,7 @@ import { CompanyLookupCard } from '@/components/CompanyLookupCard.jsx';
 import { LEGAL_SERVICES } from '@/config/businessCatalog.js';
 import { getServiceRoute } from '@/config/serviceLandingPages.js';
 import { lookupPublicCompanyBySiren } from '@/api/company.js';
+import { runtimeConfig } from '@/config/runtime.js';
 import { useNavigate } from 'react-router-dom';
 
 const platformFeatures = [
@@ -334,13 +335,41 @@ export const LandingPage = () => {
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             {[
-              ['PWA', 'Installation immédiate depuis Chrome, Edge ou Safari compatible.'],
-              ['Google Play', 'Base Capacitor prête pour génération AAB et signature.'],
-              ['App Store', 'Synchronisation iOS possible puis finalisation dans Xcode.'],
-            ].map(([title, text]) => (
-              <div key={title} className="rounded-md border border-border bg-background p-4">
-                <p className="font-extrabold">{title}</p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{text}</p>
+              { title: 'PWA', text: 'Installation immédiate depuis Chrome, Edge ou Safari compatible.' },
+              {
+                title: 'Google Play',
+                text: 'Application Android Greffio disponible sur le Play Store.',
+                href: runtimeConfig.playStoreUrl,
+              },
+              { title: 'App Store', text: 'Synchronisation iOS possible puis finalisation dans Xcode.' },
+            ].map((card) => (
+              <div key={card.title} className="rounded-md border border-border bg-background p-4">
+                <p className="font-extrabold">{card.title}</p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{card.text}</p>
+                {card.href ? (
+                  <a
+                    href={card.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Télécharger Greffio sur Google Play"
+                    className="group mt-4 inline-flex flex-col items-start gap-3"
+                  >
+                    <img
+                      src="/images/store/greffio-app-icon.png"
+                      alt="Icône de l’application Greffio"
+                      width={64}
+                      height={64}
+                      className="h-16 w-16 rounded-[22%] border border-border bg-white shadow-elevation-sm transition-transform group-hover:scale-[1.03]"
+                    />
+                    <img
+                      src="/images/store/google-play-badge-fr.png"
+                      alt="Disponible sur Google Play"
+                      width={646}
+                      height={250}
+                      className="h-10 w-auto"
+                    />
+                  </a>
+                ) : null}
               </div>
             ))}
           </div>

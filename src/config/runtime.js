@@ -18,4 +18,7 @@ export const runtimeConfig = {
   legalSiret: import.meta.env.VITE_LEGAL_SIRET || '10223041400017',
   legalVat: import.meta.env.VITE_LEGAL_VAT || 'FR49102230414',
   showDemoDisclaimer: toBool(import.meta.env.VITE_SHOW_DEMO_DISCLAIMER, false),
+  playStoreUrl:
+    import.meta.env.VITE_PLAY_STORE_URL
+    || 'https://play.google.com/store/apps/details?id=com.greffio.app&pcampaignid=web_share',
 };
