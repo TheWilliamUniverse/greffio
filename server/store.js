@@ -31,18 +31,18 @@ const DOCUMENT_STATUSES = Object.freeze({
 });
 
 const DOSSIER_DOCUMENT_TEMPLATES = Object.freeze([
-  { key: 'identity_proof', label: "Piece d'identite", required: true },
+  { key: 'identity_proof', label: "Pièce d'identité", required: true },
   { key: 'address_proof', label: 'Justificatif de domicile', required: true },
-  { key: 'proxy_mandate', label: 'Procuration signee', required: false },
-  { key: 'signed_statutes', label: 'Statuts signes', required: true },
-  { key: 'capital_certificate', label: 'Attestation depot capital', required: false },
-  { key: 'legal_notice_certificate', label: 'Attestation annonce legale', required: false },
-  { key: 'registered_office_proof', label: 'Justificatif siege social', required: true },
-  { key: 'ubo_declaration', label: 'Declaration beneficiaires effectifs', required: false },
-  { key: 'manager_non_conviction', label: 'Declaration non-condamnation et filiation', required: false },
-  { key: 'filiation_declaration', label: 'Declaration de filiation', required: false },
-  { key: 'regulated_activity_proof', label: 'Autorisation activite reglementee', required: false },
-  { key: 'minor_emancipation_order', label: "Ordonnance ou jugement d'emancipation", required: false },
+  { key: 'proxy_mandate', label: 'Procuration signée', required: false },
+  { key: 'signed_statutes', label: 'Statuts signés', required: true },
+  { key: 'capital_certificate', label: 'Attestation dépôt capital', required: false },
+  { key: 'legal_notice_certificate', label: 'Attestation annonce légale', required: false },
+  { key: 'registered_office_proof', label: 'Justificatif siège social', required: true },
+  { key: 'ubo_declaration', label: 'Déclaration bénéficiaires effectifs', required: false },
+  { key: 'manager_non_conviction', label: 'Déclaration non-condamnation et filiation', required: false },
+  { key: 'filiation_declaration', label: 'Déclaration de filiation', required: false },
+  { key: 'regulated_activity_proof', label: 'Autorisation activité réglementée', required: false },
+  { key: 'minor_emancipation_order', label: "Ordonnance ou jugement d'émancipation", required: false },
   { key: 'minor_parental_authorization', label: 'Autorisation parentale / tuteur (associé mineur)', required: false },
 ]);
 

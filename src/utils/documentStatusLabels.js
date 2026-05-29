@@ -18,15 +18,17 @@ export const getDocumentStatusLabel = (status) => {
 export const getDocumentTypeLabel = (docKey, fallbackLabel = '') => {
   const key = String(docKey || '').trim();
   const labels = {
-    identity_proof: 'Pièce d\'identité',
+    identity_proof: "Pièce d'identité",
     address_proof: 'Justificatif de domicile',
     proxy_mandate: 'Procuration signée',
     legal_notice_certificate: 'Attestation annonce légale',
     registered_office_proof: 'Justificatif siège social',
     ubo_declaration: 'Déclaration bénéficiaires effectifs',
-    manager_non_conviction: 'Déclaration non-condamnation',
-    minor_emancipation_order: 'Ordonnance ou jugement d\'émancipation',
-    minor_parental_authorization: 'Autorisation parentale',
+    manager_non_conviction: 'Déclaration non-condamnation et filiation',
+    filiation_declaration: 'Déclaration de filiation',
+    regulated_activity_proof: 'Autorisation activité réglementée',
+    minor_emancipation_order: "Ordonnance ou jugement d'émancipation",
+    minor_parental_authorization: 'Autorisation parentale / tuteur (associé mineur)',
     signed_statutes: 'Statuts signés',
     capital_certificate: 'Attestation dépôt capital',
   };

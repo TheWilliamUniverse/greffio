@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Archive, CheckCircle2, Download, Eye, FilePlus2, FileText, Search, ShieldCheck, Trash2, Upload } from 'lucide-react';
+import { Archive, CheckCircle2, Eye, FilePlus2, FileText, Search, ShieldCheck, Trash2, Upload } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
@@ -28,21 +28,28 @@ export const DocumentsPage = () => {
   const [editorData, setEditorData] = useState(null);
   const [editorSaving, setEditorSaving] = useState(false);
   const [deletingDocKey, setDeletingDocKey] = useState(null);
+  const [uploadingDocKey, setUploadingDocKey] = useState(null);
+  const rowUploadRef = useRef(null);
+  const pendingUploadDocKey = useRef(null);
   const currentDossierId = getCurrentDossierId();
   const user = getUser();
   const internalView = isInternalUser(user);
-  const normalizedDocuments = useMemo(() => apiDocuments.map((item) => ({
-    id: item.id,
-    docKey: item.docKey,
-    dossierId: item.dossierId,
-    name: item.label || getDocumentTypeLabel(item.docKey),
-    label: item.label || getDocumentTypeLabel(item.docKey),
-    type: getDocumentTypeLabel(item.docKey, item.label),
-    status: String(item.status || '').toUpperCase(),
-    statusLabel: getDocumentStatusLabel(item.status),
-    date: item.updatedAt || item.uploadedAt || item.createdAt || null,
-    hasFile: Boolean(item.filename || item.storageUrl || item.fileUrl),
-  })), [apiDocuments]);
+  const normalizedDocuments = useMemo(() => apiDocuments.map((item) => {
+    const displayLabel = getDocumentTypeLabel(item.docKey, item.label);
+    return {
+      id: item.id,
+      docKey: item.docKey,
+      dossierId: item.dossierId,
+      name: displayLabel,
+      label: displayLabel,
+      type: displayLabel,
+      status: String(item.status || '').toUpperCase(),
+      statusLabel: getDocumentStatusLabel(item.status),
+      date: item.updatedAt || item.uploadedAt || item.createdAt || null,
+      hasFile: Boolean(item.filename || item.storageUrl || item.fileUrl),
+      canUpload: String(item.status || '').toLowerCase() !== 'valid',
+    };
+  }), [apiDocuments]);
   const dossierMeta = useMemo(() => {
     const first = apiDocuments[0]?.metadata?.dossier || {};
     return { ...first, ...dossierFormalityMeta };
@@ -104,9 +111,8 @@ export const DocumentsPage = () => {
     void load();
   }, [currentDossierId]);
 
-  const onUpload = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file || !currentDossierId) return;
+  const uploadPdfFile = async (docKey, file) => {
+    if (!file || !currentDossierId || !docKey) return;
     setUploadError(null);
     setUploadSuccess('');
     if (file.type !== 'application/pdf') {
@@ -119,9 +125,11 @@ export const DocumentsPage = () => {
     }
     try {
       setUploading(true);
+      setUploadingDocKey(docKey);
+      setSelectedDocKey(docKey);
       const payload = await uploadDossierDocument({
         dossierId: currentDossierId,
-        docKey: selectedDocKey,
+        docKey,
         file,
         ownerFirstName: user?.firstName || '',
         ownerLastName: user?.lastName || '',
@@ -138,8 +146,27 @@ export const DocumentsPage = () => {
       setUploadError(error?.message || "L'upload a échoué.");
     } finally {
       setUploading(false);
-      event.target.value = '';
+      setUploadingDocKey(null);
     }
+  };
+
+  const onUpload = async (event) => {
+    const file = event.target.files?.[0];
+    await uploadPdfFile(selectedDocKey, file);
+    event.target.value = '';
+  };
+
+  const triggerRowUpload = (docKey) => {
+    pendingUploadDocKey.current = docKey;
+    rowUploadRef.current?.click();
+  };
+
+  const onRowUpload = async (event) => {
+    const file = event.target.files?.[0];
+    const docKey = pendingUploadDocKey.current;
+    await uploadPdfFile(docKey, file);
+    event.target.value = '';
+    pendingUploadDocKey.current = null;
   };
 
   const openEditor = async () => {
@@ -257,8 +284,16 @@ export const DocumentsPage = () => {
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white">
                 <Upload className="h-4 w-4" />
                 {uploading ? 'Upload...' : 'Ajouter une pièce'}
-                <input type="file" accept="application/pdf" className="hidden" onChange={onUpload} />
+                <input type="file" accept="application/pdf" className="hidden" onChange={onUpload} disabled={uploading || Boolean(uploadingDocKey)} />
               </label>
+              <input
+                ref={rowUploadRef}
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                onChange={onRowUpload}
+                disabled={Boolean(uploadingDocKey)}
+              />
             </div>
           </div>
 
@@ -450,11 +485,14 @@ export const DocumentsPage = () => {
                       variant="outline"
                       size="icon"
                       className="bg-white"
-                      aria-label="Télécharger"
-                      onClick={() => openDocumentDownload(document.docKey)}
-                      disabled={!currentDossierId || !document.hasFile}
+                      aria-label="Déposer un PDF"
+                      title="Déposer un PDF"
+                      onClick={() => triggerRowUpload(document.docKey)}
+                      disabled={!currentDossierId || !document.canUpload || uploadingDocKey === document.docKey}
                     >
-                      <Download className="h-4 w-4" />
+                      {uploadingDocKey === document.docKey
+                        ? <span className="text-xs">…</span>
+                        : <Upload className="h-4 w-4" />}
                     </Button>
                     <Button
                       variant="outline"
@@ -480,7 +518,7 @@ export const DocumentsPage = () => {
               {apiDocuments.map((item) => (
                 <div key={item.id} className="flex items-center justify-between gap-3 border-b border-border px-5 py-3 last:border-b-0">
                   <div>
-                    <p className="text-sm font-bold">{item.label}</p>
+                    <p className="text-sm font-bold">{getDocumentTypeLabel(item.docKey, item.label)}</p>
                     <p className="text-xs text-muted-foreground">{item.docKey} · {item.status}</p>
                   </div>
                   <StatusBadge status={String(item.status || '').toUpperCase()} className="w-fit" />
