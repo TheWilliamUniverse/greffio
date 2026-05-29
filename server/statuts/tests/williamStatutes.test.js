@@ -229,6 +229,41 @@ test('tribunal de commerce déterminé par la ville du siège', () => {
   assert.ok(art27?.body.includes('Tribunal de commerce de Nice'), 'art. 27 : TC de Nice');
   assert.ok(!/Tribunal compétent du siège social/i.test(doc.blocks.map((b) => b.body || '').join('\n')));
 });
+
+test('commune sans TC — rattachement catalogue (Cagnes → Nice)', () => {
+  const doc = generateStatutesDocument({
+    legalForm: 'SAS',
+    denomination: 'TEST CAGNES',
+    capital: '1000',
+    nombreTitres: '1000',
+    seat: { line1: '1 av. Test', postalCode: '06800', city: 'Cagnes-sur-Mer', country: 'France' },
+    duree: '99',
+    associates: [{ label: 'Jean DUPONT', address: 'Cagnes', share: '100', titlesCount: '1000' }],
+    president: 'Jean DUPONT',
+    directeurGeneral: 'Aucun',
+  });
+
+  const body = doc.blocks.filter((b) => b.kind === 'article').map((b) => b.body).join('\n');
+  assert.ok(body.includes('Tribunal de commerce de Nice'), 'Cagnes rattachée à Nice');
+  assert.ok(!body.includes('Tribunal de commerce de Cagnes-sur-Mer'));
+});
+
+test('commune sans TC — rattachement catalogue (Cannes → Grasse)', () => {
+  const doc = generateStatutesDocument({
+    legalForm: 'SAS',
+    denomination: 'TEST CANNES',
+    capital: '1000',
+    nombreTitres: '1000',
+    seat: { line1: '1 bd Test', postalCode: '06400', city: 'Cannes', country: 'France' },
+    duree: '99',
+    associates: [{ label: 'Jean DUPONT', address: 'Cannes', share: '100', titlesCount: '1000' }],
+    president: 'Jean DUPONT',
+    directeurGeneral: 'Aucun',
+  });
+
+  const body = doc.blocks.filter((b) => b.kind === 'article').map((b) => b.body).join('\n');
+  assert.ok(body.includes('Tribunal de commerce de Grasse'), 'Cannes rattachée à Grasse');
+});
 test('dates de naissance sans slash dans le préambule', () => {
   const doc = generateStatutesDocument({
     legalForm: 'SAS',

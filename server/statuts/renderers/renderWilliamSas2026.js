@@ -5,7 +5,7 @@ import { sanitizeWilliamTemplateParagraphs, personalizeWilliamTemplateParagraphs
 import { formatFrEuros, formatFrInteger, parseFrenchAmount } from '../shared/numberFormat.js';
 import { mergeWrapFragments } from '../shared/normalizeStatutesParagraphs.js';
 import { formatStatutesFrenchDate, formatStatutesFiscalEnd } from '../shared/statutesDates.js';
-import { personalizeTribunalMentions, resolveTribunalCommerceLabel } from '../shared/resolveTribunalCommerce.js';
+import { personalizeTribunalMentions, resolveTribunalCommerce } from '../shared/resolveTribunalCommerce.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_PATH = path.join(__dirname, '../templates/williamEstablishmentsSas2026.model.json');
@@ -156,7 +156,7 @@ const renderArticle6 = (context) => {
 
 const renderArticle27 = (context) => {
   const tribunal = context?.jurisdiction?.tribunalCommerce
-    || resolveTribunalCommerceLabel({ greffe: context?.company?.rcsCity, seat: { city: context?.company?.rcsCity } });
+    || resolveTribunalCommerce({ greffe: context?.company?.rcsCity, seat: { city: context?.company?.rcsCity } }).label;
   return [
     'Les associés conviennent que les dispositions suivantes s\'appliquent :',
     '27.1 - Langue officielle des documents juridiques :',

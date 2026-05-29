@@ -1,7 +1,7 @@
 import { resolveWilliamObjetSocialBullets } from '../catalogs/objectSocialCatalog.js';
 import { formatFrEuros, formatFrInteger, parseFrenchAmount } from '../shared/numberFormat.js';
 import { formatStatutesFiscalEnd } from '../shared/statutesDates.js';
-import { resolveGreffeCity, resolveTribunalCommerceLabel } from '../shared/resolveTribunalCommerce.js';
+import { resolveGreffeCity, resolveTribunalCommerce } from '../shared/resolveTribunalCommerce.js';
 
 const parseAmount = parseFrenchAmount;
 
@@ -80,7 +80,8 @@ export const mapStatutesDataToRenderContext = (statutesData = {}) => {
   ].filter(Boolean).join(', ');
 
   const greffeCity = resolveGreffeCity({ greffe: statutesData.greffe, seat });
-  const tribunalCommerce = resolveTribunalCommerceLabel({ greffe: statutesData.greffe, seat });
+  const tribunalResolution = resolveTribunalCommerce({ greffe: statutesData.greffe, seat });
+  const tribunalCommerce = tribunalResolution.label;
 
   return {
     legalForm,
@@ -124,6 +125,9 @@ export const mapStatutesDataToRenderContext = (statutesData = {}) => {
     jurisdiction: {
       greffeCity,
       tribunalCommerce,
+      tribunalCity: tribunalResolution.city,
+      tribunalSource: tribunalResolution.source,
+      seatHasOwnTribunal: tribunalResolution.hasOwnTribunal,
     },
   };
 };

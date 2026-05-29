@@ -3,6 +3,7 @@ import { resolveWilliamObjetSocialBullets } from '../legal/statutes/reference/wi
 import { formatFrInteger, parseFrenchAmount } from '../statuts/shared/numberFormat.js';
 import { isLegallyMinor } from './minorAssociateRules.js';
 import { resolveOfficersFromAssociates } from './officerFromAssociates.js';
+import { resolveGreffeCity } from '../statuts/shared/resolveTribunalCommerce.js';
 
 const pick = (...values) => {
   for (const value of values) {
@@ -300,7 +301,14 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
     quorumMajorite: pick(questionnaire.quorumMajorite, 'Règles légales'),
     mediation: pick(questionnaire.mediationArbitrage, 'Médiation préalable'),
     affectationResultat: pick(questionnaire.affectationResultat, 'Décision annuelle'),
-    greffe: pick(questionnaire.registryCity, questionnaire.rcsCompetent, seat.city !== 'Ville à compléter' ? seat.city : 'greffe compétent'),
+    greffe: (() => {
+      const raw = pick(
+        questionnaire.registryCity,
+        questionnaire.rcsCompetent,
+        seat.city !== 'Ville à compléter' ? seat.city : 'greffe compétent',
+      );
+      return resolveGreffeCity({ greffe: raw, seat }) || raw;
+    })(),
     mandataire: 'WILLIAM ESTABLISHMENTS / Greffio',
     isRegistered: Boolean(questionnaire.isRegistered),
     signatureCity: pick(questionnaire.signatureCity, seat.city),
