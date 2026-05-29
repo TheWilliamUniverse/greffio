@@ -34,9 +34,9 @@ const parseChangelog = (value) => {
     .filter(Boolean);
 };
 
-const DEFAULT_LATEST_VERSION_CODE = 261510001;
+const DEFAULT_LATEST_VERSION_CODE = 261510002;
 const DEFAULT_MIN_VERSION_CODE = 261422041;
-const DEFAULT_LATEST_VERSION_NAME = '1.2.2';
+const DEFAULT_LATEST_VERSION_NAME = '1.2.3';
 
 const DEFAULT_CHANGELOG = [
   'Liens profonds Android : domaine greffio.willentreprises.com associé à l’app',
