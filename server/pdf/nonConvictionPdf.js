@@ -79,6 +79,12 @@ const buildFullAddress = (fields = {}) => {
   return [line1, line2, [postal, city].filter(Boolean).join(' '), country].filter(Boolean).join(', ');
 };
 
+const formatBirthPlace = (birthDateFr, birthCity) => {
+  const datePart = birthDateFr.startsWith('_') ? '____ / ____ / ______' : birthDateFr;
+  const cityPart = birthCity.startsWith('_') ? '_______________________________' : birthCity;
+  return `${datePart} à ${cityPart}`;
+};
+
 const wrapText = (text, maxChars = 78) => {
   const words = String(text || '').split(/\s+/).filter(Boolean);
   const lines = [];
@@ -135,13 +141,13 @@ const drawLabelValue = (page, font, y, label, value) => {
   return y - 34;
 };
 
-const drawParagraph = (page, font, y, text, { size = 10.5, lineHeight = 15, indent = 0 } = {}) => {
+const drawParagraph = (page, font, y, text, { lineHeight = 15, indent = 0 } = {}) => {
   const lines = wrapText(text, 82);
   lines.forEach((line) => {
     page.drawText(line, {
       x: MARGIN + indent,
       y,
-      size,
+      size: 10.5,
       font,
       color: COLOR_TEXT,
       maxWidth: CONTENT_WIDTH - indent,
@@ -151,7 +157,7 @@ const drawParagraph = (page, font, y, text, { size = 10.5, lineHeight = 15, inde
   return y;
 };
 
-export const generateNonConvictionPdf = async ({ filename, fields = {}, documentId = '' }) => {
+export const generateNonConvictionPdf = async ({ filename, fields = {} }) => {
   const targetPath = path.join(outputDir, filename);
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([PAGE_WIDTH, 841.89]);
@@ -167,9 +173,7 @@ export const generateNonConvictionPdf = async ({ filename, fields = {}, document
     minLength: 4,
   });
   const birthCity = sanitizeDisplayValue(fields.declarantBirthCity);
-  const birthPlace = birthDateFr === '____ / ____ / ______' && birthCity.startsWith('_')
-    ? '____ / ____ / ______ — ________________________________'
-    : `${birthDateFr} — ${birthCity}`;
+  const birthPlace = formatBirthPlace(birthDateFr, birthCity);
   const parent1 = sanitizeDisplayValue(fields.parent1FullName || fields.fatherFullName);
   const parent2 = sanitizeDisplayValue(fields.parent2FullName || fields.motherFullName);
   const statementCity = sanitizeDisplayValue(fields.statementCity, { fallback: '______________________', minLength: 2 });
@@ -177,39 +181,8 @@ export const generateNonConvictionPdf = async ({ filename, fields = {}, document
     fallback: '____ / ____ / ______',
     minLength: 4,
   });
-  const reference = sanitizeDisplayValue(documentId, { fallback: '', minLength: 3 });
 
-  let y = 790;
-
-  page.drawText('Greffio', {
-    x: MARGIN,
-    y,
-    size: 11,
-    font: fontBold,
-    color: COLOR_TEXT,
-  });
-  page.drawText('Formalité RCS / RNE', {
-    x: MARGIN,
-    y: y - 14,
-    size: 9,
-    font,
-    color: COLOR_MUTED,
-  });
-  if (reference && !reference.startsWith('_')) {
-    const refText = `Réf. ${reference}`;
-    const refWidth = font.widthOfTextAtSize(refText, 8.5);
-    page.drawText(refText, {
-      x: PAGE_WIDTH - MARGIN - refWidth,
-      y,
-      size: 8.5,
-      font,
-      color: COLOR_MUTED,
-    });
-  }
-
-  y -= 34;
-  drawLine(page, y);
-  y -= 28;
+  let y = 780;
 
   page.drawText('DÉCLARATION DE NON-CONDAMNATION', {
     x: MARGIN,
@@ -225,7 +198,9 @@ export const generateNonConvictionPdf = async ({ filename, fields = {}, document
     font: fontBold,
     color: COLOR_TEXT,
   });
-  y -= 48;
+  y -= 44;
+  drawLine(page, y);
+  y -= 28;
 
   y = drawSectionTitle(page, fontBold, y, 'Déclarant');
   y = drawLabelValue(page, font, y, 'Nom complet', fullName);
@@ -239,10 +214,10 @@ export const generateNonConvictionPdf = async ({ filename, fields = {}, document
 
   y -= 8;
   y = drawSectionTitle(page, fontBold, y, 'Déclaration');
-  y = drawParagraph(page, font, y, 'Je déclare sur l’honneur n’avoir fait l’objet d’aucune condamnation pénale, ni d’aucune sanction civile ou administrative de nature à m’interdire :', { lineHeight: 16 });
+  y = drawParagraph(page, font, y, 'Je déclare sur l\'honneur n\'avoir fait l\'objet d\'aucune condamnation pénale, ni d\'aucune sanction civile ou administrative de nature à m\'interdire :', { lineHeight: 16 });
   y -= 4;
-  y = drawParagraph(page, font, y, '— de gérer, administrer, diriger ou contrôler une personne morale ;', { lineHeight: 16 });
-  y = drawParagraph(page, font, y, '— ou d’exercer une activité commerciale.', { lineHeight: 16 });
+  y = drawParagraph(page, font, y, '- de gérer, administrer, diriger ou contrôler une personne morale ;', { lineHeight: 16 });
+  y = drawParagraph(page, font, y, '- ou d\'exercer une activité commerciale.', { lineHeight: 16 });
 
   y -= 12;
   page.drawText(`Fait à ${statementCity}, le ${signatureDateFr}`, {
@@ -284,7 +259,7 @@ export const generateNonConvictionPdf = async ({ filename, fields = {}, document
     color: COLOR_MUTED,
   });
   wrapText(
-    'Conformément à l’article L.123-5 du Code de commerce, le fait de donner de mauvaise foi des indications inexactes ou incomplètes en vue d’une formalité au registre du commerce et des sociétés est puni des sanctions prévues par la loi.',
+    'Conformément à l\'article L.123-5 du Code de commerce, le fait de donner de mauvaise foi des indications inexactes ou incomplètes en vue d\'une formalité au registre du commerce et des sociétés est puni des sanctions prévues par la loi.',
     96,
   ).forEach((chunk, index) => {
     page.drawText(chunk, {

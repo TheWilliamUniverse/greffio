@@ -1959,7 +1959,7 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async 
   return res.json({
     ok: true,
     docKey,
-    schemaVersion: 'manager_non_conviction_v4',
+    schemaVersion: 'manager_non_conviction_v5',
     title: 'Déclaration de non-condamnation et de filiation',
     fields,
   });
@@ -1987,7 +1987,6 @@ app.post('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async
     const pdfPath = await generateNonConvictionPdf({
       filename,
       fields,
-      documentId: dossier.reference || dossier.id,
     });
     const sha256 = createHash('sha256').update(fs.readFileSync(pdfPath)).digest('hex');
     const updated = await updateDossierDocument({
@@ -2001,7 +2000,7 @@ app.post('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async
       sha256,
       reviewerId: null,
       metadata: {
-        editorSchemaVersion: 'manager_non_conviction_v4',
+        editorSchemaVersion: 'manager_non_conviction_v5',
         generatedFromEditor: true,
         fields,
         generatedAt: new Date().toISOString(),

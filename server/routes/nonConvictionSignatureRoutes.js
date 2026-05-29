@@ -35,7 +35,6 @@ export const registerNonConvictionSignatureRoutes = (app, {
     const pdfPath = await generateNonConvictionPdf({
       filename,
       fields,
-      documentId: dossier.reference || dossier.id,
     });
     const sha256 = createHash('sha256').update(fs.readFileSync(pdfPath)).digest('hex');
     const updated = await updateDossierDocument({
@@ -48,7 +47,7 @@ export const registerNonConvictionSignatureRoutes = (app, {
       storageUrl: pdfPath,
       sha256,
       metadata: {
-        editorSchemaVersion: 'manager_non_conviction_v4',
+        editorSchemaVersion: 'manager_non_conviction_v5',
         declarationStatus: 'preview_ready',
         fields,
         generatedAt: new Date().toISOString(),
