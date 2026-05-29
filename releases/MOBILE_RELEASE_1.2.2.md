@@ -33,7 +33,8 @@ Greffio 1.2.2 — liens profonds et améliorations mobile
 
 - AAB signé : `artifacts/playstore/app-release-1.2.2-261510001.aab`
 - Copie Bureau : `%USERPROFILE%\Downloads\Greffio-1.2.2-261510001.aab`
-- Build local : `android/app/build/outputs/bundle/release/app-release.aab`
+- Taille : 8 445 375 octets (~8,1 Mo)
+- SHA256 : `2F0A3F9DA15E5D3DB2233AC19A1AD6B4B1E9F8A7BB380415D6598473C37163A0`
 
 ## Play Console
 
