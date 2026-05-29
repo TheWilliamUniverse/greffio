@@ -2,8 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import PDFDocument from 'pdfkit';
 import { pdfSafeAmountsInText } from '../statuts/shared/numberFormat.js';
+import { normalizeStatutesBodyText } from '../statuts/shared/normalizeStatutesParagraphs.js';
 
-const pdfText = (value) => pdfSafeAmountsInText(String(value || ''));
+const pdfText = (value) => pdfSafeAmountsInText(normalizeStatutesBodyText(value));
 
 const PAGE = {
   marginTop: 62,
@@ -34,12 +35,13 @@ const createPageTracker = () => {
 };
 
 const drawPageFooter = (doc, companyName, pageNumber) => {
+  const footerY = doc.page.height - PAGE.marginBottom - 12;
   doc.save();
   doc.font(FONTS.regular).fontSize(9).fillColor('#444444');
   doc.text(
     `${companyName} — Page ${pageNumber}`,
     PAGE.marginLeft,
-    doc.page.height - 42,
+    footerY,
     { width: contentWidth(doc), align: 'center', lineBreak: false },
   );
   doc.restore();
@@ -48,8 +50,17 @@ const drawPageFooter = (doc, companyName, pageNumber) => {
 
 const startNewPage = (doc, companyName, pages) => {
   doc.addPage();
-  const pageNumber = pages.next();
-  drawPageFooter(doc, companyName, pageNumber);
+  pages.next();
+  drawPageFooter(doc, companyName, pages.current);
+  doc.y = PAGE.marginTop;
+};
+
+const finishCoverAndStartBody = (doc, companyName, pages) => {
+  const pageCount = doc.bufferedPageRange()?.count || 1;
+  if (pageCount === 1) {
+    startNewPage(doc, companyName, pages);
+    return;
+  }
   doc.y = PAGE.marginTop;
 };
 
@@ -174,7 +185,7 @@ const renderAnnexes = (doc, companyName, pages, annexes = []) => {
     (annexe.paragraphs || []).forEach((paragraph) => {
       ensureSpace(doc, companyName, pages, 36);
       doc.font(FONTS.regular).fontSize(11)
-        .text(paragraph, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify', lineGap: 3 });
+        .text(pdfText(paragraph), PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify', lineGap: 3 });
       doc.moveDown(0.45);
     });
     if (annexe.table) renderTable(doc, companyName, pages, annexe.table);
@@ -263,10 +274,11 @@ const generateStatutesPdf = async ({ filename, document: statutesDocument }) => 
 
   const stream = fs.createWriteStream(outputPath);
   doc.pipe(stream);
+
   drawPageFooter(doc, companyName, pages.current);
 
   renderCover(doc, statutesDocument.cover || {}, companyName);
-  startNewPage(doc, companyName, pages);
+  finishCoverAndStartBody(doc, companyName, pages);
   (statutesDocument.blocks || []).forEach((block) => renderBlock(doc, companyName, pages, block));
   renderAnnexes(doc, companyName, pages, statutesDocument.annexes || []);
   renderSignatures(doc, companyName, pages, statutesDocument.signatures || {});

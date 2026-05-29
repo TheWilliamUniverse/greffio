@@ -7,6 +7,7 @@ import { mapStatutesDataToRenderContext } from '../mappers/mapStatutesDataToRend
 import { renderWilliamSas2026Blocks, countWilliamArticles, estimatePageCount } from '../renderers/renderWilliamSas2026.js';
 import { validateGeneratedStatuts } from '../validators/validateGeneratedStatuts.js';
 import { generateStatutesDocument } from '../index.js';
+import { joinStatutesArticleBody } from '../shared/normalizeStatutesParagraphs.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturePath = path.join(__dirname, '../fixtures/williamEstablishments.fixture.json');
@@ -59,6 +60,36 @@ test('fixture William — 27 articles et 16 pages', () => {
 
   const validation = validateGeneratedStatuts({ blocks, context, legalForm: 'SAS' });
   assert.equal(validation.ok, true, validation.errors.join('; '));
+});
+
+test('joinStatutesArticleBody — fusionne les césures de lignes', () => {
+  const body = joinStatutesArticleBody([
+    'Dans les rapports entre Associés, le Président peut accomplir tous',
+    "actes de direction, de disposition, de gestion et d'administration de la",
+    "Société, dans la limite de l'objet social et des prérogatives des décisions",
+    "d'Associés.",
+    'Le Directeur Général est investi des mêmes pouvoirs.',
+  ]);
+  assert.equal(body.split('\n\n').length, 2);
+  assert.match(body, /accomplir tous actes de direction/);
+});
+
+test('generateStatutesDocument — article 9 sans fragments éclatés', () => {
+  const doc = generateStatutesDocument({
+    legalForm: 'SAS',
+    denomination: 'TRUE POWER',
+    capital: '1000',
+    nombreTitres: '1000',
+    seat: { line1: '1 rue Test', postalCode: '06200', city: 'Nice', country: 'France', full: '1 rue Test, 06200 Nice' },
+    greffe: 'Nice',
+    duree: '99',
+    associates: [{ label: 'William Abdou', address: 'Nice', share: '100', titlesCount: '1000' }],
+    president: 'William Abdou',
+    directeurGeneral: 'Aucun',
+  });
+  const art9 = doc.blocks.find((b) => b.number === 9);
+  assert.ok(art9?.body.includes('accomplir tous actes de direction'));
+  assert.doesNotMatch(art9?.body || '', /accomplir tous\n\nactes/);
 });
 
 test('generateStatutesDocument — document legacy avec métadonnées', () => {

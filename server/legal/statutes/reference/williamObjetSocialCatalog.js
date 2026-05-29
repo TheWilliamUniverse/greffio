@@ -3,6 +3,8 @@
  * Chaque catégorie du questionnaire mappe vers des puces complètes, pas un libellé court.
  */
 
+import { mergeWrapFragments } from '../../../statuts/shared/normalizeStatutesParagraphs.js';
+
 const WILLIAM_COMMERCE_HOLDING_BULLETS = [
   'Le commerce de détail, de gros et semi-gros de tous biens non réglementés notamment informatiques, électroniques, technologiques ou professionnels, par tous moyens, notamment par voie électronique (e-commerce), vente à distance, par correspondance, en magasin ou par tout autre canal de distribution',
   "L'importation et l'exportation de tous produits non réglementés",
@@ -56,7 +58,9 @@ export const resolveWilliamObjetSocialBullets = (questionnaire = {}) => {
     questionnaire.activity,
   );
   if (freeText && freeText.length > 80) {
-    return freeText.split(/\n+/).map((line) => line.replace(/^●\s*/, '').trim()).filter(Boolean);
+    return mergeWrapFragments(
+      freeText.split(/\n+/).map((line) => line.replace(/^●\s*/, '').trim()).filter(Boolean),
+    );
   }
 
   if (freeText) {

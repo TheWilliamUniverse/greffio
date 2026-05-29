@@ -1,6 +1,7 @@
 import { buildStandardAnnexes } from '../../legal/statutes/shared/annexes.js';
 import { buildWilliamCover, buildWilliamSignatures } from '../../legal/statutes/reference/williamHelpers.js';
 import { formatFrEuros } from '../shared/numberFormat.js';
+import { joinStatutesArticleBody } from '../shared/normalizeStatutesParagraphs.js';
 import { estimatePageCount, countWilliamArticles } from '../renderers/renderWilliamSas2026.js';
 
 const articleTitleFromHeading = (heading, number) => {
@@ -98,7 +99,7 @@ export const adaptRenderedBlocksToLegacyDocument = ({
         kind: 'article',
         number: entry.number,
         title: entry.title,
-        body: entry.paragraphs.join('\n\n'),
+        body: joinStatutesArticleBody(entry.paragraphs),
       });
       emittedArticles.add(block.articleNumber);
     }
