@@ -42,7 +42,7 @@ const CATALOG = {
 
 export const resolveWilliamObjetSocialBullets = (questionnaire = {}) => {
   if (Array.isArray(questionnaire.objetSocialBullets) && questionnaire.objetSocialBullets.length >= 3) {
-    return questionnaire.objetSocialBullets.filter(Boolean);
+    return mergeWrapFragments(questionnaire.objetSocialBullets.filter(Boolean));
   }
 
   const guided = pickGuidedCategory(questionnaire);

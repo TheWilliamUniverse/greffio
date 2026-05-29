@@ -110,11 +110,11 @@ npm run db:migrate
 pm2 restart greffio-api --update-env > /dev/null
 sleep 3
 echo "--- /api/health ---"
-curl -fsS http://127.0.0.1:8787/api/health && echo ""
+curl -fsS http://127.0.0.1:8787/api/health && echo
 echo "--- /api/ready ---"
-curl -fsS http://127.0.0.1:8787/api/ready && echo ""
+curl -fsS http://127.0.0.1:8787/api/ready && echo
 echo "--- /api/app-version ---"
-curl -fsS http://127.0.0.1:8787/api/app-version && echo ""
+curl -fsS http://127.0.0.1:8787/api/app-version && echo
 '@
 
 Invoke-RemoteShell -RemoteCommand ($RemoteScript -replace "`r", '')

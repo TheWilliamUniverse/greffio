@@ -27,6 +27,20 @@ const parseQuestionnaire = (dataJson) => {
   }
 };
 
+const StatutesArticleBody = ({ body }) => (
+  <div className="mt-2 space-y-3">
+    {String(body || '')
+      .split(/\n\n+/)
+      .map((paragraph) => paragraph.trim())
+      .filter(Boolean)
+      .map((paragraph, index) => (
+        <p key={`${index}-${paragraph.slice(0, 24)}`} className="text-sm leading-relaxed text-foreground">
+          {paragraph}
+        </p>
+      ))}
+  </div>
+);
+
 const ChecklistItem = ({ label, ok }) => (
   <div className={`flex items-start gap-3 rounded-xl border p-4 ${ok ? 'border-emerald-200 bg-emerald-50/60' : 'border-amber-200 bg-amber-50/60'}`}>
     {ok ? (
@@ -303,7 +317,7 @@ export const StatutesPage = () => {
                     {(preview.allClauses || preview.sampleClauses || []).map((clause) => (
                       <article key={clause.title} className="rounded-xl border border-[var(--we-border)] bg-white p-4">
                         <h3 className="text-sm font-extrabold text-primary">{clause.title}</h3>
-                        <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground">{clause.body}</p>
+                        <StatutesArticleBody body={clause.body} />
                       </article>
                     ))}
                   </div>

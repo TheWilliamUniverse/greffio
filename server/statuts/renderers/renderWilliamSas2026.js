@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { sanitizeWilliamTemplateParagraphs, personalizeWilliamTemplateParagraphs } from './williamParagraphSanitizer.js';
 import { formatFrEuros, formatFrInteger, parseFrenchAmount } from '../shared/numberFormat.js';
+import { mergeWrapFragments } from '../shared/normalizeStatutesParagraphs.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_PATH = path.join(__dirname, '../templates/williamEstablishmentsSas2026.model.json');
@@ -175,27 +176,33 @@ const renderArticle27 = () => [
 ];
 
 const renderArticleBody = (article, context) => {
+  let lines = [];
+
   switch (article.number) {
     case 1:
-      return [`Il est formé une Société par Actions Simplifiée dénommée ${context.company.name}${context.company.sigle ? `, et de sigle ${context.company.sigle}` : ''}.`];
+      lines = [`Il est formé une Société par Actions Simplifiée dénommée ${context.company.name}${context.company.sigle ? `, et de sigle ${context.company.sigle}` : ''}.`];
+      break;
     case 2: {
       const bullets = context.objectSocialBullets?.length
         ? context.objectSocialBullets
         : sanitizeWilliamTemplateParagraphs(article.paragraphs).slice(1, -2);
-      return [
+      lines = [
         'La Société a pour objet social, directement ou indirectement, tant en France qu\'à l\'étranger :',
         ...bullets,
         `${context.company.name} est habilitée à exercer ses activités sous toute enseigne, marque ou nom commercial de son choix, et à commercialiser tous biens ou services non réglementés, directement ou indirectement, à ses clients dans ses marchés.`,
         'Et plus généralement, toutes opérations industrielles, commerciales, financières, mobilières et/ou immobilières se rapportant directement ou indirectement à l\'objet social ci-dessus et à tous objets ou connexes pouvant favoriser son développement.',
       ];
+      break;
     }
     case 3:
-      return [`Le siège social est fixé au ${context.company.registeredOffice}.`];
+      lines = [`Le siège social est fixé au ${context.company.registeredOffice}.`];
+      break;
     case 4:
-      return [`La Société est constituée pour une durée de ${context.company.durationYears ?? 99} années à compter de son immatriculation au Registre du Commerce et des Sociétés, sauf dissolution anticipée ou prorogation.`];
+      lines = [`La Société est constituée pour une durée de ${context.company.durationYears ?? 99} années à compter de son immatriculation au Registre du Commerce et des Sociétés, sauf dissolution anticipée ou prorogation.`];
+      break;
     case 5: {
       const shareCount = context.company.shareCount || context.company.capitalAmount;
-      return [
+      lines = [
         `Le capital social est fixé à la somme de ${context.company.capitalFormatted}, divisé en ${formatFrInteger(shareCount)} actions de 1 euro chacune.`,
         ...(context.options?.variableCapital ? [
           `Le capital est variable conformément aux articles L.231-1 à L.231-8 du Code de commerce, avec un minimum de ${context.options.capitalMinFormatted ?? '[minimum à compléter]'} et un maximum de ${context.options.capitalMaxFormatted ?? '[maximum à compléter]'}.`,
@@ -205,33 +212,39 @@ const renderArticleBody = (article, context) => {
         `L'exercice social se termine le ${context.company.fiscalYearEnd ?? '[date à compléter]'} de chaque année et recommence le jour suivant.`,
         `Par exception, le premier exercice sera clôturé le ${context.company.firstFiscalYearEnd ?? '[date à compléter]'}.`,
       ];
+      break;
     }
     case 6:
-      return renderArticle6(context);
+      lines = renderArticle6(context);
+      break;
     case 7:
-      return renderApports(context);
+      lines = renderApports(context);
+      break;
     case 8: {
-      const lines = [
+      lines = [
         'La société est dirigée par un Président nommé par décision collective des associés.',
         `Le Président est ${context.officers?.president ?? '[Président à compléter]'}.`,
       ];
       if (context.officers?.directorGeneral) {
         lines.push(`Le Directeur Général est ${context.officers.directorGeneral}.`);
       }
-      return lines;
+      break;
     }
     case 9: {
       const sanitized = personalizeWilliamTemplateParagraphs(article.paragraphs, context);
-      if (!context.officers?.directorGeneral) {
-        return sanitized.filter((p) => !/Directeur Général est investi/i.test(p));
-      }
-      return sanitized;
+      lines = !context.officers?.directorGeneral
+        ? sanitized.filter((p) => !/Directeur Général est investi/i.test(p))
+        : sanitized;
+      break;
     }
     case 27:
-      return renderArticle27();
+      lines = renderArticle27();
+      break;
     default:
-      return personalizeWilliamTemplateParagraphs(article.paragraphs, context);
+      lines = personalizeWilliamTemplateParagraphs(article.paragraphs, context);
   }
+
+  return mergeWrapFragments(lines);
 };
 
 export const renderWilliamSas2026Blocks = (context) => {
