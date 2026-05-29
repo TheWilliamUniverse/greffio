@@ -3,6 +3,7 @@ import { Check, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input.jsx';
 import { FormalityChoiceCard } from '@/components/questionnaire/FormalityChoiceCard.jsx';
 import { DEMARCHE_CATALOG, DEMARCHE_CATEGORIES } from '@/lib/questionnaireFlow.js';
+import { isCapacitorNative } from '@/utils/platform.js';
 
 const normalize = (value) => String(value || '').trim().toLowerCase();
 
@@ -93,7 +94,7 @@ export const DemarchePicker = ({ value, onChange }) => {
                 <p className="text-xs text-muted-foreground">{category.description}</p>
               </div>
             ) : null}
-            <ul className="grid gap-4 sm:grid-cols-2">
+            <ul className={`grid gap-4 ${isCapacitorNative() ? 'grid-cols-2' : 'sm:grid-cols-2'}`}>
               {items.map((item) => (
                 <li key={item.key}>
                   <FormalityChoiceCard

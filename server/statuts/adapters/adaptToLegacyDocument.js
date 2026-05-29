@@ -73,7 +73,12 @@ export const adaptRenderedBlocksToLegacyDocument = ({
     if (block.kind === 'cover' || block.kind === 'signature') return;
 
     if (block.kind === 'preamble') {
-      legacyBlocks.push({ kind: 'paragraph', text: block.text });
+      const text = String(block.text || '').trim();
+      if (/^(Définitions|Objet du présent acte|IL A ÉTÉ CONVENU)/i.test(text)) {
+        legacyBlocks.push({ kind: 'section-title', text });
+      } else {
+        legacyBlocks.push({ kind: 'paragraph', text });
+      }
       return;
     }
 

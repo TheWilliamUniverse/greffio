@@ -83,3 +83,32 @@ export const fetchDossierDetail = async (dossierId, { allowOpsFallback = false }
     return getOpsDossierDetail(dossierId);
   }
 };
+
+export const listTrashedDossiers = async () => {
+  const token = getToken();
+  if (!token) throw new Error('AUTH_TOKEN_MISSING');
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/trash`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return parseResponse(response);
+};
+
+export const trashDossier = async (dossierId) => {
+  const token = getToken();
+  if (!token) throw new Error('AUTH_TOKEN_MISSING');
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}/trash`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return parseResponse(response);
+};
+
+export const restoreDossier = async (dossierId) => {
+  const token = getToken();
+  if (!token) throw new Error('AUTH_TOKEN_MISSING');
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}/restore`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return parseResponse(response);
+};

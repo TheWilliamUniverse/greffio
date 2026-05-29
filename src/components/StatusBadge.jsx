@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils.js';
+import { getDocumentStatusLabel } from '@/utils/documentStatusLabels.js';
 
 const labels = {
   EN_COURS: 'EN COURS',
@@ -13,6 +14,15 @@ const labels = {
   MODELE: 'MODÈLE',
   A_SIGNER: 'À SIGNER',
   BROUILLON: 'BROUILLON',
+  REQUESTED: 'À FOURNIR',
+  UPLOADED: 'DÉPOSÉ',
+  PENDING_REVIEW: 'EN VÉRIFICATION',
+  VALIDATED: 'VALIDÉ',
+  VALID: 'VALIDÉ',
+  REJECTED: 'REFUSÉ',
+  INVALID: 'À CORRIGER',
+  SIGNED: 'SIGNÉ',
+  GENERATED: 'GÉNÉRÉ',
 };
 
 export const StatusBadge = ({ status, className }) => {
@@ -43,7 +53,7 @@ export const StatusBadge = ({ status, className }) => {
 
   return (
     <span className={cn('px-2.5 py-0.5 rounded-full text-xs font-medium border', getStatusStyles(normalizedStatus), className)}>
-      {labels[normalizedStatus] || status.replace(/_/g, ' ') || 'INCONNU'}
+      {labels[normalizedStatus] || getDocumentStatusLabel(status).toUpperCase() || 'INCONNU'}
     </span>
   );
 };

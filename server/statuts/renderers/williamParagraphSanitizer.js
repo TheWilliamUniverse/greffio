@@ -1,5 +1,6 @@
 /** Lignes issues du dossier William Establishments (échantillon) — à exclure du rendu data-driven. */
 const SAMPLE_DOSSIER_RE = /\b(William|Ibtissam|Nobatène|Anissati)\s+ABDOU\b/i;
+const SAMPLE_COMPANY_RE = /\bWILLIAM\s+ESTABLISHMENTS\b|\bWilliam Establishments\b|\(\s*WX\s*\)/gi;
 const SIGNATURE_LINE_RE = /Lu et approuvé|Établi à|exemplaires originaux|Signatures des associés/i;
 const MINOR_REPRESENTATION_BOILERPLATE_RE = /mineur(e)?\s+non\s+émancipé(e)?\s+au jour de la constitution.*représenté/i;
 
@@ -17,6 +18,20 @@ export const sanitizeWilliamTemplateParagraphs = (paragraphs = []) => (
     return true;
   })
 );
+
+export const personalizeWilliamTemplateParagraphs = (paragraphs = [], context = {}) => {
+  const companyName = String(context?.company?.name || 'la Société').trim();
+  const sigle = String(context?.company?.sigle || '').trim();
+  return sanitizeWilliamTemplateParagraphs(paragraphs).map((paragraph) => {
+    let text = String(paragraph || '');
+    text = text.replace(SAMPLE_COMPANY_RE, (match) => {
+      if (/^\(\s*WX\s*\)$/i.test(match)) return sigle ? `(${sigle})` : '';
+      return companyName;
+    });
+    text = text.replace(/\bWX\b/g, sigle || companyName);
+    return text.replace(/\s{2,}/g, ' ').replace(/\(\s*\)/g, '').trim();
+  }).filter(Boolean);
+};
 
 export const blocksContainSampleParasiteText = (blocks = []) => (
   blocks.some((block) => {

@@ -48,8 +48,14 @@ const wrapGreffioEmail = ({ preheader = '', bodyHtml }) => `
       <td align="center">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;">
           <tr>
-            <td style="background:#214082;padding:22px 28px;">
-              <img src="${logoUrl}" alt="Greffio" width="${logoWidth}" height="${logoHeight}" style="display:block;width:${logoWidth}px;height:${logoHeight}px;max-width:${logoWidth}px;border:0;outline:none;text-decoration:none;" />
+            <td style="background:#0f1f3d;padding:28px 28px 18px;text-align:center;">
+              <div style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:700;letter-spacing:0.08em;color:#ffffff;margin:0 0 6px;">
+                William Establishments
+              </div>
+              <div style="font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.72);margin:0 0 16px;">
+                Écosystème entrepreneurial
+              </div>
+              <img src="${logoUrl}" alt="Greffio" width="${logoWidth}" height="${logoHeight}" style="display:block;width:${logoWidth}px;height:${logoHeight}px;max-width:${logoWidth}px;margin:0 auto;border:0;outline:none;text-decoration:none;opacity:0.95;" />
             </td>
           </tr>
           <tr>

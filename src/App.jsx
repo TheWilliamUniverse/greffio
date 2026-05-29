@@ -51,6 +51,7 @@ import { BiometricSessionProvider } from '@/context/BiometricSessionContext.jsx'
 import { shouldUseMobileShell, isCapacitorNative } from '@/utils/platform.js';
 import { WebMobileBottomNav } from '@/components/WebMobileBottomNav.jsx';
 import { AppUpdateGate } from '@/components/AppUpdateGate.jsx';
+import { IdleSessionGuard } from '@/components/IdleSessionGuard.jsx';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -97,6 +98,7 @@ function App() {
     <AuthProvider>
       <Router>
         <BiometricSessionProvider>
+        <IdleSessionGuard>
         <ScrollToTop />
         <Layout>
           <Routes>
@@ -151,6 +153,7 @@ function App() {
         <CookieConsentBanner />
         <AppUpdateGate />
         <Toaster richColors position="top-right" />
+        </IdleSessionGuard>
         </BiometricSessionProvider>
       </Router>
     </AuthProvider>

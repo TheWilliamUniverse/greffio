@@ -16,8 +16,9 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
+import { useAuth } from '@/hooks/useAuth.js';
 
-const menuColumns = [
+const buildMenuColumns = (profileLink) => [
   {
     title: 'Formalités',
     links: [
@@ -34,7 +35,7 @@ const menuColumns = [
       { label: 'Dashboard', to: '/dashboard' },
       { label: 'Dossiers', to: '/dossiers' },
       { label: 'Documents', to: '/documents' },
-      { label: 'Mon profil', to: '/profil' },
+      { label: 'Mon profil', to: profileLink },
       { label: 'Assistant Greffio', to: '/chat' },
     ],
   },
@@ -58,6 +59,9 @@ const resources = [
 export const NavbarDropdown = () => {
   const [isServicesOpen, setIsServicesOpen] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const profileLink = isAuthenticated ? '/profil' : '/login';
+  const menuColumns = buildMenuColumns(profileLink);
 
   return (
     <nav className="fixed left-0 right-0 top-0 z-50 border-b border-[#c5d2e6] bg-white shadow-[0_1px_0_rgba(10,18,32,0.1),0_8px_24px_rgba(10,18,32,0.08)]">

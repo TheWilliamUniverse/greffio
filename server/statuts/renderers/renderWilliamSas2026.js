@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { sanitizeWilliamTemplateParagraphs } from './williamParagraphSanitizer.js';
+import { sanitizeWilliamTemplateParagraphs, personalizeWilliamTemplateParagraphs } from './williamParagraphSanitizer.js';
 import { formatFrEuros, formatFrInteger, parseFrenchAmount } from '../shared/numberFormat.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -30,15 +30,16 @@ const formatBirthDateFr = (value) => {
 
 const renderDefinitionsAndObjetActe = (context) => {
   const unique = (context.associates || []).length <= 1;
+  const associateLabel = unique
+    ? `Associé unique : désigne ${context.associates?.[0]?.fullName || "l'associé identifié aux présentes"}.`
+    : 'Associé(s) : désigne toute personne physique ou morale titulaire d\'au moins une action dans la Société, à la date de constitution ou ultérieurement.';
   const lines = [
-    'Définitions :',
+    'Définitions',
     'Aux fins des présents statuts, les termes ci-dessous ont la signification suivante :',
-    unique
-      ? `Associé unique : désigne ${context.associates?.[0]?.fullName || 'l\'associé identifié aux présentes'}.`
-      : 'Associé(s) : désigne toute personne physique ou morale titulaire d\'au moins une action dans la Société, à la date de constitution ou ultérieurement.',
+    associateLabel,
     'Dirigeant(s) : désigne le Président de la Société, ainsi que tout Directeur Général nommé par la Société.',
-    'Société : désigne la Société par Actions Simplifiée en formation, régie par les présents statuts et les textes juridiques en vigueur, et destinée à acquérir la personnalité morale à son immatriculation au Registre du Commerce et des Sociétés.',
-    'Objet du présent acte :',
+    `Société : désigne la ${context.company?.legalFormLabel || 'Société par Actions Simplifiée'} en formation, régie par les présents statuts et les textes juridiques en vigueur, et destinée à acquérir la personnalité morale à son immatriculation au Registre du Commerce et des Sociétés.`,
+    'Objet du présent acte',
     unique
       ? 'L\'associé unique convient d\'établir les présents statuts, qui régissent l\'organisation, et le fonctionnement de la Société.'
       : 'Les Associés conviennent d\'établir entre eux les présents statuts, qui régissent l\'organisation, et le fonctionnement de la Société.',
@@ -220,7 +221,7 @@ const renderArticleBody = (article, context) => {
       return lines;
     }
     case 9: {
-      const sanitized = sanitizeWilliamTemplateParagraphs(article.paragraphs);
+      const sanitized = personalizeWilliamTemplateParagraphs(article.paragraphs, context);
       if (!context.officers?.directorGeneral) {
         return sanitized.filter((p) => !/Directeur Général est investi/i.test(p));
       }
@@ -229,7 +230,7 @@ const renderArticleBody = (article, context) => {
     case 27:
       return renderArticle27();
     default:
-      return sanitizeWilliamTemplateParagraphs(article.paragraphs);
+      return personalizeWilliamTemplateParagraphs(article.paragraphs, context);
   }
 };
 

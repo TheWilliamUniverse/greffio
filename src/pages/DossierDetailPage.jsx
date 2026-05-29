@@ -1,18 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, CalendarClock, CheckCircle2, Clock3, FileText, MessageSquareText, Send, Upload } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.jsx';
-import { fetchDossierDetail, listDossiers } from '@/api/dossiers.js';
+import { fetchDossierDetail, trashDossier } from '@/api/dossiers.js';
 import { saveCurrentDossierId } from '@/utils/sessionStore.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
 import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 import { parseJsonField } from '@/utils/jsonField.js';
 import { isInternalUser } from '@/utils/roles.js';
 import { useAuth } from '@/hooks/useAuth.js';
+import { toast } from 'sonner';
 
 const mapDossierFromApi = (d) => {
   const questionnaire = parseJsonField(d.dataJson, {});
@@ -76,6 +77,7 @@ const mapDocumentsFromApi = (documents = []) => documents.map((doc) => ({
 
 export const DossierDetailPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { currentUser } = useAuth();
   const internalView = isInternalUser(currentUser);
   const [dossier, setDossier] = useState(null);
@@ -304,6 +306,30 @@ export const DossierDetailPage = () => {
                   </div>
                 ))}
               </div>
+              {!internalView ? (
+                <div className="mt-5 rounded-md border border-red-200 bg-red-50/40 p-5">
+                  <p className="font-extrabold text-red-900">Supprimer ce dossier</p>
+                  <p className="mt-2 text-sm text-red-900/80">
+                    Le dossier sera placé en corbeille puis supprimé définitivement sous 72 h. Vous pourrez l’annuler depuis la corbeille pendant ce délai.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="mt-4 border-red-300 bg-white text-red-700 hover:bg-red-50"
+                    onClick={async () => {
+                      if (!window.confirm('Confirmer la mise en corbeille de ce dossier ? Suppression définitive sous 72 h sauf annulation de votre part.')) return;
+                      try {
+                        await trashDossier(id);
+                        toast.success('Dossier placé en corbeille.');
+                        navigate('/dossiers?trash=1');
+                      } catch (_error) {
+                        toast.error('Impossible de supprimer ce dossier pour le moment.');
+                      }
+                    }}
+                  >
+                    Mettre en corbeille
+                  </Button>
+                </div>
+              ) : null}
             </TabsContent>
 
             <TabsContent value="timeline" className="mt-5">

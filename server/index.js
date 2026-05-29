@@ -24,6 +24,9 @@ import {
   DOCUMENT_STATUSES,
   ensureSeedDossier,
   getAllDossiers,
+  scheduleDossierDeletion,
+  restoreDossier,
+  listTrashedDossiers,
   getAllPayments,
   getDossier,
   getPaymentByProviderId,
@@ -1334,6 +1337,41 @@ app.get('/api/dossiers', requireAuth, async (req, res) => {
     ok: true,
     dossiers: visibleDossiers,
   });
+});
+
+app.get('/api/dossiers/trash', requireAuth, async (req, res) => {
+  const items = await listTrashedDossiers({ userId: req.auth?.sub });
+  return res.json({ ok: true, dossiers: items });
+});
+
+app.post('/api/dossiers/:dossierId/trash', requireAuth, async (req, res) => {
+  const access = await resolveDossierAccess(req, req.params.dossierId);
+  if (!access.ok) {
+    return res.status(access.status).json({ ok: false, error: access.error });
+  }
+  const scheduled = await scheduleDossierDeletion({
+    dossierId: access.dossier.id,
+    userId: req.auth?.sub,
+  });
+  if (!scheduled) {
+    return res.status(409).json({ ok: false, error: 'DOSSIER_ALREADY_TRASHED' });
+  }
+  return res.json({
+    ok: true,
+    message: 'Dossier placé en corbeille. Suppression définitive sous 72 h sauf annulation.',
+    purgeAfter: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
+  });
+});
+
+app.post('/api/dossiers/:dossierId/restore', requireAuth, async (req, res) => {
+  const restored = await restoreDossier({
+    dossierId: req.params.dossierId,
+    userId: req.auth?.sub,
+  });
+  if (!restored) {
+    return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_IN_TRASH' });
+  }
+  return res.json({ ok: true, dossierId: restored.id });
 });
 
 app.get('/api/dossiers/:dossierId', requireAuth, async (req, res) => {

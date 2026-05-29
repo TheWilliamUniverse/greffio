@@ -37,25 +37,39 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const user = getUser();
-    if (user) setCurrentUser(user);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) return;
-    const renew = async () => {
+    const bootstrap = async () => {
+      const storedUser = getUser();
+      const refreshToken = getRefreshToken();
+      if (!storedUser && !refreshToken) {
+        setLoading(false);
+        return;
+      }
+      if (!refreshToken) {
+        clearAllData();
+        setCurrentUser(null);
+        setLoading(false);
+        return;
+      }
       try {
         const payload = await refreshAccessToken({ refreshToken });
         if (payload?.accessToken) {
           saveToken(payload.accessToken);
         }
+        if (payload?.refreshToken) {
+          saveRefreshToken(payload.refreshToken);
+        }
+        const profilePayload = await fetchUserProfile();
+        const user = profilePayload?.user || storedUser;
+        setCurrentUser(user);
+        saveUser(user);
       } catch (_error) {
-        // silent renewal failure
+        clearAllData();
+        setCurrentUser(null);
+      } finally {
+        setLoading(false);
       }
     };
-    void renew();
+    void bootstrap();
   }, []);
 
   const login = async (email, password, provider = 'email') => {

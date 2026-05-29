@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, KeyRound, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
+import { ArrowRight, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
+import { PasswordInput } from '@/components/PasswordInput.jsx';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth.js';
 import { sendMfaEmailCode } from '@/api/mfa.js';
@@ -174,10 +175,13 @@ export const LoginPage = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Mot de passe</Label>
-                  <div className="relative">
-                    <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input id="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="pl-9" placeholder="Votre mot de passe" required />
-                  </div>
+                  <PasswordInput
+                    id="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="Votre mot de passe"
+                    required
+                  />
                 </div>
 
                 <div className="flex items-center justify-between text-sm">

@@ -11,6 +11,8 @@ import { downloadDossierDocument, getDossierDocuments, uploadDossierDocument } f
 import { getDossierDocumentEditor, saveDossierDocumentEditor } from '@/api/documents.js';
 import { getUser } from '@/utils/localStorage.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
+import { getDocumentStatusLabel, getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
+import { isInternalUser } from '@/utils/roles.js';
 import { getDossierById } from '@/api/dossiers.js';
 
 export const DocumentsPage = () => {
@@ -27,21 +29,17 @@ export const DocumentsPage = () => {
   const [editorSaving, setEditorSaving] = useState(false);
   const currentDossierId = getCurrentDossierId();
   const user = getUser();
+  const internalView = isInternalUser(user);
   const normalizedDocuments = useMemo(() => apiDocuments.map((item) => ({
     id: item.id,
     dossierId: item.dossierId,
-    name: item.filename || item.recommendedFilename || item.label || item.docKey,
-    label: item.label || item.docKey,
-    type: item.docKey,
+    name: item.label || getDocumentTypeLabel(item.docKey),
+    label: item.label || getDocumentTypeLabel(item.docKey),
+    type: getDocumentTypeLabel(item.docKey, item.label),
     status: String(item.status || '').toUpperCase(),
-    source: item.reviewerId ? 'Greffio' : 'Client',
-    providedBy: item.reviewerId ? 'Greffio' : 'Client',
-    requiredFor: item.required ? 'Conformité dossier' : 'Pièce complémentaire',
-    nextAction: item.status === 'invalid' ? 'Déposer une nouvelle version' : 'Suivi Greffio',
-    date: item.updatedAt || item.createdAt || null,
-    size: item.fileSizeBytes ? `${Math.max(1, Math.round(Number(item.fileSizeBytes) / 1024))} Ko` : 'N/A',
-    reviewHint: item.metadata?.analysis?.requiresManualReview ? 'Vérification manuelle requise' : 'Analyse automatique OK',
-    confidence: item.metadata?.analysis?.confidence ?? null,
+    statusLabel: getDocumentStatusLabel(item.status),
+    date: item.updatedAt || item.uploadedAt || item.createdAt || null,
+    hasFile: Boolean(item.filename || item.storageUrl || item.fileUrl),
   })), [apiDocuments]);
   const dossierMeta = useMemo(() => {
     const first = apiDocuments[0]?.metadata?.dossier || {};
@@ -76,12 +74,7 @@ export const DocumentsPage = () => {
       document.name,
       document.label,
       document.type,
-      document.status,
-      document.source,
-      document.providedBy,
-      document.requiredFor,
-      document.nextAction,
-      document.reviewHint,
+      document.statusLabel,
     ].join(' ');
     const matchesQuery = searchable.toLowerCase().includes(query.toLowerCase());
     const matchesType = type === 'Tous' || document.type === type;
@@ -219,10 +212,8 @@ export const DocumentsPage = () => {
   };
 
   const waitingDocs = normalizedDocuments.filter((document) => ['REQUESTED', 'UNDER_REVIEW', 'INVALID'].includes(document.status));
-  const thirdPartyDocs = normalizedDocuments.filter((document) => document.providedBy === 'Greffio');
   const summary = [
     { label: 'Pièces en coffre', value: normalizedDocuments.length, text: 'document(s) du dossier actif', icon: Archive },
-    { label: 'Documents tiers', value: thirdPartyDocs.length, text: 'banque, annonce légale, greffe', icon: ShieldCheck },
     { label: 'À traiter', value: waitingDocs.length, text: 'pièces à compléter ou signer', icon: FileText },
     { label: 'Dossier relié', value: currentDossierId ? 1 : 0, text: currentDossierId ? 'dossier actif sélectionné' : 'aucun dossier actif', icon: CheckCircle2 },
   ];
@@ -341,7 +332,7 @@ export const DocumentsPage = () => {
             </section>
           ) : null}
 
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <section className="grid gap-4 md:grid-cols-3">
             {summary.map((item) => (
               <div key={item.label} className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
                 <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-md bg-secondary text-primary">
@@ -405,32 +396,23 @@ export const DocumentsPage = () => {
             </section>
           ) : (
             <section className="overflow-hidden rounded-md border border-border bg-white shadow-elevation-sm">
-              <div className="grid grid-cols-[1.4fr_180px_190px_130px_130px] gap-4 border-b border-border bg-muted px-5 py-3 text-xs font-bold uppercase text-muted-foreground max-lg:hidden">
+              <div className="grid grid-cols-[1.4fr_140px_120px] gap-4 border-b border-border bg-muted px-5 py-3 text-xs font-bold uppercase text-muted-foreground max-lg:hidden">
                 <span>Document</span>
-                <span>Source</span>
-                <span>Utilisation</span>
                 <span>Statut</span>
                 <span>Actions</span>
               </div>
               {filteredDocuments.map((document) => (
-                <div key={document.id} className="grid gap-4 border-b border-border px-5 py-4 last:border-b-0 lg:grid-cols-[1.4fr_180px_190px_130px_130px] lg:items-center">
+                <div key={document.id} className="grid gap-4 border-b border-border px-5 py-4 last:border-b-0 lg:grid-cols-[1.4fr_140px_120px] lg:items-center">
                   <div className="flex items-start gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-md bg-secondary text-primary">
                       <FileText className="h-5 w-5" />
                     </div>
                     <div>
                       <p className="font-bold text-foreground">{document.name}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{document.size} · ajouté le {document.date ? new Date(document.date).toLocaleDateString('fr-FR') : 'N/A'}</p>
-                      <p className="mt-1 text-xs font-semibold text-primary">{document.type} · {document.reviewHint}{typeof document.confidence === 'number' ? ` (${document.confidence}%)` : ''}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {document.date ? `Mis à jour le ${new Date(document.date).toLocaleDateString('fr-FR')}` : 'En attente de dépôt'}
+                      </p>
                     </div>
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-foreground">{document.source}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">Fourni par : {document.providedBy}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">{document.requiredFor}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">Action : {document.nextAction}</p>
                   </div>
                   <StatusBadge status={document.status} className="w-fit" />
                   <div className="flex gap-2">
@@ -439,8 +421,8 @@ export const DocumentsPage = () => {
                       size="icon"
                       className="bg-white"
                       aria-label="Aperçu"
-                      onClick={() => openDocumentDownload(document.type)}
-                      disabled={!currentDossierId}
+                      onClick={() => openDocumentDownload(apiDocuments.find((item) => item.id === document.id)?.docKey)}
+                      disabled={!currentDossierId || !document.hasFile}
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -449,8 +431,8 @@ export const DocumentsPage = () => {
                       size="icon"
                       className="bg-white"
                       aria-label="Télécharger"
-                      onClick={() => openDocumentDownload(document.type)}
-                      disabled={!currentDossierId}
+                      onClick={() => openDocumentDownload(apiDocuments.find((item) => item.id === document.id)?.docKey)}
+                      disabled={!currentDossierId || !document.hasFile}
                     >
                       <Download className="h-4 w-4" />
                     </Button>
@@ -460,22 +442,16 @@ export const DocumentsPage = () => {
             </section>
           )}
 
-          {apiDocuments.length > 0 ? (
-            <section className="overflow-hidden rounded-md border border-border bg-white shadow-elevation-sm">
+          {internalView && apiDocuments.length > 0 ? (
+            <section className="overflow-hidden rounded-md border border-dashed border-border bg-muted/30 shadow-elevation-sm">
               <div className="border-b border-border bg-muted px-5 py-3 text-xs font-bold uppercase text-muted-foreground">
-                Documents backend (réels)
+                Vue technique (équipe Greffio)
               </div>
               {apiDocuments.map((item) => (
                 <div key={item.id} className="flex items-center justify-between gap-3 border-b border-border px-5 py-3 last:border-b-0">
                   <div>
                     <p className="text-sm font-bold">{item.label}</p>
-                    <p className="text-xs text-muted-foreground">{item.filename || item.recommendedFilename || 'Nom non généré'} · {item.docKey}</p>
-                    {item.metadata?.analysis?.analysisType === 'identity_check' ? (
-                      <p className="mt-1 text-xs font-semibold text-primary">
-                        Vérif identité: {item.metadata.analysis.extractedIdentity?.firstName || 'N/A'} {item.metadata.analysis.extractedIdentity?.lastName || ''} ·
-                        confiance {item.metadata.analysis.confidence ?? 'N/A'}%
-                      </p>
-                    ) : null}
+                    <p className="text-xs text-muted-foreground">{item.docKey} · {item.status}</p>
                   </div>
                   <StatusBadge status={String(item.status || '').toUpperCase()} className="w-fit" />
                 </div>

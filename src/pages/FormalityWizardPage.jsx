@@ -50,6 +50,17 @@ import {
   hasCompleteUserContact,
   isContactDetailValid,
 } from '@/utils/userProfile.js';
+import { isCapacitorNative } from '@/utils/platform.js';
+
+const resolveOfferLink = ({ offer, journey, isAuthenticated }) => {
+  if (offer.price === '0€') {
+    if (isAuthenticated) {
+      return journey === 'statuts' ? '/statuts-gratuits' : '/questionnaire';
+    }
+    return `/signup?service=${encodeURIComponent(journey)}`;
+  }
+  return `/paiement?offer=${encodeURIComponent(offer.name)}&service=${encodeURIComponent(journey)}`;
+};
 
 const journeys = [
   {
@@ -668,19 +679,19 @@ export const FormalityWizardPage = () => {
                       <h1 className="mt-2 text-3xl font-extrabold">Que souhaitez-vous faire </h1>
                       <p className="mt-2 text-muted-foreground">Le questionnaire adapte les pièces, les statuts, les relances et les offres proposées.</p>
                     </div>
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className={`grid gap-4 ${isCapacitorNative() ? 'grid-cols-2' : 'md:grid-cols-2'}`}>
                       {journeys.map((journey) => (
                         <button
                           type="button"
                           key={journey.id}
                           onClick={() => update('journey', journey.id)}
-                          className={`we-card rounded-[22px] p-5 text-left ${data.journey === journey.id ? 'border-primary ring-2 ring-primary/20' : ''}`}
+                          className={`we-card rounded-[22px] p-4 text-left sm:p-5 ${data.journey === journey.id ? 'border-primary ring-2 ring-primary/20' : ''}`}
                         >
-                          <span className={`mb-4 flex h-11 w-11 items-center justify-center rounded-md ${journey.color}`}>
+                          <span className={`mb-3 flex h-10 w-10 items-center justify-center rounded-md sm:mb-4 sm:h-11 sm:w-11 ${journey.color}`}>
                             <journey.icon className="h-5 w-5 text-primary" />
                           </span>
-                          <span className="block text-lg font-extrabold">{journey.title}</span>
-                          <span className="mt-2 block text-sm leading-6 text-muted-foreground">{journey.pitch}</span>
+                          <span className="block text-base font-extrabold sm:text-lg">{journey.title}</span>
+                          <span className="mt-2 block text-xs leading-5 text-muted-foreground sm:text-sm sm:leading-6">{journey.pitch}</span>
                         </button>
                       ))}
                     </div>
@@ -1255,7 +1266,7 @@ export const FormalityWizardPage = () => {
                         </Button>
                       ) : (
                         <Button asChild className="mt-6 w-full" variant={offer.highlighted ? 'default' : 'outline'}>
-                          <Link to={offer.price === '0€' ? `/signup?service=${data.journey}` : `/paiement?offer=${encodeURIComponent(offer.name)}&service=${data.journey}`}>
+                          <Link to={resolveOfferLink({ offer, journey: data.journey, isAuthenticated })}>
                             Choisir
                             <ArrowRight className="h-4 w-4" />
                           </Link>

@@ -593,7 +593,8 @@ const getDossier = async (dossierId) => {
         created_at AS "createdAt",
         updated_at AS "updatedAt"
       FROM dossiers
-      WHERE id = $1 OR reference = $1
+      WHERE (id = $1 OR reference = $1)
+        AND deleted_at IS NULL
       LIMIT 1
     `, [key]);
     return result.rows[0] || null;
@@ -619,7 +620,8 @@ const getDossier = async (dossierId) => {
         created_at AS createdAt,
         updated_at AS updatedAt
       FROM dossiers
-      WHERE id = ? OR reference = ?
+      WHERE (id = ? OR reference = ?)
+        AND deleted_at IS NULL
     `)
     .get(key, key) || null;
 };
@@ -646,6 +648,7 @@ const getAllDossiers = async () => {
         created_at AS "createdAt",
         updated_at AS "updatedAt"
       FROM dossiers
+      WHERE deleted_at IS NULL
       ORDER BY created_at DESC
     `);
     return result.rows;
@@ -671,6 +674,7 @@ const getAllDossiers = async () => {
         created_at AS createdAt,
         updated_at AS updatedAt
       FROM dossiers
+      WHERE deleted_at IS NULL
       ORDER BY created_at DESC
     `)
     .all();
@@ -1509,6 +1513,81 @@ const listGeneratedDocumentsByDossier = async (dossierId) => {
   }));
 };
 
+const scheduleDossierDeletion = async ({ dossierId, userId }) => {
+  const now = new Date().toISOString();
+  const purgeAfter = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
+  if (hasPostgres) {
+    const result = await query(`
+      UPDATE dossiers
+      SET deleted_at = $2, purge_after = $3, deleted_by = $4, updated_at = $2
+      WHERE id = $1 AND deleted_at IS NULL
+      RETURNING id
+    `, [dossierId, now, purgeAfter, userId]);
+    return result.rows[0] || null;
+  }
+  const row = sqlite.prepare(`
+    UPDATE dossiers
+    SET deleted_at = ?, purge_after = ?, deleted_by = ?, updated_at = ?
+    WHERE id = ? AND deleted_at IS NULL
+  `).run(now, purgeAfter, userId, now, dossierId);
+  return row.changes > 0 ? { id: dossierId } : null;
+};
+
+const restoreDossier = async ({ dossierId, userId }) => {
+  const now = new Date().toISOString();
+  if (hasPostgres) {
+    const result = await query(`
+      UPDATE dossiers
+      SET deleted_at = NULL, purge_after = NULL, deleted_by = NULL, updated_at = $2
+      WHERE id = $1 AND deleted_by = $3
+      RETURNING id
+    `, [dossierId, now, userId]);
+    return result.rows[0] || null;
+  }
+  const row = sqlite.prepare(`
+    UPDATE dossiers
+    SET deleted_at = NULL, purge_after = NULL, deleted_by = NULL, updated_at = ?
+    WHERE id = ? AND deleted_by = ?
+  `).run(now, dossierId, userId);
+  return row.changes > 0 ? { id: dossierId } : null;
+};
+
+const listTrashedDossiers = async ({ userId }) => {
+  if (hasPostgres) {
+    const result = await query(`
+      SELECT
+        id,
+        reference,
+        user_id AS "userId",
+        company_name AS "companyName",
+        legal_form AS "legalForm",
+        service,
+        status,
+        deleted_at AS "deletedAt",
+        purge_after AS "purgeAfter"
+      FROM dossiers
+      WHERE deleted_at IS NOT NULL AND deleted_by = $1
+      ORDER BY deleted_at DESC
+    `, [userId]);
+    return result.rows;
+  }
+  return sqlite.prepare(`
+    SELECT
+      id,
+      reference,
+      user_id AS userId,
+      company_name AS companyName,
+      legal_form AS legalForm,
+      service,
+      status,
+      deleted_at AS deletedAt,
+      purge_after AS purgeAfter
+    FROM dossiers
+    WHERE deleted_at IS NOT NULL AND deleted_by = ?
+    ORDER BY deleted_at DESC
+  `).all(userId);
+};
+
 export {
   createDossier,
   ensureSeedDossier,
@@ -1519,6 +1598,9 @@ export {
   DOSSIER_DOCUMENT_TEMPLATES,
   getDossier,
   getAllDossiers,
+  scheduleDossierDeletion,
+  restoreDossier,
+  listTrashedDossiers,
   getAllPayments,
   updateDossierQuestionnaire,
   claimDossierForUser,
