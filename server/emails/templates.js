@@ -308,11 +308,8 @@ const legacyTemplates = Object.freeze({
 
 const TEMPLATE_ALIASES = Object.freeze({
   support_received: 'support_request_received',
-  documents_received: 'document_received',
-  document_invalid: 'document_rejected',
   statutes_ready: 'statutes_generated',
   accepted: 'dossier_approved',
-  rejected: 'dossier_blocked',
   inactive_reminder: 'dossier_incomplete',
 });
 

@@ -258,7 +258,7 @@ export const DocumentsPage = () => {
     }
   };
 
-  const waitingDocs = normalizedDocuments.filter((document) => ['REQUESTED', 'UNDER_REVIEW', 'INVALID'].includes(document.status));
+  const waitingDocs = normalizedDocuments.filter((document) => ['REQUESTED', 'PENDING_REVIEW', 'INVALID', 'REJECTED', 'GENERATED'].includes(document.status));
   const summary = [
     { label: 'Pièces en coffre', value: normalizedDocuments.length, text: 'document(s) du dossier actif', icon: Archive },
     { label: 'À traiter', value: waitingDocs.length, text: 'pièces à compléter ou signer', icon: FileText },
@@ -277,9 +277,11 @@ export const DocumentsPage = () => {
               <p className="mt-2 text-sm text-muted-foreground">Centralisez uniquement les pièces, documents générés, justificatifs tiers et signatures de vos dossiers.</p>
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" className="bg-white">
-                <FilePlus2 className="h-4 w-4" />
-                Générer depuis mon dossier
+              <Button asChild variant="outline" className="bg-white">
+                <Link to="/statuts">
+                  <FilePlus2 className="h-4 w-4" />
+                  Générer depuis mon dossier
+                </Link>
               </Button>
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white">
                 <Upload className="h-4 w-4" />

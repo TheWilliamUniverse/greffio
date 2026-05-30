@@ -42,6 +42,11 @@ import { useAuth } from '@/hooks/useAuth.js';
 import { fetchUserProfile } from '@/api/profile.js';
 import { contactDetailsFromUser } from '@/utils/userProfile.js';
 import { getIntelligentPrefill } from '@/api/intelligentIntake.js';
+import {
+  resolveDemarchePreset,
+  resolveLegalFormFromContext,
+  resolveServiceFromFormality,
+} from '@/utils/formalityMapping.js';
 
 const defaultData = {
   initiatorType: 'personne_physique',
@@ -54,7 +59,7 @@ const defaultData = {
   existingBusinessSiren: '',
   existingBusinessName: '',
   email: '',
-  phone: '04 11 81 86 70',
+  phone: '',
   typeFormalite: '',
   formeJuridique: '',
   denomination: '',
@@ -89,17 +94,21 @@ const PROGRESSIVE_STEPS = QUESTIONNAIRE_FLOW.map((flowStep) => ({
   label: STEP_TITLES_BY_ID[flowStep.id] || flowStep.title,
 }));
 
-const normalizeFormalityToService = (typeFormalite, formeJuridique) => {
-  if (typeFormalite === 'etablissement_secondaire_creation') return 'creation-etablissement-secondaire';
-  if (typeFormalite === 'transfert_siege') return 'transfert-siege';
-  if (typeFormalite === 'dissolution_liquidation_radiation') return 'dissolution-liquidation-radiation';
-  if (typeFormalite === 'depot_comptes_annuels') return 'depot-comptes-annuels';
-  if (typeFormalite === 'modification_entreprise') return 'modification';
-  if (typeFormalite === 'micro_entreprise') return 'micro-entreprise';
-  if (typeFormalite === 'entreprise_individuelle' || String(formeJuridique || '').toUpperCase() === 'EI') return 'creation-ei';
-  if (formeJuridique === 'SCI') return 'creation-sci';
-  if (formeJuridique === 'SARL' || formeJuridique === 'EURL') return 'creation-sarl';
-  return 'creation-sasu';
+const normalizeFormalityToService = (typeFormalite, formeJuridique) => (
+  resolveServiceFromFormality(typeFormalite, formeJuridique)
+);
+
+const buildDossierBootstrap = (formData, userId = null) => {
+  const legalForm = resolveLegalFormFromContext({
+    formeJuridique: formData.formeJuridique,
+    typeFormalite: formData.typeFormalite,
+  }) || 'SASU';
+  return {
+    userId,
+    companyName: formData.denomination || 'Projet Greffio',
+    legalForm,
+    service: normalizeFormalityToService(formData.typeFormalite, legalForm),
+  };
 };
 
 const sanitizeSiren = (value) => String(value || '').replace(/\D/g, '').slice(0, 9);
@@ -116,7 +125,7 @@ const isModernReference = (value) => /^GF-[A-Z0-9]{4,8}$/.test(String(value || '
 
 export const QuestionnairePage = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [searchParams] = useSearchParams();
   const [dossierId, setDossierId] = useState(getCurrentDossierId());
   const [reference, setReference] = useState(makeUiReference());
@@ -195,12 +204,7 @@ export const QuestionnairePage = () => {
       const existing = dossierId || getCurrentDossierId();
       if (existing) return existing;
     }
-    const created = await createDossier({
-      userId: null,
-      companyName: formData.denomination || 'Projet Greffio',
-      legalForm: formData.formeJuridique || 'SASU',
-      service: normalizeFormalityToService(formData.typeFormalite, formData.formeJuridique),
-    });
+    const created = await createDossier(buildDossierBootstrap(formData, isAuthenticated ? user?.id || null : null));
     const id = created?.dossier?.id || null;
     if (id) {
       saveCurrentDossierId(id);
@@ -318,12 +322,7 @@ export const QuestionnairePage = () => {
 
         let currentDossierId = dossierId;
         if (!currentDossierId) {
-          const created = await createDossier({
-            userId: null,
-            companyName: 'Projet Greffio',
-            legalForm: 'SASU',
-            service: 'creation-sasu',
-          });
+          const created = await createDossier(buildDossierBootstrap(mergedData, isAuthenticated ? user?.id || null : null));
           currentDossierId = created?.dossier?.id || null;
           if (currentDossierId) {
             saveCurrentDossierId(currentDossierId);
@@ -346,12 +345,7 @@ export const QuestionnairePage = () => {
             }
           }
           if (!currentDossierId) {
-            const created = await createDossier({
-              userId: null,
-              companyName: 'Projet Greffio',
-              legalForm: 'SASU',
-              service: 'creation-sasu',
-            });
+            const created = await createDossier(buildDossierBootstrap(mergedData, isAuthenticated ? user?.id || null : null));
             currentDossierId = created?.dossier?.id || null;
             if (currentDossierId) {
               saveCurrentDossierId(currentDossierId);
@@ -474,10 +468,17 @@ export const QuestionnairePage = () => {
       setSirenLookupMessage('');
       setSirenLookupState('idle');
     }
-    setFormData((current) => ({
-      ...current,
-      [field.key]: field.type === 'checkbox' ? Boolean(value) : value,
-    }));
+    setFormData((current) => {
+      const next = {
+        ...current,
+        [field.key]: field.type === 'checkbox' ? Boolean(value) : value,
+      };
+      if (field.key === 'typeFormalite') {
+        const preset = resolveDemarchePreset(value);
+        if (preset.formeJuridique) next.formeJuridique = preset.formeJuridique;
+      }
+      return next;
+    });
   };
 
   const goNext = async () => {

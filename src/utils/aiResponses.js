@@ -10,7 +10,7 @@ const responses = {
         const capitals = {
           'SAS': 'Le capital minimum pour une SAS est de 1€ symbolique. Cependant, il est recommandé de prévoir un capital adapté à votre activité (entre 1 000€ et 15 000€ selon le secteur).',
           'SARL': 'Le capital minimum pour une SARL est de 1€. Un capital de 5 000€ à 10 000€ est généralement conseillé pour démarrer sereinement.',
-          'EIRL': 'L\'EIRL ne nécessite pas de capital minimum. Vous devez simplement déclarer un patrimoine affecté à votre activité professionnelle.',
+          'EI': 'L\'entreprise individuelle ne nécessite pas de capital minimum. Depuis 2022, la protection patrimoniale est automatique (l\'ancien statut EIRL a été fusionné dans l\'EI).',
           'Micro-entreprise': 'La micro-entreprise ne nécessite aucun capital social. Vous démarrez avec vos propres moyens.',
           'Auto-entrepreneur': 'Le statut auto-entrepreneur ne nécessite aucun capital. Vous pouvez commencer votre activité immédiatement.'
         };
@@ -34,7 +34,7 @@ const responses = {
     },
     {
       keywords: ['eirl', 'patrimoine', 'protection'],
-      response: () => 'L\'EIRL (Entreprise Individuelle à Responsabilité Limitée) permet de :\n\n- Protéger votre patrimoine personnel\n- Séparer biens professionnels et personnels\n- Bénéficier du régime fiscal de l\'entreprise individuelle\n- Éviter la création d\'une société\n\nNote : Depuis 2022, le statut unique d\'entrepreneur individuel offre automatiquement cette protection patrimoniale.'
+      response: () => 'L\'entreprise individuelle (EI) permet de :\n\n- Exercer une activité en votre nom\n- Bénéficier d\'une protection patrimoniale automatique depuis 2022\n- Choisir entre micro-entreprise ou EI classique\n\nNote : le statut EIRL n\'existe plus en tant que forme distincte sur Greffio ; utilisez l\'EI ou la micro-entreprise.'
     }
   ],
   

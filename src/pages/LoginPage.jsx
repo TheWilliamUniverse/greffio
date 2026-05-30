@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
 import { PasswordInput } from '@/components/PasswordInput.jsx';
@@ -33,6 +33,8 @@ export const LoginPage = () => {
   const [sendingEmailCode, setSendingEmailCode] = useState(false);
   const { login, completeMfaLogin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTarget = location.state?.from?.pathname || '/dashboard';
 
   const resetMfaState = () => {
     setMfaMode(MFA_MODES.totp);
@@ -56,7 +58,7 @@ export const LoginPage = () => {
     }
 
     if (result.success) {
-      navigate('/dashboard');
+      navigate(redirectTarget, { replace: true });
     } else if (result.error === 'TEMP_ACCOUNT_EXPIRED') {
       toast.error('Ce compte temporaire a expiré (validité jusqu’à 10 h ce matin).');
     } else {
@@ -110,7 +112,7 @@ export const LoginPage = () => {
     setIsLoading(false);
 
     if (result.success) {
-      navigate('/dashboard');
+      navigate(redirectTarget, { replace: true });
     } else {
       toast.error(result.error || 'Code invalide');
     }

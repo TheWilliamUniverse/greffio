@@ -18,7 +18,9 @@ export const inferCustomerType = (user, dossier) => {
   if (user?.company?.siren || user?.companyJson || user?.role === 'professional') {
     return CUSTOMER_TYPE.B2B;
   }
-  if (dossier?.companyName && dossier?.legalForm && dossier?.legalForm !== 'SASU' && dossier?.legalForm !== 'EI') {
+  const legalForm = String(dossier?.legalForm || '').toUpperCase();
+  const isIndividualForm = legalForm === 'EI' || legalForm.includes('MICRO');
+  if (dossier?.companyName && legalForm && !isIndividualForm && legalForm !== 'SASU') {
     return CUSTOMER_TYPE.B2B;
   }
   return CUSTOMER_TYPE.B2C;

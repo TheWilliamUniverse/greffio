@@ -1,7 +1,7 @@
 /** Libellés publics des formalités (UI client) — alignés sur server/domain/formalityLabels.js */
 
 export const TYPE_FORMALITE_PUBLIC_LABELS = Object.freeze({
-  creation_societe: null,
+  creation_societe: 'Formalité de création de société',
   creation_sasu: 'Formalité de création de SASU',
   creation_sas: 'Formalité de création de SAS',
   creation_sarl: 'Formalité de création de SARL',

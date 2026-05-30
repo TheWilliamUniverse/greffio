@@ -50,7 +50,7 @@ import {
   hasCompleteUserContact,
   isContactDetailValid,
 } from '@/utils/userProfile.js';
-import { isCapacitorNative } from '@/utils/platform.js';
+import { resolveSimulatorFormFromQuery } from '@/utils/formalityMapping.js';
 
 const resolveOfferLink = ({ offer, journey, isAuthenticated }) => {
   if (offer.price === '0€') {
@@ -142,10 +142,10 @@ const PROJECT_SUB_STEPS = [
   { id: 'project_details', label: 'Projet' },
 ];
 const contactFields = [
-  { key: 'firstName', label: 'Prenom', type: 'text', placeholder: 'Votre prenom' },
+  { key: 'firstName', label: 'Prénom', type: 'text', placeholder: 'Votre prénom' },
   { key: 'lastName', label: 'Nom', type: 'text', placeholder: 'Votre nom' },
   { key: 'email', label: 'Email', type: 'email', placeholder: 'vous@entreprise.fr' },
-  { key: 'phone', label: 'Numero joignable', type: 'tel', placeholder: GREFFIO_CONTACT.supportPhone },
+  { key: 'phone', label: 'Numéro joignable', type: 'tel', placeholder: GREFFIO_CONTACT.supportPhone },
 ];
 const targetFormGroups = COMPANY_FORM_CATALOG.reduce((groups, form) => {
   const group = groups.find((item) => item.category === form.family);
@@ -223,7 +223,8 @@ export const FormalityWizardPage = () => {
   const wizardTopRef = useRef(null);
   const draft = getProjectDraft();
   const requestedType = String(searchParams.get('type') || 'statuts').toLowerCase();
-  const initialJourney = typePresetByQuery[requestedType] || 'statuts';
+  const formalityPreset = resolveSimulatorFormFromQuery(searchParams.get('formality'));
+  const initialJourney = formalityPreset?.journey || typePresetByQuery[requestedType] || 'statuts';
   const accountContact = contactDetailsFromUser(getUser());
   const skipJourneyPicker = DIRECT_JOURNEY_TYPES.has(requestedType) && !compareModules[requestedType];
   const initialSkipContact = hasCompleteUserContact(getUser());
@@ -255,7 +256,7 @@ export const FormalityWizardPage = () => {
       ? `${accountContact.firstName} ${accountContact.lastName || ''}`.trim()
       : ''),
     initiatorLegalForm: draft?.data?.initiatorLegalForm || 'SA',
-    legalForm: draft?.data?.legalForm || 'SAS',
+    legalForm: formalityPreset?.legalForm || draft?.data?.legalForm || 'SASU',
     urgency: draft?.data?.urgency || 'Cette semaine',
     companyName: draft?.data?.companyName || '',
     activity: draft?.data?.activity || '',

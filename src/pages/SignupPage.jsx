@@ -29,15 +29,23 @@ const legalStructureGroups = COMPANY_FORM_CATALOG.reduce((groups, form) => {
   return [...groups, { category: form.family, forms: [form] }];
 }, []);
 
+import { resolveServiceFromFormality } from '@/utils/formalityMapping.js';
+
 const resolveServiceId = (value, legalForm) => {
   if (LEGAL_SERVICES.some((service) => service.id === value)) return value;
   if (value === 'modification') return 'modification';
   if (value === 'dissolution') return 'fermeture';
+  if (value === 'statuts') return 'creation-sasu';
+  if (value === 'creation') {
+    return resolveServiceFromFormality('creation_societe', legalForm);
+  }
   if (legalForm === 'SA') return 'creation-sa';
+  if (legalForm === 'SASU') return 'creation-sasu';
+  if (legalForm === 'SAS') return 'creation-sas';
   if (legalForm === 'SARL' || legalForm === 'EURL') return 'creation-sarl';
   if (legalForm === 'SCI') return 'creation-sci';
   if (legalForm.includes('Auto') || legalForm.includes('Micro')) return 'micro-entreprise';
-  return 'creation-sas';
+  return resolveServiceFromFormality('', legalForm);
 };
 
 export const SignupPage = () => {
@@ -248,7 +256,7 @@ export const SignupPage = () => {
                     </div>
                     <div className="space-y-2">
                       <Label>Mot de passe</Label>
-                      <Input type="password" {...register('password', { required: true, minLength: 6 })} placeholder="Minimum 6 caractères" />
+                      <Input type="password" {...register('password', { required: true, minLength: 8 })} placeholder="Minimum 8 caractères" />
                     </div>
                     <div className="space-y-2 md:col-span-2">
                       <Label>Nom de l’entreprise ou du client</Label>

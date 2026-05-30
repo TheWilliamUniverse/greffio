@@ -17,6 +17,7 @@
     "ops:send-account-credentials": "node server/scripts/send-account-credentials.js",
     "ops:send-direct-credentials": "node server/scripts/send-direct-credentials.js",
     "ops:send-william-admin-invitations": "node server/scripts/send-william-admin-invitations.js",
+    "ops:delete-user-dossiers": "node server/scripts/delete-user-dossiers.js",
     "storage:migrate:dry": "node server/scripts/migrate-local-documents-to-supabase.js --dry-run",
     "storage:migrate": "node server/scripts/migrate-local-documents-to-supabase.js",
     "start": "vite preview --host 0.0.0.0 --port 3000",

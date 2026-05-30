@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { DOSSIER_STATUSES, evaluateTransition, ROLE } from './stateMachine.js';
 import { hasPostgres, query, sqlite } from './dbClient.js';
 import { getFormalityRule } from './domain/formalities.js';
+import { resolveLegalFormFromQuestionnaire, resolveServiceFromFormality } from './utils/formalityMapping.js';
 import { getMinorDocumentRequirements } from './utils/minorAssociateRules.js';
 
 const nowIso = () => new Date().toISOString();
@@ -722,6 +723,59 @@ const getDossier = async (dossierId) => {
     .get(key, key) || null;
 };
 
+const listDossiersForUser = async ({ userId }) => {
+  if (!userId) return [];
+  if (hasPostgres) {
+    const result = await query(`
+      SELECT
+        id,
+        reference,
+        user_id AS "userId",
+        type_formalite AS "typeFormalite",
+        forme_juridique AS "formeJuridique",
+        denomination,
+        company_name AS "companyName",
+        legal_form AS "legalForm",
+        service,
+        status,
+        progress_percent AS "progressPercent",
+        assigned_to_user_id AS "assignedToUserId",
+        ops_queue AS "opsQueue",
+        ops_priority AS "opsPriority",
+        data_json AS "dataJson",
+        created_at AS "createdAt",
+        updated_at AS "updatedAt"
+      FROM dossiers
+      WHERE user_id = $1 AND deleted_at IS NULL
+      ORDER BY created_at DESC
+    `, [userId]);
+    return result.rows;
+  }
+  return sqlite.prepare(`
+    SELECT
+      id,
+      reference,
+      user_id AS userId,
+      type_formalite AS typeFormalite,
+      forme_juridique AS formeJuridique,
+      denomination,
+      company_name AS companyName,
+      legal_form AS legalForm,
+      service,
+      status,
+      progress_percent AS progressPercent,
+      assigned_to_user_id AS assignedToUserId,
+      ops_queue AS opsQueue,
+      ops_priority AS opsPriority,
+      data_json AS dataJson,
+      created_at AS createdAt,
+      updated_at AS updatedAt
+    FROM dossiers
+    WHERE user_id = ? AND deleted_at IS NULL
+    ORDER BY created_at DESC
+  `).all(userId);
+};
+
 const getAllDossiers = async () => {
   if (hasPostgres) {
     const result = await query(`
@@ -806,19 +860,61 @@ const updateDossierQuestionnaire = async ({
   const formalityRule = getFormalityRule({ dossier, questionnaire: mergedData });
   const nextProgress = progressPercent == null ? Number(dossier.progressPercent || 0) : Math.max(0, Math.min(100, Number(progressPercent)));
   const updatedAt = nowIso();
+  const nextLegalForm = resolveLegalFormFromQuestionnaire({ dossier, questionnaire: mergedData }) || dossier.legalForm;
+  const nextService = resolveServiceFromFormality(
+    mergedData.typeFormalite || dossier.typeFormalite,
+    nextLegalForm,
+  ) || dossier.service;
+  const nextCompanyName = String(mergedData.denomination || mergedData.companyName || dossier.companyName || '').trim() || dossier.companyName;
 
   if (hasPostgres) {
     await query(`
       UPDATE dossiers
-      SET data_json = $1, progress_percent = $2, updated_at = $3
-      WHERE id = $4
-    `, [JSON.stringify(mergedData), nextProgress, updatedAt, dossierId]);
+      SET
+        data_json = $1,
+        progress_percent = $2,
+        updated_at = $3,
+        legal_form = $4,
+        forme_juridique = $5,
+        service = $6,
+        company_name = $7,
+        denomination = COALESCE(NULLIF($8, ''), denomination)
+      WHERE id = $9
+    `, [
+      JSON.stringify(mergedData),
+      nextProgress,
+      updatedAt,
+      nextLegalForm,
+      nextLegalForm,
+      nextService,
+      nextCompanyName,
+      nextCompanyName,
+      dossierId,
+    ]);
   } else {
     sqlite.prepare(`
       UPDATE dossiers
-      SET data_json = ?, progress_percent = ?, updated_at = ?
+      SET
+        data_json = ?,
+        progress_percent = ?,
+        updated_at = ?,
+        legal_form = ?,
+        forme_juridique = ?,
+        service = ?,
+        company_name = ?,
+        denomination = COALESCE(NULLIF(?, ''), denomination)
       WHERE id = ?
-    `).run(JSON.stringify(mergedData), nextProgress, updatedAt, dossierId);
+    `).run(
+      JSON.stringify(mergedData),
+      nextProgress,
+      updatedAt,
+      nextLegalForm,
+      nextLegalForm,
+      nextService,
+      nextCompanyName,
+      nextCompanyName,
+      dossierId,
+    );
   }
   if (formalityRule?.excludedDocumentKeys?.length) {
     if (hasPostgres) {
@@ -1695,6 +1791,7 @@ export {
   DOSSIER_DOCUMENT_TEMPLATES,
   getDossier,
   getAllDossiers,
+  listDossiersForUser,
   scheduleDossierDeletion,
   restoreDossier,
   listTrashedDossiers,

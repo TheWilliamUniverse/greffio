@@ -335,7 +335,7 @@ export const ProfilePage = () => {
                     </div>
                     <p className="mt-2 text-sm text-muted-foreground">Réinitialisez votre mot de passe par email sécurisé.</p>
                     <Button asChild variant="outline" className="mt-4 bg-white">
-                      <Link to="/password-reset">Changer mon mot de passe</Link>
+                      <Link to="/settings">Changer mon mot de passe</Link>
                     </Button>
                   </div>
                   <div className="interactive-hover rounded-xl border border-[var(--we-border)] bg-white p-4">

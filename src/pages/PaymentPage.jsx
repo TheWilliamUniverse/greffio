@@ -11,9 +11,12 @@ import { checkoutResourceOrder, getResourceOrder } from '@/api/resources.js';
 import { getCatalogItemById } from '@/config/resourceServices.js';
 import { TotalCostSimulator } from '@/components/TotalCostSimulator.jsx';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
+import { useAuth } from '@/hooks/useAuth.js';
+import { listDossiers } from '@/api/dossiers.js';
 
 const offers = {
   'Statuts gratuits': { title: 'Statuts gratuits', price: '0€', tax: 'Aucun paiement requis', legalFees: 'Frais légaux non inclus si dépôt ultérieur' },
+  'Dossier gratuit': { title: 'Statuts gratuits', price: '0€', tax: 'Aucun paiement requis', legalFees: 'Frais légaux non inclus si dépôt ultérieur' },
   'Dossier Standard': { title: 'Dossier Standard', price: '99€ HT', tax: 'TVA calculée au paiement', legalFees: 'Frais légaux refacturés ou payés séparément' },
   'Équipe Greffio Premium': { title: 'Équipe Greffio Premium', price: '199€ HT', tax: 'TVA calculée au paiement', legalFees: 'Frais légaux et tiers visibles avant validation' },
   'jeune-entrepreneur': { title: 'Offre Jeune Entrepreneur.e', price: '70€', compareAt: '149€', tax: 'TVA calculée au paiement', legalFees: 'Frais légaux refacturés ou payés séparément' },
@@ -22,6 +25,7 @@ const offers = {
 
 export const PaymentPage = () => {
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const offerName = searchParams.get('offer') || 'Dossier Standard';
   const service = searchParams.get('service') || 'creation';
   const resourceOrderId = searchParams.get('resourceOrder');
@@ -29,10 +33,12 @@ export const PaymentPage = () => {
   const mainMethods = useMemo(() => PAYMENT_METHODS.filter((method) => method.id !== 'optional'), []);
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
   const [resourceOrder, setResourceOrder] = useState(null);
+  const [activeDossier, setActiveDossier] = useState(null);
   const [loadingResourceOrder, setLoadingResourceOrder] = useState(Boolean(resourceOrderId));
-  // Le type de client est inféré (best-effort) à partir des données de session.
-  // La décision définitive (provider PSP) est faite côté serveur.
-  const customerType = useMemo(() => inferCustomerType(null, null), []);
+  const customerType = useMemo(
+    () => inferCustomerType(user, activeDossier),
+    [user, activeDossier],
+  );
   const showB2BProviders = isB2B(customerType);
 
   const catalogService = resourceOrder?.serviceId
@@ -42,7 +48,7 @@ export const PaymentPage = () => {
   useEffect(() => {
     if (!resourceOrderId) {
       setLoadingResourceOrder(false);
-      return;
+      return undefined;
     }
     let cancelled = false;
     const load = async () => {
@@ -58,6 +64,26 @@ export const PaymentPage = () => {
     void load();
     return () => { cancelled = true; };
   }, [resourceOrderId]);
+
+  useEffect(() => {
+    const dossierId = getCurrentDossierId();
+    if (!dossierId) {
+      setActiveDossier(null);
+      return undefined;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const payload = await listDossiers();
+        const match = (payload?.dossiers || []).find((item) => item.id === dossierId) || null;
+        if (!cancelled) setActiveDossier(match);
+      } catch (_error) {
+        if (!cancelled) setActiveDossier(null);
+      }
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   const handleCheckout = async () => {
     try {

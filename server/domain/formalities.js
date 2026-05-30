@@ -64,6 +64,8 @@ export const getFormalityRule = ({ dossier, questionnaire = {} } = {}) => {
 export const resolveLegalForm = ({ dossier, questionnaire = {} } = {}) => matchForm([
   questionnaire.formeJuridique,
   questionnaire.legalForm,
+  questionnaire.typeFormalite,
   dossier?.legalForm,
   dossier?.formeJuridique,
+  dossier?.service,
 ]);

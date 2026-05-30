@@ -24,6 +24,7 @@ import {
   DOCUMENT_STATUSES,
   ensureSeedDossier,
   getAllDossiers,
+  listDossiersForUser,
   scheduleDossierDeletion,
   restoreDossier,
   listTrashedDossiers,
@@ -750,7 +751,7 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
     company = null,
     loginAlertsEnabled,
   } = req.body || {};
-  if (!email || !password || String(password).length < 6) {
+  if (!email || !password || String(password).length < 8) {
     return res.status(400).json({ ok: false, error: 'INVALID_SIGNUP_PAYLOAD' });
   }
   const existing = await getUserByEmail(email);
@@ -1329,11 +1330,10 @@ app.get('/api/ops/payments', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALIS
 });
 
 app.get('/api/dossiers', requireAuth, async (req, res) => {
-  const dossiers = await getAllDossiers();
   const isOps = isInternalRole(req.auth?.role);
   const visibleDossiers = isOps
-    ? dossiers
-    : dossiers.filter((dossier) => dossier.userId && dossier.userId === req.auth?.sub);
+    ? await getAllDossiers()
+    : await listDossiersForUser({ userId: req.auth?.sub });
 
   return res.json({
     ok: true,
@@ -1678,8 +1678,11 @@ app.post('/api/ops/dossiers/:dossierId/documents/:docKey/status', requireAuth, r
 });
 
 app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploadPdfOnly.single('file'), async (req, res) => {
-  const dossier = await getDossier(req.params.dossierId);
-  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+  const access = await resolveDossierAccess(req, req.params.dossierId, { allowClaim: true });
+  if (!access.ok) {
+    return res.status(access.status).json({ ok: false, error: access.error });
+  }
+  const dossier = access.dossier;
   const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
   const isOps = isInternalRole(req.auth?.role);
   if (!isOwner && !isOps) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
@@ -1791,29 +1794,38 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
   const dossierData = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
   const firstNameForEmail = ownerFirstName || dossierData.firstName || 'Client';
   const recipientEmail = (isOwner ? req.auth.email : null) || dossierData.email || req.auth.email || null;
-  await sendDossierEmailById({
-    templateId: 'documents_received',
-    dossierId: dossier.id,
-    userId: req.auth.sub,
-    toEmail: recipientEmail,
-    variables: {
-      prenom: firstNameForEmail,
-      reference_dossier: dossier.reference || dossier.id,
-    },
-  });
-
-  if (analysis.ok && analysis.requiresManualReview) {
+  const uploadedDoc = (await listDossierDocuments(dossier.id)).find((item) => item.docKey === docKey);
+  const documentLabel = uploadedDoc?.label || docKey;
+  if (recipientEmail) {
     await sendDossierEmailById({
-      templateId: 'document_invalid',
+      templateId: 'documents_received',
       dossierId: dossier.id,
       userId: req.auth.sub,
       toEmail: recipientEmail,
       variables: {
         prenom: firstNameForEmail,
+        firstName: firstNameForEmail,
         reference_dossier: dossier.reference || dossier.id,
-        motif_complement: "La qualité ou lisibilité du document nécessite une vérification manuelle de l'équipe Greffio.",
+        documentName: documentLabel,
       },
     });
+
+    if (analysis.ok && analysis.requiresManualReview) {
+      await sendDossierEmailById({
+        templateId: 'document_invalid',
+        dossierId: dossier.id,
+        userId: req.auth.sub,
+        toEmail: recipientEmail,
+        variables: {
+          prenom: firstNameForEmail,
+          firstName: firstNameForEmail,
+          reference_dossier: dossier.reference || dossier.id,
+          motif_complement: "La qualité ou lisibilité du document nécessite une vérification manuelle de l'équipe Greffio.",
+          documentName: documentLabel,
+          rejectionReason: "La qualité ou lisibilité du document nécessite une vérification manuelle de l'équipe Greffio.",
+        },
+      });
+    }
   }
 
   return res.status(201).json({
@@ -2159,7 +2171,7 @@ app.get('/api/dossiers/:dossierId/mandate/pdf', requireAuth, async (req, res) =>
   return fs.createReadStream(mandateDoc.storageUrl).pipe(res);
 });
 
-app.post('/api/statutes/preview-draft', statutesPreviewDraftLimiter, async (req, res) => {
+app.post('/api/statutes/preview-draft', requireAuth, statutesPreviewDraftLimiter, async (req, res) => {
   const { data = {}, answers = {} } = req.body || {};
   const legalForm = String(
     answers.formeJuridique || data.legalForm || data.formeJuridique || 'SASU',
@@ -2328,6 +2340,22 @@ app.post('/api/dossiers/:dossierId/statutes/generate', requireAuth, async (req, 
     actorId: req.auth.sub,
     actorRole: req.auth?.role || ROLE.CLIENT,
   });
+  const dossierData = questionnaire;
+  const recipientEmail = user?.email || dossierData.email || req.auth.email || null;
+  if (recipientEmail) {
+    await sendDossierEmailById({
+      templateId: 'statutes_generated',
+      dossierId: dossier.id,
+      userId: req.auth.sub,
+      toEmail: recipientEmail,
+      variables: {
+        firstName: dossierData.firstName || user?.firstName || 'Client',
+        dossierNumber: dossier.reference || dossier.id,
+        companyName: dossier.companyName,
+        statutesUrl: `${process.env.APP_URL || 'https://greffio.willentreprises.com'}/statuts?dossierId=${encodeURIComponent(dossier.id)}`,
+      },
+    });
+  }
   const docs = await listGeneratedDocumentsByDossier(dossier.id);
   const statutesDocs = docs.filter((item) => /^statutes_/i.test(String(item.type || '')));
   return res.status(201).json({
@@ -2376,8 +2404,11 @@ app.get('/api/dossiers/:dossierId/statutes/pdf', requireAuth, async (req, res) =
 });
 
 app.post('/api/payments/create', paymentLimiter, requireAuth, async (req, res) => {
-  const { dossierId = 'dos_seed_001', offerCode = 'dossier-standard' } = req.body || {};
-  const dossier = await getDossier(dossierId);
+  const { dossierId, offerCode = 'dossier-standard' } = req.body || {};
+  if (!dossierId || String(dossierId).trim().length < 3) {
+    return res.status(400).json({ ok: false, error: 'DOSSIER_ID_REQUIRED' });
+  }
+  const dossier = await getDossier(String(dossierId).trim());
   if (!dossier) {
     return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
   }

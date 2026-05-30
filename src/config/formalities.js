@@ -52,6 +52,29 @@ export const isEiLikeFormality = (payload = {}) => {
   return values.some((value) => isEiLikeLabel(value));
 };
 
-export const getFormalityRule = (payload = {}) => (
-  isEiLikeFormality(payload) ? FORMALITY_RULES.EI_CREATION : FORMALITY_RULES.SASU_CREATION
-);
+const matchLegalForm = (payload = {}) => {
+  const values = [
+    payload.formeJuridique,
+    payload.legalForm,
+    payload.typeFormalite,
+    payload.service,
+    payload.label,
+  ].map(normalize).filter(Boolean);
+
+  if (values.some(isEiLikeLabel)) return 'EI';
+  if (values.some((v) => v === 'SCI' || v.includes('SOCIETE CIVILE IMMOBILIERE'))) return 'SCI';
+  if (values.some((v) => v === 'EURL')) return 'EURL';
+  if (values.some((v) => v === 'SARL')) return 'SARL';
+  if (values.some((v) => v.includes('SAS') && !v.includes('SASU'))) return 'SAS';
+  if (values.some((v) => v.includes('SASU'))) return 'SASU';
+  return 'SASU';
+};
+
+export const getFormalityRule = (payload = {}) => {
+  const form = matchLegalForm(payload);
+  switch (form) {
+    case 'EI': return FORMALITY_RULES.EI_CREATION;
+    case 'SAS': return FORMALITY_RULES.SAS_CREATION;
+    default: return FORMALITY_RULES.SASU_CREATION;
+  }
+};

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, Calendar, CheckCircle2, ClipboardCheck, Clock3, Filter, Plus, Search, ShieldCheck } from 'lucide-react';
-import { listDossiers } from '@/api/dossiers.js';
+import { listDossiers, listTrashedDossiers } from '@/api/dossiers.js';
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 import { isInternalUser } from '@/utils/roles.js';
@@ -179,6 +179,8 @@ const formatDate = (value) => {
 
 export const DossiersPage = () => {
   const { currentUser } = useAuth();
+  const [searchParams] = useSearchParams();
+  const showTrash = searchParams.get('trash') === '1';
   const internalView = isInternalUser(currentUser);
   const [dossiers, setDossiers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -189,7 +191,7 @@ export const DossiersPage = () => {
 
     const loadDossiers = async () => {
       try {
-        const payload = await listDossiers();
+        const payload = showTrash ? await listTrashedDossiers() : await listDossiers();
         if (!mounted || !Array.isArray(payload.dossiers)) return;
         const apiDossiers = payload.dossiers.map(normalizeApiDossier);
         setDossiers(apiDossiers);
@@ -204,7 +206,7 @@ export const DossiersPage = () => {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [showTrash]);
 
   const statuses = useMemo(() => ['Tous', ...new Set(dossiers.map((dossier) => dossier.status))], [dossiers]);
 

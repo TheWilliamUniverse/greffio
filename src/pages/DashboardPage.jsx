@@ -27,6 +27,7 @@ import { isEiLikeFormality } from '@/config/formalities.js';
 import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 import { isLoginAlertsConfigured, getLoginAlertsSettings, rememberLoginAlertsChoice } from '@/utils/userProfile.js';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
+import { countActionableDocuments } from '@/utils/documentWorkflow.js';
 
 export const DashboardPage = () => {
   const { currentUser, updateProfile } = useAuth();
@@ -152,7 +153,7 @@ export const DashboardPage = () => {
   }, [currentUser?.firstName]);
   const today = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
   const activeDossiers = dossiers.filter((dossier) => dossier.status !== 'VALIDE' && dossier.status !== 'TERMINE').length;
-  const documentsToReview = documents.filter((document) => ['ATTENTE_DOCS', 'URGENT', 'EN_ANALYSE', 'BROUILLON', 'A_SIGNER'].includes(document.status)).length;
+  const documentsToReview = countActionableDocuments(documents);
   const averageProgress = dossiers.length ? Math.round(dossiers.reduce((sum, dossier) => sum + (dossier.progress || 0), 0) / dossiers.length) : 0;
   const nextDueDate = useMemo(() => {
     if (!dossiers.length) return 'Aucune';

@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password, provider = 'email') => {
-    if (!email || !password || password.length < 4) {
+    if (!email || !password || password.length < 8) {
       return { success: false, error: 'Renseignez un email et un mot de passe valides.' };
     }
 
