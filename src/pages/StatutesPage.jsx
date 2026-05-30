@@ -195,7 +195,11 @@ export const StatutesPage = () => {
       } else if (code === 'DOSSIER_FORBIDDEN' || code === 'DOSSIER_NOT_FOUND') {
         toast.error('Dossier inaccessible. Ouvrez le questionnaire puis revenez ici.');
       } else if (code === 'STATUTES_VALIDATION_FAILED') {
-        toast.error('Données incomplètes : complétez le questionnaire puis réessayez.');
+        const detail = error?.payload?.validation?.errors?.[0]
+          || error?.payload?.missingFields?.join(', ');
+        toast.error(detail
+          ? `Données incomplètes : ${detail}`
+          : 'Données incomplètes : complétez le questionnaire puis réessayez.');
       } else if (code === 'STATUTES_INCOMPLETE') {
         toast.error('Le modèle de statuts est incomplet. Contactez le support Greffio.');
       } else if (code === 'LEGAL_FORM_UNSUPPORTED') {

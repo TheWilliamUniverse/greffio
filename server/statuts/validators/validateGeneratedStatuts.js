@@ -1,7 +1,7 @@
 import { countWilliamArticles, estimatePageCount } from '../renderers/renderWilliamSas2026.js';
 import { blocksContainSampleParasiteText } from '../renderers/williamParagraphSanitizer.js';
 
-const REQUIRED_TITLES = [
+const REQUIRED_TITLES_SAS = [
   'TITRE I – FORMATION DE LA SOCIÉTÉ',
   'TITRE II – ADMINISTRATION & ORGANISATION',
   'TITRE III – DÉCISIONS COLLECTIVES',
@@ -12,14 +12,30 @@ const REQUIRED_TITLES = [
   'TITRE VIII – DISPOSITIONS DIVERSES',
 ];
 
+const REQUIRED_TITLES_SASU = REQUIRED_TITLES_SAS.map((title) => (
+  title === 'TITRE III – DÉCISIONS COLLECTIVES'
+    ? "TITRE III – DÉCISIONS DE L'ASSOCIÉ UNIQUE"
+    : title
+));
+
+const MIN_ARTICLES_BY_FORM = Object.freeze({
+  SAS: 27,
+  SASU: 25,
+  SARL: 24,
+  EURL: 24,
+  SCI: 24,
+});
+
 const PLACEHOLDER_RE = /\{\{[^}]+\}\}/;
 
 export const validateGeneratedStatuts = ({ blocks = [], context = {}, legalForm = 'SAS' }) => {
+  const form = String(legalForm || 'SAS').toUpperCase();
   const errors = [];
   const articleCount = countWilliamArticles(blocks);
+  const minArticles = MIN_ARTICLES_BY_FORM[form] || 24;
 
-  if (articleCount < 27) {
-    errors.push(`Document incomplet : ${articleCount}/27 articles détectés.`);
+  if (articleCount < minArticles) {
+    errors.push(`Document incomplet : ${articleCount}/${minArticles} articles détectés.`);
   }
 
   ['preamble', 'title', 'article'].forEach((kind) => {
@@ -30,7 +46,8 @@ export const validateGeneratedStatuts = ({ blocks = [], context = {}, legalForm 
     errors.push('Texte parasite du modèle échantillon (noms ou clauses non issues du dossier).');
   }
 
-  REQUIRED_TITLES.forEach((title) => {
+  const requiredTitles = form === 'SASU' ? REQUIRED_TITLES_SASU : REQUIRED_TITLES_SAS;
+  requiredTitles.forEach((title) => {
     if (!blocks.some((b) => b.kind === 'title' && String(b.text).trim() === title)) {
       errors.push(`Titre manquant : ${title}.`);
     }
@@ -42,10 +59,10 @@ export const validateGeneratedStatuts = ({ blocks = [], context = {}, legalForm 
     }
   });
 
-  const capital = Number(context.company?.capitalAmount || 0);
+  const shareCount = Number(context.company?.shareCount || 0);
   const totalShares = (context.associates || []).reduce((sum, a) => sum + (Number(a.shares) || 0), 0);
-  if (capital > 0 && totalShares > 0 && totalShares !== capital) {
-    errors.push(`Incohérence capital/actions : capital ${capital}, total actions ${totalShares}.`);
+  if (shareCount > 0 && totalShares > 0 && totalShares !== shareCount) {
+    errors.push(`Incohérence capital/actions : ${totalShares} actions pour ${shareCount} attendues.`);
   }
 
   (context.associates || []).forEach((associate) => {

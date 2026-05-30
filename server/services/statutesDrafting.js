@@ -2,7 +2,7 @@ import { buildStatutesByLegalForm } from '../legal/statutes/index.js';
 
 const MIN_ARTICLES_BY_FORM = Object.freeze({
   SAS: 27,
-  SASU: 27,
+  SASU: 25,
   SARL: 24,
   EURL: 24,
   SCI: 24,

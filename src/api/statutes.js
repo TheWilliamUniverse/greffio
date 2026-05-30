@@ -14,6 +14,14 @@ const tokenHeaders = (json = true) => {
   };
 };
 
+const optionalTokenHeaders = (json = true) => {
+  const token = getToken();
+  return {
+    ...(json ? { 'Content-Type': 'application/json' } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+};
+
 const parseResponse = async (response) => {
   if (response.ok) return response.json();
   let payload = null;
@@ -31,7 +39,7 @@ const parseResponse = async (response) => {
 export const fetchStatutesPreviewDraft = async ({ data = {}, answers = {} } = {}) => {
   const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/statutes/preview-draft`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: optionalTokenHeaders(true),
     body: JSON.stringify({ data, answers }),
   });
   return parseResponse(response);

@@ -2171,7 +2171,7 @@ app.get('/api/dossiers/:dossierId/mandate/pdf', requireAuth, async (req, res) =>
   return fs.createReadStream(mandateDoc.storageUrl).pipe(res);
 });
 
-app.post('/api/statutes/preview-draft', requireAuth, statutesPreviewDraftLimiter, async (req, res) => {
+app.post('/api/statutes/preview-draft', statutesPreviewDraftLimiter, async (req, res) => {
   const { data = {}, answers = {} } = req.body || {};
   const legalForm = String(
     answers.formeJuridique || data.legalForm || data.formeJuridique || 'SASU',
@@ -2181,8 +2181,9 @@ app.post('/api/statutes/preview-draft', requireAuth, statutesPreviewDraftLimiter
     return res.status(409).json({ ok: false, error: 'LEGAL_FORM_UNSUPPORTED', legalForm });
   }
 
+  let statutesData;
   try {
-    const statutesData = mapStatutesDataFromSimulator({ data, answers });
+    statutesData = mapStatutesDataFromSimulator({ data, answers });
     const document = draftStatutesDocument(statutesData);
     const preview = documentToPreview(document);
 
@@ -2216,6 +2217,8 @@ app.post('/api/statutes/preview-draft', requireAuth, statutesPreviewDraftLimiter
         ok: false,
         error: 'STATUTES_VALIDATION_FAILED',
         validation: error.validation,
+        missingFields: statutesData?.missingFields,
+        completeness: statutesData?.completeness,
       });
     }
     return res.status(500).json({ ok: false, error: 'STATUTES_PREVIEW_FAILED', message: error.message });
@@ -2242,8 +2245,25 @@ app.get('/api/dossiers/:dossierId/statutes/preview', requireAuth, async (req, re
 
   const user = dossier.userId ? await getUserById(dossier.userId) : null;
   const statutesData = mapStatutesData({ dossier, questionnaire, user });
-  const document = draftStatutesDocument(statutesData);
-  const preview = documentToPreview(document);
+  let statutesDocument;
+  try {
+    statutesDocument = draftStatutesDocument(statutesData);
+  } catch (error) {
+    if (error?.code === 'STATUTES_INCOMPLETE') {
+      return res.status(500).json({ ok: false, error: 'STATUTES_INCOMPLETE', articleCount: error.articleCount });
+    }
+    if (error?.code === 'STATUTES_VALIDATION_FAILED') {
+      return res.status(422).json({
+        ok: false,
+        error: 'STATUTES_VALIDATION_FAILED',
+        validation: error.validation,
+        missingFields: statutesData.missingFields,
+        completeness: statutesData.completeness,
+      });
+    }
+    throw error;
+  }
+  const preview = documentToPreview(statutesDocument);
 
   return res.json({
     ok: true,
@@ -2297,6 +2317,8 @@ app.post('/api/dossiers/:dossierId/statutes/generate', requireAuth, async (req, 
         ok: false,
         error: 'STATUTES_VALIDATION_FAILED',
         validation: error.validation,
+        missingFields: statutesData.missingFields,
+        completeness: statutesData.completeness,
       });
     }
     throw error;
