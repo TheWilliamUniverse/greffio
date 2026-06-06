@@ -23,8 +23,6 @@ import { Label } from '@/components/ui/label.jsx';
 import { ProgressiveStepChips } from '@/components/ProgressiveStepChips.jsx';
 import { QuestionPanelSuccessOverlay } from '@/components/questionnaire/QuestionPanelSuccessOverlay.jsx';
 import { ProgressCircle } from '@/components/questionnaire/ProgressCircle.jsx';
-import { QuestionBackButton } from '@/components/questionnaire/QuestionBackButton.jsx';
-import { QuestionContinueButton } from '@/components/questionnaire/QuestionContinueButton.jsx';
 import { QuestionSectionHint } from '@/components/questionnaire/QuestionSectionHint.jsx';
 import { QuestionSelect } from '@/components/questionnaire/QuestionSelect.jsx';
 import { WizardNavButtons } from '@/components/WizardNavButtons.jsx';
@@ -170,6 +168,7 @@ const typePresetByQuery = Object.freeze({
 });
 
 const DIRECT_JOURNEY_TYPES = new Set(['creation', 'modification', 'dissolution']);
+const JOURNEYS_WITH_COMPANY_LOOKUP = new Set(['modification', 'dissolution']);
 
 const compareModules = Object.freeze({
   charges: {
@@ -242,6 +241,8 @@ export const FormalityWizardPage = () => {
   const [existingCompanyState, setExistingCompanyState] = useState('idle');
   const [existingCompanyError, setExistingCompanyError] = useState('');
   const [existingCompany, setExistingCompany] = useState(null);
+  const [companyLookupConfirmed, setCompanyLookupConfirmed] = useState(false);
+  const [step2Phase, setStep2Phase] = useState('profile');
   const [dossierReference] = useState(`F${Math.floor(10000000 + (Math.random() * 90000000))}`);
   const [answers, setAnswers] = useState(draft?.answers || {
     capitalType: 'Fixe',
@@ -273,15 +274,29 @@ export const FormalityWizardPage = () => {
   });
 
   const selectedJourney = useMemo(() => journeys.find((journey) => journey.id === data.journey) || journeys[0], [data.journey]);
+  const needsExistingCompanyLookup = JOURNEYS_WITH_COMPANY_LOOKUP.has(data.journey);
+  const isCompanyLookupStep = step === 1 && needsExistingCompanyLookup && !companyLookupConfirmed;
   const skipContactStep = useMemo(
     () => isAuthenticated && hasCompleteUserContact(currentUser),
     [isAuthenticated, currentUser],
   );
-  const visibleProjectSubSteps = useMemo(
-    () => (skipContactStep ? PROJECT_SUB_STEPS.filter((item) => item.id !== 'contact') : PROJECT_SUB_STEPS),
-    [skipContactStep],
-  );
-  const activeProjectSubIndex = skipContactStep ? Math.max(0, projectSubStep - 1) : projectSubStep;
+  const visibleProjectSubSteps = useMemo(() => {
+    let subSteps = skipContactStep
+      ? PROJECT_SUB_STEPS.filter((item) => item.id !== 'contact')
+      : PROJECT_SUB_STEPS;
+    if (needsExistingCompanyLookup) {
+      subSteps = [{ id: 'company_lookup', label: 'Entreprise' }, ...subSteps];
+    }
+    return subSteps;
+  }, [skipContactStep, needsExistingCompanyLookup]);
+  const activeProjectSubIndex = useMemo(() => {
+    let index = skipContactStep ? Math.max(0, projectSubStep - 1) : projectSubStep;
+    if (needsExistingCompanyLookup) {
+      if (!companyLookupConfirmed) return 0;
+      index += 1;
+    }
+    return index;
+  }, [skipContactStep, projectSubStep, needsExistingCompanyLookup, companyLookupConfirmed]);
   const activeCompareModule = compareModules[requestedType] || null;
   const selectedLegalFormUpper = String(data.legalForm || '').toUpperCase();
   const selectedRule = useMemo(() => getFormalityRule({ legalForm: data.legalForm }), [data.legalForm]);
@@ -454,11 +469,20 @@ export const FormalityWizardPage = () => {
 
   const tryWizardContinue = () => {
     if (showOffers) return;
-    if (step === 2 && activeQuestion && isLastQuestion && canAdvanceActiveQuestion() && !questionnaireFinished) {
+    if (step === 2 && step2Phase === 'profile') {
+      if (!canContinueStep2Profile()) return;
+      setStep2Phase('questionnaire');
+      return;
+    }
+    if (step === 2 && step2Phase === 'questionnaire' && questionnaireFinished) {
+      next();
+      return;
+    }
+    if (step === 2 && step2Phase === 'questionnaire' && activeQuestion && isLastQuestion && canAdvanceActiveQuestion() && !questionnaireFinished) {
       completeLastQuestion();
       return;
     }
-    if (step === 2 && activeQuestion && !questionnaireFinished) {
+    if (step === 2 && step2Phase === 'questionnaire' && activeQuestion && !questionnaireFinished) {
       advanceActiveQuestion();
       return;
     }
@@ -501,7 +525,40 @@ export const FormalityWizardPage = () => {
     if (eiLike) setQuestionMode('simple');
   }, [data.legalForm, eiLike]);
 
+  useEffect(() => {
+    setCompanyLookupConfirmed(false);
+    setExistingCompany(null);
+    setExistingCompanyIdentifier('');
+    setExistingCompanyError('');
+    setExistingCompanyState('idle');
+  }, [data.journey]);
+
+  useEffect(() => {
+    if (step === 2) {
+      setStep2Phase('profile');
+      setActiveQuestionIndex(0);
+      setQuestionnaireFinished(false);
+      setQuestionExitPhase(null);
+    }
+  }, [step]);
+
+  const canContinueStep2Profile = () => {
+    const emailOk = String(data.email || '').trim().includes('@');
+    const phoneOk = String(data.phone || '').trim().length >= 8;
+    if (eiLike) {
+      return Boolean(String(data.president || '').trim() && emailOk && phoneOk);
+    }
+    return Boolean(
+      String(data.president || '').trim()
+      && String(data.capital || '').trim()
+      && String(data.shareholders || '').trim()
+      && emailOk
+      && phoneOk,
+    );
+  };
+
   const canContinueProjectSubStep = () => {
+    if (isCompanyLookupStep) return Boolean(existingCompany);
     if (projectSubStep === 0) {
       if (skipContactStep) return true;
       return canContinueContact();
@@ -513,6 +570,13 @@ export const FormalityWizardPage = () => {
   };
 
   const advanceProjectFlow = () => {
+    if (isCompanyLookupStep) {
+      if (!existingCompany) return;
+      setCompanyLookupConfirmed(true);
+      setProjectSubStep(skipContactStep ? 1 : 0);
+      setContactStep(0);
+      return;
+    }
     if (projectSubStep === 0) {
       if (skipContactStep) {
         setProjectSubStep(1);
@@ -531,6 +595,14 @@ export const FormalityWizardPage = () => {
   };
 
   const retreatProjectFlow = () => {
+    if (isCompanyLookupStep) {
+      setStep(0);
+      return;
+    }
+    if (needsExistingCompanyLookup && companyLookupConfirmed && projectSubStep === (skipContactStep ? 1 : 0) && contactStep === 0) {
+      setCompanyLookupConfirmed(false);
+      return;
+    }
     if (projectSubStep === 0 && contactStep > 0) {
       setContactStep((value) => value - 1);
       return;
@@ -546,6 +618,7 @@ export const FormalityWizardPage = () => {
     if (step === 0) {
       setProjectSubStep(skipContactStep ? 1 : 0);
       setContactStep(0);
+      setCompanyLookupConfirmed(false);
       setStep(1);
       return;
     }
@@ -570,14 +643,33 @@ export const FormalityWizardPage = () => {
       return;
     }
     if (step === 2) {
+      if (step2Phase === 'questionnaire' && activeQuestionIndex > 0 && !questionnaireFinished) {
+        setActiveQuestionIndex((current) => Math.max(0, current - 1));
+        return;
+      }
+      if (step2Phase === 'questionnaire') {
+        setStep2Phase('profile');
+        setActiveQuestionIndex(0);
+        setQuestionnaireFinished(false);
+        setQuestionExitPhase(null);
+        return;
+      }
       setStep(1);
-      setProjectSubStep(PROJECT_SUB_STEPS.length - 1);
+      if (needsExistingCompanyLookup) {
+        setCompanyLookupConfirmed(true);
+        setProjectSubStep(PROJECT_SUB_STEPS.length - 1);
+      } else {
+        setProjectSubStep(PROJECT_SUB_STEPS.length - 1);
+      }
       return;
     }
     setStep((value) => Math.max(0, value - 1));
   };
 
-  const isProjectBackDisabled = step === 1 && projectSubStep === (skipContactStep ? 1 : 0) && contactStep === 0;
+  const isProjectBackDisabled = step === 1
+    && !isCompanyLookupStep
+    && projectSubStep === (skipContactStep ? 1 : 0)
+    && contactStep === 0;
 
   const detectJourneyFromCompany = (company) => {
     if (!company) return 'modification';
@@ -710,7 +802,34 @@ export const FormalityWizardPage = () => {
                         </button>
                       ))}
                     </div>
-                    {data.journey !== 'creation' ? (
+                  </div>
+                )}
+
+                {step === 1 && (
+                  <div className="space-y-7">
+                    <div>
+                      <p className="text-sm font-bold uppercase text-primary">
+                        {isCompanyLookupStep ? 'Entreprise existante' : 'Projet'}
+                      </p>
+                      <h1 className="mt-2 text-3xl font-extrabold">
+                        {isCompanyLookupStep && 'Identifier votre société'}
+                        {!isCompanyLookupStep && projectSubStep === 0 && 'Vos coordonnées'}
+                        {!isCompanyLookupStep && projectSubStep === 1 && 'Qui effectue la démarche ?'}
+                        {!isCompanyLookupStep && projectSubStep === 2 && 'Forme juridique visée'}
+                        {!isCompanyLookupStep && projectSubStep === 3 && 'Choisissez votre forme'}
+                        {!isCompanyLookupStep && projectSubStep === 4 && 'Précisez votre projet'}
+                      </h1>
+                      <p className="mt-2 text-muted-foreground">
+                        {isCompanyLookupStep && 'Signature électronique qualifiée nécessaire pour modifier, cesser ou corriger une société existante.'}
+                        {!isCompanyLookupStep && projectSubStep === 0 && 'Une question à la fois — vos coordonnées servent au dossier et aux relances Greffio.'}
+                        {!isCompanyLookupStep && projectSubStep === 1 && 'Une personne physique ou morale peut porter la demande, y compris une société qui crée une filiale.'}
+                        {!isCompanyLookupStep && projectSubStep === 2 && 'Sélectionnez la catégorie la plus proche de votre situation, puis continuez.'}
+                        {!isCompanyLookupStep && projectSubStep === 3 && 'Comparez les formes disponibles dans cette catégorie.'}
+                        {!isCompanyLookupStep && projectSubStep === 4 && 'Ces éléments alimentent le questionnaire et l’aperçu documentaire.'}
+                      </p>
+                    </div>
+
+                    {isCompanyLookupStep ? (
                       <div className="rounded-md border border-border bg-white p-5">
                         <p className="text-sm font-bold uppercase text-primary">
                           Signature électronique qualifiée nécessaire
@@ -719,7 +838,7 @@ export const FormalityWizardPage = () => {
                         <p className="mt-2 text-sm text-muted-foreground">
                           Rechercher une entreprise par SIREN ou SIRET pour précharger le dossier.
                         </p>
-                        <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
+                        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                           <Input
                             value={existingCompanyIdentifier}
                             onChange={(event) => {
@@ -737,34 +856,18 @@ export const FormalityWizardPage = () => {
                         {existingCompanyError ? <p className="mt-2 text-xs text-red-600">{existingCompanyError}</p> : null}
                         {existingCompany ? (
                           <div className="mt-4">
-                            <CompanyLookupCard company={existingCompany} onUse={() => next()} />
+                            <CompanyLookupCard
+                              company={existingCompany}
+                              onUse={() => {
+                                setCompanyLookupConfirmed(true);
+                                setProjectSubStep(skipContactStep ? 1 : 0);
+                                setContactStep(0);
+                              }}
+                            />
                           </div>
                         ) : null}
                       </div>
-                    ) : null}
-                  </div>
-                )}
-
-                {step === 1 && (
-                  <div className="space-y-7">
-                    <div>
-                      <p className="text-sm font-bold uppercase text-primary">Projet</p>
-                      <h1 className="mt-2 text-3xl font-extrabold">
-                        {projectSubStep === 0 && 'Vos coordonnées'}
-                        {projectSubStep === 1 && 'Qui effectue la démarche ?'}
-                        {projectSubStep === 2 && 'Forme juridique visée'}
-                        {projectSubStep === 3 && 'Choisissez votre forme'}
-                        {projectSubStep === 4 && 'Précisez votre projet'}
-                      </h1>
-                      <p className="mt-2 text-muted-foreground">
-                        {projectSubStep === 0 && 'Une question à la fois — vos coordonnées servent au dossier et aux relances Greffio.'}
-                        {projectSubStep === 1 && 'Une personne physique ou morale peut porter la demande, y compris une société qui crée une filiale.'}
-                        {projectSubStep === 2 && 'Sélectionnez la catégorie la plus proche de votre situation, puis continuez.'}
-                        {projectSubStep === 3 && 'Comparez les formes disponibles dans cette catégorie.'}
-                        {projectSubStep === 4 && 'Ces éléments alimentent le questionnaire et l’aperçu documentaire.'}
-                      </p>
-                    </div>
-
+                    ) : (
                     <AnimatePresence mode="wait">
                       <motion.div
                         key={`project-${projectSubStep}-${projectSubStep === 0 ? contactStep : 'static'}`}
@@ -936,6 +1039,7 @@ export const FormalityWizardPage = () => {
                         )}
                       </motion.div>
                     </AnimatePresence>
+                    )}
                   </div>
                 )}
 
@@ -944,17 +1048,23 @@ export const FormalityWizardPage = () => {
                     <div>
                       <p className="text-sm font-bold uppercase text-primary">Questionnaire intelligent</p>
                       <h1 className="mt-2 text-3xl font-extrabold">
-                        {eiLike
-                          ? `Informations adaptées à ${data.legalForm}`
-                          : 'Dirigeants, capital et clauses statutaires'}
+                        {step2Phase === 'profile' && (eiLike
+                          ? `Coordonnées — ${data.legalForm}`
+                          : 'Dirigeants, capital et coordonnées')}
+                        {step2Phase === 'questionnaire' && `Clauses adaptées à ${data.legalForm}`}
                       </h1>
                       <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-                        {eiLike
-                          ? 'Greffio ne vous demande que l’essentiel pour une entreprise individuelle : identité, activité, siège et déclarations. Pas de statuts ni de capital social.'
-                          : `Greffio affiche uniquement les questions utiles à ${data.legalForm} : dirigeants, capital, gouvernance et clauses sensibles.`}
+                        {step2Phase === 'profile' && (eiLike
+                          ? 'Complétez d’abord vos coordonnées. Le questionnaire ciblé s’affichera ensuite, une question à la fois.'
+                          : 'Complétez les informations de dirigeants et de capital. Les clauses statutaires suivront, une question à la fois.')}
+                        {step2Phase === 'questionnaire' && (eiLike
+                          ? 'Greffio n’affiche que les questions utiles à votre forme — pas de statuts ni de capital social.'
+                          : `${flattenedQuestions.length} questions pour ${data.legalForm}. Répondez puis validez pour passer à la synthèse.`)}
                       </p>
                     </div>
 
+                    {step2Phase === 'profile' ? (
+                    <>
                     <div className="rounded-md border border-border bg-[#fafcff] p-5">
                       <p className="text-xs font-bold uppercase text-primary">
                         {eiLike ? 'Identité et coordonnées' : 'Dirigeants et capital'}
@@ -997,7 +1107,14 @@ export const FormalityWizardPage = () => {
                         </div>
                       </div>
                     </div>
-
+                    <label className="flex items-start gap-3 rounded-md border border-border bg-muted p-4">
+                      <input type="checkbox" checked={data.marketingConsent} onChange={(event) => update('marketingConsent', event.target.checked)} className="mt-1" />
+                      <span className="text-sm leading-6 text-muted-foreground">
+                        J’accepte de recevoir par email mon résumé, mes statuts générés et les relances liées à ma formalité.
+                      </span>
+                    </label>
+                    </>
+                    ) : (
                     <div className="rounded-md border border-border bg-white p-5">
                       <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
                         <div>
@@ -1132,21 +1249,6 @@ export const FormalityWizardPage = () => {
                                     />
                                   )}
                                 </div>
-                                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e2ebf8] pt-5">
-                                  <QuestionBackButton
-                                    type="button"
-                                    disabled={activeQuestionIndex === 0 || Boolean(questionExitPhase)}
-                                    onClick={() => setActiveQuestionIndex((current) => Math.max(0, current - 1))}
-                                  />
-                                  <QuestionContinueButton
-                                    type="submit"
-                                    label={isLastQuestion ? 'Valider' : 'Continuer'}
-                                    disabled={!canAdvanceActiveQuestion() || Boolean(questionExitPhase)}
-                                  />
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                  Numéro joignable : {GREFFIO_CONTACT.supportPhone}
-                                </p>
                               </motion.form>
                             ) : (
                               <p className="text-sm text-muted-foreground">Aucune question affichable avec cette configuration.</p>
@@ -1185,12 +1287,7 @@ export const FormalityWizardPage = () => {
                         )}
                       </AnimatePresence>
                     </div>
-                    <label className="flex items-start gap-3 rounded-md border border-border bg-muted p-4">
-                      <input type="checkbox" checked={data.marketingConsent} onChange={(event) => update('marketingConsent', event.target.checked)} className="mt-1" />
-                      <span className="text-sm leading-6 text-muted-foreground">
-                        J’accepte de recevoir par email mon résumé, mes statuts générés et les relances liées à ma formalité.
-                      </span>
-                    </label>
+                    )}
                   </div>
                 )}
 
@@ -1331,18 +1428,25 @@ export const FormalityWizardPage = () => {
             <div className="border-t border-border px-6 py-5">
               <WizardNavButtons
                 onBack={previous}
-                onContinue={next}
+                onContinue={tryWizardContinue}
                 backDisabled={step === 0 || isProjectBackDisabled}
-                continueDisabled={step === 1 && !canContinueProjectSubStep()}
-                showContinue={
-                  !(step === 1 && (projectSubStep === 2 || projectSubStep === 3))
-                  && !(step === 2 && !questionnaireFinished)
+                continueDisabled={
+                  (step === 1 && !canContinueProjectSubStep())
+                  || (step === 2 && step2Phase === 'profile' && !canContinueStep2Profile())
+                  || (step === 2 && step2Phase === 'questionnaire' && !questionnaireFinished && !canAdvanceActiveQuestion())
                 }
+                showContinue={!(step === 1 && (projectSubStep === 2 || projectSubStep === 3))}
                 continueLabel={
                   step === steps.length - 1
                     ? 'Voir les offres'
-                    : step === 2 && questionnaireFinished
+                    : isCompanyLookupStep
+                      ? 'Continuer'
+                    : step === 2 && step2Phase === 'profile'
+                      ? 'Passer au questionnaire'
+                    : step === 2 && step2Phase === 'questionnaire' && questionnaireFinished
                       ? 'Passer à la synthèse'
+                    : step === 2 && step2Phase === 'questionnaire'
+                      ? (isLastQuestion ? 'Valider' : 'Continuer')
                     : step === 1 && projectSubStep === 0 && contactStep < contactFields.length - 1
                       ? 'Question suivante'
                       : step === 1 && projectSubStep === PROJECT_SUB_STEPS.length - 1
