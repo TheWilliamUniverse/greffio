@@ -74,7 +74,7 @@ export const SiteSearchDialog = ({ open, onClose }) => {
                   <button
                     type="button"
                     onClick={() => goTo(item.to)}
-                    className="flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition hover:bg-secondary/40"
+                    className="flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition hover:bg-muted/60"
                   >
                     <FileText className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                     <span className="min-w-0 flex-1">

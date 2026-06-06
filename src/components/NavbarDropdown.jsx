@@ -139,7 +139,7 @@ export const NavbarDropdown = () => {
 
                   <div className="mt-5 grid grid-cols-3 gap-3 border-t border-border pt-5">
                     {resources.map((item) => (
-                      <Link key={item.label} to={item.to} className="flex items-center gap-3 rounded-md bg-muted px-3 py-3 text-sm font-medium text-foreground transition-colors hover:bg-secondary">
+                      <Link key={item.label} to={item.to} className="flex items-center gap-3 rounded-md bg-muted px-3 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted/80">
                         <item.icon className="h-4 w-4 text-primary" />
                         {item.label}
                       </Link>
