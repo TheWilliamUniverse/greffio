@@ -38,6 +38,7 @@ import {
   getWarnings,
 } from '@/utils/formalityEngine.js';
 import { fetchStatutesPreviewDraft } from '@/api/statutes.js';
+import { toast } from 'sonner';
 import { fullPreviewToDocumentPreview, isWilliamStatutesForm } from '@/utils/statutesPreview.js';
 import { getProjectDraft, saveProjectDraft, getUser } from '@/utils/localStorage.js';
 import { GREFFIO_CONTACT } from '@/config/legalFlow.js';
@@ -349,7 +350,10 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
           if (cancelled) return;
           setWilliamStatutesPreview(fullPreviewToDocumentPreview(payload?.preview));
         } catch (_error) {
-          if (!cancelled) setWilliamStatutesPreview(null);
+          if (!cancelled) {
+            setWilliamStatutesPreview(null);
+            toast.error('Génération des statuts complets impossible. Vérifiez vos réponses ou réessayez.');
+          }
         } finally {
           if (!cancelled) setWilliamStatutesLoading(false);
         }
@@ -365,6 +369,14 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     if (williamStatutesPreview) return williamStatutesPreview;
     return buildDocumentPreview(data, answers, selectedForm);
   }, [williamStatutesPreview, data, answers, selectedForm]);
+
+  const handleExportPreview = async (format) => {
+    try {
+      await downloadPreview(documentPreview, format, { data, answers });
+    } catch (_error) {
+      toast.error(`Export ${format.toUpperCase()} impossible. Réessayez dans quelques instants.`);
+    }
+  };
   const visibleForms = useMemo(
     () => targetFormGroups.find((group) => group.category === selectedFamily).forms || targetFormGroups[0].forms || [],
     [selectedFamily],
@@ -1357,7 +1369,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {['pdf', 'odt', 'docx'].map((format) => (
-                            <Button key={format} type="button" variant="outline" className="bg-white" onClick={() => void downloadPreview(documentPreview, format)}>
+                            <Button key={format} type="button" variant="outline" className="bg-white" onClick={() => void handleExportPreview(format)}>
                               <Download className="h-4 w-4" />
                               {format.toUpperCase()}
                             </Button>

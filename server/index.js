@@ -109,6 +109,8 @@ import { buildIntelligentPrefill } from './services/intelligentIntake.js';
 import { computeDossierRisk, sortAntiRejectionQueue } from './services/opsRisk.js';
 import { buildOpsCockpitPayload, enrichDossierForOps } from './services/opsCockpitService.js';
 import { draftStatutesDocument } from './services/statutesDrafting.js';
+import { buildSimulatorStatutesPreview } from './services/simulatorStatutesPreviewService.js';
+import { generateStatutesPdf } from './pdf/statutesPdf.js';
 import {
   buildStatutesPdfForDossier,
   resolveStatutesPdfAccess,
@@ -2351,56 +2353,62 @@ app.get('/api/dossiers/:dossierId/mandate/pdf', requireAuth, async (req, res) =>
 });
 
 app.post('/api/statutes/preview-draft', statutesPreviewDraftLimiter, async (req, res) => {
-  const { data = {}, answers = {} } = req.body || {};
-  const legalForm = String(
-    answers.formeJuridique || data.legalForm || data.formeJuridique || 'SASU',
-  ).toUpperCase();
-
-  if (!isStatutesSupportedForm(legalForm)) {
-    return res.status(409).json({ ok: false, error: 'LEGAL_FORM_UNSUPPORTED', legalForm });
-  }
-
-  let statutesData;
   try {
-    statutesData = mapStatutesDataFromSimulator({ data, answers });
-    const document = draftStatutesDocument(statutesData);
-    const preview = documentToPreview(document);
-
-    return res.json({
-      ok: true,
-      preview: {
-        ...preview,
-        metadata: {
-          ...preview.metadata,
-          checks: statutesData.checks,
-          completeness: statutesData.completeness,
-          missingFields: statutesData.missingFields,
-        },
-        incorporatedData: {
-          denomination: statutesData.denomination,
-          legalForm: statutesData.legalForm,
-          objetSocial: statutesData.objetSocial,
-          siege: statutesData.seat.full,
-          capital: statutesData.capital,
-          repartition: statutesData.repartition,
-          director: statutesData.director,
-          directorRole: statutesData.directorRole,
-          beneficiairesEffectifs: statutesData.beneficiairesEffectifs,
-          associates: statutesData.associates,
-        },
-      },
-    });
+    const { preview } = buildSimulatorStatutesPreview(req.body || {});
+    return res.json({ ok: true, preview });
   } catch (error) {
+    if (error?.code === 'LEGAL_FORM_UNSUPPORTED') {
+      return res.status(409).json({ ok: false, error: 'LEGAL_FORM_UNSUPPORTED', legalForm: error.legalForm });
+    }
     if (error?.code === 'STATUTES_VALIDATION_FAILED') {
       return res.status(422).json({
         ok: false,
         error: 'STATUTES_VALIDATION_FAILED',
         validation: error.validation,
-        missingFields: statutesData?.missingFields,
-        completeness: statutesData?.completeness,
+        missingFields: error?.missingFields,
+        completeness: error?.completeness,
       });
     }
     return res.status(500).json({ ok: false, error: 'STATUTES_PREVIEW_FAILED', message: error.message });
+  }
+});
+
+app.post('/api/statutes/preview-draft/pdf', statutesPreviewDraftLimiter, async (req, res) => {
+  let outputPath = null;
+  try {
+    const { document, statutesData } = buildSimulatorStatutesPreview(req.body || {});
+    const safeName = String(statutesData.denomination || 'statuts-greffio')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/gi, '_')
+      .replace(/^_|_$/g, '')
+      .slice(0, 80) || 'statuts-greffio';
+    const filename = `Statuts_${statutesData.legalForm || 'SAS'}_${safeName}.pdf`;
+    outputPath = await generateStatutesPdf({ filename: `${safeName}_${Date.now()}.pdf`, document });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'no-store, private');
+    const stream = fs.createReadStream(outputPath);
+    stream.on('end', () => {
+      fs.promises.unlink(outputPath).catch(() => {});
+    });
+    stream.on('error', () => {
+      fs.promises.unlink(outputPath).catch(() => {});
+    });
+    return stream.pipe(res);
+  } catch (error) {
+    if (outputPath) fs.promises.unlink(outputPath).catch(() => {});
+    if (error?.code === 'LEGAL_FORM_UNSUPPORTED') {
+      return res.status(409).json({ ok: false, error: 'LEGAL_FORM_UNSUPPORTED', legalForm: error.legalForm });
+    }
+    if (error?.code === 'STATUTES_VALIDATION_FAILED') {
+      return res.status(422).json({
+        ok: false,
+        error: 'STATUTES_VALIDATION_FAILED',
+        validation: error.validation,
+      });
+    }
+    return res.status(500).json({ ok: false, error: 'STATUTES_PDF_FAILED', message: error.message });
   }
 });
 

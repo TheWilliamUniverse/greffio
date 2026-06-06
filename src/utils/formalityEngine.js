@@ -1,4 +1,6 @@
 import { strToU8, zipSync } from 'fflate';
+import { downloadStatutesOfficeExport } from '@/utils/statutesOfficeExport.js';
+import { downloadStatutesPreviewDraftPdf } from '@/api/statutes.js';
 
 export const QUESTION_MODES = [
   { id: 'simple', label: 'Simple', text: 'Essentiel pour générer un dossier propre.' },
@@ -915,9 +917,22 @@ const downloadPdf = async (documentPreview) => {
   pdf.save(`${documentFilename(documentPreview)}.pdf`);
 };
 
-export const downloadPreview = async (documentPreview, format) => {
+export const downloadPreview = async (documentPreview, format, context = {}) => {
   if (typeof window === 'undefined') return;
   const filename = documentFilename(documentPreview);
+
+  if (documentPreview?.isFullStatutes && documentPreview?.williamPreview) {
+    if (format === 'pdf') {
+      const blob = await downloadStatutesPreviewDraftPdf({
+        data: context.data || {},
+        answers: context.answers || {},
+      });
+      downloadBlob(blob, `${filename}.pdf`);
+      return;
+    }
+    await downloadStatutesOfficeExport(documentPreview.williamPreview, format);
+    return;
+  }
 
   if (format === 'pdf') {
     await downloadPdf(documentPreview);
