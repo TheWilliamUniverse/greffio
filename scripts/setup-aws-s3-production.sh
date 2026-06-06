@@ -110,6 +110,9 @@ set_env_var "AWS_SECRET_ACCESS_KEY" "$AWS_SECRET_ACCESS_KEY_INPUT" "$ENV_FILE"
 set_env_var "AWS_S3_BUCKET" "$BUCKET_NAME" "$ENV_FILE"
 set_env_var "AWS_S3_PRESIGNED_URL_TTL_SECONDS" "900" "$ENV_FILE"
 
+# Normalize Windows CRLF if .env was edited from Windows tooling
+sed -i 's/\r$//' "$ENV_FILE"
+
 echo ".env updated."
 
 echo ""
@@ -146,13 +149,13 @@ echo "== 7. Testing AWS identity =="
 aws sts get-caller-identity --region "$AWS_REGION_VALUE"
 
 echo ""
-echo "== 8. Testing S3 bucket list access =="
+echo "== 8. Testing S3 bucket list access (optional) =="
 
-aws s3 ls "s3://${BUCKET_NAME}" --region "$AWS_REGION_VALUE" || {
-  echo "Error: cannot list S3 bucket."
-  echo "Check IAM policy, bucket name, region, and credentials."
-  exit 1
-}
+if aws s3 ls "s3://${BUCKET_NAME}" --region "$AWS_REGION_VALUE" 2>/dev/null; then
+  echo "S3 list OK."
+else
+  echo "Warning: cannot list S3 bucket (s3:ListBucket may be missing). Continuing with object-level tests."
+fi
 
 echo ""
 echo "== 9. Testing S3 PutObject / GetObject / DeleteObject =="
