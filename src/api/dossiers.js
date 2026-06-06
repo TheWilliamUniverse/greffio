@@ -1,76 +1,18 @@
-import { runtimeConfig } from '@/config/runtime.js';
-import { getToken } from '@/utils/localStorage.js';
+import { apiGet, apiPost } from '@/api/client.js';
 
-const parseResponse = async (response) => {
-  if (response.ok) return response.json();
-  let payload = null;
-  try {
-    payload = await response.json();
-  } catch (_error) {
-    payload = null;
-  }
-  const error = new Error(payload?.error || 'API_ERROR');
-  error.payload = payload;
-  error.status = response.status;
-  throw error;
-};
-
-export const createDossier = async ({ userId, companyName, legalForm, service }) => {
-  const token = getToken();
-  if (!token) {
-    const error = new Error('AUTH_TOKEN_MISSING');
-    error.status = 401;
-    throw error;
-  }
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      userId: userId || null,
-      companyName,
-      legalForm,
-      service,
-    }),
-  });
-  return parseResponse(response);
-};
+export const createDossier = async ({ userId, companyName, legalForm, service }) => apiPost('/api/dossiers', {
+  userId: userId || null,
+  companyName,
+  legalForm,
+  service,
+});
 
 export const listDossiers = async () => {
-  const token = getToken();
-  if (!token) {
-    const error = new Error('AUTH_TOKEN_MISSING');
-    error.status = 401;
-    throw error;
-  }
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  return parseResponse(response);
+  const payload = await apiGet('/api/dossiers');
+  return payload;
 };
 
-export const getDossierById = async (dossierId) => {
-  const token = getToken();
-  if (!token) {
-    const error = new Error('AUTH_TOKEN_MISSING');
-    error.status = 401;
-    throw error;
-  }
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  return parseResponse(response);
-};
+export const getDossierById = async (dossierId) => apiGet(`/api/dossiers/${dossierId}`);
 
 export const fetchDossierDetail = async (dossierId, { allowOpsFallback = false } = {}) => {
   try {
@@ -84,31 +26,8 @@ export const fetchDossierDetail = async (dossierId, { allowOpsFallback = false }
   }
 };
 
-export const listTrashedDossiers = async () => {
-  const token = getToken();
-  if (!token) throw new Error('AUTH_TOKEN_MISSING');
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/trash`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return parseResponse(response);
-};
+export const listTrashedDossiers = async () => apiGet('/api/dossiers/trash');
 
-export const trashDossier = async (dossierId) => {
-  const token = getToken();
-  if (!token) throw new Error('AUTH_TOKEN_MISSING');
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}/trash`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return parseResponse(response);
-};
+export const trashDossier = async (dossierId) => apiPost(`/api/dossiers/${dossierId}/trash`);
 
-export const restoreDossier = async (dossierId) => {
-  const token = getToken();
-  if (!token) throw new Error('AUTH_TOKEN_MISSING');
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}/restore`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return parseResponse(response);
-};
+export const restoreDossier = async (dossierId) => apiPost(`/api/dossiers/${dossierId}/restore`);

@@ -173,7 +173,7 @@ export const SignupPage = () => {
             <div className="h-full bg-[hsl(var(--greffio-blue))] transition-all duration-300" style={{ width: `${(step / 4) * 100}%` }} />
           </div>
 
-          <form onSubmit={onFormSubmit} className="p-6 md:p-10" noValidate>
+          <form onSubmit={onFormSubmit} className="p-6 md:p-10 [&_input]:text-base md:[&_input]:text-sm [&_input]:min-h-12 md:[&_input]:min-h-10" noValidate>
             <AnimatePresence mode="wait">
               {step === 1 && (
                 <motion.div key="step1" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-7">

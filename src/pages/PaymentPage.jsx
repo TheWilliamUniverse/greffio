@@ -25,7 +25,7 @@ const offers = {
 
 export const PaymentPage = () => {
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
   const offerName = searchParams.get('offer') || 'Dossier Standard';
   const service = searchParams.get('service') || 'creation';
   const resourceOrderId = searchParams.get('resourceOrder');
@@ -36,8 +36,8 @@ export const PaymentPage = () => {
   const [activeDossier, setActiveDossier] = useState(null);
   const [loadingResourceOrder, setLoadingResourceOrder] = useState(Boolean(resourceOrderId));
   const customerType = useMemo(
-    () => inferCustomerType(user, activeDossier),
-    [user, activeDossier],
+    () => inferCustomerType(currentUser, activeDossier),
+    [currentUser, activeDossier],
   );
   const showB2BProviders = isB2B(customerType);
 
@@ -83,7 +83,7 @@ export const PaymentPage = () => {
     };
     void load();
     return () => { cancelled = true; };
-  }, [user?.id]);
+  }, [currentUser?.id]);
 
   const handleCheckout = async () => {
     try {

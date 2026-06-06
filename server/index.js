@@ -196,6 +196,13 @@ app.use('/assets/email', express.static(path.join(path.dirname(fileURLToPath(imp
 }));
 app.use(cors(corsOptions));
 app.use((req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    res.setHeader('Cache-Control', 'no-store, private');
+    res.setHeader('Pragma', 'no-cache');
+  }
+  next();
+});
+app.use((req, res, next) => {
   if (req.path === '/api/webhooks/resend' || req.path === '/api/webhooks/brevo') return next();
   if (req.path === '/webhooks/gocardless' || req.path === '/api/webhooks/gocardless') return next();
   return express.json()(req, res, next);

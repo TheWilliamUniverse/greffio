@@ -16,7 +16,7 @@ app.get('/health', (_req, res) => {
 app.use(express.static(distDir, {
   index: false,
   setHeaders: (res, filePath) => {
-    if (filePath.endsWith('.html')) {
+    if (filePath.endsWith('.html') || filePath.endsWith('sw.js')) {
       res.setHeader('Cache-Control', 'no-store');
       return;
     }

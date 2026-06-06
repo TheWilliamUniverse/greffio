@@ -218,9 +218,11 @@ const compareModules = Object.freeze({
   },
 });
 
-export const FormalityWizardPage = () => {
+export const FormalityWizardPage = ({ presentation = 'auto' }) => {
   const [searchParams] = useSearchParams();
   const { currentUser, isAuthenticated } = useAuth();
+  const isMobilePresentation = presentation === 'mobile'
+    || (presentation === 'auto' && (isCapacitorNative() || isMobileBrowserViewport()));
   const wizardPanelRef = useRef(null);
   const wizardNavRef = useRef(null);
   const questionAnimationTimersRef = useRef([]);
@@ -752,9 +754,11 @@ export const FormalityWizardPage = () => {
 
   return (
     <div className="min-h-screen bg-[var(--we-bg)]">
-      <NavbarDropdown />
+      {!isMobilePresentation ? <NavbarDropdown /> : null}
 
-      <main className="mx-auto grid max-w-7xl gap-8 px-4 pb-10 pt-28 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8">
+      <main className={`mx-auto grid max-w-7xl gap-8 px-4 pb-10 sm:px-6 lg:px-8 ${
+        isMobilePresentation ? 'pt-4 lg:grid-cols-1' : 'pt-28 lg:grid-cols-[1fr_380px]'
+      }`}>
         <section ref={wizardPanelRef} className="we-panel">
           <div className="border-b border-[var(--we-border)] bg-white px-6 py-4">
             <div className="mb-3 flex items-center justify-between text-xs font-bold uppercase text-muted-foreground">
@@ -1167,7 +1171,7 @@ export const FormalityWizardPage = () => {
                         ) : null}
                       </div>
 
-                      <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_320px]">
+                      <div className={`mt-5 grid gap-4 ${isMobilePresentation ? '' : 'lg:grid-cols-[1fr_320px]'}`}>
                         <div className="rounded-md border border-border bg-secondary p-4">
                           <div className="flex items-center justify-between gap-3 text-sm font-bold">
                             <span>Complétude du dossier</span>
@@ -1180,6 +1184,7 @@ export const FormalityWizardPage = () => {
                             Plus le score est élevé, plus le document généré sera précis et prêt à relire par l’équipe Greffio.
                           </p>
                         </div>
+                        {!isMobilePresentation ? (
                         <div className="rounded-md border border-border bg-muted p-4">
                           <div className="mb-2 flex items-center gap-2 font-bold">
                             <ShieldAlert className="h-4 w-4 text-primary" />
@@ -1191,6 +1196,7 @@ export const FormalityWizardPage = () => {
                             ))}
                           </div>
                         </div>
+                        ) : null}
                       </div>
 
                       <AnimatePresence mode="wait">
@@ -1498,6 +1504,7 @@ export const FormalityWizardPage = () => {
           )}
         </section>
 
+        {!isMobilePresentation ? (
         <aside className="space-y-4">
           <div className="we-card rounded-[22px] p-5">
             <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-md ${selectedJourney.color}`}>
@@ -1535,6 +1542,7 @@ export const FormalityWizardPage = () => {
             </p>
           </div>
         </aside>
+        ) : null}
       </main>
     </div>
   );

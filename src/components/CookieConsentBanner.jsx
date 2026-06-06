@@ -70,13 +70,24 @@ export const CookieConsentBanner = () => {
         </p>
 
         {customize ? (
-          <label className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-sm">
-            <input type="checkbox" checked={analytics} onChange={(event) => setAnalytics(event.target.checked)} className="mt-1" />
-            <span>
-              <span className="font-semibold">Mesure d&apos;audience</span>
-              <span className="mt-1 block text-muted-foreground">Statistiques anonymisées pour améliorer Greffio. Aucun cookie marketing actif aujourd&apos;hui.</span>
-            </span>
-          </label>
+          <div className="space-y-4">
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-primary">Session technique</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Tokens de connexion et sécurité — indispensables au fonctionnement de Greffio. Non désactivables.
+              </p>
+            </div>
+            <div className="rounded-lg border border-border bg-white p-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-primary">Préférences</p>
+              <label className="mt-2 flex items-start gap-2 text-sm">
+                <input type="checkbox" checked={analytics} onChange={(event) => setAnalytics(event.target.checked)} className="mt-1" />
+                <span>
+                  <span className="font-semibold">Mesure d&apos;audience</span>
+                  <span className="mt-1 block text-muted-foreground">Statistiques anonymisées (Core Web Vitals) pour améliorer Greffio.</span>
+                </span>
+              </label>
+            </div>
+          </div>
         ) : null}
 
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">

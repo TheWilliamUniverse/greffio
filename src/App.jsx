@@ -6,16 +6,30 @@ import { ProtectedRoute } from '@/components/ProtectedRoute.jsx';
 import { Header } from '@/components/Header.jsx';
 import { LandingPage } from '@/pages/LandingPage.jsx';
 import { PricingPage } from '@/pages/PricingPage.jsx';
-import { FormalityWizardPage } from '@/pages/FormalityWizardPage.jsx';
+import { FormalityWizardEntry } from '@/mobile/entries/FormalityWizardEntry.jsx';
+import { DossiersEntry } from '@/mobile/entries/DossiersEntry.jsx';
+import { DossierDetailEntry } from '@/mobile/entries/DossierDetailEntry.jsx';
+import { PaymentEntry } from '@/mobile/entries/PaymentEntry.jsx';
+import { useRouteQueryInvalidation } from '@/hooks/useRouteQueryInvalidation.js';
+import {
+  LazyAnalyticsPage,
+  LazyChatIAPage,
+  LazyNonConvictionDeclarationPage,
+  LazyOpsCockpitPage,
+  LazyOpsDashboardPage,
+  LazyOpsDossierDetailPage,
+  LazyOpsDossiersPage,
+  LazyOpsEquipePage,
+  LazyOpsLookupObservabilityPage,
+  LazyOpsShell,
+  LazyStatutesPage,
+  withSuspense,
+} from '@/routes/lazyPages.jsx';
 import { SignupPage } from '@/pages/SignupPage.jsx';
 import { LoginPage } from '@/pages/LoginPage.jsx';
 import { PasswordResetPage } from '@/pages/PasswordResetPage.jsx';
 import { CredentialsUnlockPage } from '@/pages/CredentialsUnlockPage.jsx';
-import { DossiersPage } from '@/pages/DossiersPage.jsx';
-import { DossierDetailPage } from '@/pages/DossierDetailPage.jsx';
 import { DocumentsPage } from '@/pages/DocumentsPage.jsx';
-import { ChatIAPage } from '@/pages/ChatIAPage.jsx';
-import { AnalyticsPage } from '@/pages/AnalyticsPage.jsx';
 import { TeamPage } from '@/pages/TeamPage.jsx';
 import { ProfilePage } from '@/pages/ProfilePage.jsx';
 import { SettingsPage } from '@/pages/SettingsPage.jsx';
@@ -25,24 +39,15 @@ import { PrivacyPolicyPage } from '@/pages/PrivacyPolicyPage.jsx';
 import { CookiesPage } from '@/pages/CookiesPage.jsx';
 import { AccountDeletionPage } from '@/pages/AccountDeletionPage.jsx';
 import { DataDeletionPage } from '@/pages/DataDeletionPage.jsx';
-import { PaymentPage } from '@/pages/PaymentPage.jsx';
 import { ResourcesPage } from '@/pages/ResourcesPage.jsx';
 import { ResourceGuidePage } from '@/pages/ResourceGuidePage.jsx';
 import { AppInstallPage } from '@/pages/AppInstallPage.jsx';
 import { ContactPage } from '@/pages/ContactPage.jsx';
 import { GuidePage } from '@/pages/GuidePage.jsx';
 import { MandatePage } from '@/pages/MandatePage.jsx';
-import { OpsDashboardPage } from '@/pages/OpsDashboardPage.jsx';
-import { OpsShell } from '@/components/ops/OpsShell.jsx';
-import { OpsCockpitPage } from '@/pages/ops/OpsCockpitPage.jsx';
-import { OpsDossiersPage } from '@/pages/ops/OpsDossiersPage.jsx';
-import { OpsDossierDetailPage } from '@/pages/ops/OpsDossierDetailPage.jsx';
-import { OpsEquipePage } from '@/pages/ops/OpsEquipePage.jsx';
 import { OpsPlaceholderPage } from '@/pages/ops/OpsPlaceholderPage.jsx';
 import { PaymentVerificationPage } from '@/pages/PaymentVerificationPage.jsx';
 import { QuestionnairePage } from '@/pages/QuestionnairePage.jsx';
-import { StatutesPage } from '@/pages/StatutesPage.jsx';
-import { NonConvictionDeclarationPage } from '@/pages/NonConvictionDeclarationPage.jsx';
 import { SubscribersListPage } from '@/pages/SubscribersListPage.jsx';
 import { FormalityPowersPage } from '@/pages/FormalityPowersPage.jsx';
 import { SignaturePublicPage } from '@/pages/SignaturePublicPage.jsx';
@@ -51,7 +56,6 @@ import { ServiceLandingPage } from '@/pages/ServiceLandingPage.jsx';
 import { ServicesPage } from '@/pages/ServicesPage.jsx';
 import { NotFoundPage } from '@/pages/NotFoundPage.jsx';
 import { HomePage } from '@/pages/HomePage.jsx';
-import { OpsLookupObservabilityPage } from '@/pages/OpsLookupObservabilityPage.jsx';
 import { SERVICE_PAGE_SLUGS } from '@/config/serviceLandingPages.js';
 import { CookieConsentBanner } from '@/components/CookieConsentBanner.jsx';
 import { MobileAppShell } from '@/mobile/MobileAppShell.jsx';
@@ -105,6 +109,7 @@ const Layout = ({ children }) => {
 
 function AppRoutes() {
   const location = useLocation();
+  useRouteQueryInvalidation();
   return (
     <>
       <ScrollToTop />
@@ -115,7 +120,7 @@ function AppRoutes() {
             <Route path="/tarifs" element={<PricingPage />} />
             <Route path="/home" element={<HomePage />} />
             <Route path="/services" element={<ServicesPage />} />
-            <Route path="/simulateur" element={<FormalityWizardPage />} />
+            <Route path="/simulateur" element={<FormalityWizardEntry />} />
             <Route path="/questionnaire" element={<ProtectedRoute><QuestionnairePage /></ProtectedRoute>} />
             <Route path="/statuts-gratuits" element={<ProtectedRoute><QuestionnairePage /></ProtectedRoute>} />
             <Route path="/signup" element={<SignupPage />} />
@@ -131,43 +136,43 @@ function AppRoutes() {
             <Route path="/cookies" element={<CookiesPage />} />
             <Route path="/suppression-compte" element={<AccountDeletionPage />} />
             <Route path="/suppression-donnees" element={<DataDeletionPage />} />
-            <Route path="/paiement" element={<PaymentPage />} />
+            <Route path="/paiement" element={<PaymentEntry />} />
             <Route path="/ressources" element={<ResourcesPage />} />
             <Route path="/ressources/guides/:slug" element={<ResourceGuidePage />} />
             <Route path="/app" element={<AppInstallPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/guide" element={<GuidePage />} />
             <Route path="/procuration" element={<MandatePage />} />
-            <Route path="/ops" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><OpsShell /></ProtectedRoute>}>
+            <Route path="/ops" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}>{withSuspense(LazyOpsShell, 'Chargement ops…')}</ProtectedRoute>}>
               <Route index element={<Navigate to="cockpit" replace />} />
-              <Route path="cockpit" element={<OpsCockpitPage />} />
-              <Route path="dossiers" element={<OpsDossiersPage />} />
-              <Route path="dossiers/:dossierId" element={<OpsDossierDetailPage />} />
+              <Route path="cockpit" element={withSuspense(LazyOpsCockpitPage, 'Chargement cockpit…')} />
+              <Route path="dossiers" element={withSuspense(LazyOpsDossiersPage, 'Chargement dossiers ops…')} />
+              <Route path="dossiers/:dossierId" element={withSuspense(LazyOpsDossierDetailPage, 'Chargement dossier ops…')} />
               <Route path="documents" element={<OpsPlaceholderPage title="Documents" description="Revue side-by-side, validation groupée et annotations — prévu Lot 2." ctaTo="/ops/dossiers" ctaLabel="Aller aux dossiers" />} />
               <Route path="relances" element={<OpsPlaceholderPage title="Relances" description="Suggestions de relance client, modèles d’email et suivi des retours — prévu Lot 2." />} />
               <Route path="depot" element={<OpsPlaceholderPage title="Dépôt guichet unique" description="File des dossiers prêts au dépôt et checklist GU — prévu Lot 2." ctaTo="/ops/dossiers?filter=ready:deposit" ctaLabel="Dossiers prêts" />} />
               <Route path="qualite" element={<OpsPlaceholderPage title="Qualité & anti-rejet" description="Contrôles qualité, scoring et revue des rejets — prévu Lot 2." ctaTo="/ops/cockpit" />} />
-              <Route path="equipe" element={<OpsEquipePage />} />
+              <Route path="equipe" element={withSuspense(LazyOpsEquipePage, 'Chargement équipe…')} />
               <Route path="audit" element={<OpsPlaceholderPage title="Audit ops" description="Journal complet des actions formalistes — prévu Lot 3." />} />
               <Route path="settings" element={<OpsPlaceholderPage title="Paramètres ops" description="Préférences cockpit, notifications et sandbox — prévu Lot 3." />} />
             </Route>
-            <Route path="/ops-legacy" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><OpsDashboardPage /></ProtectedRoute>} />
-            <Route path="/ops-observability" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><OpsLookupObservabilityPage /></ProtectedRoute>} />
+            <Route path="/ops-legacy" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}>{withSuspense(LazyOpsDashboardPage, 'Chargement ops…')}</ProtectedRoute>} />
+            <Route path="/ops-observability" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}>{withSuspense(LazyOpsLookupObservabilityPage, 'Chargement observabilité…')}</ProtectedRoute>} />
             <Route path="/paiement/verification" element={<PaymentVerificationPage />} />
 
             <Route path="/dashboard" element={<ProtectedRoute><DashboardEntry /></ProtectedRoute>} />
             <Route path="/mobile/search" element={<ProtectedRoute><MobileSearchPage /></ProtectedRoute>} />
             <Route path="/mobile/account" element={<ProtectedRoute><MobileAccountPage /></ProtectedRoute>} />
-            <Route path="/dossiers" element={<ProtectedRoute><DossiersPage /></ProtectedRoute>} />
-            <Route path="/dossier/:id" element={<ProtectedRoute><DossierDetailPage /></ProtectedRoute>} />
+            <Route path="/dossiers" element={<ProtectedRoute><DossiersEntry /></ProtectedRoute>} />
+            <Route path="/dossier/:id" element={<ProtectedRoute><DossierDetailEntry /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
-            <Route path="/dossier/:dossierId/declaration-non-condamnation" element={<ProtectedRoute><NonConvictionDeclarationPage /></ProtectedRoute>} />
+            <Route path="/dossier/:dossierId/declaration-non-condamnation" element={<ProtectedRoute>{withSuspense(LazyNonConvictionDeclarationPage, 'Chargement déclaration…')}</ProtectedRoute>} />
             <Route path="/dossier/:dossierId/liste-souscripteurs" element={<ProtectedRoute><SubscribersListPage /></ProtectedRoute>} />
             <Route path="/dossier/:dossierId/pouvoirs-formalites" element={<ProtectedRoute><FormalityPowersPage /></ProtectedRoute>} />
-            <Route path="/statuts" element={<ProtectedRoute><StatutesPage /></ProtectedRoute>} />
+            <Route path="/statuts" element={<ProtectedRoute>{withSuspense(LazyStatutesPage, 'Chargement statuts…')}</ProtectedRoute>} />
             <Route path="/signature/:token" element={<SignaturePublicPage />} />
-            <Route path="/chat" element={<ProtectedRoute><ChatIAPage /></ProtectedRoute>} />
-            <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+            <Route path="/chat" element={<ProtectedRoute>{withSuspense(LazyChatIAPage, 'Chargement assistant…')}</ProtectedRoute>} />
+            <Route path="/analytics" element={<ProtectedRoute>{withSuspense(LazyAnalyticsPage, 'Chargement analytics…')}</ProtectedRoute>} />
             <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
             <Route path="/interfaces" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><InterfacesPage /></ProtectedRoute>} />
             <Route path="/profil" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />

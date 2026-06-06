@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp.jsx';
 import { runtimeConfig } from '@/config/runtime.js';
+import { isMobileBrowserViewport } from '@/utils/platform.js';
 
 const MFA_MODES = {
   totp: 'totp',
@@ -35,6 +36,8 @@ export const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTarget = location.state?.from?.pathname || '/dashboard';
+  const mobileAuth = isMobileBrowserViewport();
+  const authInputClass = mobileAuth ? 'h-12 text-base md:h-10 md:text-sm' : '';
 
   const resetMfaState = () => {
     setMfaMode(MFA_MODES.totp);
@@ -172,7 +175,7 @@ export const LoginPage = () => {
                   <Label htmlFor="email">Email ou identifiant</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required className="pl-9" placeholder="vous@entreprise.fr" />
+                    <Input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required className={`pl-9 ${authInputClass}`} placeholder="vous@entreprise.fr" />
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -183,6 +186,7 @@ export const LoginPage = () => {
                     onChange={(event) => setPassword(event.target.value)}
                     placeholder="Votre mot de passe"
                     required
+                    className={authInputClass}
                   />
                 </div>
 

@@ -1,5 +1,6 @@
 import { runtimeConfig } from '@/config/runtime.js';
 import { getToken } from '@/utils/localStorage.js';
+import { apiPost } from '@/api/client.js';
 
 const authToken = () => {
   const token = getToken();
@@ -109,15 +110,8 @@ export const uploadDossierDocument = async ({
   formData.append('ownerLastName', ownerLastName || '');
   formData.append('file', file);
 
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}/documents`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${authToken()}`,
-    },
-    body: formData,
-  });
   try {
-    return await parseResponse(response);
+    return await apiPost(`/api/dossiers/${dossierId}/documents`, formData);
   } catch (error) {
     const mapped = new Error(mapDocumentUploadError(error));
     mapped.status = error?.status;

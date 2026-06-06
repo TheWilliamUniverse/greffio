@@ -19,6 +19,8 @@ import { disableBiometricUnlock, syncBiometricRefreshToken } from '@/utils/biome
 import { isCapacitorNative } from '@/utils/platform.js';
 import { initializeClientDataCache, purgeEphemeralClientData } from '@/utils/clientDataCache.js';
 import { setActiveSessionUserId } from '@/utils/sessionStore.js';
+import { setApiUnauthorizedHandler } from '@/api/client.js';
+import { clearAuthenticatedQueries } from '@/lib/queryClient.js';
 import { AppBootSplash } from '@/components/system/AppBootSplash.jsx';
 
 export const AuthContext = createContext(null);
@@ -38,6 +40,16 @@ const makeSession = (email, provider = 'email') => ({
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setApiUnauthorizedHandler(() => {
+      clearAllData();
+      purgeEphemeralClientData({ keepConsent: true });
+      clearAuthenticatedQueries();
+      setActiveSessionUserId(null);
+      setCurrentUser(null);
+    });
+  }, []);
 
   useEffect(() => {
     initializeClientDataCache(null);
@@ -228,6 +240,7 @@ export const AuthProvider = ({ children }) => {
     }
     clearAllData();
     purgeEphemeralClientData({ keepConsent: true });
+    clearAuthenticatedQueries();
     setActiveSessionUserId(null);
     initializeClientDataCache(null);
     if (userId) clearLoginAlertsConfiguredLocal(userId);
