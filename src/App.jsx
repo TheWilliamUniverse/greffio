@@ -42,6 +42,7 @@ import { ServiceLandingPage } from '@/pages/ServiceLandingPage.jsx';
 import { ServicesPage } from '@/pages/ServicesPage.jsx';
 import { NotFoundPage } from '@/pages/NotFoundPage.jsx';
 import { HomePage } from '@/pages/HomePage.jsx';
+import { OpsLookupObservabilityPage } from '@/pages/OpsLookupObservabilityPage.jsx';
 import { SERVICE_PAGE_SLUGS } from '@/config/serviceLandingPages.js';
 import { CookieConsentBanner } from '@/components/CookieConsentBanner.jsx';
 import { MobileAppShell } from '@/mobile/MobileAppShell.jsx';
