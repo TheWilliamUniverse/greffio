@@ -65,18 +65,21 @@ export const Header = () => {
                     <p className="mt-2 rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">{companyName}</p>
                   </div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
+                  <DropdownMenuItem asChild className="cursor-pointer focus:bg-muted focus:text-foreground data-[highlighted]:bg-muted data-[highlighted]:text-foreground">
                     <Link to="/profil" className="flex w-full cursor-pointer items-center">
                       <User className="mr-2 h-4 w-4" /> Mon profil
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
+                  <DropdownMenuItem asChild className="cursor-pointer focus:bg-muted focus:text-foreground data-[highlighted]:bg-muted data-[highlighted]:text-foreground">
                     <Link to="/settings" className="flex w-full cursor-pointer items-center">
                       <User className="mr-2 h-4 w-4" /> Paramètres
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="cursor-pointer text-destructive" onClick={handleLogout}>
+                  <DropdownMenuItem
+                    className="cursor-pointer text-destructive focus:bg-muted focus:text-destructive data-[highlighted]:bg-muted data-[highlighted]:text-destructive"
+                    onClick={handleLogout}
+                  >
                     <LogOut className="mr-2 h-4 w-4" /> Déconnexion
                   </DropdownMenuItem>
                 </DropdownMenuContent>
