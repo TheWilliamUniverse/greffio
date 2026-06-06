@@ -397,20 +397,24 @@ const transactionalTemplates = Object.freeze({
   statutes_generated: defineTemplate({
     subject: 'Votre projet de statuts est prêt',
     tags: ['dossier', 'statuts'],
-    requiredVariables: ['firstName', 'dossierNumber', 'statutesUrl', 'disclaimer'],
+    requiredVariables: ['firstName', 'dossierNumber', 'statutesUrl'],
     preheader: 'Votre projet de statuts est disponible.',
     textLines: [
       'Bonjour {{firstName}},',
       '',
-      'Votre projet de statuts pour le dossier {{dossierNumber}} est disponible.',
-      '{{disclaimer}}',
+      'Votre projet de statuts pour le dossier {{dossierNumber}} est prêt à être consulté.',
+      '',
+      'Merci de relire attentivement vos statuts avant signature ou dépôt.',
+      '',
+      'Nous vous remercions.',
       '',
       'Consulter mon projet : {{statutesUrl}}',
     ],
     bodyHtml: `
       <p style="margin:0 0 16px;">Bonjour <strong>{{firstName}}</strong>,</p>
       <p style="margin:0 0 16px;">Votre projet de statuts pour le dossier <strong>{{dossierNumber}}</strong> est prêt à être consulté.</p>
-      <p style="margin:0 0 16px;padding:12px 14px;background:#fefce8;border:1px solid #fde68a;border-radius:10px;font-size:14px;">{{disclaimer}}</p>
+      <p style="margin:0 0 16px;">Merci de relire attentivement vos statuts avant signature ou dépôt.</p>
+      <p style="margin:0 0 20px;">Nous vous remercions.</p>
       ${ctaButton('Consulter mon projet de statuts', '{{statutesUrl}}')}
     `,
   }),

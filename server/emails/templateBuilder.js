@@ -130,7 +130,7 @@ const normalizeEmailVariables = (variables = {}) => {
     blockReason: variables.blockReason || variables.motif_complement || '',
     actionRequired: variables.actionRequired || '',
     deadline: variables.deadline || 'Dès que possible',
-    disclaimer: variables.disclaimer || 'Ce projet est généré avec Assistant Greffio, propulsé par ChatGPT. Il doit être relu et validé avant signature ou dépôt.',
+    disclaimer: variables.disclaimer || 'Merci de relire attentivement vos statuts avant signature ou dépôt.',
     companyName: variables.companyName || '',
     companyNameSuffix: variables.companyName ? ` pour ${variables.companyName}` : '',
     riskScore: variables.riskScore || 'Non calculé',

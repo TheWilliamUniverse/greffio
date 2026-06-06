@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import {
   BadgeCheck,
   CircleHelp,
-  FileCheck2,
   FileText,
   FolderUp,
   Gavel,
@@ -16,11 +15,9 @@ import { Button } from '@/components/ui/button.jsx';
 import {
   CREATION_COMPANY_REQUIRED_DOCUMENTS,
   DEFAULT_REQUIRED_DOCUMENTS,
-  FILE_NAMING_EXAMPLES,
   GREFFIO_CONTACT,
   INPI_UPLOAD_RULES,
   MODIFICATION_REQUIRED_DOCUMENTS,
-  WORKFLOW_STATUSES,
 } from '@/config/legalFlow.js';
 
 const processTimeline = [
@@ -167,49 +164,12 @@ export const GuidePage = () => (
         ))}
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-[1fr_1fr]">
-        <article className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
-          <div className="mb-4 flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-extrabold">Exemples de noms de fichiers recommandés</h2>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {FILE_NAMING_EXAMPLES.map((example) => (
-              <code key={example} className="rounded bg-muted px-3 py-2 text-xs text-primary">
-                {example}
-              </code>
-            ))}
-          </div>
-        </article>
-
-        <article className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
-          <div className="mb-4 flex items-center gap-2">
-            <FileCheck2 className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-extrabold">Statuts internes du workflow dossier</h2>
-          </div>
-          <p className="mb-3 text-sm text-muted-foreground">Chaque statut peut déclencher un e-mail type cohérent dans le parcours client.</p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {WORKFLOW_STATUSES.map((status) => (
-              <span key={status} className="rounded bg-muted px-3 py-2 text-xs font-semibold text-foreground">
-                {status}
-              </span>
-            ))}
-          </div>
-        </article>
-      </section>
-
       <section className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
         <div className="mb-4 flex items-center gap-2">
           <FileText className="h-5 w-5 text-primary" />
           <h2 className="text-lg font-extrabold">FAQ opérationnelle (réponses rapides)</h2>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-md bg-muted p-4">
-            <p className="font-bold">Faut-il encore des ZIP maintenant que le backend est sur VPS ?</p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Non pour le déploiement applicatif normal. Le VPS sert en continu. Les ZIP restent utiles seulement pour archivage, transfert manuel exceptionnel ou livraison hors pipeline.
-            </p>
-          </div>
           <div className="rounded-md bg-muted p-4">
             <p className="font-bold">Quand demander la procuration ?</p>
             <p className="mt-2 text-sm text-muted-foreground">
