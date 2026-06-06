@@ -33,6 +33,20 @@ const ctaButton = (label, url) => `
   </table>
 `;
 
+const simpleNotificationText = (message) => [
+  'Bonjour {{prenom}},',
+  '',
+  message,
+  '',
+  'Nous vous remercions.',
+].join('\n');
+
+const simpleNotificationBody = (messageHtml) => `
+  <p style="margin:0 0 16px;">Bonjour {{prenom}},</p>
+  <p style="margin:0 0 16px;">${messageHtml}</p>
+  <p style="margin:0;">Nous vous remercions.</p>
+`;
+
 const wrapGreffioEmail = ({ preheader = '', bodyHtml }) => `
 <!DOCTYPE html>
 <html lang="fr">
@@ -164,6 +178,8 @@ export {
   defineTemplate,
   footerText,
   normalizeEmailVariables,
+  simpleNotificationBody,
+  simpleNotificationText,
   supportUrl,
   securityUrl,
   dashboardUrl,

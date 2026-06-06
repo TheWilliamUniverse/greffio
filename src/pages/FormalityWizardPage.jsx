@@ -223,6 +223,7 @@ export const FormalityWizardPage = () => {
   const { currentUser, isAuthenticated } = useAuth();
   const wizardPanelRef = useRef(null);
   const wizardNavRef = useRef(null);
+  const questionAnimationTimersRef = useRef([]);
   const draft = getProjectDraft();
   const requestedType = String(searchParams.get('type') || 'statuts').toLowerCase();
   const formalityPreset = resolveSimulatorFormFromQuery(searchParams.get('formality'));
@@ -442,18 +443,10 @@ export const FormalityWizardPage = () => {
     setQuestionnaireFinished(false);
   }, [questionMode, data.legalForm, data.journey]);
 
-  useEffect(() => {
-    if (questionExitPhase !== 'closing') return undefined;
-    const validatedTimer = window.setTimeout(() => setQuestionExitPhase('validated'), 520);
-    const doneTimer = window.setTimeout(() => {
-      setQuestionExitPhase('done');
-      setQuestionnaireFinished(true);
-    }, 1450);
-    return () => {
-      window.clearTimeout(validatedTimer);
-      window.clearTimeout(doneTimer);
-    };
-  }, [questionExitPhase]);
+  useEffect(() => () => {
+    questionAnimationTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+    questionAnimationTimersRef.current = [];
+  }, []);
 
   const update = (key, value) => {
     setData((current) => ({ ...current, [key]: value }));
@@ -489,7 +482,16 @@ export const FormalityWizardPage = () => {
 
   const completeLastQuestion = () => {
     if (!canAdvanceActiveQuestion() || !isLastQuestion || questionExitPhase) return;
+    questionAnimationTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+    questionAnimationTimersRef.current = [];
     setQuestionExitPhase('closing');
+    questionAnimationTimersRef.current.push(
+      window.setTimeout(() => setQuestionExitPhase('validated'), 520),
+      window.setTimeout(() => {
+        setQuestionExitPhase('done');
+        setQuestionnaireFinished(true);
+      }, 1450),
+    );
   };
 
   const tryWizardContinue = () => {
@@ -499,7 +501,7 @@ export const FormalityWizardPage = () => {
       setStep2Phase('questionnaire');
       return;
     }
-    if (step === 2 && step2Phase === 'questionnaire' && questionnaireFinished) {
+    if (step === 2 && step2Phase === 'questionnaire' && (questionnaireFinished || questionExitPhase === 'done')) {
       next();
       return;
     }
@@ -1461,7 +1463,8 @@ export const FormalityWizardPage = () => {
                 continueDisabled={
                   (step === 1 && !canContinueProjectSubStep())
                   || (step === 2 && step2Phase === 'profile' && !canContinueStep2Profile())
-                  || (step === 2 && step2Phase === 'questionnaire' && !questionnaireFinished && !canAdvanceActiveQuestion())
+                  || (step === 2 && step2Phase === 'questionnaire' && Boolean(questionExitPhase) && questionExitPhase !== 'done')
+                  || (step === 2 && step2Phase === 'questionnaire' && !questionnaireFinished && !questionExitPhase && !canAdvanceActiveQuestion())
                 }
                 showContinue={!(step === 1 && (projectSubStep === 2 || projectSubStep === 3))}
                 continueLabel={
@@ -1471,8 +1474,10 @@ export const FormalityWizardPage = () => {
                       ? 'Continuer'
                     : step === 2 && step2Phase === 'profile'
                       ? 'Passer au questionnaire'
-                    : step === 2 && step2Phase === 'questionnaire' && questionnaireFinished
+                    : step === 2 && step2Phase === 'questionnaire' && (questionnaireFinished || questionExitPhase === 'done')
                       ? 'Passer à la synthèse'
+                    : step === 2 && step2Phase === 'questionnaire' && questionExitPhase
+                      ? 'Validation…'
                     : step === 2 && step2Phase === 'questionnaire'
                       ? (isLastQuestion ? 'Valider' : 'Continuer')
                     : step === 1 && projectSubStep === 0 && contactStep < contactFields.length - 1
