@@ -4,6 +4,7 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import {
   formatAddress,
   formatDeclarantName,
+  formatFiliationClause,
   normalizeDeclarationFields,
 } from '../documents/declarationNonCondamnation/formatters.js';
 
@@ -13,21 +14,44 @@ if (!fs.existsSync(outputDir)) {
 }
 
 const MONTHS_FR = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-const MARGIN = 72;
-const PAGE_WIDTH = 595.28;
-const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
 
-const COLOR_TEXT = rgb(0.067, 0.094, 0.153);
-const COLOR_MUTED = rgb(0.42, 0.45, 0.51);
+const PAGE_WIDTH = 595.28;
+const PAGE_HEIGHT = 841.89;
+const MARGIN_TOP = 71;
+const MARGIN_BOTTOM = 57;
+const MARGIN_H = 71;
+const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_H * 2;
+const FOOTER_Y = 28;
+const SIGNATURE_COL_WIDTH = 204;
+
+const COLOR_TEXT = rgb(0, 0, 0);
+const COLOR_MUTED = rgb(0.2, 0.2, 0.2);
+
+const SIZE_OVERLINE = 11;
+const SIZE_TITLE = 15.5;
+const SIZE_BODY = 11.5;
+const SIZE_LEGAL = 9.8;
+const SIZE_FOOTER = 8.8;
+
+const LINE_BODY = SIZE_BODY * 1.5;
+const GAP_SECTION = 31;
+const GAP_AFTER_HEADER = 48;
+const GAP_AFTER_H2 = 11;
+const GAP_PARAGRAPH = 10;
+const GAP_BULLET = 8;
 
 const INVALID_DISPLAY_VALUES = new Set([
   'undefined', 'null', 'nan', 'invalid date', '[object object]',
   'true', 'false', 'w', 'g', 'l', 'test', 'parent',
 ]);
 
-const LEGAL_FOOTER = 'Article L. 123-5 du code de commerce (alinéa 1) — « Le fait de donner, de mauvaise foi, des indications inexactes ou incomplètes en vue d’une immatriculation, d’une radiation ou d’une mention complémentaire ou rectificative au registre du commerce et des sociétés est puni d’une amende de 4 500 € et d’un emprisonnement de 6 mois. »';
-
-const DECLARATION_BODY = 'Conformément à l’article A. 123-51 du code de commerce, n’avoir fait l’objet d’aucune condamnation pénale ni de sanction civile ou administrative de nature à m’interdire de gérer, administrer, diriger ou contrôler une personne morale, ou d’exercer une activité commerciale.';
+const DECLARATION_INTRO = 'Déclare sur l’honneur, conformément à l’article A. 123-51 du Code de commerce, n’avoir fait l’objet d’aucune condamnation pénale ni d’aucune sanction civile ou administrative de nature à m’interdire :';
+const BULLET_ITEMS = [
+  'de gérer, administrer, diriger ou contrôler une personne morale ;',
+  'ou d’exercer une activité commerciale.',
+];
+const LEGAL_INFO = 'Je reconnais avoir été informé que toute indication inexacte ou incomplète donnée de mauvaise foi dans le cadre d’une formalité au registre du commerce et des sociétés est susceptible d’entraîner les sanctions prévues par l’article L. 123-5 du Code de commerce.';
+const LEGAL_REMINDER = 'Rappel légal. Le fait de donner, de mauvaise foi, des indications inexactes ou incomplètes en vue d’une formalité au registre du commerce et des sociétés est puni des sanctions prévues par l’article L. 123-5 du Code de commerce.';
 
 export const formatFrenchDate = (value) => {
   if (!value) return '';
@@ -87,13 +111,7 @@ const buildFullAddress = (fields = {}) => {
   return [line1, line2, [postal, city].filter(Boolean).join(' '), country].filter(Boolean).join(', ');
 };
 
-const formatFiliationInline = (parent1, parent2) => {
-  const p1 = sanitizeDisplayValue(parent1, { fallback: '______________________________', minLength: 2 });
-  const p2 = sanitizeDisplayValue(parent2, { fallback: '______________________________', minLength: 2 });
-  return `de ${p1} et de ${p2}`;
-};
-
-const wrapText = (text, maxChars = 78) => {
+const wrapText = (text, maxChars = 82) => {
   const words = String(text || '').split(/\s+/).filter(Boolean);
   const lines = [];
   let current = '';
@@ -110,23 +128,7 @@ const wrapText = (text, maxChars = 78) => {
   return lines;
 };
 
-const drawWrappedLines = (page, font, y, text, { size = 11, lineHeight = 20, indent = 0, color = COLOR_TEXT } = {}) => {
-  const lines = wrapText(text, 82);
-  lines.forEach((line) => {
-    page.drawText(line, {
-      x: MARGIN + indent,
-      y,
-      size,
-      font,
-      color,
-      maxWidth: CONTENT_WIDTH - indent,
-    });
-    y -= lineHeight;
-  });
-  return y;
-};
-
-const drawCenteredText = (page, font, y, text, size) => {
+const drawCentered = (page, font, y, text, size) => {
   const textWidth = font.widthOfTextAtSize(text, size);
   page.drawText(text, {
     x: (PAGE_WIDTH - textWidth) / 2,
@@ -138,13 +140,57 @@ const drawCenteredText = (page, font, y, text, size) => {
   return y;
 };
 
+const drawLeftLines = (page, font, y, text, { size = SIZE_BODY, lineHeight = LINE_BODY, indent = 0 } = {}) => {
+  wrapText(text).forEach((line) => {
+    page.drawText(line, {
+      x: MARGIN_H + indent,
+      y,
+      size,
+      font,
+      color: COLOR_TEXT,
+      maxWidth: CONTENT_WIDTH - indent,
+    });
+    y -= lineHeight;
+  });
+  return y;
+};
+
+const drawSectionHeading = (page, fontBold, y, title) => {
+  page.drawText(title.toUpperCase(), {
+    x: MARGIN_H,
+    y,
+    size: SIZE_BODY,
+    font: fontBold,
+    color: COLOR_TEXT,
+  });
+  return y - GAP_AFTER_H2;
+};
+
+const drawParagraphGap = (y) => y - GAP_PARAGRAPH;
+
+const drawBulletList = (page, font, y, items) => {
+  const bulletIndent = 25;
+  items.forEach((item) => {
+    page.drawText('•', {
+      x: MARGIN_H + 6,
+      y,
+      size: SIZE_BODY,
+      font,
+      color: COLOR_TEXT,
+    });
+    y = drawLeftLines(page, font, y, item, { indent: bulletIndent });
+    y -= GAP_BULLET;
+  });
+  return y;
+};
+
 export const generateNonConvictionPdf = async ({ filename, fields: rawFields = {} }) => {
   const fields = normalizeDeclarationFields(rawFields);
   const targetPath = path.join(outputDir, filename);
   const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([PAGE_WIDTH, 841.89]);
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  const font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
 
   const declarantLine = formatDeclarantName({
     firstNames: fields.declarantFirstName,
@@ -164,88 +210,83 @@ export const generateNonConvictionPdf = async ({ filename, fields: rawFields = {
     minLength: 4,
   });
   const birthCity = sanitizeDisplayValue(fields.declarantBirthCity);
-  const parent1 = fields.parent1FullName || fields.fatherFullName;
-  const parent2 = fields.parent2FullName || fields.motherFullName;
-  const filiationInline = formatFiliationInline(parent1, parent2);
+  const parent1 = sanitizeDisplayValue(fields.parent1FullName || fields.fatherFullName);
+  const parent2 = sanitizeDisplayValue(fields.parent2FullName || fields.motherFullName);
+  const filiationClause = formatFiliationClause({ parent1, parent2 })
+    || 'enfant de ______________________________ et de ______________________________';
   const statementCity = sanitizeDisplayValue(fields.statementCity, { fallback: '______________________', minLength: 2 });
   const signatureDateFr = sanitizeDisplayValue(formatFrenchDate(fields.statementDate), {
     fallback: '____ / ____ / ______',
     minLength: 4,
   });
-  const signatureName = sanitizeDisplayValue(
-    fields.signatureFullName || declarantLine,
-    { fallback: '________________________________________', minLength: 2 },
-  );
 
-  let y = 760;
+  let y = PAGE_HEIGHT - MARGIN_TOP;
 
-  y = drawCenteredText(page, fontBold, y, 'DÉCLARATION DE NON-CONDAMNATION ET DE FILIATION', 14);
-  y -= 28;
-  y = drawCenteredText(
-    page,
-    font,
-    y,
-    'En application des dispositions de l’article A. 123-51 du code de commerce',
-    10,
-  );
+  y = drawCentered(page, fontBold, y, 'DÉCLARATION SUR L’HONNEUR', SIZE_OVERLINE);
+  y -= SIZE_TITLE * 1.25 + 4;
+  y = drawCentered(page, fontBold, y, 'DE NON-CONDAMNATION ET DE FILIATION', SIZE_TITLE);
+  y -= GAP_AFTER_HEADER;
+
+  y = drawSectionHeading(page, fontBold, y, 'Identité du déclarant');
+  y = drawLeftLines(page, font, y, `Je soussigné, ${declarantLine},`);
+  y = drawParagraphGap(y);
+  y = drawLeftLines(page, font, y, `né le ${birthDateFr} à ${birthCity},`);
+  y = drawParagraphGap(y);
+  y = drawLeftLines(page, font, y, `demeurant ${fullAddress},`);
+  y = drawParagraphGap(y);
+  y = drawLeftLines(page, font, y, `${filiationClause}.`);
+  y -= GAP_SECTION;
+
+  y = drawSectionHeading(page, fontBold, y, 'Déclaration');
+  y = drawLeftLines(page, font, y, DECLARATION_INTRO);
+  y = drawParagraphGap(y);
+  y = drawBulletList(page, font, y, BULLET_ITEMS);
+  y -= GAP_SECTION;
+
+  y = drawSectionHeading(page, fontBold, y, 'Information légale');
+  y = drawLeftLines(page, font, y, LEGAL_INFO);
   y -= 40;
 
-  const identityParagraph = `Je soussigné(e) ${declarantLine}, né(e) le ${birthDateFr} à ${birthCity}, ${filiationInline}, demeurant ${fullAddress}.`;
-  y = drawWrappedLines(page, font, y, identityParagraph, { size: 11, lineHeight: 22 });
-  y -= 24;
-
-  page.drawText('Déclare', {
-    x: MARGIN,
-    y,
-    size: 12,
-    font: fontBold,
-    color: COLOR_TEXT,
-  });
-  y -= 28;
-
-  y = drawWrappedLines(page, font, y, DECLARATION_BODY, { size: 11, lineHeight: 22 });
-  y -= 36;
-
+  const signatureColX = PAGE_WIDTH - MARGIN_H - SIGNATURE_COL_WIDTH;
   page.drawText(`Fait à ${statementCity}, le ${signatureDateFr}`, {
-    x: MARGIN,
+    x: MARGIN_H,
     y,
-    size: 11,
+    size: SIZE_BODY,
     font,
     color: COLOR_TEXT,
   });
-  y -= 40;
-
-  page.drawText('Signature :', {
-    x: MARGIN,
+  page.drawText('Signature du déclarant :', {
+    x: signatureColX,
     y,
-    size: 10.5,
-    font: fontBold,
+    size: SIZE_BODY,
+    font,
     color: COLOR_TEXT,
   });
-  y -= 56;
+  y -= 22;
   page.drawLine({
-    start: { x: MARGIN, y: y + 12 },
-    end: { x: MARGIN + 220, y: y + 12 },
-    thickness: 0.8,
+    start: { x: signatureColX, y },
+    end: { x: signatureColX + SIGNATURE_COL_WIDTH, y },
+    thickness: 0.7,
+    color: COLOR_TEXT,
+  });
+  y -= 52;
+
+  y = drawLeftLines(page, font, y, LEGAL_REMINDER, { size: SIZE_LEGAL, lineHeight: SIZE_LEGAL * 1.35 });
+
+  page.drawText('Déclaration de non-condamnation et de filiation', {
+    x: MARGIN_H,
+    y: FOOTER_Y,
+    size: SIZE_FOOTER,
+    font,
     color: COLOR_MUTED,
   });
-  page.drawText(signatureName, {
-    x: MARGIN,
-    y: y - 6,
-    size: 10,
+  const pageLabel = 'Page 1 sur 1';
+  page.drawText(pageLabel, {
+    x: PAGE_WIDTH - MARGIN_H - font.widthOfTextAtSize(pageLabel, SIZE_FOOTER),
+    y: FOOTER_Y,
+    size: SIZE_FOOTER,
     font,
-    color: COLOR_TEXT,
-  });
-
-  wrapText(LEGAL_FOOTER, 96).forEach((chunk, index) => {
-    page.drawText(chunk, {
-      x: MARGIN,
-      y: 72 - index * 11,
-      size: 8,
-      font,
-      color: COLOR_MUTED,
-      maxWidth: CONTENT_WIDTH,
-    });
+    color: COLOR_MUTED,
   });
 
   const pdfBytes = await pdfDoc.save();
