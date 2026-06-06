@@ -17,6 +17,11 @@ import { isInternalUser } from '@/utils/roles.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { toast } from 'sonner';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
+import {
+  documentHasFile,
+  getClientDocumentReviewHint,
+  resolveClientDocumentStatus,
+} from '@/utils/documentWorkflow.js';
 
 const mapDossierFromApi = (d) => {
   const questionnaire = parseJsonField(d.dataJson, {});
@@ -64,19 +69,29 @@ const mapDossierFromApi = (d) => {
   };
 };
 
-const mapDocumentsFromApi = (documents = []) => documents.map((doc) => ({
-  id: doc.id,
-  name: getDocumentTypeLabel(doc.docKey, doc.label),
-  type: getDocumentTypeLabel(doc.docKey, doc.label),
-  size: doc.fileSizeBytes ? `${Math.round(Number(doc.fileSizeBytes) / 1024)} Ko` : 'N/A',
-  providedBy: doc.reviewerId ? 'Greffio' : 'Client',
-  source: 'API',
-  status: String(doc.status || '').toUpperCase(),
-  date: doc.updatedAt || doc.createdAt,
-  dossierId: doc.dossierId,
-  reviewHint: parseJsonField(doc.metadata, {})?.analysis?.requiresManualReview ? 'Vérification manuelle requise' : 'Analyse auto OK',
-  confidence: parseJsonField(doc.metadata, {})?.analysis?.confidence ?? null,
-}));
+const mapDocumentsFromApi = (documents = [], { internalView = false } = {}) => documents.map((doc) => {
+  const metadata = parseJsonField(doc.metadata, {});
+  const hasFile = documentHasFile(doc);
+  const rawStatus = String(doc.status || '').toUpperCase();
+  const displayStatus = internalView ? rawStatus : resolveClientDocumentStatus({ ...doc, hasFile });
+  return {
+    id: doc.id,
+    name: getDocumentTypeLabel(doc.docKey, doc.label),
+    type: getDocumentTypeLabel(doc.docKey, doc.label),
+    size: doc.fileSizeBytes ? `${Math.round(Number(doc.fileSizeBytes) / 1024)} Ko` : 'N/A',
+    providedBy: doc.reviewerId ? 'Greffio' : 'Client',
+    source: internalView ? 'API' : null,
+    status: displayStatus,
+    date: doc.updatedAt || doc.createdAt,
+    dossierId: doc.dossierId,
+    docKey: doc.docKey,
+    hasFile,
+    reviewHint: internalView
+      ? (metadata?.analysis?.requiresManualReview ? 'Vérification manuelle requise' : 'Analyse auto OK')
+      : getClientDocumentReviewHint({ metadata }),
+    confidence: internalView ? (metadata?.analysis?.confidence ?? null) : null,
+  };
+});
 
 export const DossierDetailPage = () => {
   const { id } = useParams();
@@ -116,7 +131,7 @@ export const DossierDetailPage = () => {
           return;
         }
         setDossier(mapDossierFromApi(d));
-        setDocs(mapDocumentsFromApi(payload.documents || []));
+        setDocs(mapDocumentsFromApi(payload.documents || [], { internalView }));
         try {
           const profile = await fetchVerificationProfile(id);
           setVerificationProfile(profile);
@@ -272,6 +287,7 @@ export const DossierDetailPage = () => {
             profile={verificationProfile}
             onRun={handleRunVerification}
             running={verificationRunning}
+            internalView={internalView}
           />
 
           <Tabs defaultValue="progress" className="w-full">
@@ -306,7 +322,7 @@ export const DossierDetailPage = () => {
             <TabsContent value="documents" className="mt-5">
               <div className="overflow-hidden rounded-md border border-border bg-white shadow-elevation-sm">
                 {docs.length ? docs.map((document) => (
-                  <div key={document.id} className="grid gap-4 border-b border-border p-4 last:border-b-0 lg:grid-cols-[1fr_170px_150px_130px] lg:items-center">
+                  <div key={document.id} className={`grid gap-4 border-b border-border p-4 last:border-b-0 lg:items-center ${internalView ? 'lg:grid-cols-[1fr_170px_150px_130px]' : 'lg:grid-cols-[1fr_150px_130px]'}`}>
                     <div className="flex items-start gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-md bg-secondary text-primary">
                         <FileText className="h-5 w-5" />
@@ -319,12 +335,21 @@ export const DossierDetailPage = () => {
                             : 'En attente de dépôt'}
                           {' · '}fourni par {document.providedBy}
                         </p>
-                        <p className="mt-1 text-xs font-semibold text-primary">{document.reviewHint}{typeof document.confidence === 'number' ? ` (${document.confidence}%)` : ''}</p>
+                        {document.reviewHint ? (
+                          <p className="mt-1 text-xs font-semibold text-primary">
+                            {document.reviewHint}
+                            {typeof document.confidence === 'number' ? ` (${document.confidence}%)` : ''}
+                          </p>
+                        ) : null}
                       </div>
                     </div>
-                    <span className="text-sm font-semibold text-foreground">{document.source}</span>
+                    {internalView ? (
+                      <span className="text-sm font-semibold text-foreground">{document.source}</span>
+                    ) : null}
                     <StatusBadge status={document.status} className="w-fit" />
-                    <Button variant="outline" size="sm" className="bg-white">Aperçu</Button>
+                    <Button variant="outline" size="sm" className="bg-white" disabled={!document.hasFile}>
+                      Aperçu
+                    </Button>
                   </div>
                 )) : (
                   <div className="p-5 text-sm text-muted-foreground">Aucun document n’est encore relié à ce dossier.</div>

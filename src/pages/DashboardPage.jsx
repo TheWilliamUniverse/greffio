@@ -20,7 +20,6 @@ import { Card, CardContent } from '@/components/ui/card.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 import { getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.js';
 import { syncCurrentDossierId } from '@/utils/documentEditorErrors.js';
-import { getDossierById, listDossiers } from '@/api/dossiers.js';
 import { fetchUserProfile } from '@/api/profile.js';
 import { LoginAlertsPromptBanner } from '@/components/security/LoginAlertsPromptBanner.jsx';
 import { RememberMfaDeviceBanner } from '@/components/security/RememberMfaDeviceBanner.jsx';
@@ -28,18 +27,88 @@ import { isEiLikeFormality } from '@/config/formalities.js';
 import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 import { isLoginAlertsConfigured, getLoginAlertsSettings, rememberLoginAlertsChoice } from '@/utils/userProfile.js';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
-import { countActionableDocuments } from '@/utils/documentWorkflow.js';
+import { countActionableDocuments, resolveClientDocumentStatus, documentHasFile } from '@/utils/documentWorkflow.js';
+import { useDossierQuery } from '@/hooks/queries/useDossierQuery.js';
+import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
 
 export const DashboardPage = () => {
   const { currentUser, updateProfile } = useAuth();
-  const [dossiers, setDossiers] = useState([]);
-  const [documents, setDocuments] = useState([]);
+  const { data: dossiersRaw = [], isLoading: loadingApi } = useDossiersQuery(currentUser?.id);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const notifications = [];
-  const [loadingApi, setLoadingApi] = useState(true);
   const [showLoginAlertsPrompt, setShowLoginAlertsPrompt] = useState(
     () => !isLoginAlertsConfigured(currentUser),
   );
+  const [activeDossierId, setActiveDossierId] = useState(() => getCurrentDossierId());
+  const { data: activeDossierPayload } = useDossierQuery(activeDossierId);
+
+  useEffect(() => {
+    const dossierIds = dossiersRaw.map((dossier) => dossier.id).filter(Boolean);
+    const syncedId = syncCurrentDossierId(dossierIds);
+    const nextId = syncedId || dossierIds[0] || null;
+    if (nextId && !getCurrentDossierId()) {
+      saveCurrentDossierId(nextId);
+    }
+    setActiveDossierId(nextId);
+  }, [dossiersRaw]);
+
+  const dossiers = useMemo(() => dossiersRaw.map((dossier) => ({
+    id: dossier.id,
+    name: dossier.companyName || dossier.denomination || 'Dossier entreprise',
+    legalForm: dossier.legalForm || dossier.formeJuridique || 'SASU',
+    owner: currentUser?.firstName || 'Client',
+    status: String(dossier.status || '').toUpperCase(),
+    phase: resolveFormalityPublicLabel({
+      service: dossier.service,
+      typeFormalite: dossier.typeFormalite,
+      formeJuridique: dossier.legalForm || dossier.formeJuridique,
+      legalForm: dossier.legalForm,
+    }),
+    nextAction: 'Suivre la checklist et compléter les pièces demandées.',
+    expert: dossier.assignedToUserId || 'Équipe Greffio',
+    createdAt: dossier.createdAt,
+    dueDate: dossier.updatedAt || dossier.createdAt,
+    progress: Number(dossier.progressPercent || 0),
+    currentStep: Math.max(1, Math.round(Number(dossier.progressPercent || 0) / 20)),
+    totalSteps: 5,
+    blockers: [],
+    steps: [],
+    project: {
+      initiatorType: 'personne_physique',
+      initiatorName: currentUser?.firstName || 'Client',
+      companyName: dossier.companyName || dossier.denomination,
+      siren: '',
+      nationality: '',
+      companyCountry: '',
+    },
+  })), [dossiersRaw, currentUser?.firstName]);
+
+  const documents = useMemo(() => {
+    const dossier = activeDossierPayload?.dossier;
+    if (!dossier) return [];
+    const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+    const eiLike = isEiLikeFormality({
+      legalForm: dossier.legalForm || questionnaire.formeJuridique,
+      typeFormalite: questionnaire.typeFormalite,
+      service: dossier.service,
+    });
+    return (activeDossierPayload.documents || [])
+      .filter((doc) => !(eiLike && (doc.docKey === 'signed_statutes' || doc.docKey === 'capital_certificate')))
+      .map((doc) => {
+        const hasFile = documentHasFile(doc);
+        const status = resolveClientDocumentStatus({ ...doc, hasFile });
+        return {
+          id: doc.id,
+          dossierId: doc.dossierId,
+          name: getDocumentTypeLabel(doc.docKey, doc.label),
+          status,
+          type: doc.docKey,
+          size: doc.fileSizeBytes ? `${Math.round(Number(doc.fileSizeBytes) / 1024)} Ko` : 'N/A',
+          providedBy: doc.reviewerId ? 'Greffio' : 'Client',
+          date: doc.updatedAt || doc.createdAt,
+        };
+      });
+  }, [activeDossierPayload]);
 
   useEffect(() => {
     if (isLoginAlertsConfigured(currentUser)) {
@@ -72,87 +141,6 @@ export const DashboardPage = () => {
     };
   }, [currentUser?.id]);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const listPayload = await listDossiers();
-        const apiDossiers = Array.isArray(listPayload?.dossiers) ? listPayload.dossiers : [];
-        const normalized = [];
-        for (const dossier of apiDossiers) {
-          const detail = await getDossierById(dossier.id);
-          const questionnaire = detail?.dossier?.dataJson ? JSON.parse(detail.dossier.dataJson) : {};
-          normalized.push({
-            id: dossier.id,
-            name: dossier.companyName || dossier.denomination || 'Dossier entreprise',
-            legalForm: dossier.legalForm || dossier.formeJuridique || 'SASU',
-            owner: currentUser?.firstName || 'Client',
-            status: String(dossier.status || '').toUpperCase(),
-            phase: resolveFormalityPublicLabel({
-              service: dossier.service,
-              typeFormalite: questionnaire.typeFormalite,
-              formeJuridique: dossier.legalForm || dossier.formeJuridique || questionnaire.formeJuridique,
-              legalForm: dossier.legalForm,
-            }),
-            nextAction: 'Suivre la checklist et compléter les pièces demandées.',
-            expert: dossier.assignedToUserId || 'Équipe Greffio',
-            createdAt: dossier.createdAt,
-            dueDate: dossier.updatedAt || dossier.createdAt,
-            progress: Number(dossier.progressPercent || 0),
-            currentStep: Math.max(1, Math.round(Number(dossier.progressPercent || 0) / 20)),
-            totalSteps: 5,
-            blockers: [],
-            steps: [],
-            project: {
-              initiatorType: questionnaire.initiatorType || 'personne_physique',
-              initiatorName: [questionnaire.firstName, questionnaire.lastName].filter(Boolean).join(' ') || currentUser?.firstName || 'Client',
-              companyName: questionnaire.companyName || questionnaire.existingBusinessName || dossier.companyName,
-              siren: questionnaire.companySiren || questionnaire.existingBusinessSiren || '',
-              nationality: questionnaire.nationality || '',
-              companyCountry: questionnaire.companyCountry || '',
-            },
-          });
-        }
-        setDossiers(normalized);
-        syncCurrentDossierId(normalized.map((dossier) => dossier.id));
-
-        const currentDossierId = getCurrentDossierId() || normalized[0]?.id;
-        if (currentDossierId && !getCurrentDossierId()) {
-          saveCurrentDossierId(currentDossierId);
-        }
-        if (!currentDossierId) {
-          setDocuments([]);
-        } else {
-          const payload = await getDossierById(currentDossierId);
-          const dossier = payload.dossier;
-          const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
-          const eiLike = isEiLikeFormality({
-            legalForm: dossier.legalForm || questionnaire.formeJuridique,
-            typeFormalite: questionnaire.typeFormalite,
-            service: dossier.service,
-          });
-          setDocuments((payload.documents || [])
-            .filter((doc) => !(eiLike && (doc.docKey === 'signed_statutes' || doc.docKey === 'capital_certificate')))
-            .map((doc) => ({
-              id: doc.id,
-              dossierId: doc.dossierId,
-              name: getDocumentTypeLabel(doc.docKey, doc.label),
-              status: String(doc.status || '').toUpperCase(),
-              type: doc.docKey,
-              size: doc.fileSizeBytes ? `${Math.round(Number(doc.fileSizeBytes) / 1024)} Ko` : 'N/A',
-              source: 'API',
-              providedBy: doc.reviewerId ? 'Greffio' : 'Client',
-              date: doc.updatedAt || doc.createdAt,
-            })));
-        }
-      } catch (_error) {
-        setDossiers([]);
-        setDocuments([]);
-      } finally {
-        setLoadingApi(false);
-      }
-    };
-    void load();
-  }, [currentUser?.firstName]);
   const today = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
   const activeDossiers = dossiers.filter((dossier) => dossier.status !== 'VALIDE' && dossier.status !== 'TERMINE').length;
   const documentsToReview = countActionableDocuments(documents);
@@ -168,10 +156,24 @@ export const DashboardPage = () => {
     { label: 'Progression globale', value: dossiers.length ? `${averageProgress}%` : '0%', icon: ShieldCheck, text: dossiers.length ? 'calculée depuis vos dossiers' : 'en attente de projet' },
     { label: 'Échéance proche', value: nextDueDate, icon: CalendarDays, text: dossiers.length ? 'prochaine action réelle' : 'aucune échéance' },
   ];
-  const declarantProfile = dossiers[0]?.project?.initiatorType
+  const profile = useMemo(() => {
+    const questionnaire = activeDossierPayload?.dossier?.dataJson
+      ? JSON.parse(activeDossierPayload.dossier.dataJson)
+      : {};
+    return {
+      initiatorType: questionnaire.initiatorType || 'personne_physique',
+      initiatorName: [questionnaire.firstName, questionnaire.lastName].filter(Boolean).join(' ')
+        || currentUser?.firstName
+        || 'Client',
+      companyName: questionnaire.companyName || questionnaire.existingBusinessName || activeDossierPayload?.dossier?.companyName,
+      siren: questionnaire.companySiren || questionnaire.existingBusinessSiren || '',
+      nationality: questionnaire.nationality || '',
+      companyCountry: questionnaire.companyCountry || '',
+    };
+  }, [activeDossierPayload, currentUser?.firstName]);
+  const declarantProfile = profile.initiatorType
     || (documents.some((item) => item.type === 'ubo_declaration') ? 'personne_morale' : 'personne_physique');
   const declarantLabel = declarantProfile === 'personne_morale' ? 'Personne morale' : 'Personne physique';
-  const profile = dossiers[0]?.project || {};
 
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background">
@@ -206,7 +208,7 @@ export const DashboardPage = () => {
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
                   Votre espace affiche vos dossiers, documents et messages en temps réel, avec un parcours adapté aux personnes physiques et morales.
                 </p>
-                {loadingApi ? <p className="mt-2 text-xs text-muted-foreground">Synchronisation API en cours...</p> : null}
+                {loadingApi ? <p className="mt-2 text-xs text-muted-foreground">Chargement de votre espace…</p> : null}
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button asChild variant="outline" className="bg-white">

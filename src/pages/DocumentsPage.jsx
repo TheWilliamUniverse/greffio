@@ -1,38 +1,67 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Archive, CheckCircle2, Eye, FilePlus2, FileText, Search, ShieldCheck, Trash2, Upload } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { INPI_UPLOAD_RULES } from '@/config/legalFlow.js';
+import { isEiLikeFormality } from '@/config/formalities.js';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
 import { syncCurrentDossierId } from '@/utils/documentEditorErrors.js';
-import { getDossierById, listDossiers } from '@/api/dossiers.js';
+import {
+  deleteDossierDocument,
+  downloadDossierDocument,
+  getDossierDocumentEditor,
+  saveDossierDocumentEditor,
+  uploadDossierDocument,
+} from '@/api/documents.js';
 import { IdentityVerificationCard } from '@/components/identity/IdentityVerificationCard.jsx';
+import { useAuth } from '@/hooks/useAuth.js';
+import { useDossierQuery } from '@/hooks/queries/useDossierQuery.js';
+import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
+import { queryKeys } from '@/hooks/queries/queryKeys.js';
+import { isInternalUser } from '@/utils/roles.js';
+import { getDocumentStatusLabel, getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
+import { documentHasFile, resolveClientDocumentStatus } from '@/utils/documentWorkflow.js';
 
 export const DocumentsPage = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { currentUser } = useAuth();
+  const internalView = isInternalUser(currentUser);
+  const { data: dossiersList = [], isLoading: loadingDossiers } = useDossiersQuery(currentUser?.id);
   const [query, setQuery] = useState('');
   const [type, setType] = useState('Tous');
   const [uploading, setUploading] = useState(false);
-  const [apiDocuments, setApiDocuments] = useState([]);
   const [selectedDocKey, setSelectedDocKey] = useState('identity_proof');
   const [uploadError, setUploadError] = useState(null);
   const [uploadSuccess, setUploadSuccess] = useState('');
-  const [dossierFormalityMeta, setDossierFormalityMeta] = useState({});
   const [editorData, setEditorData] = useState(null);
   const [editorSaving, setEditorSaving] = useState(false);
   const [deletingDocKey, setDeletingDocKey] = useState(null);
   const [uploadingDocKey, setUploadingDocKey] = useState(null);
   const rowUploadRef = useRef(null);
   const pendingUploadDocKey = useRef(null);
-  const [dossierAccessError, setDossierAccessError] = useState('');
   const [resolvedDossierId, setResolvedDossierId] = useState(() => getCurrentDossierId());
-  const user = getUser();
-  const internalView = isInternalUser(user);
+  const {
+    data: dossierPayload,
+    isLoading: loadingDossier,
+    isError: dossierLoadError,
+  } = useDossierQuery(resolvedDossierId);
+  const apiDocuments = dossierPayload?.documents || [];
+  const dossierAccessError = useMemo(() => {
+    if (loadingDossiers || loadingDossier) return '';
+    if (!resolvedDossierId) return 'Aucun dossier actif. Ouvrez un dossier depuis le tableau de bord.';
+    if (dossierLoadError) return 'Impossible de charger ce dossier. Sélectionnez-en un autre depuis « Dossiers ».';
+    return '';
+  }, [loadingDossiers, loadingDossier, resolvedDossierId, dossierLoadError]);
   const normalizedDocuments = useMemo(() => apiDocuments.map((item) => {
     const displayLabel = getDocumentTypeLabel(item.docKey, item.label);
+    const hasFile = documentHasFile(item);
+    const rawStatus = String(item.status || '').toUpperCase();
+    const displayStatus = internalView ? rawStatus : resolveClientDocumentStatus({ ...item, hasFile });
     return {
       id: item.id,
       docKey: item.docKey,
@@ -40,17 +69,24 @@ export const DocumentsPage = () => {
       name: displayLabel,
       label: displayLabel,
       type: displayLabel,
-      status: String(item.status || '').toUpperCase(),
-      statusLabel: getDocumentStatusLabel(item.status),
+      status: displayStatus,
+      statusLabel: getDocumentStatusLabel(displayStatus),
       date: item.updatedAt || item.uploadedAt || item.createdAt || null,
-      hasFile: Boolean(item.filename || item.storageUrl || item.fileUrl),
-      canUpload: String(item.status || '').toLowerCase() !== 'valid',
+      hasFile,
+      canUpload: !['VALID', 'VALIDATED', 'SIGNED'].includes(displayStatus),
     };
-  }), [apiDocuments]);
+  }), [apiDocuments, internalView]);
   const dossierMeta = useMemo(() => {
-    const first = apiDocuments[0]?.metadata?.dossier || {};
-    return { ...first, ...dossierFormalityMeta };
-  }, [apiDocuments, dossierFormalityMeta]);
+    const questionnaire = dossierPayload?.dossier?.dataJson
+      ? JSON.parse(dossierPayload.dossier.dataJson)
+      : {};
+    return {
+      legalForm: dossierPayload?.dossier?.legalForm,
+      formeJuridique: questionnaire?.formeJuridique,
+      service: dossierPayload?.dossier?.service,
+      typeFormalite: questionnaire?.typeFormalite,
+    };
+  }, [dossierPayload]);
   const eiLike = isEiLikeFormality({
     legalForm: dossierMeta.legalForm,
     formeJuridique: dossierMeta.formeJuridique,
@@ -90,44 +126,14 @@ export const DocumentsPage = () => {
   }), [normalizedDocuments, query, type]);
 
   useEffect(() => {
-    const load = async () => {
-      setDossierAccessError('');
-      try {
-        const listPayload = await listDossiers();
-        const dossierIds = (listPayload?.dossiers || []).map((item) => item.id).filter(Boolean);
-        const dossierId = syncCurrentDossierId(dossierIds);
-        setResolvedDossierId(dossierId);
-        if (!dossierId) {
-          setApiDocuments([]);
-          setDossierAccessError('Aucun dossier actif. Ouvrez un dossier depuis le tableau de bord.');
-          return;
-        }
-        const items = await getDossierDocuments(dossierId);
-        setApiDocuments(items);
-        const payload = await getDossierById(dossierId);
-        const q = payload?.dossier?.dataJson ? JSON.parse(payload.dossier.dataJson) : {};
-        setDossierFormalityMeta({
-          legalForm: payload?.dossier?.legalForm,
-          formeJuridique: q?.formeJuridique,
-          service: payload?.dossier?.service,
-          typeFormalite: q?.typeFormalite,
-        });
-      } catch (_error) {
-        setApiDocuments([]);
-        setDossierAccessError('Impossible de charger ce dossier. Sélectionnez-en un autre depuis « Dossiers ».');
-      }
-    };
-    void load();
-  }, []);
+    const dossierIds = dossiersList.map((item) => item.id).filter(Boolean);
+    const dossierId = syncCurrentDossierId(dossierIds);
+    setResolvedDossierId(dossierId);
+  }, [dossiersList]);
 
-  const reloadDocuments = async () => {
+  const invalidateDossierDocuments = async () => {
     if (!resolvedDossierId) return;
-    try {
-      const items = await getDossierDocuments(resolvedDossierId);
-      setApiDocuments(items);
-    } catch (_error) {
-      // keep current list
-    }
+    await queryClient.invalidateQueries({ queryKey: queryKeys.dossier(resolvedDossierId) });
   };
 
   const uploadPdfFile = async (docKey, file) => {
@@ -150,10 +156,10 @@ export const DocumentsPage = () => {
         dossierId: resolvedDossierId,
         docKey,
         file,
-        ownerFirstName: user?.firstName || '',
-        ownerLastName: user?.lastName || '',
+        ownerFirstName: currentUser?.firstName || '',
+        ownerLastName: currentUser?.lastName || '',
       });
-      setApiDocuments(payload.documents || []);
+      await invalidateDossierDocuments();
       if (payload.warning) {
         setUploadSuccess(payload.warning);
       } else if (payload.analysis?.requiresManualReview) {
@@ -226,12 +232,12 @@ export const DocumentsPage = () => {
     if (!editorData || !resolvedDossierId) return;
     setEditorSaving(true);
     try {
-      const payload = await saveDossierDocumentEditor({
+      await saveDossierDocumentEditor({
         dossierId: resolvedDossierId,
         docKey: 'manager_non_conviction',
         fields: editorData.fields || {},
       });
-      setApiDocuments(payload.documents || []);
+      await invalidateDossierDocuments();
       setUploadSuccess('Document PDF généré et attaché au dossier.');
       setEditorData(null);
     } catch (error) {
@@ -267,8 +273,8 @@ export const DocumentsPage = () => {
     setUploadSuccess('');
     setDeletingDocKey(docKey);
     try {
-      const payload = await deleteDossierDocument({ dossierId: resolvedDossierId, docKey });
-      setApiDocuments(payload.documents || []);
+      await deleteDossierDocument({ dossierId: resolvedDossierId, docKey });
+      await invalidateDossierDocuments();
       setUploadSuccess('Pièce jointe supprimée.');
     } catch (error) {
       setUploadError(error?.message || 'La suppression a échoué.');
@@ -373,7 +379,7 @@ export const DocumentsPage = () => {
             <IdentityVerificationCard
               dossierId={resolvedDossierId}
               identityDocUploaded={identityDocUploaded}
-              onVerificationUpdated={() => { void reloadDocuments(); }}
+              onVerificationUpdated={() => { void invalidateDossierDocuments(); }}
             />
           ) : null}
 

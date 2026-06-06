@@ -2,7 +2,17 @@ import React from 'react';
 import { ShieldCheck, AlertTriangle } from 'lucide-react';
 import { RiskBadge } from '@/components/verification/RiskBadge.jsx';
 
-export const VerificationStatusCard = ({ profile, onRun, running = false }) => {
+const COMPANY_STATUS_LABELS = {
+  CHECKED: 'Identifiée',
+  NOT_CHECKED: 'En cours de vérification',
+};
+
+export const VerificationStatusCard = ({
+  profile,
+  onRun,
+  running = false,
+  internalView = false,
+}) => {
   if (!profile) {
     return (
       <div className="rounded-2xl border border-border bg-white p-5">
@@ -29,6 +39,8 @@ export const VerificationStatusCard = ({ profile, onRun, running = false }) => {
     );
   }
 
+  const companyLabel = COMPANY_STATUS_LABELS[profile.company_status] || profile.company_status || '—';
+
   return (
     <div className="rounded-2xl border border-border bg-white p-5">
       <div className="flex items-center justify-between gap-3">
@@ -38,16 +50,24 @@ export const VerificationStatusCard = ({ profile, onRun, running = false }) => {
             : <AlertTriangle className="h-5 w-5 text-amber-600" />}
           <h3 className="font-extrabold">Vérifications du dossier</h3>
         </div>
-        <RiskBadge level={profile.risk_level} />
+        {internalView ? <RiskBadge level={profile.risk_level} /> : null}
       </div>
-      <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
-        <div><dt className="text-muted-foreground">Complétude</dt><dd className="font-semibold">{Math.round(Number(profile.completeness_score || 0))}%</dd></div>
-        <div><dt className="text-muted-foreground">Entreprise</dt><dd className="font-semibold">{profile.company_status || '—'}</dd></div>
+      <dl className={`mt-4 grid gap-2 text-sm ${internalView ? 'sm:grid-cols-2' : ''}`}>
+        <div>
+          <dt className="text-muted-foreground">Complétude</dt>
+          <dd className="font-semibold">{Math.round(Number(profile.completeness_score || 0))}%</dd>
+        </div>
+        {internalView ? (
+          <div>
+            <dt className="text-muted-foreground">Entreprise</dt>
+            <dd className="font-semibold">{companyLabel}</dd>
+          </div>
+        ) : null}
       </dl>
       <p className="mt-3 text-xs text-muted-foreground">
         Pré-vérification Greffio uniquement. Les formalités officielles restent soumises aux organismes compétents.
       </p>
-      {onRun ? (
+      {internalView && onRun ? (
         <button
           type="button"
           onClick={onRun}

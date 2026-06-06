@@ -1,6 +1,6 @@
 import { runtimeConfig } from '@/config/runtime.js';
 import { getToken } from '@/utils/localStorage.js';
-import { apiPost } from '@/api/client.js';
+import { apiDelete, apiFetch, apiGet, apiPost } from '@/api/client.js';
 
 const authToken = () => {
   const token = getToken();
@@ -80,15 +80,8 @@ const mapDocumentDeleteError = (error) => {
 };
 
 export const deleteDossierDocument = async ({ dossierId, docKey }) => {
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}/documents/${encodeURIComponent(docKey)}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${authToken()}`,
-    },
-  });
   try {
-    return await parseResponse(response);
+    return await apiDelete(`/api/dossiers/${dossierId}/documents/${encodeURIComponent(docKey)}`);
   } catch (error) {
     const mapped = new Error(mapDocumentDeleteError(error));
     mapped.status = error?.status;
@@ -121,14 +114,7 @@ export const uploadDossierDocument = async ({
 };
 
 export const getDossierDocuments = async (dossierId) => {
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${authToken()}`,
-    },
-  });
-  const payload = await parseResponse(response);
+  const payload = await apiGet(`/api/dossiers/${dossierId}`);
   return payload.documents || [];
 };
 
@@ -164,28 +150,13 @@ export const downloadDossierDocument = async ({ dossierId, docKey, cacheBust = f
   return { filename, blob };
 };
 
-export const getDossierDocumentEditor = async ({ dossierId, docKey }) => {
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}/documents/${docKey}/editor`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${authToken()}`,
-    },
-  });
-  return parseResponse(response);
-};
+export const getDossierDocumentEditor = async ({ dossierId, docKey }) => (
+  apiGet(`/api/dossiers/${dossierId}/documents/${docKey}/editor`)
+);
 
 export const saveDossierDocumentEditor = async ({ dossierId, docKey, fields }) => {
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}/documents/${docKey}/editor`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${authToken()}`,
-    },
-    body: JSON.stringify({ fields }),
-  });
   try {
-    return await parseResponse(response);
+    return await apiPost(`/api/dossiers/${dossierId}/documents/${docKey}/editor`, { fields });
   } catch (error) {
     const mapped = new Error(mapDocumentEditorError(error));
     mapped.status = error?.status;
