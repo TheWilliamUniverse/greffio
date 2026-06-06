@@ -15,14 +15,22 @@ import {
   signNonConvictionNow,
 } from '@/api/nonConviction.js';
 import { runtimeConfig } from '@/config/runtime.js';
+import { getDeclarationErrorMessage } from '@/utils/declarationErrors.js';
 
 const OFFICIAL_SIMULATOR = 'https://www.service-public.gouv.fr/simulateur/calcul/DeclarationDeNonCondamnationEtDeFiliation';
 
+const mapError = (error) => getDeclarationErrorMessage(error?.code || error?.message, error?.payload);
+
 const normalizeFields = (fields = {}) => {
   const signatureFullName = String(fields.signatureFullName || '').trim()
-    || `${fields.declarantFirstName || ''} ${fields.declarantLastName || ''}`.trim();
+    || [fields.declarantFirstName, fields.declarantBirthName || fields.declarantLastName].filter(Boolean).join(' ').trim();
+  const parent2FullName = [fields.parent2FirstNames, fields.parent2BirthName].filter(Boolean).join(' ').trim()
+    || fields.parent2FullName
+    || '';
   return {
     ...fields,
+    declarantBirthName: fields.declarantBirthName || fields.declarantLastName || '',
+    parent2FullName,
     signatureFullName,
     declarationNonCondamnation: fields.declarationNonCondamnation !== false,
     declarationFiliation: fields.declarationFiliation !== false,
@@ -51,7 +59,7 @@ export const NonConvictionDeclarationPage = () => {
         } else if (code === 'DOCUMENT_EDITOR_LOAD_FAILED') {
           toast.error('Erreur serveur documents. Réessayez dans quelques instants.');
         } else {
-          toast.error('Impossible de charger le formulaire.');
+          toast.error(mapError(error));
         }
       }
     };
@@ -83,7 +91,7 @@ export const NonConvictionDeclarationPage = () => {
       setPreviewKey((k) => k + 1);
       toast.success('Aperçu PDF généré.');
     } catch (error) {
-      toast.error(error?.message || 'Génération impossible.');
+      toast.error(mapError(error));
     } finally {
       setSaving(false);
     }
@@ -95,8 +103,17 @@ export const NonConvictionDeclarationPage = () => {
       await signNonConvictionNow(dossierId, { fields: normalizeFields(fields), ...signaturePayload });
       toast.success('Déclaration signée et archivée.');
       setSignMode(null);
+      const { blob } = await downloadDossierDocument({
+        dossierId,
+        docKey: 'manager_non_conviction',
+      });
+      setPreviewBlobUrl((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return URL.createObjectURL(blob);
+      });
+      setPreviewKey((k) => k + 1);
     } catch (error) {
-      toast.error(error?.message || 'Signature impossible.');
+      toast.error(mapError(error));
     } finally {
       setSaving(false);
     }
@@ -113,7 +130,7 @@ export const NonConvictionDeclarationPage = () => {
       toast.success('Email de signature envoyé.');
       setSignMode(null);
     } catch (error) {
-      toast.error(error?.message || 'Envoi impossible.');
+      toast.error(mapError(error));
     } finally {
       setSaving(false);
     }
@@ -161,8 +178,31 @@ export const NonConvictionDeclarationPage = () => {
                 <Input className="mt-1" value={fields.declarantFirstName || ''} onChange={(e) => updateField('declarantFirstName', e.target.value)} />
               </div>
               <div>
-                <Label>Nom</Label>
-                <Input className="mt-1" value={fields.declarantLastName || ''} onChange={(e) => updateField('declarantLastName', e.target.value)} />
+                <Label>Nom de naissance</Label>
+                <Input
+                  className="mt-1"
+                  value={fields.declarantBirthName || fields.declarantLastName || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFields((current) => ({
+                      ...current,
+                      declarantBirthName: value,
+                      declarantLastName: value,
+                    }));
+                  }}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Nom d&apos;usage, le cas échéant</Label>
+                <Input
+                  className="mt-1"
+                  value={fields.declarantUsageName || ''}
+                  onChange={(e) => updateField('declarantUsageName', e.target.value)}
+                  placeholder="Laisser vide si aucun nom d’usage"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Le nom de naissance figure sur l&apos;acte de naissance. Le nom d&apos;usage est facultatif.
+                </p>
               </div>
               <div>
                 <Label>Date de naissance</Label>
@@ -185,12 +225,25 @@ export const NonConvictionDeclarationPage = () => {
                 <Input className="mt-1" value={fields.city || ''} onChange={(e) => updateField('city', e.target.value)} />
               </div>
               <div className="sm:col-span-2">
-                <Label>Père (nom et prénom(s))</Label>
+                <Label>Père — nom et prénom(s)</Label>
                 <Input className="mt-1" value={fields.parent1FullName || ''} onChange={(e) => updateField('parent1FullName', e.target.value)} />
               </div>
+              <div>
+                <Label>Parent 2 — prénom(s)</Label>
+                <Input className="mt-1" value={fields.parent2FirstNames || ''} onChange={(e) => updateField('parent2FirstNames', e.target.value)} />
+              </div>
+              <div>
+                <Label>Parent 2 — nom de naissance</Label>
+                <Input className="mt-1" value={fields.parent2BirthName || ''} onChange={(e) => updateField('parent2BirthName', e.target.value)} />
+              </div>
               <div className="sm:col-span-2">
-                <Label>Mère (nom de naissance et prénom(s))</Label>
-                <Input className="mt-1" value={fields.parent2FullName || ''} onChange={(e) => updateField('parent2FullName', e.target.value)} />
+                <Label>Parent 2 — nom d&apos;usage, le cas échéant</Label>
+                <Input
+                  className="mt-1"
+                  value={fields.parent2UsageName || ''}
+                  onChange={(e) => updateField('parent2UsageName', e.target.value)}
+                  placeholder="Laisser vide si aucun nom d’usage"
+                />
               </div>
               <div>
                 <Label>Fait à</Label>
@@ -275,8 +328,8 @@ export const NonConvictionDeclarationPage = () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
             <div className="w-full max-w-lg">
               <SignatureAdoptPanel
-                defaultName={fields.signatureFullName || `${fields.declarantFirstName || ''} ${fields.declarantLastName || ''}`.trim()}
-                defaultEmail={fields.signerEmail || ''}
+                defaultName={fields.signatureFullName || [fields.declarantFirstName, fields.declarantBirthName || fields.declarantLastName].filter(Boolean).join(' ')}
+                defaultEmail={fields.signerEmail || fields.email || ''}
                 loading={saving}
                 onCancel={() => setSignMode(null)}
                 onConfirm={(payload) => {

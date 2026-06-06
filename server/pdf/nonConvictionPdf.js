@@ -1,6 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import {
+  formatAddress,
+  formatDeclarantName,
+  formatFiliationClause,
+  normalizeDeclarationFields,
+} from '../documents/declarationNonCondamnation/formatters.js';
 
 const outputDir = path.resolve(process.cwd(), 'server', 'data', 'generated', 'declarations');
 if (!fs.existsSync(outputDir)) {
@@ -52,10 +58,10 @@ const sanitizeDisplayValue = (value, { fallback = '_____________________________
 };
 
 const splitFullName = (fields = {}) => {
-  if (fields.declarantFirstName || fields.declarantLastName) {
+  if (fields.declarantFirstName || fields.declarantBirthName || fields.declarantLastName) {
     return {
       firstName: capitalizeWords(fields.declarantFirstName),
-      lastName: String(fields.declarantLastName || '').trim().toUpperCase(),
+      lastName: String(fields.declarantBirthName || fields.declarantLastName || '').trim().toUpperCase(),
     };
   }
   const full = String(fields.declarantFullName || '').trim();
@@ -157,25 +163,35 @@ const drawParagraph = (page, font, y, text, { lineHeight = 15, indent = 0 } = {}
   return y;
 };
 
-export const generateNonConvictionPdf = async ({ filename, fields = {} }) => {
+export const generateNonConvictionPdf = async ({ filename, fields: rawFields = {} }) => {
+  const fields = normalizeDeclarationFields(rawFields);
   const targetPath = path.join(outputDir, filename);
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([PAGE_WIDTH, 841.89]);
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-  const { firstName, lastName } = splitFullName(fields);
-  const fullName = [firstName, lastName].filter(Boolean).join(' ').trim()
-    || sanitizeDisplayValue(fields.declarantFullName, { fallback: '________________________________________' });
-  const fullAddress = sanitizeDisplayValue(buildFullAddress(fields));
+  const declarantLine = formatDeclarantName({
+    firstNames: fields.declarantFirstName,
+    birthName: fields.declarantBirthName,
+    usageName: fields.declarantUsageName,
+    legacyLastName: fields.declarantLastName,
+  }) || sanitizeDisplayValue(fields.declarantFullName, { fallback: '________________________________________' });
+  const fullAddress = sanitizeDisplayValue(formatAddress({
+    line1: fields.addressLine1 || fields.declarantAddress,
+    line2: fields.addressLine2,
+    postalCode: fields.postalCode,
+    city: fields.city,
+    country: fields.country || 'France',
+  }));
   const birthDateFr = sanitizeDisplayValue(formatFrenchDate(fields.declarantBirthDate), {
     fallback: '____ / ____ / ______',
     minLength: 4,
   });
   const birthCity = sanitizeDisplayValue(fields.declarantBirthCity);
-  const birthPlace = formatBirthPlace(birthDateFr, birthCity);
   const parent1 = sanitizeDisplayValue(fields.parent1FullName || fields.fatherFullName);
   const parent2 = sanitizeDisplayValue(fields.parent2FullName || fields.motherFullName);
+  const filiationClause = formatFiliationClause({ parent1, parent2 });
   const statementCity = sanitizeDisplayValue(fields.statementCity, { fallback: '______________________', minLength: 2 });
   const signatureDateFr = sanitizeDisplayValue(formatFrenchDate(fields.statementDate), {
     fallback: '____ / ____ / ______',
@@ -184,40 +200,62 @@ export const generateNonConvictionPdf = async ({ filename, fields = {} }) => {
 
   let y = 780;
 
-  page.drawText('DÉCLARATION DE NON-CONDAMNATION', {
+  page.drawText('DÉCLARATION SUR L’HONNEUR', {
     x: MARGIN,
     y,
-    size: 16,
+    size: 15,
     font: fontBold,
     color: COLOR_TEXT,
   });
-  page.drawText('ET DE FILIATION', {
+  page.drawText('DE NON-CONDAMNATION ET DE FILIATION', {
     x: MARGIN,
-    y: y - 20,
-    size: 16,
+    y: y - 18,
+    size: 15,
     font: fontBold,
     color: COLOR_TEXT,
   });
-  y -= 44;
+  y -= 38;
+  page.drawText(
+    'Document établi dans le cadre d’une formalité d’immatriculation, de modification ou de déclaration d’entreprise.',
+    {
+      x: MARGIN,
+      y,
+      size: 8.5,
+      font,
+      color: COLOR_MUTED,
+      maxWidth: CONTENT_WIDTH,
+    },
+  );
+  y -= 24;
   drawLine(page, y);
-  y -= 28;
+  y -= 24;
 
-  y = drawSectionTitle(page, fontBold, y, 'Déclarant');
-  y = drawLabelValue(page, font, y, 'Nom complet', fullName);
-  y = drawLabelValue(page, font, y, 'Date et lieu de naissance', birthPlace);
-  y = drawLabelValue(page, font, y, 'Adresse', fullAddress);
+  const bodyParts = [
+    `Je soussigné(e) ${declarantLine},`,
+    `né(e) le ${birthDateFr} à ${birthCity},`,
+    `demeurant ${fullAddress},`,
+    '',
+    filiationClause ? `${filiationClause},` : null,
+    '',
+    'déclare sur l’honneur, en application de l’article A. 123-51 du Code de commerce,',
+    'n’avoir fait l’objet d’aucune condamnation pénale ni d’aucune sanction civile ou administrative',
+    'de nature à m’interdire :',
+    '',
+    '— de gérer, administrer, diriger ou contrôler une personne morale ;',
+    '— ou d’exercer une activité commerciale.',
+    '',
+    'Je reconnais avoir été informé(e) que toute indication inexacte ou incomplète donnée de mauvaise foi',
+    'dans le cadre d’une formalité au registre du commerce et des sociétés est susceptible d’entraîner',
+    'les sanctions prévues par l’article L. 123-5 du Code de commerce.',
+  ].filter((line) => line !== null);
 
-  y -= 8;
-  y = drawSectionTitle(page, fontBold, y, 'Filiation');
-  y = drawLabelValue(page, font, y, 'Parent 1', parent1);
-  y = drawLabelValue(page, font, y, 'Parent 2', parent2);
-
-  y -= 8;
-  y = drawSectionTitle(page, fontBold, y, 'Déclaration');
-  y = drawParagraph(page, font, y, 'Je déclare sur l\'honneur n\'avoir fait l\'objet d\'aucune condamnation pénale, ni d\'aucune sanction civile ou administrative de nature à m\'interdire :', { lineHeight: 16 });
-  y -= 4;
-  y = drawParagraph(page, font, y, '- de gérer, administrer, diriger ou contrôler une personne morale ;', { lineHeight: 16 });
-  y = drawParagraph(page, font, y, '- ou d\'exercer une activité commerciale.', { lineHeight: 16 });
+  bodyParts.forEach((line) => {
+    if (line === '') {
+      y -= 8;
+      return;
+    }
+    y = drawParagraph(page, font, y, line, { lineHeight: 14 });
+  });
 
   y -= 12;
   page.drawText(`Fait à ${statementCity}, le ${signatureDateFr}`, {
@@ -228,7 +266,7 @@ export const generateNonConvictionPdf = async ({ filename, fields = {} }) => {
     color: COLOR_TEXT,
   });
   y -= 28;
-  page.drawText('Signature du déclarant', {
+  page.drawText('Signature du déclarant :', {
     x: MARGIN,
     y,
     size: 10.5,
@@ -242,13 +280,6 @@ export const generateNonConvictionPdf = async ({ filename, fields = {} }) => {
     thickness: 0.8,
     color: COLOR_MUTED,
   });
-  page.drawText('Signature manuscrite ou électronique', {
-    x: MARGIN,
-    y: y - 8,
-    size: 8,
-    font,
-    color: COLOR_MUTED,
-  });
 
   drawLine(page, 92);
   page.drawText('Rappel légal', {
@@ -259,7 +290,7 @@ export const generateNonConvictionPdf = async ({ filename, fields = {} }) => {
     color: COLOR_MUTED,
   });
   wrapText(
-    'Conformément à l\'article L.123-5 du Code de commerce, le fait de donner de mauvaise foi des indications inexactes ou incomplètes en vue d\'une formalité au registre du commerce et des sociétés est puni des sanctions prévues par la loi.',
+    'Rappel légal — Le fait de donner, de mauvaise foi, des indications inexactes ou incomplètes en vue d’une formalité au registre du commerce et des sociétés est puni des sanctions prévues par l’article L. 123-5 du Code de commerce.',
     96,
   ).forEach((chunk, index) => {
     page.drawText(chunk, {
@@ -278,36 +309,47 @@ export const generateNonConvictionPdf = async ({ filename, fields = {} }) => {
 };
 
 export const validateNonConvictionFields = (fields = {}) => {
-  const { firstName, lastName } = splitFullName(fields);
+  const normalized = normalizeDeclarationFields(fields);
+  const { firstName, lastName } = splitFullName(normalized);
   if (!firstName || !lastName) {
     return { ok: false, error: 'DOCUMENT_EDITOR_IDENTITY_REQUIRED' };
   }
-  if (!fields.declarantBirthDate || !fields.declarantBirthCity) {
+  if (!normalized.declarantBirthDate || !normalized.declarantBirthCity) {
     return { ok: false, error: 'DOCUMENT_EDITOR_IDENTITY_REQUIRED' };
   }
-  if (!fields.parent1FullName && !fields.fatherFullName) {
+  if (!normalized.parent1FullName && !normalized.fatherFullName) {
     return { ok: false, error: 'DOCUMENT_EDITOR_PARENTS_REQUIRED' };
   }
-  if (!fields.parent2FullName && !fields.motherFullName) {
+  const hasParent2 = Boolean(
+    normalized.parent2FullName
+    || normalized.motherFullName
+    || normalized.parent2BirthName,
+  );
+  if (!hasParent2) {
     return { ok: false, error: 'DOCUMENT_EDITOR_PARENTS_REQUIRED' };
   }
-  const address = buildFullAddress(fields);
+  const address = buildFullAddress(normalized);
   if (!address || address.length < 8) {
     return { ok: false, error: 'DOCUMENT_EDITOR_ADDRESS_REQUIRED' };
   }
-  if (!fields.statementCity || !fields.statementDate) {
+  if (!normalized.statementCity || !normalized.statementDate) {
     return { ok: false, error: 'DOCUMENT_EDITOR_SIGNATURE_PLACE_DATE_REQUIRED' };
   }
-  const signatureFullName = String(fields.signatureFullName || '').trim()
-    || `${firstName} ${lastName}`.trim();
+  const signatureFullName = String(normalized.signatureFullName || '').trim()
+    || formatDeclarantName({
+      firstNames: normalized.declarantFirstName,
+      birthName: normalized.declarantBirthName,
+      usageName: normalized.declarantUsageName,
+      legacyLastName: normalized.declarantLastName,
+    });
   if (!signatureFullName) {
     return { ok: false, error: 'DOCUMENT_EDITOR_SIGNATURE_REQUIRED' };
   }
-  if (!fields.declarationNonCondamnation) {
+  if (!normalized.declarationNonCondamnation) {
     return { ok: false, error: 'DOCUMENT_EDITOR_NON_CONDAMNATION_REQUIRED' };
   }
-  if (fields.declarationFiliation === false) {
+  if (normalized.declarationFiliation === false) {
     return { ok: false, error: 'DOCUMENT_EDITOR_FILIATION_REQUIRED' };
   }
-  return { ok: true };
+  return { ok: true, normalized };
 };

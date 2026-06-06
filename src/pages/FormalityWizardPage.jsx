@@ -35,6 +35,7 @@ import {
   buildDocumentPreview,
   downloadPreview,
   getCompletion,
+  getFormProfile,
   getQuestionnaire,
   getWarnings,
 } from '@/utils/formalityEngine.js';
@@ -484,8 +485,21 @@ export const FormalityWizardPage = () => {
 
   const chooseLegalForm = (label) => {
     update('legalForm', label);
+    const profile = getFormProfile(label);
+    if (profile === 'INDIVIDUAL') {
+      setQuestionMode('simple');
+    }
+    setActiveQuestionIndex(0);
+    setQuestionnaireFinished(false);
     setProjectSubStep(4);
   };
+
+  useEffect(() => {
+    setActiveQuestionIndex(0);
+    setQuestionnaireFinished(false);
+    setQuestionExitPhase(null);
+    if (eiLike) setQuestionMode('simple');
+  }, [data.legalForm, eiLike]);
 
   const canContinueProjectSubStep = () => {
     if (projectSubStep === 0) {
@@ -926,54 +940,87 @@ export const FormalityWizardPage = () => {
                 )}
 
                 {step === 2 && (
-                  <div className="space-y-7">
+                  <div className="space-y-6">
                     <div>
-                      <p className="text-sm font-bold uppercase text-primary">Dirigeants et capital</p>
-                      <h1 className="mt-2 text-3xl font-extrabold">Les informations utiles aux statuts.</h1>
+                      <p className="text-sm font-bold uppercase text-primary">Questionnaire intelligent</p>
+                      <h1 className="mt-2 text-3xl font-extrabold">
+                        {eiLike
+                          ? `Informations adaptées à ${data.legalForm}`
+                          : 'Dirigeants, capital et clauses statutaires'}
+                      </h1>
+                      <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+                        {eiLike
+                          ? 'Greffio ne vous demande que l’essentiel pour une entreprise individuelle : identité, activité, siège et déclarations. Pas de statuts ni de capital social.'
+                          : `Greffio affiche uniquement les questions utiles à ${data.legalForm} : dirigeants, capital, gouvernance et clauses sensibles.`}
+                      </p>
                     </div>
-                    <div className="grid gap-5 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label>Président, dirigeant ou PDG</Label>
-                        <Input value={data.president} onChange={(event) => update('president', event.target.value)} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Nombre d’associés/actionnaires</Label>
-                        <Input type="number" min="1" value={data.shareholders} onChange={(event) => update('shareholders', event.target.value)} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Capital social en euros</Label>
-                        <Input type="number" min="1" value={data.capital} onChange={(event) => update('capital', event.target.value)} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Email de réception</Label>
-                        <Input type="email" value={data.email} onChange={(event) => update('email', event.target.value)} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Numero joignable</Label>
-                        <Input type="tel" value={data.phone} onChange={(event) => update('phone', event.target.value)} placeholder={GREFFIO_CONTACT.supportPhone} />
+
+                    <div className="rounded-md border border-border bg-[#fafcff] p-5">
+                      <p className="text-xs font-bold uppercase text-primary">
+                        {eiLike ? 'Identité et coordonnées' : 'Dirigeants et capital'}
+                      </p>
+                      <div className="mt-4 grid gap-5 md:grid-cols-2">
+                        {eiLike ? (
+                          <div className="space-y-2 md:col-span-2">
+                            <Label>Nom de l&apos;entrepreneur</Label>
+                            <Input
+                              value={data.president}
+                              onChange={(event) => {
+                                update('president', event.target.value);
+                                updateAnswer('nomEntrepreneur', event.target.value);
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <>
+                            <div className="space-y-2">
+                              <Label>Président, dirigeant ou PDG</Label>
+                              <Input value={data.president} onChange={(event) => update('president', event.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Nombre d&apos;associés/actionnaires</Label>
+                              <Input type="number" min="1" value={data.shareholders} onChange={(event) => update('shareholders', event.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Capital social en euros</Label>
+                              <Input type="number" min="1" value={data.capital} onChange={(event) => update('capital', event.target.value)} />
+                            </div>
+                          </>
+                        )}
+                        <div className="space-y-2">
+                          <Label>Email de réception</Label>
+                          <Input type="email" value={data.email} onChange={(event) => update('email', event.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Numero joignable</Label>
+                          <Input type="tel" value={data.phone} onChange={(event) => update('phone', event.target.value)} placeholder={GREFFIO_CONTACT.supportPhone} />
+                        </div>
                       </div>
                     </div>
+
                     <div className="rounded-md border border-border bg-white p-5">
                       <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
                         <div>
-                          <p className="text-sm font-bold uppercase text-primary">Questionnaire intelligent</p>
-                          <h2 className="mt-1 text-2xl font-extrabold">Clauses et informations adaptées à {data.legalForm}</h2>
-                          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-                            Greffio affiche uniquement les questions utiles à la forme choisie : capital, associés, gouvernance, clauses sensibles, greffe et fin de vie.
+                          <h2 className="text-lg font-extrabold">Clauses et informations — {data.legalForm}</h2>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {flattenedQuestions.length} question{flattenedQuestions.length > 1 ? 's' : ''} pour cette forme
+                            {eiLike ? ' (parcours allégé).' : '.'}
                           </p>
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                          {QUESTION_MODES.map((mode) => (
-                            <button
-                              key={mode.id}
-                              type="button"
-                              onClick={() => setQuestionMode(mode.id)}
-                              className={`rounded-md border px-3 py-2 text-sm font-bold transition ${questionMode === mode.id ? 'border-primary bg-primary text-white' : 'border-border bg-muted text-primary hover:border-primary/50'}`}
-                            >
-                              {mode.label}
-                            </button>
-                          ))}
-                        </div>
+                        {!eiLike ? (
+                          <div className="flex flex-wrap gap-2">
+                            {QUESTION_MODES.map((mode) => (
+                              <button
+                                key={mode.id}
+                                type="button"
+                                onClick={() => setQuestionMode(mode.id)}
+                                className={`rounded-md border px-3 py-2 text-sm font-bold transition ${questionMode === mode.id ? 'border-primary bg-primary text-white' : 'border-border bg-muted text-primary hover:border-primary/50'}`}
+                              >
+                                {mode.label}
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
                       </div>
 
                       <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_320px]">
@@ -1287,10 +1334,15 @@ export const FormalityWizardPage = () => {
                 onContinue={next}
                 backDisabled={step === 0 || isProjectBackDisabled}
                 continueDisabled={step === 1 && !canContinueProjectSubStep()}
-                showContinue={!(step === 1 && (projectSubStep === 2 || projectSubStep === 3))}
+                showContinue={
+                  !(step === 1 && (projectSubStep === 2 || projectSubStep === 3))
+                  && !(step === 2 && !questionnaireFinished)
+                }
                 continueLabel={
                   step === steps.length - 1
                     ? 'Voir les offres'
+                    : step === 2 && questionnaireFinished
+                      ? 'Passer à la synthèse'
                     : step === 1 && projectSubStep === 0 && contactStep < contactFields.length - 1
                       ? 'Question suivante'
                       : step === 1 && projectSubStep === PROJECT_SUB_STEPS.length - 1
@@ -1336,7 +1388,11 @@ export const FormalityWizardPage = () => {
           <div className="rounded-[22px] bg-[var(--we-blue-dark)] p-5 text-white shadow-[0_24px_70px_rgba(7,10,18,0.35)]">
             <Mail className="mb-4 h-6 w-6 text-[hsl(var(--greffio-citron))]" />
             <p className="font-extrabold">Offre gratuite utile</p>
-            <p className="mt-2 text-sm font-medium leading-6 text-white/92">Les statuts générés gratuitement permettent à Greffio de vous envoyer votre résumé, vos relances et les offres adaptées à votre situation.</p>
+            <p className="mt-2 text-sm font-medium leading-6 text-white/92">
+              {eiLike
+                ? 'Greffio vous envoie un résumé de votre démarche, les relances utiles et les offres adaptées à votre situation.'
+                : 'Les statuts générés gratuitement permettent à Greffio de vous envoyer votre résumé, vos relances et les offres adaptées à votre situation.'}
+            </p>
           </div>
         </aside>
       </main>

@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { generateNonConvictionPdf, validateNonConvictionFields } from '../pdf/nonConvictionPdf.js';
+import { getDeclarationErrorMessage, normalizeDeclarationFields } from '../documents/declarationNonCondamnation/formatters.js';
 import { stampSignatureOnPdf } from '../pdf/stampSignatureOnPdf.js';
 import {
   createSigningToken,
@@ -107,18 +108,38 @@ export const registerNonConvictionSignatureRoutes = (app, {
 
   app.post('/api/dossiers/:dossierId/documents/manager_non_conviction/sign-now', requireAuth, async (req, res) => {
     const access = await resolveDossierAccess(req, req.params.dossierId);
-    if (!access.ok) return res.status(access.status).json({ ok: false, error: access.error });
+    if (!access.ok) {
+      return res.status(access.status).json({ ok: false, error: access.error, message: getDeclarationErrorMessage(access.error) });
+    }
     const { dossier } = access;
-    const fields = req.body?.fields || {};
+    const rawFields = req.body?.fields || {};
+    const fields = normalizeDeclarationFields(rawFields);
     const signerFullName = String(req.body?.signerFullName || fields.signatureFullName || '').trim();
+    const signerEmail = String(req.body?.signerEmail || fields.signerEmail || req.auth?.email || '').trim().toLowerCase();
     const signatureImagePngBase64 = req.body?.signatureImagePngBase64 || null;
     const consent = Boolean(req.body?.consent);
-    if (!consent) return res.status(400).json({ ok: false, error: 'SIGNATURE_CONSENT_REQUIRED' });
+    if (!consent) {
+      return res.status(400).json({
+        ok: false,
+        error: 'SIGNATURE_CONSENT_REQUIRED',
+        message: getDeclarationErrorMessage('SIGNATURE_CONSENT_REQUIRED'),
+      });
+    }
     const validation = validateNonConvictionFields({ ...fields, signatureFullName, declarationNonCondamnation: true });
-    if (!validation.ok) return res.status(400).json({ ok: false, error: validation.error });
+    if (!validation.ok) {
+      return res.status(400).json({
+        ok: false,
+        error: validation.error,
+        message: getDeclarationErrorMessage(validation.error),
+      });
+    }
+    const normalizedFields = validation.normalized || fields;
 
     try {
-      const { pdfPath, sha256Draft, updated } = await persistDraftPdf({ dossier, fields });
+      const { pdfPath, sha256: sha256Draft, updated } = await persistDraftPdf({
+        dossier,
+        fields: { ...normalizedFields, signerEmail, signatureFullName },
+      });
       const signedFilename = pdfPath.replace('.pdf', '_signed.pdf');
       await stampSignatureOnPdf({
         inputPath: pdfPath,
@@ -144,21 +165,24 @@ export const registerNonConvictionSignatureRoutes = (app, {
           signedAt: new Date().toISOString(),
           sha256BeforeSignature: sha256Draft,
           sha256AfterSignature: sha256Signed,
-          fields,
+          fields: normalizedFields,
         },
       });
-      await createSignatureRecord({
-        dossierId: dossier.id,
-        documentId: updated?.id,
-        signerUserId: req.auth.sub,
-        evidence: { sha256Draft, sha256Signed, signerFullName, mode: 'immediate' },
-        ipAddress: getClientIp(req),
-        userAgent: req.headers['user-agent'] || '',
-      });
-      const userEmail = req.body?.signerEmail || fields.signerEmail;
-      if (userEmail) {
+      try {
+        await createSignatureRecord({
+          dossierId: dossier.id,
+          documentId: updated?.id,
+          signerUserId: req.auth.sub,
+          evidence: { sha256Draft, sha256Signed, signerFullName, mode: 'immediate' },
+          ipAddress: getClientIp(req),
+          userAgent: req.headers['user-agent'] || '',
+        });
+      } catch (auditError) {
+        console.error('SIGNATURE_AUDIT_FAILED', auditError);
+      }
+      if (signerEmail) {
         await sendTransactionalEmail({
-          to: { email: userEmail, name: signerFullName },
+          to: { email: signerEmail, name: signerFullName },
           templateKey: 'non_conviction_signature_completed',
           variables: {
             companyName: dossier.companyName || 'Votre société',
@@ -172,7 +196,14 @@ export const registerNonConvictionSignatureRoutes = (app, {
       return res.json({ ok: true, status: 'signed', sha256Signed, documents: await listDossierDocuments(dossier.id) });
     } catch (error) {
       console.error('SIGN_NOW_FAILED', error);
-      return res.status(500).json({ ok: false, error: 'SIGN_NOW_FAILED' });
+      const errorCode = error?.message === 'INVALID_SIGNATURE_FORMAT'
+        ? 'INVALID_SIGNATURE_FORMAT'
+        : 'SIGN_NOW_FAILED';
+      return res.status(errorCode === 'INVALID_SIGNATURE_FORMAT' ? 400 : 500).json({
+        ok: false,
+        error: errorCode,
+        message: getDeclarationErrorMessage(errorCode),
+      });
     }
   });
 

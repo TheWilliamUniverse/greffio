@@ -40,15 +40,30 @@ export const stampSignatureOnPdf = async ({
   });
 
   if (signatureImagePngBase64) {
-    const pngBytes = Buffer.from(signatureImagePngBase64.replace(/^data:image\/png;base64,/, ''), 'base64');
-    const png = await pdfDoc.embedPng(pngBytes);
-    const dims = png.scale(0.35);
-    page.drawImage(png, {
-      x: 50,
-      y: yBase,
-      width: Math.min(dims.width, 220),
-      height: Math.min(dims.height, 60),
-    });
+    const match = String(signatureImagePngBase64).match(/^data:image\/(png|jpeg|jpg);base64,(.+)$/i);
+    if (!match) {
+      throw new Error('INVALID_SIGNATURE_FORMAT');
+    }
+    const imageBytes = Buffer.from(match[2], 'base64');
+    if (match[1].toLowerCase() === 'png') {
+      const png = await pdfDoc.embedPng(imageBytes);
+      const dims = png.scale(0.35);
+      page.drawImage(png, {
+        x: 50,
+        y: yBase,
+        width: Math.min(dims.width, 220),
+        height: Math.min(dims.height, 60),
+      });
+    } else {
+      const jpeg = await pdfDoc.embedJpg(imageBytes);
+      const dims = jpeg.scale(0.35);
+      page.drawImage(jpeg, {
+        x: 50,
+        y: yBase,
+        width: Math.min(dims.width, 220),
+        height: Math.min(dims.height, 60),
+      });
+    }
   } else {
     page.drawText(signerFullName, {
       x: 50,

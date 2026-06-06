@@ -1,4 +1,4 @@
-import { runtimeConfig } from '@/config/runtime.js';
+import { getDeclarationErrorMessage } from '@/utils/declarationErrors.js';
 import { getToken } from '@/utils/localStorage.js';
 import {
   getDossierDocumentEditor,
@@ -27,9 +27,10 @@ const parseResponse = async (response) => {
   } catch (_error) {
     payload = null;
   }
-  const error = new Error(payload?.error || 'API_ERROR');
+  const error = new Error(payload?.message || payload?.error || 'API_ERROR');
   error.status = response.status;
   error.payload = payload;
+  error.code = payload?.error || 'API_ERROR';
   throw error;
 };
 

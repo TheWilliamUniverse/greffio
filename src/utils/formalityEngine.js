@@ -209,18 +209,20 @@ const profileSections = {
   COOPERATIVE: ['identity', 'seat', 'capital', 'partners', 'cooperative', 'governance', 'finance'],
   AGRICULTURAL: ['identity', 'seat', 'capital', 'partners', 'agricultural', 'governance', 'finance'],
   GIE: ['identity', 'seat', 'partners', 'governance', 'clauses', 'finance'],
-  INDIVIDUAL: ['identity', 'seat', 'individual', 'finance'],
+  INDIVIDUAL: ['individual', 'seat', 'finance'],
   DEFAULT: ['identity', 'seat', 'capital', 'partners', 'governance', 'clauses', 'finance'],
 };
 
 export const getQuestionnaire = (formLabel, mode = 'avance') => {
   const profile = getFormProfile(formLabel);
   const maxLevel = modeLevel[mode] || modeLevel.avance;
-  return (profileSections[profile] || profileSections.DEFAULT).map((key) => ({
-    ...allSections[key],
-    key,
-    fields: allSections[key].fields.filter((field) => (modeLevel[field.mode] || 1) <= maxLevel),
-  }));
+  return (profileSections[profile] || profileSections.DEFAULT)
+    .map((key) => ({
+      ...allSections[key],
+      key,
+      fields: allSections[key].fields.filter((field) => (modeLevel[field.mode] || 1) <= maxLevel),
+    }))
+    .filter((section) => section.fields.length > 0);
 };
 
 const aliases = {
