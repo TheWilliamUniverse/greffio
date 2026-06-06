@@ -61,7 +61,12 @@ export const SignatureAdoptPanel = ({
   return (
     <div className="rounded-2xl border border-[#d4e2f5] bg-[#0f172a] p-6 text-white shadow-xl">
       <p className="text-lg font-bold">Adopter votre signature</p>
-      <p className="mt-1 text-sm text-white/70">Confirmez votre nom et votre signature électronique.</p>
+      <p className="mt-1 text-sm text-white/70">
+        Consentement simple dans Greffio pour formaliser votre accord sur ce document.
+      </p>
+      <p className="mt-3 rounded-lg border border-white/15 bg-white/5 p-3 text-xs leading-relaxed text-white/75">
+        Cette signature atteste votre accord dans l&apos;espace Greffio. Certaines formalités peuvent exiger une signature électronique avancée ou qualifiée via un prestataire tiers ou une étape officielle.
+      </p>
 
       <div className="mt-5 space-y-3">
         <div>
@@ -123,7 +128,7 @@ export const SignatureAdoptPanel = ({
       <label className="mt-4 flex items-start gap-2 text-sm text-white/80">
         <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1" />
         <span>
-          En cliquant sur « Signer », je reconnais avoir vérifié les informations du document et j&apos;accepte que ma signature électronique soit apposée sur cette déclaration.
+          En cliquant sur « Signer », je reconnais avoir vérifié les informations du document et j&apos;accepte que mon consentement simple soit enregistré dans Greffio pour ce document.
         </span>
       </label>
 

@@ -109,6 +109,7 @@ import { resolveDossierAccess } from './utils/dossierAccess.js';
 import { registerNonConvictionSignatureRoutes } from './routes/nonConvictionSignatureRoutes.js';
 import { registerPaymentsRoutes } from './routes/paymentsRoutes.js';
 import { registerAppVersionRoutes } from './routes/appVersionRoutes.js';
+import verificationRouter from './routes/verificationRoutes.js';
 import {
   createTrustedDevice,
   hasValidTrustedDevice,
@@ -116,6 +117,7 @@ import {
 import { askGreffioAssistant, isAssistantConfigured } from './services/assistant.js';
 import {
   createSupabaseSignedDownloadUrl,
+  createSignedDownloadUrl,
   deleteDocumentFromConfiguredStorage,
   objectStorageConfig,
   uploadDocumentToConfiguredStorage,
@@ -310,10 +312,15 @@ app.get('/api/health', (_req, res) => {
 app.get('/api/ready', async (_req, res) => {
   const checks = {
     storageDriver: objectStorageConfig.driver,
+    requestedStorageDriver: objectStorageConfig.requestedDriver,
+    s3Configured: objectStorageConfig.s3Configured,
     supabaseConfigured: objectStorageConfig.supabaseConfigured,
     assistantConfigured: isAssistantConfigured(),
     timestamp: new Date().toISOString(),
   };
+  if (checks.requestedStorageDriver === 's3' && !checks.s3Configured) {
+    return res.status(503).json({ ok: false, error: 'S3_STORAGE_NOT_CONFIGURED', checks });
+  }
   if (checks.storageDriver === 'supabase' && !checks.supabaseConfigured) {
     return res.status(503).json({ ok: false, error: 'STORAGE_NOT_CONFIGURED', checks });
   }
@@ -1715,43 +1722,59 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
   });
   const fallbackUploadName = sanitizeFilename(req.file.originalname || 'document.pdf');
   const targetFilename = sanitizeFilename(canonicalFilename || fallbackUploadName, 'document.pdf');
-  const dossierUploadDir = path.join(uploadsRoot, String(dossier.id));
-  if (!fs.existsSync(dossierUploadDir)) {
-    fs.mkdirSync(dossierUploadDir, { recursive: true });
-  }
-  const desiredPath = path.join(dossierUploadDir, targetFilename);
-  const finalPath = ensureUniqueFilePath(desiredPath);
-  fs.renameSync(req.file.path, finalPath);
-  const sha256 = createHash('sha256').update(fs.readFileSync(finalPath)).digest('hex');
-  let storageUrl = finalPath;
-  let fileUrl = finalPath;
-  let storageProvider = 'local';
+  const sha256 = createHash('sha256').update(req.file.buffer).digest('hex');
+  let storageUrl = null;
+  let fileUrl = null;
+  let storageProvider = objectStorageConfig.driver;
   let storageUploadWarning = null;
+  let localFallbackPath = null;
+
   try {
     const uploadResult = await uploadDocumentToConfiguredStorage({
       dossierId: dossier.id,
-      filename: path.basename(finalPath),
-      localFilePath: finalPath,
+      docKey,
+      buffer: req.file.buffer,
+      originalFilename: req.file.originalname,
+      mimeType: req.file.mimetype,
+      targetFilename,
     });
     if (uploadResult.uploaded) {
       storageUrl = uploadResult.storageUrl;
       fileUrl = uploadResult.storageUrl;
-      storageProvider = 'supabase';
+      storageProvider = uploadResult.storageProvider || objectStorageConfig.driver;
+      localFallbackPath = uploadResult.localFilePath || null;
     }
   } catch (storageError) {
+    if (objectStorageConfig.driver === 'local') {
+      throw storageError;
+    }
     storageProvider = 'local_fallback';
-    console.error('DOCUMENT_STORAGE_UPLOAD_FAILED', storageError);
+    console.error('DOCUMENT_STORAGE_UPLOAD_FAILED', {
+      dossierId: dossier.id,
+      docKey,
+      driver: objectStorageConfig.driver,
+      message: storageError?.message || storageError,
+    });
+    const dossierUploadDir = path.join(uploadsRoot, String(dossier.id));
+    if (!fs.existsSync(dossierUploadDir)) {
+      fs.mkdirSync(dossierUploadDir, { recursive: true });
+    }
+    const desiredPath = path.join(dossierUploadDir, targetFilename);
+    localFallbackPath = ensureUniqueFilePath(desiredPath);
+    fs.writeFileSync(localFallbackPath, req.file.buffer);
+    storageUrl = localFallbackPath;
+    fileUrl = localFallbackPath;
     enqueueStorageRetry({
       dossierId: dossier.id,
       docKey,
-      localFilePath: finalPath,
-      filename: path.basename(finalPath),
-      reason: 'supabase_upload_failed',
+      localFilePath: localFallbackPath,
+      filename: path.basename(localFallbackPath),
+      reason: `${objectStorageConfig.driver}_upload_failed`,
     });
     const alert = registerStorageFailureForOps({
       dossierId: dossier.id,
       docKey,
-      reason: 'supabase_upload_failed',
+      reason: `${objectStorageConfig.driver}_upload_failed`,
     });
     if (alert.shouldAlert) {
       console.error('OPS_STORAGE_ALERT', {
@@ -1759,10 +1782,12 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
         ...alert,
       });
     }
-    storageUploadWarning = 'Stockage cloud temporairement indisponible, votre document est conserve et sera repris automatiquement.';
+    storageUploadWarning = 'Stockage cloud temporairement indisponible, votre document est conservé et sera repris automatiquement.';
   }
+
   const analysis = await analyzeDocument({
-    filePath: finalPath,
+    pdfBuffer: req.file.mimetype === 'application/pdf' ? req.file.buffer : undefined,
+    filePath: req.file.mimetype === 'application/pdf' ? localFallbackPath : undefined,
     docKey,
   });
   const analysisStatus = analysis.ok && analysis.requiresManualReview
@@ -1776,7 +1801,7 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
     originalFilename: req.file.originalname,
     recommendedFilename: targetFilename,
     fileUrl,
-    filename: path.basename(finalPath),
+    filename: path.basename(targetFilename),
     fileSizeBytes: req.file.size,
     mimeType: req.file.mimetype,
     storageUrl,
@@ -1832,7 +1857,7 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
     ok: true,
     file: {
       originalFilename: req.file.originalname,
-      recommendedFilename: path.basename(finalPath),
+      recommendedFilename: targetFilename,
       mimeType: req.file.mimetype,
       size: req.file.size,
       sha256,
@@ -1889,6 +1914,44 @@ app.delete('/api/dossiers/:dossierId/documents/:docKey', requireAuth, async (req
   });
 });
 
+app.get('/api/dossiers/:dossierId/documents/:docKey/download-url', requireAuth, async (req, res) => {
+  const access = await resolveDossierAccess(req, req.params.dossierId);
+  if (!access.ok) return res.status(access.status).json({ ok: false, error: access.error });
+  const { dossier } = access;
+
+  const documents = await listDossierDocuments(dossier.id);
+  const requested = documents.find((item) => item.docKey === req.params.docKey);
+  if (!requested || !requested.storageUrl) {
+    return res.status(404).json({ ok: false, error: 'DOCUMENT_FILE_NOT_FOUND' });
+  }
+
+  const source = String(requested.storageUrl);
+  if (source.startsWith('s3://') || source.startsWith('supabase://')) {
+    const signed = await createSignedDownloadUrl(source);
+    if (!signed?.url) {
+      return res.status(404).json({ ok: false, error: 'DOCUMENT_FILE_NOT_FOUND' });
+    }
+    return res.json({
+      ok: true,
+      success: true,
+      url: signed.url,
+      expiresIn: signed.expiresIn,
+    });
+  }
+
+  if (!isSafeUploadPath(source) || !fs.existsSync(source)) {
+    return res.status(404).json({ ok: false, error: 'DOCUMENT_FILE_NOT_FOUND' });
+  }
+
+  return res.json({
+    ok: true,
+    success: true,
+    url: `/api/dossiers/${dossier.id}/documents/${encodeURIComponent(requested.docKey)}/download`,
+    expiresIn: null,
+    local: true,
+  });
+});
+
 app.get('/api/dossiers/:dossierId/documents/:docKey/download', requireAuth, async (req, res) => {
   const access = await resolveDossierAccess(req, req.params.dossierId);
   if (!access.ok) return res.status(access.status).json({ ok: false, error: access.error });
@@ -1899,12 +1962,12 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/download', requireAuth, asyn
   if (!requested || !requested.storageUrl) {
     return res.status(404).json({ ok: false, error: 'DOCUMENT_FILE_NOT_FOUND' });
   }
-  if (String(requested.storageUrl).startsWith('supabase://')) {
-    const signedUrl = await createSupabaseSignedDownloadUrl(requested.storageUrl, 120);
-    if (!signedUrl) {
+  if (String(requested.storageUrl).startsWith('s3://') || String(requested.storageUrl).startsWith('supabase://')) {
+    const signed = await createSignedDownloadUrl(requested.storageUrl);
+    if (!signed?.url) {
       return res.status(404).json({ ok: false, error: 'DOCUMENT_FILE_NOT_FOUND' });
     }
-    return res.redirect(signedUrl);
+    return res.redirect(signed.url);
   }
   if (!isSafeUploadPath(requested.storageUrl) || !fs.existsSync(requested.storageUrl)) {
     return res.status(404).json({ ok: false, error: 'DOCUMENT_FILE_NOT_FOUND' });
@@ -2722,6 +2785,8 @@ const handleGoCardlessWebhook = async (req, res) => {
 
 app.post('/webhooks/gocardless', express.text({ type: '*/*' }), handleGoCardlessWebhook);
 app.post('/api/webhooks/gocardless', express.text({ type: '*/*' }), handleGoCardlessWebhook);
+
+app.use('/api/verification', verificationRouter);
 
 registerNonConvictionSignatureRoutes(app, {
   requireAuth,

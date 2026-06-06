@@ -5,7 +5,7 @@ import {
   PAYMENT_METHODS,
   COMPANY_FORM_CATALOG,
   getFormAvailability,
-} from '@/utils/mockData.js';
+} from '@/config/catalog.js';
 
 export {
   LEGAL_STRUCTURES,

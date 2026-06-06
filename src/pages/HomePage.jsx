@@ -1,8 +1,3 @@
-const HomePage = () => {
-    return (
-        <div>
-        </div>
-    )
-}
+import { Navigate } from 'react-router-dom';
 
-export default HomePage;
+export const HomePage = () => <Navigate to="/" replace />;

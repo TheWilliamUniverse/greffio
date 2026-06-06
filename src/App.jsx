@@ -40,7 +40,8 @@ import { SignaturePublicPage } from '@/pages/SignaturePublicPage.jsx';
 import { InterfacesPage } from '@/pages/InterfacesPage.jsx';
 import { ServiceLandingPage } from '@/pages/ServiceLandingPage.jsx';
 import { ServicesPage } from '@/pages/ServicesPage.jsx';
-import { OpsLookupObservabilityPage } from '@/pages/OpsLookupObservabilityPage.jsx';
+import { NotFoundPage } from '@/pages/NotFoundPage.jsx';
+import { HomePage } from '@/pages/HomePage.jsx';
 import { SERVICE_PAGE_SLUGS } from '@/config/serviceLandingPages.js';
 import { CookieConsentBanner } from '@/components/CookieConsentBanner.jsx';
 import { MobileAppShell } from '@/mobile/MobileAppShell.jsx';
@@ -63,13 +64,7 @@ const ScrollToTop = () => {
   return null;
 };
 
-const NotFound = () => (
-  <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center bg-background">
-    <h1 className="mb-4 text-4xl font-bold text-foreground">404</h1>
-    <p className="mb-6 text-muted-foreground">Page introuvable</p>
-    <a href="/" className="font-medium text-primary hover:underline">Retour à l'accueil</a>
-  </div>
-);
+const NotFound = () => <NotFoundPage />;
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -103,6 +98,7 @@ function App() {
         <Layout>
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/home" element={<HomePage />} />
             <Route path="/services" element={<ServicesPage />} />
             <Route path="/simulateur" element={<FormalityWizardPage />} />
             <Route path="/questionnaire" element={<ProtectedRoute><QuestionnairePage /></ProtectedRoute>} />

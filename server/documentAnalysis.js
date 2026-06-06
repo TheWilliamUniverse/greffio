@@ -74,16 +74,20 @@ const extractPdfText = async (pdfBuffer) => new Promise((resolve, reject) => {
 
 const analyzeDocument = async ({
   filePath,
+  pdfBuffer,
   docKey,
 }) => {
-  if (!filePath || !fs.existsSync(filePath)) {
-    return {
-      ok: false,
-      error: 'FILE_NOT_FOUND_FOR_ANALYSIS',
-    };
+  let buffer = pdfBuffer;
+  if (!buffer) {
+    if (!filePath || !fs.existsSync(filePath)) {
+      return {
+        ok: false,
+        error: 'FILE_NOT_FOUND_FOR_ANALYSIS',
+      };
+    }
+    buffer = fs.readFileSync(filePath);
   }
-  const pdfBuffer = fs.readFileSync(filePath);
-  const parsed = await extractPdfText(pdfBuffer);
+  const parsed = await extractPdfText(buffer);
   const text = String(parsed?.text || '').slice(0, 40000);
   const base = {
     charsAnalyzed: text.length,

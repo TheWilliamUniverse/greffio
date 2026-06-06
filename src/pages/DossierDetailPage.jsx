@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.jsx';
 import { fetchDossierDetail, trashDossier } from '@/api/dossiers.js';
+import { fetchVerificationProfile, runDossierVerification } from '@/api/verification.js';
+import { VerificationStatusCard } from '@/components/verification/VerificationStatusCard.jsx';
 import { saveCurrentDossierId } from '@/utils/sessionStore.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
 import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
@@ -86,6 +88,8 @@ export const DossierDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const messages = [];
   const [comment, setComment] = useState('');
+  const [verificationProfile, setVerificationProfile] = useState(null);
+  const [verificationRunning, setVerificationRunning] = useState(false);
   const missingDocuments = useMemo(() => docs.filter((document) => ['ATTENTE_DOCS', 'URGENT', 'EN_ANALYSE', 'A_SIGNER', 'BROUILLON'].includes(document.status)), [docs]);
   const timeline = useMemo(() => {
     if (!dossier) return [];
@@ -113,6 +117,12 @@ export const DossierDetailPage = () => {
         }
         setDossier(mapDossierFromApi(d));
         setDocs(mapDocumentsFromApi(payload.documents || []));
+        try {
+          const profile = await fetchVerificationProfile(id);
+          setVerificationProfile(profile);
+        } catch (_error) {
+          setVerificationProfile(null);
+        }
       } catch (error) {
         setDossier(null);
         setDocs([]);
@@ -122,6 +132,20 @@ export const DossierDetailPage = () => {
     };
     void load();
   }, [id, internalView]);
+
+  const handleRunVerification = async () => {
+    if (!id) return;
+    setVerificationRunning(true);
+    try {
+      const result = await runDossierVerification(id);
+      setVerificationProfile(result.profile || null);
+      toast.success('Vérifications mises à jour');
+    } catch (error) {
+      toast.error(error?.message || 'Impossible de lancer les vérifications');
+    } finally {
+      setVerificationRunning(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -243,6 +267,12 @@ export const DossierDetailPage = () => {
               </div>
             </div>
           </section>
+
+          <VerificationStatusCard
+            profile={verificationProfile}
+            onRun={handleRunVerification}
+            running={verificationRunning}
+          />
 
           <Tabs defaultValue="progress" className="w-full">
             <TabsList className="h-auto w-full justify-start overflow-x-auto rounded-md border border-border bg-white p-1">
