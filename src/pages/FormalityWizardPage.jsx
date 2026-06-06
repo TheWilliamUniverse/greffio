@@ -221,7 +221,8 @@ const compareModules = Object.freeze({
 export const FormalityWizardPage = () => {
   const [searchParams] = useSearchParams();
   const { currentUser, isAuthenticated } = useAuth();
-  const wizardTopRef = useRef(null);
+  const wizardPanelRef = useRef(null);
+  const wizardNavRef = useRef(null);
   const draft = getProjectDraft();
   const requestedType = String(searchParams.get('type') || 'statuts').toLowerCase();
   const formalityPreset = resolveSimulatorFormFromQuery(searchParams.get('formality'));
@@ -407,10 +408,33 @@ export const FormalityWizardPage = () => {
   }, [currentUser, skipContactStep]);
 
   useEffect(() => {
-    window.requestAnimationFrame(() => {
-      wizardTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  }, [step, projectSubStep, contactStep, showOffers]);
+    const timer = window.setTimeout(() => {
+      const nav = wizardNavRef.current;
+      const panel = wizardPanelRef.current;
+      const headerOffset = 112;
+
+      if (nav) {
+        const navRect = nav.getBoundingClientRect();
+        const navVisible = navRect.bottom <= window.innerHeight - 8 && navRect.top >= headerOffset;
+        if (!navVisible) {
+          nav.scrollIntoView({ behavior: 'smooth', block: 'end' });
+          return;
+        }
+      }
+
+      if (panel) {
+        const panelRect = panel.getBoundingClientRect();
+        if (panelRect.top < headerOffset) {
+          window.scrollTo({
+            top: Math.max(0, window.scrollY + panelRect.top - headerOffset),
+            behavior: 'smooth',
+          });
+        }
+      }
+    }, 140);
+
+    return () => window.clearTimeout(timer);
+  }, [step, projectSubStep, contactStep, step2Phase, showOffers]);
 
   useEffect(() => {
     setActiveQuestionIndex(0);
@@ -728,8 +752,8 @@ export const FormalityWizardPage = () => {
     <div className="min-h-screen bg-[var(--we-bg)]">
       <NavbarDropdown />
 
-      <main ref={wizardTopRef} className="mx-auto grid max-w-7xl gap-8 px-4 pb-10 pt-28 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8">
-        <section className="we-panel overflow-hidden">
+      <main className="mx-auto grid max-w-7xl gap-8 px-4 pb-10 pt-28 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8">
+        <section ref={wizardPanelRef} className="we-panel">
           <div className="border-b border-[var(--we-border)] bg-white px-6 py-4">
             <div className="mb-3 flex items-center justify-between text-xs font-bold uppercase text-muted-foreground">
               <span>Simulation Greffio</span>
@@ -1426,7 +1450,10 @@ export const FormalityWizardPage = () => {
           </AnimatePresence>
 
           {!showOffers ? (
-            <div className="border-t border-border px-6 py-5">
+            <div
+              ref={wizardNavRef}
+              className="sticky bottom-0 z-10 border-t border-border bg-white/95 px-4 py-4 shadow-[0_-10px_28px_rgba(15,23,42,0.06)] backdrop-blur-sm sm:px-6 sm:py-5 supports-[padding:max(0px)]:pb-[max(1rem,env(safe-area-inset-bottom))]"
+            >
               <WizardNavButtons
                 onBack={previous}
                 onContinue={tryWizardContinue}
@@ -1457,7 +1484,10 @@ export const FormalityWizardPage = () => {
               />
             </div>
           ) : (
-            <div className="border-t border-border px-6 py-5">
+            <div
+              ref={wizardNavRef}
+              className="sticky bottom-0 z-10 border-t border-border bg-white/95 px-4 py-4 shadow-[0_-10px_28px_rgba(15,23,42,0.06)] backdrop-blur-sm sm:px-6 sm:py-5 supports-[padding:max(0px)]:pb-[max(1rem,env(safe-area-inset-bottom))]"
+            >
               <WizardNavButtons onBack={previous} backLabel="Retour à la synthèse" showContinue={false} />
             </div>
           )}
