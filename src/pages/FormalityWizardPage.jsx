@@ -50,6 +50,7 @@ import {
   isContactDetailValid,
 } from '@/utils/userProfile.js';
 import { resolveSimulatorFormFromQuery } from '@/utils/formalityMapping.js';
+import { isCapacitorNative } from '@/utils/platform.js';
 
 const resolveOfferLink = ({ offer, journey, isAuthenticated }) => {
   if (offer.price === '0€') {
