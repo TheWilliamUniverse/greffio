@@ -1,28 +1,52 @@
-const CURRENT_DOSSIER_KEY = 'greffio_current_dossier_id';
+const LEGACY_CURRENT_DOSSIER_KEY = 'greffio_current_dossier_id';
 
-export const saveCurrentDossierId = (dossierId) => {
+let activeUserId = null;
+
+export const setActiveSessionUserId = (userId) => {
+  activeUserId = userId ? String(userId) : null;
+};
+
+const scopedKey = (userId = activeUserId) => (
+  userId ? `greffio_current_dossier_${userId}` : LEGACY_CURRENT_DOSSIER_KEY
+);
+
+export const saveCurrentDossierId = (dossierId, userId = activeUserId) => {
+  const key = scopedKey(userId);
   if (!dossierId) {
-    clearCurrentDossierId();
+    try {
+      window.localStorage.removeItem(key);
+      if (userId) window.localStorage.removeItem(LEGACY_CURRENT_DOSSIER_KEY);
+    } catch (_error) {
+      // ignore storage failure
+    }
     return;
   }
   try {
-    window.localStorage.setItem(CURRENT_DOSSIER_KEY, dossierId);
+    window.localStorage.setItem(key, dossierId);
+    if (userId) window.localStorage.removeItem(LEGACY_CURRENT_DOSSIER_KEY);
   } catch (_error) {
     // ignore storage failure
   }
 };
 
-export const getCurrentDossierId = () => {
+export const getCurrentDossierId = (userId = activeUserId) => {
   try {
-    return window.localStorage.getItem(CURRENT_DOSSIER_KEY);
+    const key = scopedKey(userId);
+    const scoped = window.localStorage.getItem(key);
+    if (scoped) return scoped;
+    if (userId) return null;
+    return window.localStorage.getItem(LEGACY_CURRENT_DOSSIER_KEY);
   } catch (_error) {
     return null;
   }
 };
 
-export const clearCurrentDossierId = () => {
+export const clearCurrentDossierId = (userId = activeUserId) => {
   try {
-    window.localStorage.removeItem(CURRENT_DOSSIER_KEY);
+    window.localStorage.removeItem(scopedKey(userId));
+    if (!userId || userId === activeUserId) {
+      window.localStorage.removeItem(LEGACY_CURRENT_DOSSIER_KEY);
+    }
   } catch (_error) {
     // ignore storage failure
   }

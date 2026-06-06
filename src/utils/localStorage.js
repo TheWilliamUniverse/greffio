@@ -68,8 +68,22 @@ export const clearAllData = () => {
     window.localStorage.removeItem(TOKEN_KEY);
     window.localStorage.removeItem(REFRESH_TOKEN_KEY);
     window.localStorage.removeItem(SESSIONS_KEY);
+    window.localStorage.removeItem(SECURITY_KEY);
+    window.localStorage.removeItem(DOSSIERS_KEY);
+    window.localStorage.removeItem(DOCUMENTS_KEY);
+    window.localStorage.removeItem(CHAT_HISTORY_KEY);
+    window.localStorage.removeItem(NOTIFICATIONS_KEY);
+    window.localStorage.removeItem(WORKFLOW_EVENTS_KEY);
+    window.localStorage.removeItem(PROJECT_DRAFT_KEY);
     window.localStorage.removeItem('greffio_mfa_device_token');
     window.localStorage.removeItem('greffio_mfa_device_expires');
+    window.localStorage.removeItem('greffio_current_dossier_id');
+    const scopedKeys = [];
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (key && key.startsWith('greffio_current_dossier_')) scopedKeys.push(key);
+    }
+    scopedKeys.forEach((key) => window.localStorage.removeItem(key));
   } catch (error) {
     console.error('Error clearing data', error);
   }

@@ -55,14 +55,16 @@ import { OpsLookupObservabilityPage } from '@/pages/OpsLookupObservabilityPage.j
 import { SERVICE_PAGE_SLUGS } from '@/config/serviceLandingPages.js';
 import { CookieConsentBanner } from '@/components/CookieConsentBanner.jsx';
 import { MobileAppShell } from '@/mobile/MobileAppShell.jsx';
+import { MobileWebShell } from '@/mobile/MobileWebShell.jsx';
 import { MobileSearchPage } from '@/mobile/MobileSearchPage.jsx';
 import { MobileAccountPage } from '@/mobile/MobileAccountPage.jsx';
 import { DashboardEntry } from '@/mobile/DashboardEntry.jsx';
 import { BiometricSessionProvider } from '@/context/BiometricSessionContext.jsx';
-import { shouldUseMobileShell, isCapacitorNative } from '@/utils/platform.js';
-import { WebMobileBottomNav } from '@/components/WebMobileBottomNav.jsx';
+import { shouldUseMobileShell, shouldUseMobileWebShell, isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 import { AppUpdateGate } from '@/components/AppUpdateGate.jsx';
 import { IdleSessionGuard } from '@/components/IdleSessionGuard.jsx';
+import { GlobalErrorBoundary } from '@/components/system/GlobalErrorBoundary.jsx';
+import { RouteErrorBoundary } from '@/components/system/RouteErrorBoundary.jsx';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -79,34 +81,35 @@ const NotFound = () => <NotFoundPage />;
 const Layout = ({ children }) => {
   const location = useLocation();
   const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/services', '/paiement', '/ressources', '/app', '/guide', '/procuration', '/contact', '/credentials-unlock', '/login', '/password-reset', '/tarifs'];
+  const mobileWebShellActive = isMobileBrowserViewport()
+    && shouldUseMobileWebShell(location.pathname);
   const shouldHideHeader = hideHeaderRoutes.some((route) => location.pathname === route || location.pathname.startsWith('/service/'))
     || location.pathname.startsWith('/ressources/guides/')
     || location.pathname.startsWith('/ops')
-    || (isCapacitorNative() && shouldUseMobileShell(location.pathname));
+    || (isCapacitorNative() && shouldUseMobileShell(location.pathname))
+    || mobileWebShellActive;
 
   const content = shouldUseMobileShell(location.pathname) ? (
     <MobileAppShell>{children}</MobileAppShell>
   ) : (
-    <div className="flex-1">{children}</div>
+    <MobileWebShell>{children}</MobileWebShell>
   );
 
   return (
-    <div className="flex min-h-screen flex-col font-['Inter']">
+    <div className="flex min-h-[100dvh] flex-col font-['Inter'] md:min-h-screen">
       {!shouldHideHeader && <Header />}
       {content}
-      <WebMobileBottomNav />
     </div>
   );
 };
 
-function App() {
+function AppRoutes() {
+  const location = useLocation();
   return (
-    <AuthProvider>
-      <Router>
-        <BiometricSessionProvider>
-        <IdleSessionGuard>
-        <ScrollToTop />
-        <Layout>
+    <>
+      <ScrollToTop />
+      <Layout>
+        <RouteErrorBoundary resetKey={location.pathname}>
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/tarifs" element={<PricingPage />} />
@@ -172,14 +175,28 @@ function App() {
 
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </Layout>
-        <CookieConsentBanner />
-        <AppUpdateGate />
-        <Toaster richColors position="top-right" />
-        </IdleSessionGuard>
-        </BiometricSessionProvider>
-      </Router>
-    </AuthProvider>
+        </RouteErrorBoundary>
+      </Layout>
+      <CookieConsentBanner />
+      <AppUpdateGate />
+      <Toaster richColors position="top-right" />
+    </>
+  );
+}
+
+function App() {
+  return (
+    <GlobalErrorBoundary>
+      <AuthProvider>
+        <Router>
+          <BiometricSessionProvider>
+            <IdleSessionGuard>
+              <AppRoutes />
+            </IdleSessionGuard>
+          </BiometricSessionProvider>
+        </Router>
+      </AuthProvider>
+    </GlobalErrorBoundary>
   );
 }
 

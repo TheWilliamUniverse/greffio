@@ -2,24 +2,11 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FileText, FolderKanban, LayoutDashboard, MessageSquareText, Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth.js';
-import { isCapacitorNative } from '@/utils/platform.js';
+import { isCapacitorNative, shouldUseMobileWebShell } from '@/utils/platform.js';
 
-/**
- * Routes du site web où afficher la bottom navigation mobile.
- *
- * On ne l'affiche pas sur la landing, les pages publiques, le paiement, la
- * signature, la création de compte, etc. — uniquement dans l'espace cockpit.
- */
-const SHOW_ON_PREFIXES = [
-  '/dashboard',
-  '/dossiers',
-  '/dossier',
-  '/documents',
-  '/team',
-  '/chat',
-  '/profil',
-  '/settings',
-  '/analytics',
+const HIDE_ON_PREFIXES = [
+  '/paiement',
+  '/signature/',
 ];
 
 const ITEMS = [
@@ -52,7 +39,8 @@ export const WebMobileBottomNav = () => {
 
   if (isCapacitorNative()) return null;
   if (!currentUser) return null;
-  if (!SHOW_ON_PREFIXES.some((prefix) => location.pathname === prefix || location.pathname.startsWith(`${prefix}/`))) {
+  if (!shouldUseMobileWebShell(location.pathname)) return null;
+  if (HIDE_ON_PREFIXES.some((prefix) => location.pathname === prefix || location.pathname.startsWith(prefix))) {
     return null;
   }
 

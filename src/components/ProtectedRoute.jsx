@@ -1,13 +1,14 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth.js';
+import { AppBootSplash } from '@/components/system/AppBootSplash.jsx';
 
 export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { isAuthenticated, loading, currentUser } = useAuth();
   const location = useLocation();
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-background"><div className="animate-pulse text-primary font-medium">Chargement...</div></div>;
+    return <AppBootSplash label="Vérification de votre session…" />;
   }
 
   if (!isAuthenticated) {

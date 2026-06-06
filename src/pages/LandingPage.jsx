@@ -22,7 +22,8 @@ import { LEGAL_SERVICES } from '@/config/businessCatalog.js';
 import { getServiceRoute } from '@/config/serviceLandingPages.js';
 import { lookupPublicCompanyBySiren } from '@/api/company.js';
 import { GooglePlayStoreLink } from '@/components/store/GooglePlayStoreLink.jsx';
-import { PricingPlansGrid } from '@/components/pricing/PricingPlansGrid.jsx';
+import { LandingPricingSection } from '@/components/pricing/LandingPricingSection.jsx';
+import { MobileLandingPage } from '@/mobile/MobileLandingPage.jsx';
 import { useNavigate } from 'react-router-dom';
 
 const EASE_OUT = [0.22, 1, 0.36, 1];
@@ -129,7 +130,12 @@ export const LandingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <>
+      <div className="md:hidden">
+        <MobileLandingPage />
+      </div>
+
+      <div className="hidden min-h-screen bg-background text-foreground md:block">
       <NavbarDropdown />
 
       <section className="surface-grid overflow-hidden px-4 pt-28 sm:px-6 lg:px-8 lg:pt-32">
@@ -495,7 +501,7 @@ export const LandingPage = () => {
 
       <section id="pricing" className="bg-white px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl">
-          <PricingPlansGrid compact showFooter footerMode="landing" />
+          <LandingPricingSection />
         </div>
       </section>
 
@@ -558,6 +564,7 @@ export const LandingPage = () => {
           </div>
         </div>
       </footer>
-    </div>
+      </div>
+    </>
   );
 };

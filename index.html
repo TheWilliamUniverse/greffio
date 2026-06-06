@@ -17,7 +17,15 @@
 		<title>Greffio — Formalités d'entreprise en ligne</title>
 	</head>
 	<body>
-		<div id="root"></div>
+		<div id="root">
+			<div id="greffio-boot" style="display:flex;min-height:100dvh;align-items:center;justify-content:center;background:#f6f8fc;font-family:Inter,system-ui,sans-serif;color:#475569;">
+				<div style="text-align:center;padding:1.5rem;">
+					<div style="width:2.5rem;height:2.5rem;border-radius:9999px;border:3px solid rgba(30,77,140,.15);border-top-color:#1e4d8c;margin:0 auto;animation:greffio-spin .8s linear infinite;"></div>
+					<p style="margin-top:1rem;font-size:.875rem;font-weight:600;">Chargement de Greffio…</p>
+				</div>
+			</div>
+			<style>@keyframes greffio-spin{to{transform:rotate(360deg)}}</style>
+		</div>
 		<script type="module" src="/src/main.jsx"></script>
 	</body>
 </html>

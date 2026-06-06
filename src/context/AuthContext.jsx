@@ -17,6 +17,9 @@ import { clearLoginAlertsConfiguredLocal } from '@/utils/loginAlertsStorage.js';
 import { rememberLoginAlertsChoice } from '@/utils/userProfile.js';
 import { disableBiometricUnlock, syncBiometricRefreshToken } from '@/utils/biometricAuth.js';
 import { isCapacitorNative } from '@/utils/platform.js';
+import { initializeClientDataCache, purgeEphemeralClientData } from '@/utils/clientDataCache.js';
+import { setActiveSessionUserId } from '@/utils/sessionStore.js';
+import { AppBootSplash } from '@/components/system/AppBootSplash.jsx';
 
 export const AuthContext = createContext(null);
 
@@ -37,15 +40,21 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    initializeClientDataCache(null);
     const bootstrap = async () => {
       const storedUser = getUser();
       const refreshToken = getRefreshToken();
       if (!storedUser && !refreshToken) {
+        setActiveSessionUserId(null);
+        initializeClientDataCache(null);
         setLoading(false);
         return;
       }
       if (!refreshToken) {
         clearAllData();
+        purgeEphemeralClientData({ keepConsent: true });
+        setActiveSessionUserId(null);
+        initializeClientDataCache(null);
         setCurrentUser(null);
         setLoading(false);
         return;
@@ -60,10 +69,15 @@ export const AuthProvider = ({ children }) => {
         }
         const profilePayload = await fetchUserProfile();
         const user = profilePayload?.user || storedUser;
+        setActiveSessionUserId(user?.id || null);
+        initializeClientDataCache(user?.id || null);
         setCurrentUser(user);
         saveUser(user);
       } catch (_error) {
         clearAllData();
+        purgeEphemeralClientData({ keepConsent: true });
+        setActiveSessionUserId(null);
+        initializeClientDataCache(null);
         setCurrentUser(null);
       } finally {
         setLoading(false);
@@ -88,6 +102,8 @@ export const AuthProvider = ({ children }) => {
         };
       }
       const user = apiPayload.user;
+      setActiveSessionUserId(user?.id || null);
+      initializeClientDataCache(user?.id || null);
       setCurrentUser(user);
       saveUser(user);
       saveToken(apiPayload.accessToken || makeSessionToken());
@@ -123,6 +139,8 @@ export const AuthProvider = ({ children }) => {
     try {
       const apiPayload = await verifyMfaLogin({ mfaToken, code, recoveryCode, method });
       const user = apiPayload.user;
+      setActiveSessionUserId(user?.id || null);
+      initializeClientDataCache(user?.id || null);
       setCurrentUser(user);
       saveUser(user);
       saveToken(apiPayload.accessToken || makeSessionToken());
@@ -184,6 +202,8 @@ export const AuthProvider = ({ children }) => {
       return { success: false, error: 'Création du compte impossible. Réessayez ou contactez l’équipe Greffio.' };
     }
 
+    setActiveSessionUserId(effectiveUser?.id || null);
+    initializeClientDataCache(effectiveUser?.id || null);
     setCurrentUser(effectiveUser);
     saveUser(effectiveUser);
     rememberLoginAlertsChoice(effectiveUser);
@@ -207,6 +227,9 @@ export const AuthProvider = ({ children }) => {
       await disableBiometricUnlock();
     }
     clearAllData();
+    purgeEphemeralClientData({ keepConsent: true });
+    setActiveSessionUserId(null);
+    initializeClientDataCache(null);
     if (userId) clearLoginAlertsConfiguredLocal(userId);
     setCurrentUser(null);
     toast.success('Déconnexion effectuée');
@@ -234,7 +257,7 @@ export const AuthProvider = ({ children }) => {
         updateProfile,
       }}
     >
-      {!loading && children}
+      {loading ? <AppBootSplash /> : children}
     </AuthContext.Provider>
   );
 };
