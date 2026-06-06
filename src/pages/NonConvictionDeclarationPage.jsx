@@ -15,11 +15,12 @@ import {
   signNonConvictionNow,
 } from '@/api/nonConviction.js';
 import { runtimeConfig } from '@/config/runtime.js';
-import { getDeclarationErrorMessage } from '@/utils/declarationErrors.js';
+import { getDocumentEditorLoadErrorMessage } from '@/utils/documentEditorErrors.js';
+import { DocumentEditorLoadGate } from '@/components/documents/DocumentEditorLoadGate.jsx';
 
 const OFFICIAL_SIMULATOR = 'https://www.service-public.gouv.fr/simulateur/calcul/DeclarationDeNonCondamnationEtDeFiliation';
 
-const mapError = (error) => getDeclarationErrorMessage(error?.code || error?.message, error?.payload);
+const mapError = (error) => getDocumentEditorLoadErrorMessage(error);
 
 const normalizeFields = (fields = {}) => {
   const signatureFullName = String(fields.signatureFullName || '').trim()
@@ -40,30 +41,40 @@ const normalizeFields = (fields = {}) => {
 export const NonConvictionDeclarationPage = () => {
   const { dossierId } = useParams();
   const [fields, setFields] = useState(null);
+  const [loadStatus, setLoadStatus] = useState('loading');
+  const [loadError, setLoadError] = useState('');
   const [previewKey, setPreviewKey] = useState(0);
   const [previewBlobUrl, setPreviewBlobUrl] = useState('');
   const [saving, setSaving] = useState(false);
   const [signMode, setSignMode] = useState(null);
 
   useEffect(() => {
+    if (!dossierId) {
+      setLoadStatus('error');
+      setLoadError('Aucun dossier sélectionné.');
+      return undefined;
+    }
+    let cancelled = false;
     const boot = async () => {
+      setLoadStatus('loading');
+      setLoadError('');
       try {
         const payload = await loadNonConvictionEditor(dossierId);
+        if (cancelled) return;
         setFields(normalizeFields(payload.fields || {}));
+        setLoadStatus('ready');
       } catch (error) {
-        const code = String(error?.message || error?.payload?.error || '');
-        if (code === 'AUTH_TOKEN_MISSING') {
-          toast.error('Session expirée. Reconnectez-vous.');
-        } else if (code === 'DOSSIER_FORBIDDEN' || error?.status === 403) {
-          toast.error('Accès refusé à ce dossier.');
-        } else if (code === 'DOCUMENT_EDITOR_LOAD_FAILED') {
-          toast.error('Erreur serveur documents. Réessayez dans quelques instants.');
-        } else {
-          toast.error(mapError(error));
-        }
+        if (cancelled) return;
+        const message = mapError(error);
+        setLoadError(message);
+        setLoadStatus('error');
+        toast.error(message);
       }
     };
     void boot();
+    return () => {
+      cancelled = true;
+    };
   }, [dossierId]);
 
   const updateField = (key, value) => {
@@ -138,12 +149,26 @@ export const NonConvictionDeclarationPage = () => {
     }
   };
 
-  if (!fields) {
+  if (loadStatus !== 'ready' || !fields) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] bg-[var(--we-bg)]">
-        <Sidebar />
-        <main className="flex flex-1 items-center justify-center p-8 text-muted-foreground">Chargement…</main>
-      </div>
+      <DocumentEditorLoadGate
+        status={loadStatus}
+        errorMessage={loadError}
+        onRetry={() => {
+          setLoadStatus('loading');
+          void loadNonConvictionEditor(dossierId)
+            .then((payload) => {
+              setFields(normalizeFields(payload.fields || {}));
+              setLoadStatus('ready');
+            })
+            .catch((error) => {
+              const message = mapError(error);
+              setLoadError(message);
+              setLoadStatus('error');
+              toast.error(message);
+            });
+        }}
+      />
     );
   }
 

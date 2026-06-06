@@ -14,34 +14,58 @@ import {
   sendEditableDocumentSignatureRequest,
   signEditableDocumentNow,
 } from '@/api/editableDocuments.js';
+import { getDocumentEditorLoadErrorMessage } from '@/utils/documentEditorErrors.js';
+import { DocumentEditorLoadGate } from '@/components/documents/DocumentEditorLoadGate.jsx';
 import { runtimeConfig } from '@/config/runtime.js';
 
 const DOC_KEY = 'subscribers_list';
 
 const mapError = (error) => {
   const code = error?.code || error?.message || '';
-  const messages = {
+  const fieldMessages = {
     DOCUMENT_EDITOR_COMPANY_REQUIRED: 'Indiquez la dénomination sociale.',
     DOCUMENT_EDITOR_SUBSCRIBERS_REQUIRED: 'Ajoutez au moins un souscripteur.',
     DOCUMENT_EDITOR_SUBSCRIBER_IDENTITY_REQUIRED: 'Chaque souscripteur doit avoir un nom.',
     DOCUMENT_EDITOR_SIGNATURE_PLACE_DATE_REQUIRED: 'Indiquez le lieu et la date.',
     DOCUMENT_EDITOR_SIGNATURE_REQUIRED: 'Indiquez le nom du signataire (Président).',
   };
-  return messages[code] || error?.payload?.message || 'Une erreur est survenue.';
+  return fieldMessages[code] || getDocumentEditorLoadErrorMessage(error);
 };
 
 export const SubscribersListPage = () => {
   const { dossierId } = useParams();
   const [fields, setFields] = useState(null);
+  const [loadStatus, setLoadStatus] = useState('loading');
+  const [loadError, setLoadError] = useState('');
   const [previewBlobUrl, setPreviewBlobUrl] = useState('');
   const [previewKey, setPreviewKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [signMode, setSignMode] = useState(null);
 
   useEffect(() => {
+    if (!dossierId) {
+      setLoadStatus('error');
+      setLoadError('Aucun dossier sélectionné.');
+      return undefined;
+    }
+    let cancelled = false;
+    setLoadStatus('loading');
     void loadEditableDocumentEditor(dossierId, DOC_KEY)
-      .then((payload) => setFields(payload.fields || {}))
-      .catch((error) => toast.error(mapError(error)));
+      .then((payload) => {
+        if (cancelled) return;
+        setFields(payload.fields || {});
+        setLoadStatus('ready');
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        const message = mapError(error);
+        setLoadError(message);
+        setLoadStatus('error');
+        toast.error(message);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [dossierId]);
 
   useEffect(() => () => {
@@ -102,12 +126,26 @@ export const SubscribersListPage = () => {
     }
   };
 
-  if (!fields) {
+  if (loadStatus !== 'ready' || !fields) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] bg-[var(--we-bg)]">
-        <Sidebar />
-        <main className="flex flex-1 items-center justify-center p-8 text-muted-foreground">Chargement…</main>
-      </div>
+      <DocumentEditorLoadGate
+        status={loadStatus}
+        errorMessage={loadError}
+        onRetry={() => {
+          setLoadStatus('loading');
+          void loadEditableDocumentEditor(dossierId, DOC_KEY)
+            .then((payload) => {
+              setFields(payload.fields || {});
+              setLoadStatus('ready');
+            })
+            .catch((error) => {
+              const message = mapError(error);
+              setLoadError(message);
+              setLoadStatus('error');
+              toast.error(message);
+            });
+        }}
+      />
     );
   }
 

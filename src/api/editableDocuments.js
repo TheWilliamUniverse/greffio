@@ -16,17 +16,24 @@ const authHeaders = () => {
 };
 
 const parseResponse = async (response) => {
-  if (response.ok) return response.json();
   let payload = null;
   try {
     payload = await response.json();
   } catch (_error) {
     payload = null;
   }
-  const error = new Error(payload?.message || payload?.error || 'API_ERROR');
+  if (response.ok) {
+    if (payload && typeof payload === 'object') return payload;
+    const error = new Error('API_ERROR');
+    error.code = 'API_ERROR';
+    error.status = response.status;
+    throw error;
+  }
+  const code = payload?.error || 'API_ERROR';
+  const error = new Error(code);
+  error.code = code;
   error.status = response.status;
   error.payload = payload;
-  error.code = payload?.error || 'API_ERROR';
   throw error;
 };
 

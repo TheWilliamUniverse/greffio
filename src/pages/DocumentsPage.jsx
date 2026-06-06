@@ -7,13 +7,8 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { INPI_UPLOAD_RULES } from '@/config/legalFlow.js';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
-import { downloadDossierDocument, deleteDossierDocument, getDossierDocuments, uploadDossierDocument } from '@/api/documents.js';
-import { getDossierDocumentEditor, saveDossierDocumentEditor } from '@/api/documents.js';
-import { getUser } from '@/utils/localStorage.js';
-import { isEiLikeFormality } from '@/config/formalities.js';
-import { getDocumentStatusLabel, getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
-import { isInternalUser } from '@/utils/roles.js';
-import { getDossierById } from '@/api/dossiers.js';
+import { syncCurrentDossierId } from '@/utils/documentEditorErrors.js';
+import { getDossierById, listDossiers } from '@/api/dossiers.js';
 import { IdentityVerificationCard } from '@/components/identity/IdentityVerificationCard.jsx';
 
 export const DocumentsPage = () => {
@@ -32,7 +27,8 @@ export const DocumentsPage = () => {
   const [uploadingDocKey, setUploadingDocKey] = useState(null);
   const rowUploadRef = useRef(null);
   const pendingUploadDocKey = useRef(null);
-  const currentDossierId = getCurrentDossierId();
+  const [dossierAccessError, setDossierAccessError] = useState('');
+  const [resolvedDossierId, setResolvedDossierId] = useState(() => getCurrentDossierId());
   const user = getUser();
   const internalView = isInternalUser(user);
   const normalizedDocuments = useMemo(() => apiDocuments.map((item) => {
@@ -95,11 +91,20 @@ export const DocumentsPage = () => {
 
   useEffect(() => {
     const load = async () => {
-      if (!currentDossierId) return;
+      setDossierAccessError('');
       try {
-        const items = await getDossierDocuments(currentDossierId);
+        const listPayload = await listDossiers();
+        const dossierIds = (listPayload?.dossiers || []).map((item) => item.id).filter(Boolean);
+        const dossierId = syncCurrentDossierId(dossierIds);
+        setResolvedDossierId(dossierId);
+        if (!dossierId) {
+          setApiDocuments([]);
+          setDossierAccessError('Aucun dossier actif. Ouvrez un dossier depuis le tableau de bord.');
+          return;
+        }
+        const items = await getDossierDocuments(dossierId);
         setApiDocuments(items);
-        const payload = await getDossierById(currentDossierId);
+        const payload = await getDossierById(dossierId);
         const q = payload?.dossier?.dataJson ? JSON.parse(payload.dossier.dataJson) : {};
         setDossierFormalityMeta({
           legalForm: payload?.dossier?.legalForm,
@@ -109,15 +114,16 @@ export const DocumentsPage = () => {
         });
       } catch (_error) {
         setApiDocuments([]);
+        setDossierAccessError('Impossible de charger ce dossier. Sélectionnez-en un autre depuis « Dossiers ».');
       }
     };
     void load();
-  }, [currentDossierId]);
+  }, []);
 
   const reloadDocuments = async () => {
-    if (!currentDossierId) return;
+    if (!resolvedDossierId) return;
     try {
-      const items = await getDossierDocuments(currentDossierId);
+      const items = await getDossierDocuments(resolvedDossierId);
       setApiDocuments(items);
     } catch (_error) {
       // keep current list
@@ -125,7 +131,7 @@ export const DocumentsPage = () => {
   };
 
   const uploadPdfFile = async (docKey, file) => {
-    if (!file || !currentDossierId || !docKey) return;
+    if (!file || !resolvedDossierId || !docKey) return;
     setUploadError(null);
     setUploadSuccess('');
     if (file.type !== 'application/pdf') {
@@ -141,7 +147,7 @@ export const DocumentsPage = () => {
       setUploadingDocKey(docKey);
       setSelectedDocKey(docKey);
       const payload = await uploadDossierDocument({
-        dossierId: currentDossierId,
+        dossierId: resolvedDossierId,
         docKey,
         file,
         ownerFirstName: user?.firstName || '',
@@ -183,10 +189,10 @@ export const DocumentsPage = () => {
   };
 
   const openEditor = async () => {
-    if (!currentDossierId) return;
+    if (!resolvedDossierId) return;
     try {
       const payload = await getDossierDocumentEditor({
-        dossierId: currentDossierId,
+        dossierId: resolvedDossierId,
         docKey: 'manager_non_conviction',
       });
       setEditorData(payload);
@@ -217,11 +223,11 @@ export const DocumentsPage = () => {
   };
 
   const saveEditor = async () => {
-    if (!editorData || !currentDossierId) return;
+    if (!editorData || !resolvedDossierId) return;
     setEditorSaving(true);
     try {
       const payload = await saveDossierDocumentEditor({
-        dossierId: currentDossierId,
+        dossierId: resolvedDossierId,
         docKey: 'manager_non_conviction',
         fields: editorData.fields || {},
       });
@@ -236,9 +242,9 @@ export const DocumentsPage = () => {
   };
 
   const openDocumentDownload = async (docKey) => {
-    if (!currentDossierId || !docKey) return;
+    if (!resolvedDossierId || !docKey) return;
     try {
-      const { filename, blob } = await downloadDossierDocument({ dossierId: currentDossierId, docKey });
+      const { filename, blob } = await downloadDossierDocument({ dossierId: resolvedDossierId, docKey });
       const url = window.URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;
@@ -254,14 +260,14 @@ export const DocumentsPage = () => {
   };
 
   const removeAttachment = async (docKey, label) => {
-    if (!currentDossierId || !docKey) return;
+    if (!resolvedDossierId || !docKey) return;
     const confirmed = window.confirm(`Supprimer la pièce jointe « ${label} » ? Vous pourrez en déposer une nouvelle ensuite.`);
     if (!confirmed) return;
     setUploadError(null);
     setUploadSuccess('');
     setDeletingDocKey(docKey);
     try {
-      const payload = await deleteDossierDocument({ dossierId: currentDossierId, docKey });
+      const payload = await deleteDossierDocument({ dossierId: resolvedDossierId, docKey });
       setApiDocuments(payload.documents || []);
       setUploadSuccess('Pièce jointe supprimée.');
     } catch (error) {
@@ -276,7 +282,7 @@ export const DocumentsPage = () => {
   const summary = [
     { label: 'Pièces en coffre', value: normalizedDocuments.length, text: 'document(s) du dossier actif', icon: Archive },
     { label: 'À traiter', value: waitingDocs.length, text: 'pièces à compléter ou signer', icon: FileText },
-    { label: 'Dossier relié', value: currentDossierId ? 1 : 0, text: currentDossierId ? 'dossier actif sélectionné' : 'aucun dossier actif', icon: CheckCircle2 },
+    { label: 'Dossier relié', value: resolvedDossierId ? 1 : 0, text: resolvedDossierId ? 'dossier actif sélectionné' : 'aucun dossier actif', icon: CheckCircle2 },
   ];
 
   return (
@@ -327,14 +333,15 @@ export const DocumentsPage = () => {
             </div>
             {uploadError ? <p className="mt-2 text-xs text-red-600">{uploadError}</p> : null}
             {uploadSuccess ? <p className="mt-2 text-xs text-emerald-700">{uploadSuccess}</p> : null}
-            {!currentDossierId ? <p className="mt-2 text-xs text-amber-700">Aucun dossier actif détecté. Ouvrez un dossier puis revenez ici pour déposer vos pièces.</p> : null}
+            {!resolvedDossierId ? <p className="mt-2 text-xs text-amber-700">Aucun dossier actif détecté. Ouvrez un dossier puis revenez ici pour déposer vos pièces.</p> : null}
+            {dossierAccessError ? <p className="mt-2 text-xs text-red-600">{dossierAccessError}</p> : null}
             <div className="mt-3 flex flex-wrap gap-2">
               <Button
                 variant="outline"
                 className="bg-white"
-                disabled={!currentDossierId || eiLike}
+                disabled={!resolvedDossierId || eiLike}
                 onClick={() => {
-                  const url = `/dossier/${currentDossierId}/declaration-non-condamnation`;
+                  const url = `/dossier/${resolvedDossierId}/declaration-non-condamnation`;
                   navigate(url);
                 }}
               >
@@ -344,8 +351,8 @@ export const DocumentsPage = () => {
               <Button
                 variant="outline"
                 className="bg-white"
-                disabled={!currentDossierId || eiLike}
-                onClick={() => navigate(`/dossier/${currentDossierId}/liste-souscripteurs`)}
+                disabled={!resolvedDossierId || eiLike}
+                onClick={() => navigate(`/dossier/${resolvedDossierId}/liste-souscripteurs`)}
               >
                 <FilePlus2 className="h-4 w-4" />
                 Liste des souscripteurs
@@ -353,8 +360,8 @@ export const DocumentsPage = () => {
               <Button
                 variant="outline"
                 className="bg-white"
-                disabled={!currentDossierId || eiLike}
-                onClick={() => navigate(`/dossier/${currentDossierId}/pouvoirs-formalites`)}
+                disabled={!resolvedDossierId || eiLike}
+                onClick={() => navigate(`/dossier/${resolvedDossierId}/pouvoirs-formalites`)}
               >
                 <FilePlus2 className="h-4 w-4" />
                 Pouvoirs formalités
@@ -362,9 +369,9 @@ export const DocumentsPage = () => {
             </div>
           </section>
 
-          {currentDossierId ? (
+          {resolvedDossierId ? (
             <IdentityVerificationCard
-              dossierId={currentDossierId}
+              dossierId={resolvedDossierId}
               identityDocUploaded={identityDocUploaded}
               onVerificationUpdated={() => { void reloadDocuments(); }}
             />
@@ -518,7 +525,7 @@ export const DocumentsPage = () => {
                       className="bg-white"
                       aria-label="Aperçu"
                       onClick={() => openDocumentDownload(document.docKey)}
-                      disabled={!currentDossierId || !document.hasFile}
+                      disabled={!resolvedDossierId || !document.hasFile}
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -529,7 +536,7 @@ export const DocumentsPage = () => {
                       aria-label="Déposer un PDF"
                       title="Déposer un PDF"
                       onClick={() => triggerRowUpload(document.docKey)}
-                      disabled={!currentDossierId || !document.canUpload || uploadingDocKey === document.docKey}
+                      disabled={!resolvedDossierId || !document.canUpload || uploadingDocKey === document.docKey}
                     >
                       {uploadingDocKey === document.docKey
                         ? <span className="text-xs">…</span>
@@ -541,7 +548,7 @@ export const DocumentsPage = () => {
                       className="bg-white text-red-700 hover:bg-red-50 hover:text-red-800"
                       aria-label="Supprimer la pièce jointe"
                       onClick={() => removeAttachment(document.docKey, document.name)}
-                      disabled={!currentDossierId || !document.hasFile || deletingDocKey === document.docKey}
+                      disabled={!resolvedDossierId || !document.hasFile || deletingDocKey === document.docKey}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -567,10 +574,10 @@ export const DocumentsPage = () => {
               ))}
             </section>
           ) : null}
-          {currentDossierId ? (
+          {resolvedDossierId ? (
             <div className="text-right">
               <Button asChild variant="outline" className="bg-white">
-                <Link to={`/dossier/${currentDossierId}`}>Retour au dossier</Link>
+                <Link to={`/dossier/${resolvedDossierId}`}>Retour au dossier</Link>
               </Button>
             </div>
           ) : null}

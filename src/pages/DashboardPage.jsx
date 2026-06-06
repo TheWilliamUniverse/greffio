@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { Card, CardContent } from '@/components/ui/card.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 import { getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.js';
+import { syncCurrentDossierId } from '@/utils/documentEditorErrors.js';
 import { getDossierById, listDossiers } from '@/api/dossiers.js';
 import { fetchUserProfile } from '@/api/profile.js';
 import { LoginAlertsPromptBanner } from '@/components/security/LoginAlertsPromptBanner.jsx';
@@ -112,6 +113,7 @@ export const DashboardPage = () => {
           });
         }
         setDossiers(normalized);
+        syncCurrentDossierId(normalized.map((dossier) => dossier.id));
 
         const currentDossierId = getCurrentDossierId() || normalized[0]?.id;
         if (currentDossierId && !getCurrentDossierId()) {

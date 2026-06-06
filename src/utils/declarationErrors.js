@@ -8,7 +8,11 @@ export const getDeclarationErrorMessage = (code = '', payload = null) => {
     case 'DOSSIER_FORBIDDEN':
       return 'Vous n’avez pas accès à ce dossier.';
     case 'DOSSIER_NOT_FOUND':
-      return 'Le dossier concerné est introuvable.';
+      return 'Le dossier concerné est introuvable. Rouvrez-le depuis « Dossiers » ou « Documents ».';
+    case 'DOCUMENT_EDITOR_NOT_SUPPORTED':
+      return 'Cet éditeur n’est pas encore disponible sur le serveur. Réessayez dans quelques minutes.';
+    case 'DOCUMENT_EDITOR_LOAD_FAILED':
+      return 'Impossible de charger l’éditeur. Réessayez ou contactez l’équipe Greffio.';
     case 'DOCUMENT_EDITOR_IDENTITY_REQUIRED':
       return 'Renseignez l’identité du déclarant (prénoms, nom de naissance, date et lieu de naissance).';
     case 'DOCUMENT_EDITOR_PARENTS_REQUIRED':

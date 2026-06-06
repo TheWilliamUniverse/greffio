@@ -2032,7 +2032,7 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/download', requireAuth, asyn
 });
 
 app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async (req, res) => {
-  const access = await resolveDossierAccess(req, req.params.dossierId);
+  const access = await resolveDossierAccess(req, req.params.dossierId, { allowClaim: true });
   if (!access.ok) return res.status(access.status).json({ ok: false, error: access.error });
   const { dossier } = access;
   const docKey = String(req.params.docKey || '');
@@ -2041,8 +2041,17 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async 
   if (!supported.has(docKey)) {
     return res.status(409).json({ ok: false, error: 'DOCUMENT_EDITOR_NOT_SUPPORTED' });
   }
-  const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
-  const dossierUser = dossier.userId ? await getUserById(dossier.userId) : null;
+
+  let questionnaire = {};
+  try {
+    questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+  } catch (_error) {
+    questionnaire = {};
+  }
+
+  const dossierUser = dossier.userId
+    ? await getUserById(dossier.userId)
+    : await getUserById(req.auth?.sub);
   let savedFields = {};
   try {
     await ensureDossierDocuments(dossier.id);
@@ -2056,20 +2065,25 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async 
     return res.status(500).json({ ok: false, error: 'DOCUMENT_EDITOR_LOAD_FAILED' });
   }
 
-  if (editableConfig) {
-    const fields = editableConfig.buildInitialFields({
-      dossier,
-      questionnaire,
-      user: dossierUser,
-      savedFields,
-    });
-    return res.json({
-      ok: true,
-      docKey,
-      schemaVersion: editableConfig.schemaVersion,
-      title: editableConfig.title,
-      fields,
-    });
+  try {
+    if (editableConfig) {
+      const fields = editableConfig.buildInitialFields({
+        dossier,
+        questionnaire,
+        user: dossierUser,
+        savedFields,
+      });
+      return res.json({
+        ok: true,
+        docKey,
+        schemaVersion: editableConfig.schemaVersion,
+        title: editableConfig.title,
+        fields,
+      });
+    }
+  } catch (error) {
+    console.error('DOCUMENT_EDITOR_LOAD_FAILED', error);
+    return res.status(500).json({ ok: false, error: 'DOCUMENT_EDITOR_LOAD_FAILED' });
   }
 
   const initialFields = {
@@ -2112,7 +2126,7 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async 
 });
 
 app.post('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async (req, res) => {
-  const access = await resolveDossierAccess(req, req.params.dossierId);
+  const access = await resolveDossierAccess(req, req.params.dossierId, { allowClaim: true });
   if (!access.ok) return res.status(access.status).json({ ok: false, error: access.error });
   const { dossier } = access;
   const docKey = String(req.params.docKey || '');
