@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { SignatureAdoptPanel } from '@/components/signature/SignatureAdoptPanel.jsx';
-import { downloadDossierDocument } from '@/api/documents.js';
+import { downloadDossierDocument, previewDossierDocumentPdf } from '@/api/documents.js';
 import {
   loadEditableDocumentEditor,
   saveEditableDocumentDraft,
@@ -27,6 +27,9 @@ const mapError = (error) => {
     DOCUMENT_EDITOR_MANDATAIRE_REQUIRED: 'Indiquez le mandataire.',
     DOCUMENT_EDITOR_SIGNATURE_PLACE_DATE_REQUIRED: 'Indiquez le lieu et la date.',
     DOCUMENT_EDITOR_SIGNATURE_REQUIRED: 'Indiquez le nom du signataire.',
+    SIGN_NOW_FAILED: 'La signature n’a pas pu être apposée sur le document.',
+    PDF_GENERATION_FAILED: 'La génération du document a échoué.',
+    STORAGE_UPLOAD_FAILED: 'Le document n’a pas pu être enregistré.',
   };
   return fieldMessages[code] || getDocumentEditorLoadErrorMessage(error);
 };
@@ -77,7 +80,7 @@ export const FormalityPowersPage = () => {
     setSaving(true);
     try {
       await saveEditableDocumentDraft(dossierId, DOC_KEY, fields);
-      const { blob } = await downloadDossierDocument({ dossierId, docKey: DOC_KEY, cacheBust: true });
+      const blob = await previewDossierDocumentPdf({ dossierId, docKey: DOC_KEY, fields });
       setPreviewBlobUrl((current) => {
         if (current) URL.revokeObjectURL(current);
         return URL.createObjectURL(blob);
@@ -94,7 +97,14 @@ export const FormalityPowersPage = () => {
   const onSignNow = async (signaturePayload) => {
     setSaving(true);
     try {
+      await saveEditableDocumentDraft(dossierId, DOC_KEY, fields);
       await signEditableDocumentNow(dossierId, DOC_KEY, { fields, ...signaturePayload });
+      const { blob } = await downloadDossierDocument({ dossierId, docKey: DOC_KEY, cacheBust: true, inline: true });
+      setPreviewBlobUrl((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return URL.createObjectURL(blob);
+      });
+      setPreviewKey((value) => value + 1);
       toast.success('Pouvoirs pour formalités signés.');
       setSignMode(null);
     } catch (error) {

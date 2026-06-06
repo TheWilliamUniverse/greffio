@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { SignatureAdoptPanel } from '@/components/signature/SignatureAdoptPanel.jsx';
-import { downloadDossierDocument } from '@/api/documents.js';
+import { downloadDossierDocument, previewDossierDocumentPdf } from '@/api/documents.js';
 import {
   loadNonConvictionEditor,
   saveNonConvictionDraft,
@@ -91,10 +91,10 @@ export const NonConvictionDeclarationPage = () => {
       const normalized = normalizeFields(fields);
       setFields(normalized);
       await saveNonConvictionDraft(dossierId, normalized);
-      const { blob } = await downloadDossierDocument({
+      const blob = await previewDossierDocumentPdf({
         dossierId,
         docKey: 'manager_non_conviction',
-        cacheBust: true,
+        fields: normalized,
       });
       setPreviewBlobUrl((current) => {
         if (current) URL.revokeObjectURL(current);
@@ -112,7 +112,9 @@ export const NonConvictionDeclarationPage = () => {
   const onSignNow = async (signaturePayload) => {
     setSaving(true);
     try {
-      await signNonConvictionNow(dossierId, { fields: normalizeFields(fields), ...signaturePayload });
+      const normalized = normalizeFields(fields);
+      await saveNonConvictionDraft(dossierId, normalized);
+      await signNonConvictionNow(dossierId, { fields: normalized, ...signaturePayload });
       toast.success('Déclaration signée et archivée.');
       setSignMode(null);
       const { blob } = await downloadDossierDocument({

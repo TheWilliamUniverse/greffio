@@ -13,11 +13,11 @@ export const ChatIAPage = () => {
       <main className="flex-1 flex flex-col h-full max-w-4xl mx-auto w-full p-4 md:p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Assistant Juridique</h1>
-            <p className="text-sm text-muted-foreground">Expert en droit français, contextualisé pour {currentUser?.company?.legalStructure || 'votre projet'}</p>
+            <h1 className="text-2xl font-bold text-foreground">Assistant Greffio</h1>
+            <p className="text-sm text-muted-foreground">Guidage formalités et documents pour {currentUser?.company?.legalStructure || 'votre projet'}</p>
           </div>
           <div className="hidden md:flex items-center text-xs text-primary bg-primary/10 px-3 py-1.5 rounded-full">
-            <Info className="h-4 w-4 mr-1" /> Propulsé par ChatGPT
+            <Info className="h-4 w-4 mr-1" /> Assistant métier Greffio
           </div>
         </div>
         

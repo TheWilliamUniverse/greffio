@@ -143,6 +143,23 @@ export async function deleteDocumentFromS3(s3Key, bucket = bucketName()) {
   return true;
 }
 
+export async function downloadObjectBufferFromStorageUrl(storageUrl) {
+  const parsed = parseS3StorageUrl(storageUrl);
+  if (!parsed) throw new Error('S3_STORAGE_URL_INVALID');
+  const response = await getS3Client().send(new GetObjectCommand({
+    Bucket: parsed.bucket,
+    Key: parsed.key,
+  }));
+  if (typeof response.Body?.transformToByteArray === 'function') {
+    return Buffer.from(await response.Body.transformToByteArray());
+  }
+  const chunks = [];
+  for await (const chunk of response.Body) {
+    chunks.push(Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
+
 export async function deleteDocumentFromS3StorageUrl(storageUrl) {
   const parsed = parseS3StorageUrl(storageUrl);
   if (!parsed) return { deleted: false, provider: 's3' };

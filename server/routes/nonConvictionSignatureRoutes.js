@@ -155,7 +155,10 @@ export const registerNonConvictionSignatureRoutes = (app, {
         dossier,
         fields: { ...normalizedFields, signerEmail, signatureFullName },
       });
-      const signedFilename = pdfPath.replace('.pdf', '_signed.pdf');
+      if (!pdfPath || !fs.existsSync(pdfPath)) {
+        throw new Error('PDF_GENERATION_FAILED');
+      }
+      const signedFilename = pdfPath.replace(/\.pdf$/i, '_signed.pdf');
       await stampSignatureOnPdf({
         inputPath: pdfPath,
         outputPath: signedFilename,
@@ -209,9 +212,13 @@ export const registerNonConvictionSignatureRoutes = (app, {
       return res.json({ ok: true, status: 'signed', sha256Signed, documents: await listDossierDocuments(dossier.id) });
     } catch (error) {
       console.error('SIGN_NOW_FAILED', error);
-      const errorCode = error?.message === 'INVALID_SIGNATURE_FORMAT'
-        ? 'INVALID_SIGNATURE_FORMAT'
-        : 'SIGN_NOW_FAILED';
+      let errorCode = 'SIGN_NOW_FAILED';
+      if (error?.message === 'INVALID_SIGNATURE_FORMAT') errorCode = 'INVALID_SIGNATURE_FORMAT';
+      else if (String(error?.message || '').includes('STORAGE') || String(error?.message || '').includes('S3')) {
+        errorCode = 'STORAGE_UPLOAD_FAILED';
+      } else if (String(error?.message || '').includes('PDF')) {
+        errorCode = 'PDF_GENERATION_FAILED';
+      }
       return res.status(errorCode === 'INVALID_SIGNATURE_FORMAT' ? 400 : 500).json({
         ok: false,
         error: errorCode,

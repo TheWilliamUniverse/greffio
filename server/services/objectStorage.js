@@ -3,6 +3,7 @@ import path from 'node:path';
 import {
   buildS3StorageUrl,
   deleteDocumentFromS3StorageUrl,
+  downloadObjectBufferFromStorageUrl,
   getSignedDownloadUrlFromStorageUrl,
   isS3Configured,
   parseS3StorageUrl,
@@ -228,6 +229,26 @@ export const deleteDocumentFromConfiguredStorage = async (storageUrl) => {
   } catch (_error) {
     return { deleted: false, provider: 'local' };
   }
+};
+
+export const downloadDocumentBufferFromConfiguredStorage = async (storageUrl) => {
+  const source = String(storageUrl || '');
+  if (!source) throw new Error('STORAGE_URL_MISSING');
+
+  if (source.startsWith('s3://')) {
+    if (!isS3Configured()) throw new Error('STORAGE_DOWNLOAD_FAILED');
+    return downloadObjectBufferFromStorageUrl(source);
+  }
+
+  if (source.startsWith('supabase://')) {
+    const signedUrl = await createSupabaseSignedDownloadUrl(source, 120);
+    if (!signedUrl) throw new Error('STORAGE_DOWNLOAD_FAILED');
+    const response = await fetch(signedUrl);
+    if (!response.ok) throw new Error('STORAGE_DOWNLOAD_FAILED');
+    return Buffer.from(await response.arrayBuffer());
+  }
+
+  return fs.readFile(source);
 };
 
 export { parseS3StorageUrl, buildS3StorageUrl };

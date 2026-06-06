@@ -110,6 +110,7 @@ import { computeDossierRisk, sortAntiRejectionQueue } from './services/opsRisk.j
 import { buildOpsCockpitPayload, enrichDossierForOps } from './services/opsCockpitService.js';
 import { draftStatutesDocument } from './services/statutesDrafting.js';
 import { buildSimulatorStatutesPreview } from './services/simulatorStatutesPreviewService.js';
+import { buildDocumentPreviewBuffer } from './services/documentEditorPreviewService.js';
 import { generateStatutesPdf } from './pdf/statutesPdf.js';
 import {
   buildStatutesPdfForDossier,
@@ -137,6 +138,7 @@ import {
   createSupabaseSignedDownloadUrl,
   createSignedDownloadUrl,
   deleteDocumentFromConfiguredStorage,
+  downloadDocumentBufferFromConfiguredStorage,
   objectStorageConfig,
   uploadDocumentToConfiguredStorage,
 } from './services/objectStorage.js';
@@ -2023,21 +2025,22 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/download', requireAuth, asyn
   if (!requested || !requested.storageUrl) {
     return res.status(404).json({ ok: false, error: 'DOCUMENT_FILE_NOT_FOUND' });
   }
-  if (String(requested.storageUrl).startsWith('s3://') || String(requested.storageUrl).startsWith('supabase://')) {
-    const signed = await createSignedDownloadUrl(requested.storageUrl);
-    if (!signed?.url) {
-      return res.status(404).json({ ok: false, error: 'DOCUMENT_FILE_NOT_FOUND' });
-    }
-    return res.redirect(signed.url);
-  }
-  if (!isSafeUploadPath(requested.storageUrl) || !fs.existsSync(requested.storageUrl)) {
-    return res.status(404).json({ ok: false, error: 'DOCUMENT_FILE_NOT_FOUND' });
-  }
 
   const downloadName = requested.filename || `${requested.docKey}.pdf`;
-  res.setHeader('Content-Type', requested.mimeType || 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
-  return fs.createReadStream(requested.storageUrl).pipe(res);
+  const inline = String(req.query.inline || req.query.disposition || '').toLowerCase() === '1'
+    || String(req.query.inline || req.query.disposition || '').toLowerCase() === 'inline';
+  const disposition = inline ? 'inline' : 'attachment';
+
+  try {
+    const buffer = await downloadDocumentBufferFromConfiguredStorage(requested.storageUrl);
+    res.setHeader('Content-Type', requested.mimeType || 'application/pdf');
+    res.setHeader('Content-Disposition', `${disposition}; filename="${downloadName}"`);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.send(buffer);
+  } catch (error) {
+    console.error('DOCUMENT_DOWNLOAD_FAILED', error);
+    return res.status(404).json({ ok: false, error: 'DOCUMENT_FILE_NOT_FOUND' });
+  }
 });
 
 app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async (req, res) => {
@@ -2211,6 +2214,31 @@ app.post('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async
   } catch (error) {
     console.error('DOCUMENT_EDITOR_GENERATION_FAILED', error);
     return res.status(500).json({ ok: false, error: 'DOCUMENT_EDITOR_GENERATION_FAILED' });
+  }
+});
+
+app.post('/api/dossiers/:dossierId/documents/:docKey/preview-pdf', requireAuth, async (req, res) => {
+  const access = await resolveDossierAccess(req, req.params.dossierId, { allowClaim: true });
+  if (!access.ok) return res.status(access.status).json({ ok: false, error: access.error });
+  const docKey = String(req.params.docKey || '');
+  const supported = new Set(['manager_non_conviction', ...getSupportedEditableDocumentKeys()]);
+  if (!supported.has(docKey)) {
+    return res.status(409).json({ ok: false, error: 'DOCUMENT_EDITOR_NOT_SUPPORTED' });
+  }
+
+  try {
+    const buffer = await buildDocumentPreviewBuffer({ docKey, fields: req.body?.fields || {} });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'inline; filename="apercu.pdf"');
+    res.setHeader('Cache-Control', 'no-store');
+    return res.send(buffer);
+  } catch (error) {
+    const code = String(error?.code || error?.message || 'PDF_GENERATION_FAILED');
+    if (code.startsWith('DOCUMENT_EDITOR_') || code === 'SIGNATURE_CONSENT_REQUIRED') {
+      return res.status(400).json({ ok: false, error: code });
+    }
+    console.error('DOCUMENT_PREVIEW_PDF_FAILED', error);
+    return res.status(500).json({ ok: false, error: 'PDF_GENERATION_FAILED' });
   }
 });
 

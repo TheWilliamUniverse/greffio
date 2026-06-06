@@ -15,7 +15,7 @@ export default function IntegratedAiChat() {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Bonjour, je suis l’assistant Greffio propulsé par ChatGPT. Je peux vous aider sur vos démarches, documents et prochaines actions.' },
+    { role: 'assistant', content: 'Bonjour, je suis l’assistant Greffio. Je vous guide sur vos formalités, documents, signatures et prochaines étapes — de façon claire et actionnable.' },
   ]);
 
   const canSend = useMemo(() => input.trim().length > 0, [input]);
@@ -43,9 +43,7 @@ export default function IntegratedAiChat() {
         ...current,
         {
           role: 'assistant',
-          content: payload?.degraded
-            ? `${payload?.answer || 'Réponse locale Greffio.'}\n\n(Assistant ChatGPT temporairement indisponible — quota OpenAI. Réponse générée localement.)`
-            : (payload?.answer || 'Je n’ai pas pu générer de réponse.'),
+          content: payload?.answer || 'Je n’ai pas pu générer de réponse pour le moment. Réessayez ou contactez l’équipe Greffio.',
         },
       ]);
     } catch (_error) {
@@ -67,7 +65,7 @@ export default function IntegratedAiChat() {
           </div>
           <div>
             <h2 className="font-extrabold">Assistant Greffio</h2>
-            <p className="text-xs text-muted-foreground">Propulsé par ChatGPT</p>
+            <p className="text-xs text-muted-foreground">Formalités, documents et prochaines étapes</p>
           </div>
         </div>
         <Sparkles className="h-5 w-5 text-primary" />

@@ -35,7 +35,7 @@ const parseResponse = async (response) => {
 };
 
 const mapDocumentEditorError = (error) => {
-  const code = String(error?.message || '');
+  const code = String(error?.code || error?.message || '');
   if (code === 'DOCUMENT_EDITOR_USE_CASE_REQUIRED') return 'Sélectionnez au moins un cas d’usage : pour vous ou filiation parents.';
   if (code === 'DOCUMENT_EDITOR_SIGNATURE_REQUIRED') return 'Indiquez le nom du signataire.';
   if (code === 'DOCUMENT_EDITOR_SIGNATURE_PLACE_DATE_REQUIRED') return 'Indiquez le lieu et la date de la déclaration.';
@@ -122,13 +122,17 @@ export const getDossierDocumentDownloadUrl = ({ dossierId, docKey }) => (
   `${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}/documents/${docKey}/download`
 );
 
-export const downloadDossierDocument = async ({ dossierId, docKey, cacheBust = false }) => {
-  const cacheQuery = cacheBust ? `?t=${Date.now()}` : '';
-  const response = await fetch(`${getDossierDocumentDownloadUrl({ dossierId, docKey })}${cacheQuery}`, {
+export const downloadDossierDocument = async ({ dossierId, docKey, cacheBust = false, inline = true } = {}) => {
+  const params = new URLSearchParams();
+  if (cacheBust) params.set('t', String(Date.now()));
+  if (inline) params.set('inline', '1');
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const response = await fetch(`${getDossierDocumentDownloadUrl({ dossierId, docKey })}${query}`, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${authToken()}`,
     },
+    cache: 'no-store',
   });
   if (!response.ok) {
     let payload = null;
@@ -138,8 +142,16 @@ export const downloadDossierDocument = async ({ dossierId, docKey, cacheBust = f
       payload = null;
     }
     const error = new Error(payload?.error || 'DOCUMENT_DOWNLOAD_FAILED');
+    error.code = payload?.error || 'DOCUMENT_DOWNLOAD_FAILED';
     error.payload = payload;
     error.status = response.status;
+    throw error;
+  }
+
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('pdf') && !contentType.includes('octet-stream')) {
+    const error = new Error('DOCUMENT_DOWNLOAD_FAILED');
+    error.code = 'DOCUMENT_DOWNLOAD_FAILED';
     throw error;
   }
 
@@ -150,6 +162,32 @@ export const downloadDossierDocument = async ({ dossierId, docKey, cacheBust = f
   return { filename, blob };
 };
 
+export const previewDossierDocumentPdf = async ({ dossierId, docKey, fields = {} } = {}) => {
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}/documents/${encodeURIComponent(docKey)}/preview-pdf`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${authToken()}`,
+    },
+    body: JSON.stringify({ fields }),
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch (_error) {
+      payload = null;
+    }
+    const error = new Error(payload?.error || 'PDF_GENERATION_FAILED');
+    error.code = payload?.error || 'PDF_GENERATION_FAILED';
+    error.payload = payload;
+    error.status = response.status;
+    throw error;
+  }
+  return response.blob();
+};
+
 export const getDossierDocumentEditor = async ({ dossierId, docKey }) => (
   apiGet(`/api/dossiers/${dossierId}/documents/${docKey}/editor`)
 );
@@ -158,7 +196,9 @@ export const saveDossierDocumentEditor = async ({ dossierId, docKey, fields }) =
   try {
     return await apiPost(`/api/dossiers/${dossierId}/documents/${docKey}/editor`, { fields });
   } catch (error) {
-    const mapped = new Error(mapDocumentEditorError(error));
+    const code = String(error?.code || error?.message || 'API_ERROR');
+    const mapped = new Error(mapDocumentEditorError({ ...error, code }));
+    mapped.code = code;
     mapped.status = error?.status;
     mapped.payload = error?.payload;
     throw mapped;
