@@ -12,6 +12,7 @@ import {
   MessageSquareText,
   Network,
   Activity,
+  ClipboardList,
   Settings,
   ShieldCheck,
   UserRound,
@@ -55,6 +56,7 @@ export const Sidebar = ({ className }) => {
     { to: '/documents', icon: FileText, label: 'Documents' },
     { to: '/team', icon: MessageSquareText, label: 'Équipe & clients' },
     ...(internalView ? [
+      { to: '/ops/cockpit', icon: ClipboardList, label: 'Cockpit Ops' },
       { to: '/interfaces', icon: Network, label: 'Interfaces' },
       { to: '/ops-observability', icon: Activity, label: 'Ops observabilité' },
     ] : []),

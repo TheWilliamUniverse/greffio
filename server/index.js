@@ -107,6 +107,7 @@ import { resolveFormalityPublicLabel } from './domain/formalityLabels.js';
 import { getCompanyLookupMetrics, lookupCompany } from './services/companyLookup.js';
 import { buildIntelligentPrefill } from './services/intelligentIntake.js';
 import { computeDossierRisk, sortAntiRejectionQueue } from './services/opsRisk.js';
+import { buildOpsCockpitPayload, enrichDossierForOps } from './services/opsCockpitService.js';
 import { draftStatutesDocument } from './services/statutesDrafting.js';
 import {
   buildStatutesPdfForDossier,
@@ -1316,6 +1317,15 @@ app.get('/api/ops/email-events', requireAuth, requireRole(['ADMIN', 'OPS', 'FORM
   });
 });
 
+app.get('/api/ops/cockpit', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (_req, res) => {
+  const payload = await buildOpsCockpitPayload({
+    getAllDossiers,
+    listDossierDocuments,
+    getAllPayments,
+  });
+  return res.json({ ok: true, ...payload });
+});
+
 app.get('/api/ops/dossiers', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (_req, res) => {
   res.json({
     ok: true,
@@ -1602,14 +1612,19 @@ app.get('/api/ops/dossiers/:dossierId/detail', requireAuth, requireRole(['ADMIN'
   const dossier = await getDossier(req.params.dossierId);
   if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
   const documents = await listDossierDocuments(dossier.id);
-  const risk = computeDossierRisk({ dossier, documents });
+  const enriched = enrichDossierForOps({ dossier, documents });
   return res.json({
     ok: true,
     dossier,
     documents,
     events: await listDossierEvents(dossier.id),
     notes: await listOpsNotesByDossier(dossier.id),
-    risk,
+    risk: enriched.risk,
+    completionScore: enriched.completionScore,
+    sla: enriched.sla,
+    nextBestAction: enriched.nextBestAction,
+    checklist: enriched.checklist,
+    readyForDeposit: enriched.readyForDeposit,
   });
 });
 

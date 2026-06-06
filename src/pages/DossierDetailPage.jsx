@@ -172,7 +172,7 @@ export const DossierDetailPage = () => {
             </p>
             {internalView ? (
               <Button asChild variant="outline" className="mt-4 bg-white">
-                <Link to="/ops">Ouvrir le pilotage Ops</Link>
+                <Link to="/ops/cockpit">Ouvrir le pilotage Ops</Link>
               </Button>
             ) : null}
             <Button asChild className="mt-6">

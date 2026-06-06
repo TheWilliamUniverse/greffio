@@ -1,0 +1,75 @@
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+import {
+  Activity,
+  ClipboardCheck,
+  FileSearch,
+  FolderKanban,
+  Gauge,
+  LayoutDashboard,
+  Mail,
+  Settings,
+  ShieldCheck,
+  Truck,
+  Users,
+} from 'lucide-react';
+import { GREFFIO_COMPANY } from '@/config/opsTeam.js';
+
+const navItems = [
+  { to: '/ops/cockpit', label: 'Cockpit', icon: LayoutDashboard, end: true },
+  { to: '/ops/dossiers', label: 'Dossiers', icon: FolderKanban },
+  { to: '/ops/documents', label: 'Documents', icon: FileSearch },
+  { to: '/ops/relances', label: 'Relances', icon: Mail },
+  { to: '/ops/depot', label: 'Dépôt GU', icon: Truck },
+  { to: '/ops/qualite', label: 'Qualité', icon: ClipboardCheck },
+  { to: '/ops/equipe', label: 'Équipe', icon: Users },
+  { to: '/ops/audit', label: 'Audit', icon: ShieldCheck },
+  { to: '/ops-observability', label: 'Observabilité', icon: Activity, external: true },
+  { to: '/ops/settings', label: 'Paramètres', icon: Settings },
+];
+
+export const OpsSidebar = ({ collapsed = false }) => (
+  <aside className={`flex h-full flex-col border-r border-slate-800 bg-slate-950 text-slate-100 ${collapsed ? 'w-[72px]' : 'w-64'}`}>
+    <div className={`border-b border-slate-800 px-4 py-5 ${collapsed ? 'px-3' : ''}`}>
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-sm font-extrabold text-slate-900">
+          G
+        </div>
+        {!collapsed ? (
+          <div className="min-w-0">
+            <p className="truncate text-sm font-extrabold">Greffio Ops</p>
+            <p className="truncate text-[11px] text-slate-400">Cockpit formaliste</p>
+          </div>
+        ) : null}
+      </div>
+    </div>
+
+    <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+      {navItems.map(({ to, label, icon: Icon, end, external }) => (
+        <NavLink
+          key={to}
+          to={to}
+          end={end}
+          className={({ isActive }) => `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+            isActive
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+          } ${collapsed ? 'justify-center px-2' : ''}`}
+          title={label}
+        >
+          <Icon className="h-4 w-4 shrink-0" />
+          {!collapsed ? <span>{label}</span> : null}
+          {!collapsed && external ? <Gauge className="ml-auto h-3.5 w-3.5 opacity-50" /> : null}
+        </NavLink>
+      ))}
+    </nav>
+
+    {!collapsed ? (
+      <div className="border-t border-slate-800 p-4">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Société éditrice</p>
+        <p className="mt-1 text-sm font-semibold text-white">{GREFFIO_COMPANY.name}</p>
+        <p className="mt-0.5 truncate text-xs text-slate-400">{GREFFIO_COMPANY.email}</p>
+      </div>
+    ) : null}
+  </aside>
+);

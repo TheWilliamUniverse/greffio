@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AuthProvider } from '@/context/AuthContext.jsx';
 import { ProtectedRoute } from '@/components/ProtectedRoute.jsx';
@@ -33,6 +33,12 @@ import { ContactPage } from '@/pages/ContactPage.jsx';
 import { GuidePage } from '@/pages/GuidePage.jsx';
 import { MandatePage } from '@/pages/MandatePage.jsx';
 import { OpsDashboardPage } from '@/pages/OpsDashboardPage.jsx';
+import { OpsShell } from '@/components/ops/OpsShell.jsx';
+import { OpsCockpitPage } from '@/pages/ops/OpsCockpitPage.jsx';
+import { OpsDossiersPage } from '@/pages/ops/OpsDossiersPage.jsx';
+import { OpsDossierDetailPage } from '@/pages/ops/OpsDossierDetailPage.jsx';
+import { OpsEquipePage } from '@/pages/ops/OpsEquipePage.jsx';
+import { OpsPlaceholderPage } from '@/pages/ops/OpsPlaceholderPage.jsx';
 import { PaymentVerificationPage } from '@/pages/PaymentVerificationPage.jsx';
 import { QuestionnairePage } from '@/pages/QuestionnairePage.jsx';
 import { StatutesPage } from '@/pages/StatutesPage.jsx';
@@ -73,6 +79,7 @@ const Layout = ({ children }) => {
   const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/services', '/paiement', '/ressources', '/app', '/guide', '/procuration', '/contact', '/credentials-unlock', '/login', '/password-reset', '/tarifs'];
   const shouldHideHeader = hideHeaderRoutes.some((route) => location.pathname === route || location.pathname.startsWith('/service/'))
     || location.pathname.startsWith('/ressources/guides/')
+    || location.pathname.startsWith('/ops')
     || (isCapacitorNative() && shouldUseMobileShell(location.pathname));
 
   const content = shouldUseMobileShell(location.pathname) ? (
@@ -126,7 +133,20 @@ function App() {
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/guide" element={<GuidePage />} />
             <Route path="/procuration" element={<MandatePage />} />
-            <Route path="/ops" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><OpsDashboardPage /></ProtectedRoute>} />
+            <Route path="/ops" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><OpsShell /></ProtectedRoute>}>
+              <Route index element={<Navigate to="cockpit" replace />} />
+              <Route path="cockpit" element={<OpsCockpitPage />} />
+              <Route path="dossiers" element={<OpsDossiersPage />} />
+              <Route path="dossiers/:dossierId" element={<OpsDossierDetailPage />} />
+              <Route path="documents" element={<OpsPlaceholderPage title="Documents" description="Revue side-by-side, validation groupée et annotations — prévu Lot 2." ctaTo="/ops/dossiers" ctaLabel="Aller aux dossiers" />} />
+              <Route path="relances" element={<OpsPlaceholderPage title="Relances" description="Suggestions de relance client, modèles d’email et suivi des retours — prévu Lot 2." />} />
+              <Route path="depot" element={<OpsPlaceholderPage title="Dépôt guichet unique" description="File des dossiers prêts au dépôt et checklist GU — prévu Lot 2." ctaTo="/ops/dossiers?filter=ready:deposit" ctaLabel="Dossiers prêts" />} />
+              <Route path="qualite" element={<OpsPlaceholderPage title="Qualité & anti-rejet" description="Contrôles qualité, scoring et revue des rejets — prévu Lot 2." ctaTo="/ops/cockpit" />} />
+              <Route path="equipe" element={<OpsEquipePage />} />
+              <Route path="audit" element={<OpsPlaceholderPage title="Audit ops" description="Journal complet des actions formalistes — prévu Lot 3." />} />
+              <Route path="settings" element={<OpsPlaceholderPage title="Paramètres ops" description="Préférences cockpit, notifications et sandbox — prévu Lot 3." />} />
+            </Route>
+            <Route path="/ops-legacy" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><OpsDashboardPage /></ProtectedRoute>} />
             <Route path="/ops-observability" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><OpsLookupObservabilityPage /></ProtectedRoute>} />
             <Route path="/paiement/verification" element={<PaymentVerificationPage />} />
 

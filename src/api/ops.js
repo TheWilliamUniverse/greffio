@@ -28,6 +28,14 @@ const parseResponse = async (response) => {
   throw error;
 };
 
+export const getOpsCockpit = async () => {
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/ops/cockpit`, {
+    method: 'GET',
+    headers: authHeaders(),
+  });
+  return parseResponse(response);
+};
+
 export const getOpsDossiers = async () => {
   const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/ops/dossiers`, {
     method: 'GET',
@@ -113,6 +121,20 @@ export const updateOpsResourceOrderStatus = async (orderId, { status, notes }) =
     method: 'PATCH',
     headers: authHeaders(),
     body: JSON.stringify({ status, notes }),
+  });
+  return parseResponse(response);
+};
+
+export const updateOpsDocumentStatus = async ({
+  dossierId,
+  docKey,
+  status,
+  rejectedReason,
+}) => {
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/ops/dossiers/${dossierId}/documents/${docKey}/status`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ status, rejectedReason }),
   });
   return parseResponse(response);
 };
