@@ -95,8 +95,27 @@ Attendu :
 
 ```json
 {
-  "storageDriver": "s3"
+  "ok": true,
+  "checks": {
+    "storageDriver": "s3",
+    "s3Configured": true
+  }
 }
+```
+
+## IAM : erreur AccessDenied sur PutObject
+
+Si `aws s3 cp` ou l’upload Greffio renvoie `AccessDenied` sur `s3:PutObject`, l’utilisateur IAM n’a pas encore la policy attachée.
+
+1. Console AWS → IAM → Users → `greffio-backend-s3`
+2. Add permissions → Create inline policy → JSON
+3. Coller `docs/aws-iam-greffio-documents-policy.json`
+4. Vérifier que le bucket `greffio-production-documents` existe en `eu-west-3` (Block Public Access ON)
+5. Re-tester :
+
+```bash
+aws s3 cp /tmp/test.txt s3://greffio-production-documents/test/probe.txt --region eu-west-3
+pm2 restart greffio-api --update-env
 ```
 
 ## Dépannage
