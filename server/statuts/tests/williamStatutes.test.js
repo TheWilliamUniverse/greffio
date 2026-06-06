@@ -7,7 +7,15 @@ import { mapStatutesDataToRenderContext } from '../mappers/mapStatutesDataToRend
 import { renderWilliamSas2026Blocks, countWilliamArticles, estimatePageCount } from '../renderers/renderWilliamSas2026.js';
 import { validateGeneratedStatuts } from '../validators/validateGeneratedStatuts.js';
 import { generateStatutesDocument } from '../index.js';
-import { joinStatutesArticleBody } from '../shared/normalizeStatutesParagraphs.js';
+import { joinStatutesArticleBody, classifyStatutesSubheading } from '../shared/normalizeStatutesParagraphs.js';
+import { formatLegalEntityAssociateDescription } from '../shared/formatLegalEntityAssociate.js';
+import { buildWilliamCover } from '../../legal/statutes/reference/williamHelpers.js';
+import { renderAssociatesPreamble } from '../renderers/renderWilliamSas2026.js';
+import {
+  buildStatutesCoverExportElements,
+  formatCoverSeatLines,
+  layoutStatutesCover,
+} from '../shared/statutesCoverLayout.js';
 import { getTribunalCatalogStats } from '../catalogs/tribunalCommerceCatalog.js';
 import { formatStatutesFiscalEnd } from '../shared/statutesDates.js';
 
@@ -297,4 +305,137 @@ test('dates de naissance sans slash dans le préambule', () => {
   assert.ok(!/\d{2}\/\d{2}\/\d{4}/.test(preamble), 'pas de date JJ/MM/AAAA dans le préambule');
   const art5 = doc.blocks.find((b) => b.number === 5);
   assert.ok(art5?.body.includes('31 décembre'), 'clôture sans slash');
+});
+
+test('joinStatutesArticleBody — sous-parties numérotées sur paragraphes distincts', () => {
+  const body = joinStatutesArticleBody([
+    '7.4 Libération partielle des apports',
+    'Les apports en numéraire qui ne sont pas libérés au moment de la constitution de la Société, le seront par appel du Président.',
+    '7.5 Dépôt des fonds',
+    'La somme de 1500 euros est déposée sur un compte ouvert au nom de la société en formation.',
+  ]);
+  const parts = body.split('\n\n');
+  assert.equal(parts.length, 4);
+  assert.match(parts[0], /^7\.4 Libération/);
+});
+
+test('classifyStatutesSubheading — gras seul ou gras + souligné', () => {
+  assert.equal(classifyStatutesSubheading('7.4 Libération partielle des apports'), 'bold');
+  assert.equal(classifyStatutesSubheading('7.1 Apports de William ABDOU :'), 'underline');
+  assert.equal(classifyStatutesSubheading('27.1 - Langue officielle des documents juridiques :'), 'underline');
+  assert.equal(classifyStatutesSubheading('Les associés apportent en numéraire'), null);
+});
+
+test('buildWilliamCover — immatriculation RCS par défaut', () => {
+  const cover = buildWilliamCover({
+    greffe: 'Nice',
+    denomination: 'TEST',
+    seat: { line1: '1 rue Test', postalCode: '06200', city: 'Nice' },
+  });
+  assert.match(cover.registryLine, /^Immatriculée au Registre du Commerce/);
+  assert.doesNotMatch(cover.registryLine, /En cours d'immatriculation/);
+});
+
+test('personne morale — descriptif complet dans le préambule', () => {
+  const context = mapStatutesDataToRenderContext({
+    legalForm: 'SAS',
+    denomination: 'WILLIAM ESTABLISHMENTS',
+    greffe: 'Nice',
+    seat: { line1: '470 Promenade des Anglais', postalCode: '06200', city: 'Nice' },
+    associates: [
+      {
+        associateType: 'personne_morale',
+        companyName: 'WILLIAM ESTABLISHMENTS',
+        legalForm: 'SAS',
+        siren: '102 230 414',
+        address: '470 Promenade des Anglais, 06200 Nice',
+        representativeName: 'Nobatène ABDOU',
+        roleLabel: 'Président désigné',
+      },
+      {
+        label: 'William ABDOU',
+        address: 'Nice',
+        birthDate: '28/07/2009',
+        birthPlace: 'Mamoudzou',
+        nationality: 'française',
+      },
+    ],
+  });
+  const lines = renderAssociatesPreamble(context);
+  const pmLine = lines.find((line) => line.includes('WILLIAM ESTABLISHMENTS'));
+  assert.ok(pmLine);
+  assert.match(pmLine, /Société par Actions Simplifiée \(SAS\)/);
+  assert.match(pmLine, /immatriculée au RCS de Nice 102 230 414/);
+  assert.match(pmLine, /siège social est situé 470 Promenade des Anglais/);
+  assert.match(pmLine, /représentée par Nobatène ABDOU/);
+  assert.match(pmLine, /Président désigné/);
+  assert.ok(lines.some((line) => line.includes('Ci-après dénommés collectivement « les Associés »')));
+});
+
+test('formatLegalEntityAssociateDescription — forme juridique explicite', () => {
+  const text = formatLegalEntityAssociateDescription({
+    fullName: 'WILLIAM ESTABLISHMENTS',
+    legalFormLabel: 'Société par Actions Simplifiée (SAS)',
+    siren: '102 230 414',
+    address: '470 Promenade des Anglais, 06200 Nice',
+    representativeName: 'Nobatène ABDOU',
+    roleLabel: 'Président désigné',
+  }, { greffeCity: 'Nice' });
+  assert.match(text, /WILLIAM ESTABLISHMENTS, Société par Actions Simplifiée \(SAS\), immatriculée au RCS de Nice 102 230 414/);
+});
+
+test('layoutStatutesCover — page de garde sur une page avec espacement flexible', () => {
+  const layout = layoutStatutesCover({
+    title: 'STATUTS',
+    legalFormLabel: 'Société par Actions Simplifiée (SAS)',
+    denomination: 'TRUE POWER',
+    capitalLine: 'Société par Actions Simplifiée au capital de 10 000 euros',
+    seatBlock: 'Siège social :\n470 Promenade des Anglais\n06200 Nice',
+    registryLine: 'Immatriculée au Registre du Commerce et des Sociétés de Nice',
+  });
+  assert.equal(layout.fontSize, 18);
+  assert.ok(layout.flexGap >= layout.sectionGap * 2);
+  assert.ok(layout.topLines.some((line) => /TRUE POWER/.test(line.text)));
+  assert.ok(formatCoverSeatLines('Siège social :\n470 Promenade des Anglais\n06200 Nice')[0].includes('470 Promenade des Anglais'));
+});
+
+test('buildStatutesCoverExportElements — sauts d’espaces réguliers avant RCS', () => {
+  const elements = buildStatutesCoverExportElements({
+    title: 'STATUTS',
+    legalFormLabel: 'Société par Actions Simplifiée (SAS)',
+    denomination: 'TRUE POWER',
+    capitalLine: 'Société par Actions Simplifiée au capital de 10 000 euros',
+    seatBlock: 'Siège social :\n470 Promenade des Anglais\n06200 Nice',
+    registryLine: 'Immatriculée au Registre du Commerce et des Sociétés de Nice',
+  });
+  const spacerCount = elements.filter((item) => item.type === 'cover-spacer').length;
+  assert.ok(spacerCount >= 4);
+  const registryIdx = elements.findIndex((item) => item.text?.includes('Immatriculée au Registre'));
+  const lastSpacerIdx = elements.findLastIndex((item) => item.type === 'cover-spacer');
+  assert.ok(registryIdx > lastSpacerIdx);
+});
+
+test('generateStatutesDocument — article 7 avec sous-parties séparées', () => {
+  const doc = generateStatutesDocument({
+    legalForm: 'SAS',
+    denomination: fixture.company.name,
+    capital: '5000',
+    nombreTitres: '5000',
+    seat: { line1: '470 Promenade des Anglais', postalCode: '06200', city: 'Nice', country: 'France' },
+    greffe: 'Nice',
+    associates: fixture.associates.map((a) => ({
+      label: a.fullName,
+      address: a.address,
+      birthDate: a.birthDate,
+      birthPlace: a.birthPlace,
+      nationality: a.nationality,
+      titlesCount: String(a.shares),
+      share: String(a.sharePercentage),
+    })),
+    president: 'William ABDOU',
+  });
+  assert.match(doc.cover.registryLine, /^Immatriculée au Registre du Commerce/);
+  const art7 = doc.blocks.find((b) => b.number === 7);
+  assert.ok(art7?.body.includes('7.4 Libération partielle des apports'));
+  assert.ok(art7?.body.split('\n\n').some((p) => /^7\.1 Apports de/.test(p.trim())));
 });

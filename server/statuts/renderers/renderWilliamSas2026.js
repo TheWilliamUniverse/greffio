@@ -6,6 +6,7 @@ import { formatFrEuros, formatFrInteger, parseFrenchAmount } from '../shared/num
 import { mergeWrapFragments } from '../shared/normalizeStatutesParagraphs.js';
 import { formatStatutesFrenchDate, formatStatutesFiscalEnd } from '../shared/statutesDates.js';
 import { personalizeTribunalMentions, resolveTribunalCommerce } from '../shared/resolveTribunalCommerce.js';
+import { formatLegalEntityAssociateDescription } from '../shared/formatLegalEntityAssociate.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_PATH = path.join(__dirname, '../templates/williamEstablishmentsSas2026.model.json');
@@ -53,15 +54,9 @@ export const renderAssociatesPreamble = (context) => {
   associates.forEach((associate, index) => {
     if (index > 0 && !unique) lines.push('ET');
     if (associate.isLegalEntity) {
-      const parts = [
-        associate.fullName,
-        'société associée',
-        associate.siren ? `immatriculée au SIREN ${associate.siren}` : undefined,
-        associate.address ? `dont le siège social est situé ${associate.address}` : undefined,
-        associate.representativeName ? `représentée par ${associate.representativeName}` : undefined,
-        associate.roleLabel ? `agissant en qualité de ${associate.roleLabel}` : undefined,
-      ].filter(Boolean);
-      lines.push(`${parts.join(', ')}.`);
+      lines.push(formatLegalEntityAssociateDescription(associate, {
+        greffeCity: context.jurisdiction?.greffeCity || context.company?.rcsCity,
+      }));
       return;
     }
     const birthDate = formatBirthDateFr(associate.birthDate);

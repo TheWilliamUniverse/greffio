@@ -44,6 +44,9 @@ export const mapStatutesDataToRenderContext = (statutesData = {}) => {
     return {
       isLegalEntity,
       fullName,
+      legalFormLabel: isLegalEntity
+        ? (associate.legalFormLabel || legalFormLabel(associate.legalForm || legalForm))
+        : undefined,
       siren: isLegalEntity ? associate.siren : undefined,
       representativeName: isLegalEntity ? associate.representativeName : undefined,
       address: associate.address,

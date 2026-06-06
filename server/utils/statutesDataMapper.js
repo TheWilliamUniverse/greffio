@@ -85,6 +85,8 @@ const parseAssociateEntry = (entry, fallback = {}) => {
       associateType: 'personne_morale',
       label: companyName || 'Société associée à compléter',
       companyName,
+      legalForm: pick(entry.legalForm, ''),
+      legalFormLabel: pick(entry.legalFormLabel, ''),
       siren: pick(entry.siren, ''),
       representativeName: pick(entry.representativeName, ''),
       address: pick(entry.address, fallback.address, 'Siège social à compléter'),

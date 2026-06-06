@@ -2,7 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import PDFDocument from 'pdfkit';
 import { pdfSafeAmountsInText } from '../statuts/shared/numberFormat.js';
-import { normalizeStatutesBodyText } from '../statuts/shared/normalizeStatutesParagraphs.js';
+import { normalizeStatutesBodyText, classifyStatutesSubheading } from '../statuts/shared/normalizeStatutesParagraphs.js';
+import {
+  COVER_REFERENCE_FONT_SIZE_PT,
+  layoutStatutesCover,
+} from '../statuts/shared/statutesCoverLayout.js';
 
 const pdfText = (value) => pdfSafeAmountsInText(normalizeStatutesBodyText(value));
 
@@ -70,38 +74,75 @@ const ensureSpace = (doc, companyName, pages, heightNeeded = 72) => {
   }
 };
 
-const renderCover = (doc, cover, companyName) => {
-  doc.y = PAGE.marginTop + 28;
-  doc.font(FONTS.bold).fontSize(18).fillColor('#111111')
-    .text(cover.title || 'STATUTS', PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
-  doc.moveDown(0.9);
-  doc.font(FONTS.bold).fontSize(14)
-    .text(cover.legalFormLabel || '', PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
-  doc.moveDown(1.4);
-  doc.font(FONTS.bold).fontSize(18)
-    .text(cover.denomination || '', PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
-  if (cover.sigle) {
-    doc.moveDown(0.35);
-    doc.font(FONTS.regular).fontSize(13)
-      .text(`(${cover.sigle})`, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
+const renderBoldStatutesLine = (doc, companyName, pages, text, { underline = false } = {}) => {
+  ensureSpace(doc, companyName, pages, 36);
+  const x = PAGE.marginLeft;
+  const width = contentWidth(doc);
+  const cleanText = pdfText(text);
+  doc.font(FONTS.bold).fontSize(13);
+  const startY = doc.y;
+  doc.text(cleanText, x, startY, { width, align: 'left', lineGap: 4 });
+  if (underline) {
+    const lineHeight = doc.currentLineHeight(true);
+    const underlineY = startY + lineHeight - 3;
+    const textWidth = Math.min(doc.widthOfString(cleanText), width);
+    doc.save();
+    doc.strokeColor('#111111').lineWidth(0.5)
+      .moveTo(x, underlineY)
+      .lineTo(x + textWidth, underlineY)
+      .stroke();
+    doc.restore();
   }
-  doc.moveDown(1.2);
-  doc.font(FONTS.regular).fontSize(13).fillColor('#222222');
-  [
-    cover.capitalLine,
-    '',
-    cover.seatBlock,
-    '',
-    cover.registryLine,
-  ].forEach((line) => {
-    if (!line) { doc.moveDown(0.5); return; }
-    doc.text(pdfText(line), PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
-    doc.moveDown(0.35);
+  doc.moveDown(0.35);
+};
+
+const renderStatutesBodyParagraph = (doc, companyName, pages, paragraph) => {
+  const subheadingStyle = classifyStatutesSubheading(paragraph);
+  if (subheadingStyle) {
+    renderBoldStatutesLine(doc, companyName, pages, paragraph, {
+      underline: subheadingStyle === 'underline',
+    });
+    return;
+  }
+  ensureSpace(doc, companyName, pages, 36);
+  doc.font(FONTS.regular).fontSize(13)
+    .text(pdfText(paragraph), PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify', lineGap: 4 });
+  doc.moveDown(0.5);
+};
+
+const renderCover = (doc, cover) => {
+  const layout = layoutStatutesCover(cover, {
+    pageHeight: doc.page.height,
+    marginTop: PAGE.marginTop,
+    marginBottom: PAGE.marginBottom,
   });
-  doc.moveDown(1);
-  doc.font(FONTS.italic).fontSize(10).fillColor('#555555')
-    .text(`Référence dossier : ${cover.reference || ''}`, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
-  doc.fillColor('#111111');
+  const width = contentWidth(doc);
+  const x = PAGE.marginLeft;
+  let y = PAGE.marginTop + layout.topOffset;
+
+  const drawLine = (text, { bold = false } = {}) => {
+    const cleanText = pdfText(text);
+    if (!cleanText) return;
+    doc.font(bold ? FONTS.bold : FONTS.regular)
+      .fontSize(layout.fontSize)
+      .fillColor('#111111');
+    doc.text(cleanText, x, y, { width, align: 'center', lineGap: layout.lineGap });
+    y = doc.y + layout.sectionGap;
+  };
+
+  layout.topLines.forEach((line) => drawLine(line.text, { bold: line.bold }));
+
+  y = PAGE.marginTop + layout.topOffset + layout.topHeight + layout.flexGap;
+  layout.bottomLines.forEach((line) => drawLine(line.text, { bold: line.bold }));
+
+  if (layout.reference) {
+    y += layout.sectionGap * 0.5;
+    doc.font(FONTS.italic).fontSize(COVER_REFERENCE_FONT_SIZE_PT).fillColor('#555555')
+      .text(pdfText(layout.reference), x, y, { width, align: 'center' });
+    doc.fillColor('#111111');
+  }
+
+  doc.y = doc.page.height - PAGE.marginBottom;
 };
 
 const renderBlock = (doc, companyName, pages, block) => {
@@ -142,11 +183,8 @@ const renderBlock = (doc, companyName, pages, block) => {
       .text(heading, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'left' });
     doc.moveDown(0.35);
     const paragraphs = String(block.body || '').split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
-    paragraphs.forEach((paragraph, index) => {
-      ensureSpace(doc, companyName, pages, 36);
-      doc.font(FONTS.regular).fontSize(13)
-        .text(pdfText(paragraph), PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify', lineGap: 4 });
-      if (index < paragraphs.length - 1) doc.moveDown(0.5);
+    paragraphs.forEach((paragraph) => {
+      renderStatutesBodyParagraph(doc, companyName, pages, paragraph);
     });
     doc.moveDown(0.75);
   }
@@ -290,7 +328,7 @@ const generateStatutesPdf = async ({ filename, document: statutesDocument }) => 
 
   drawPageFooter(doc, companyName, pages.current);
 
-  renderCover(doc, statutesDocument.cover || {}, companyName);
+  renderCover(doc, statutesDocument.cover || {});
   finishCoverAndStartBody(doc, companyName, pages);
   (statutesDocument.blocks || []).forEach((block) => renderBlock(doc, companyName, pages, block));
   renderAnnexes(doc, companyName, pages, statutesDocument.annexes || []);

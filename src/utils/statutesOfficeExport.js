@@ -1,8 +1,14 @@
 import { strToU8, zipSync } from 'fflate';
+import {
+  COVER_FONT_SIZE_PT,
+  COVER_REFERENCE_FONT_SIZE_PT,
+  buildStatutesCoverExportElements,
+} from '../../server/statuts/shared/statutesCoverLayout.js';
 
 const PT = {
-  coverTitle: 36,
-  coverMeta: 24,
+  coverTitle: COVER_FONT_SIZE_PT * 2,
+  coverMeta: COVER_FONT_SIZE_PT * 2,
+  coverReference: COVER_REFERENCE_FONT_SIZE_PT * 2,
   sectionTitle: 32,
   articleTitle: 32,
   body: 26,
@@ -36,20 +42,7 @@ const PRELIMINARY_MARKERS = /^(Définitions|Objet du présent acte|IL A ÉTÉ CO
 
 export const buildStatutesExportElements = (preview) => {
   if (!preview) return [];
-  const elements = [];
-  const cover = preview.cover || {};
-  const denomination = cover.denomination || 'Dénomination';
-
-  elements.push({ type: 'page-break' });
-  elements.push({ type: 'cover-title', text: cover.title || 'STATUTS' });
-  elements.push({ type: 'cover-line', text: cover.legalFormLabel || preview.metadata?.legalForm || '' });
-  elements.push({ type: 'cover-line', text: denomination, bold: true, size: '18pt' });
-  if (cover.sigle) elements.push({ type: 'cover-meta', text: `(${cover.sigle})` });
-  [cover.capitalLine, cover.seatBlock, cover.registryLine].filter(Boolean).forEach((line) => {
-    elements.push({ type: 'cover-meta', text: line });
-  });
-
-  elements.push({ type: 'page-break' });
+  const elements = [...buildStatutesCoverExportElements(preview.cover || {})];
 
   let inPreliminary = false;
   let preliminaryOpened = false;
@@ -111,9 +104,10 @@ export const buildStatutesDocxBlob = (preview) => {
   const elements = buildStatutesExportElements(preview);
   const paragraphs = elements.map((item) => {
     if (item.type === 'page-break') return docxParagraph('', { breakBefore: true });
+    if (item.type === 'cover-spacer') return docxEmptyParagraph();
     if (item.type === 'cover-title') return docxParagraph(item.text, { bold: true, size: PT.coverTitle });
     if (item.type === 'cover-line') return docxParagraph(item.text, { bold: Boolean(item.bold), size: PT.coverTitle });
-    if (item.type === 'cover-meta') return docxParagraph(item.text, { size: PT.coverMeta });
+    if (item.type === 'cover-reference') return docxParagraph(item.text, { size: PT.coverReference });
     if (item.type === 'section-title') return `${docxEmptyParagraph()}${docxParagraph(item.text, { bold: true, size: PT.sectionTitle })}`;
     if (item.type === 'article') {
       const paragraphs = String(item.body || '').split(/\n\n+/).map((part) => part.trim()).filter(Boolean);
@@ -154,9 +148,10 @@ export const buildStatutesOdtBlob = (preview) => {
   const elements = buildStatutesExportElements(preview);
   const body = elements.map((item) => {
     if (item.type === 'page-break') return '<text:p text:style-name="PageBreak"/>';
-    if (item.type === 'cover-title') return odtParagraph(item.text, { bold: true, size: '18pt' });
-    if (item.type === 'cover-line') return odtParagraph(item.text, { bold: Boolean(item.bold), size: '18pt' });
-    if (item.type === 'cover-meta') return odtParagraph(item.text, { size: '12pt' });
+    if (item.type === 'cover-spacer') return odtParagraph('', { size: `${COVER_FONT_SIZE_PT}pt` });
+    if (item.type === 'cover-title') return odtParagraph(item.text, { bold: true, size: `${COVER_FONT_SIZE_PT}pt` });
+    if (item.type === 'cover-line') return odtParagraph(item.text, { bold: Boolean(item.bold), size: `${COVER_FONT_SIZE_PT}pt` });
+    if (item.type === 'cover-reference') return odtParagraph(item.text, { size: `${COVER_REFERENCE_FONT_SIZE_PT}pt` });
     if (item.type === 'section-title') return `${odtParagraph('', { size: '8pt' })}${odtParagraph(item.text, { bold: true, size: '16pt' })}`;
     if (item.type === 'article') {
       const paragraphs = String(item.body || '').split(/\n\n+/).map((part) => part.trim()).filter(Boolean);

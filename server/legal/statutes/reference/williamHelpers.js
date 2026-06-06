@@ -1,4 +1,5 @@
 import { article, legalTitle, paragraph, sectionTitle } from '../shared/formatting.js';
+import { formatLegalEntityAssociateDescription } from '../../../statuts/shared/formatLegalEntityAssociate.js';
 
 export const sigleSuffix = (data) => (
   data.sigle && data.sigle !== 'Non prévu' ? `, et de sigle ${data.sigle}` : ''
@@ -11,9 +12,9 @@ export const buildWilliamCover = (data) => ({
   sigle: data.sigle !== 'Non prévu' ? data.sigle : null,
   capitalLine: `${data.legalFormShort || 'Société par Actions Simplifiée'} au capital de ${data.capital} euros`,
   seatBlock: `Siège social :\n${data.seat.line1}${data.seat.line2 ? `\n${data.seat.line2}` : ''}\n${data.seat.postalCode} ${data.seat.city}`,
-  registryLine: data.isRegistered
-    ? `Immatriculée au Registre du Commerce et des Sociétés de ${data.greffe}`
-    : `En cours d'immatriculation au Registre du Commerce et des Sociétés de ${data.greffe}`,
+  registryLine: data.isRegistered === false
+    ? `En cours d'immatriculation au Registre du Commerce et des Sociétés de ${data.greffe}`
+    : `Immatriculée au Registre du Commerce et des Sociétés de ${data.greffe}`,
   reference: data.reference,
   date: data.dateDocument,
 });
@@ -24,6 +25,10 @@ export const buildWilliamSoussignes = (data, { unique = false } = {}) => {
 
   associates.forEach((associate, index) => {
     if (index > 0 && !unique) blocks.push(paragraph('ET'));
+    if (associate.associateType === 'personne_morale') {
+      blocks.push(paragraph(formatLegalEntityAssociateDescription(associate, { greffeCity: data.greffe })));
+      return;
+    }
     const birth = associate.birthDate
       ? `, né${associate.civility === 'Mme' ? 'e' : ''} le ${associate.birthDate}${associate.birthPlace ? ` à ${associate.birthPlace}` : ''}`
       : '';

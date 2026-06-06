@@ -62,7 +62,7 @@ export const adaptRenderedBlocksToLegacyDocument = ({
     legalFormShort: legalFormShortLabel(legalForm),
     seat,
     greffe: statutesData.greffe,
-    isRegistered: Boolean(statutesData.isRegistered),
+    isRegistered: statutesData.isRegistered !== false,
     reference: statutesData.reference,
     dateDocument: statutesData.dateDocument,
   });
