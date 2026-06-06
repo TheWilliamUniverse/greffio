@@ -12,6 +12,8 @@ export const YOUNG_ENTREPRENEUR_OFFER = Object.freeze({
   maxAge: 25,
 });
 
+export const YOUNG_ENTREPRENEUR_LANDING_FOOTER = `${YOUNG_ENTREPRENEUR_OFFER.headline} — réservée aux créateurs et porteurs de projet de moins de 26 ans. Tarif Formalité à ${YOUNG_ENTREPRENEUR_OFFER.youngPriceLabel} au lieu de ${YOUNG_ENTREPRENEUR_OFFER.standardPriceLabel}.`;
+
 export const formatOfferPrice = (cents) => `${Math.round(Number(cents) / 100)} €`;
 
 export const resolveServicePriceCents = ({ youngEligible = false, standardCents = YOUNG_ENTREPRENEUR_OFFER.standardPriceCents } = {}) => (

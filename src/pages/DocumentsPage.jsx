@@ -112,6 +112,16 @@ export const DocumentsPage = () => {
     void load();
   }, [currentDossierId]);
 
+  const reloadDocuments = async () => {
+    if (!currentDossierId) return;
+    try {
+      const items = await getDossierDocuments(currentDossierId);
+      setApiDocuments(items);
+    } catch (_error) {
+      // keep current list
+    }
+  };
+
   const uploadPdfFile = async (docKey, file) => {
     if (!file || !currentDossierId || !docKey) return;
     setUploadError(null);
@@ -334,7 +344,11 @@ export const DocumentsPage = () => {
           </section>
 
           {currentDossierId ? (
-            <IdentityVerificationCard dossierId={currentDossierId} identityDocUploaded={identityDocUploaded} />
+            <IdentityVerificationCard
+              dossierId={currentDossierId}
+              identityDocUploaded={identityDocUploaded}
+              onVerificationUpdated={() => { void reloadDocuments(); }}
+            />
           ) : null}
 
           {editorData ? (

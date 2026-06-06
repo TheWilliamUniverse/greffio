@@ -36,7 +36,21 @@ export const StatusBadge = ({ status, className }) => {
         return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'TERMINE':
       case 'VALIDE':
+      case 'VALID':
+      case 'VALIDATED':
+      case 'SIGNED':
         return 'bg-green-100 text-green-800 border-green-200';
+      case 'UPLOADED':
+      case 'GENERATED':
+        return 'bg-sky-100 text-sky-800 border-sky-200';
+      case 'UNDER_REVIEW':
+      case 'PENDING_REVIEW':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'INVALID':
+      case 'REJECTED':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'REQUESTED':
+        return 'bg-gray-100 text-gray-700 border-gray-200';
       case 'ATTENTE_DOCS':
       case 'URGENT':
       case 'A_SIGNER':

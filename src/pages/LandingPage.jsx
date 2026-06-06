@@ -22,6 +22,7 @@ import { LEGAL_SERVICES } from '@/config/businessCatalog.js';
 import { getServiceRoute } from '@/config/serviceLandingPages.js';
 import { lookupPublicCompanyBySiren } from '@/api/company.js';
 import { GooglePlayStoreLink } from '@/components/store/GooglePlayStoreLink.jsx';
+import { PricingPlansGrid } from '@/components/pricing/PricingPlansGrid.jsx';
 import { useNavigate } from 'react-router-dom';
 
 const EASE_OUT = [0.22, 1, 0.36, 1];
@@ -73,21 +74,6 @@ const landingFaq = [
     q: 'Peut-on traiter plusieurs clients ?',
     a: 'Oui. Le module équipe permet de suivre plusieurs dossiers, assigner l’équipe Greffio ou un intervenant autorisé et prioriser les actions.',
   },
-];
-
-const pricingPlans = [
-  { name: 'Starter', price: '0€', text: 'Questionnaire, checklist et espace documentaire.', cta: 'Démarrer' },
-  {
-    name: 'Formalité',
-    price: '70€',
-    compareAt: '149€',
-    badge: 'Offre Jeune',
-    text: 'Dossier complet, relecture et dépôt au greffe. Tarif jeune (-26 ans) en ce moment.',
-    cta: 'Créer mon dossier',
-    highlight: true,
-    ctaLink: '/simulateur?offer=jeune-entrepreneur',
-  },
-  { name: 'Cabinet partenaire', price: 'À venir', text: 'Gestion multi-clients, équipe, reporting et marque blanche en déploiement progressif.', cta: 'Être notifié', ctaLink: '/contact?sujet=cabinet-partenaire' },
 ];
 
 const heroHighlights = ['0€ pour démarrer', 'Équipe Greffio assignée', 'Dossier centralisé'];
@@ -508,38 +494,8 @@ export const LandingPage = () => {
       </section>
 
       <section id="pricing" className="bg-white px-4 py-20 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-6xl text-center">
-          <motion.div {...reveal()}>
-            <p className="text-sm font-bold uppercase text-primary">Tarifs</p>
-            <h2 className="mt-2 text-4xl font-extrabold">Des offres claires pour démarrer, déléguer ou industrialiser.</h2>
-          </motion.div>
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
-            {pricingPlans.map((plan, index) => (
-              <motion.div
-                key={plan.name}
-                {...reveal(index * 0.08)}
-                whileHover={reduceMotion ? undefined : { y: -5 }}
-                className={`rounded-md border p-6 text-left ${plan.highlight ? 'border-primary bg-secondary shadow-elevation-md' : 'border-border bg-background'}`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-lg font-extrabold">{plan.name}</p>
-                  {plan.badge ? <span className="rounded-full bg-[hsl(var(--greffio-citron))] px-2 py-1 text-xs font-bold text-[hsl(var(--greffio-blue-900))]">{plan.badge}</span> : null}
-                </div>
-                <p className="mt-3 text-3xl font-extrabold">
-                  {plan.price}
-                  {plan.compareAt ? <span className="ml-2 text-lg font-semibold text-muted-foreground line-through">{plan.compareAt}</span> : null}
-                </p>
-                <p className="mt-3 min-h-[52px] text-sm leading-6 text-muted-foreground">{plan.text}</p>
-                <Button asChild className="mt-6 w-full" variant={plan.highlight ? 'default' : 'outline'}>
-                  <Link to={plan.ctaLink || '/simulateur'}>{plan.cta}</Link>
-                </Button>
-              </motion.div>
-            ))}
-          </div>
-          <motion.p {...reveal(0.15)} className="mx-auto mt-6 max-w-3xl text-sm leading-6 text-muted-foreground">
-            En ce moment : Offre Spéciale Jeune Entrepreneur.e — réservée aux créateurs et porteurs de projet de moins de 26 ans.
-            Tarif Formalité à 70 € au lieu de 149 €.
-          </motion.p>
+        <div className="mx-auto max-w-6xl">
+          <PricingPlansGrid compact showFooter footerMode="landing" />
         </div>
       </section>
 

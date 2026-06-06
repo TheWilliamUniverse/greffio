@@ -17,7 +17,7 @@ const STATUS_LABELS = {
   expired: 'Session expirée',
 };
 
-export const IdentityVerificationCard = ({ dossierId, identityDocUploaded = false }) => {
+export const IdentityVerificationCard = ({ dossierId, identityDocUploaded = false, onVerificationUpdated }) => {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [configured, setConfigured] = useState(false);
@@ -32,6 +32,7 @@ export const IdentityVerificationCard = ({ dossierId, identityDocUploaded = fals
       const payload = await getIdentityVerificationStatus(dossierId);
       setConfigured(Boolean(payload.configured));
       setVerification(payload.verification || null);
+      onVerificationUpdated?.(payload.verification || null);
     } catch (statusError) {
       setError('Impossible de charger le statut de vérification d’identité.');
     } finally {
@@ -50,6 +51,7 @@ export const IdentityVerificationCard = ({ dossierId, identityDocUploaded = fals
       setError('');
       const payload = await startIdentityVerification(dossierId);
       setVerification(payload.verification || null);
+      onVerificationUpdated?.(payload.verification || null);
     } catch (startError) {
       setError('La vérification Didit n’a pas pu démarrer. Réessayez ou contactez l’équipe Greffio.');
     } finally {
@@ -64,6 +66,7 @@ export const IdentityVerificationCard = ({ dossierId, identityDocUploaded = fals
       setError('');
       const payload = await refreshIdentityVerification(dossierId);
       setVerification(payload.verification || null);
+      onVerificationUpdated?.(payload.verification || null);
     } catch (_refreshError) {
       setError('Impossible d’actualiser le statut pour le moment.');
     } finally {

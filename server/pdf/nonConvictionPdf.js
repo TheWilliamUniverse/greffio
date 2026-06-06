@@ -4,7 +4,6 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import {
   formatAddress,
   formatDeclarantName,
-  formatFiliationClause,
   normalizeDeclarationFields,
 } from '../documents/declarationNonCondamnation/formatters.js';
 
@@ -14,18 +13,21 @@ if (!fs.existsSync(outputDir)) {
 }
 
 const MONTHS_FR = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-const MARGIN = 56;
+const MARGIN = 72;
 const PAGE_WIDTH = 595.28;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
 
 const COLOR_TEXT = rgb(0.067, 0.094, 0.153);
 const COLOR_MUTED = rgb(0.42, 0.45, 0.51);
-const COLOR_LINE = rgb(0.898, 0.906, 0.922);
 
 const INVALID_DISPLAY_VALUES = new Set([
   'undefined', 'null', 'nan', 'invalid date', '[object object]',
   'true', 'false', 'w', 'g', 'l', 'test', 'parent',
 ]);
+
+const LEGAL_FOOTER = 'Article L. 123-5 du code de commerce (alinéa 1) — « Le fait de donner, de mauvaise foi, des indications inexactes ou incomplètes en vue d’une immatriculation, d’une radiation ou d’une mention complémentaire ou rectificative au registre du commerce et des sociétés est puni d’une amende de 4 500 € et d’un emprisonnement de 6 mois. »';
+
+const DECLARATION_BODY = 'Conformément à l’article A. 123-51 du code de commerce, n’avoir fait l’objet d’aucune condamnation pénale ni de sanction civile ou administrative de nature à m’interdire de gérer, administrer, diriger ou contrôler une personne morale, ou d’exercer une activité commerciale.';
 
 export const formatFrenchDate = (value) => {
   if (!value) return '';
@@ -85,10 +87,10 @@ const buildFullAddress = (fields = {}) => {
   return [line1, line2, [postal, city].filter(Boolean).join(' '), country].filter(Boolean).join(', ');
 };
 
-const formatBirthPlace = (birthDateFr, birthCity) => {
-  const datePart = birthDateFr.startsWith('_') ? '____ / ____ / ______' : birthDateFr;
-  const cityPart = birthCity.startsWith('_') ? '_______________________________' : birthCity;
-  return `${datePart} à ${cityPart}`;
+const formatFiliationInline = (parent1, parent2) => {
+  const p1 = sanitizeDisplayValue(parent1, { fallback: '______________________________', minLength: 2 });
+  const p2 = sanitizeDisplayValue(parent2, { fallback: '______________________________', minLength: 2 });
+  return `de ${p1} et de ${p2}`;
 };
 
 const wrapText = (text, maxChars = 78) => {
@@ -108,57 +110,30 @@ const wrapText = (text, maxChars = 78) => {
   return lines;
 };
 
-const drawLine = (page, y) => {
-  page.drawLine({
-    start: { x: MARGIN, y },
-    end: { x: PAGE_WIDTH - MARGIN, y },
-    thickness: 0.6,
-    color: COLOR_LINE,
-  });
-};
-
-const drawSectionTitle = (page, fontBold, y, title) => {
-  page.drawText(title, {
-    x: MARGIN,
-    y,
-    size: 11,
-    font: fontBold,
-    color: COLOR_TEXT,
-  });
-  return y - 22;
-};
-
-const drawLabelValue = (page, font, y, label, value) => {
-  page.drawText(label, {
-    x: MARGIN,
-    y,
-    size: 8.5,
-    font,
-    color: COLOR_MUTED,
-  });
-  page.drawText(value, {
-    x: MARGIN,
-    y: y - 14,
-    size: 10.5,
-    font,
-    color: COLOR_TEXT,
-    maxWidth: CONTENT_WIDTH,
-  });
-  return y - 34;
-};
-
-const drawParagraph = (page, font, y, text, { lineHeight = 15, indent = 0 } = {}) => {
+const drawWrappedLines = (page, font, y, text, { size = 11, lineHeight = 20, indent = 0, color = COLOR_TEXT } = {}) => {
   const lines = wrapText(text, 82);
   lines.forEach((line) => {
     page.drawText(line, {
       x: MARGIN + indent,
       y,
-      size: 10.5,
+      size,
       font,
-      color: COLOR_TEXT,
+      color,
       maxWidth: CONTENT_WIDTH - indent,
     });
     y -= lineHeight;
+  });
+  return y;
+};
+
+const drawCenteredText = (page, font, y, text, size) => {
+  const textWidth = font.widthOfTextAtSize(text, size);
+  page.drawText(text, {
+    x: (PAGE_WIDTH - textWidth) / 2,
+    y,
+    size,
+    font,
+    color: COLOR_TEXT,
   });
   return y;
 };
@@ -189,113 +164,83 @@ export const generateNonConvictionPdf = async ({ filename, fields: rawFields = {
     minLength: 4,
   });
   const birthCity = sanitizeDisplayValue(fields.declarantBirthCity);
-  const parent1 = sanitizeDisplayValue(fields.parent1FullName || fields.fatherFullName);
-  const parent2 = sanitizeDisplayValue(fields.parent2FullName || fields.motherFullName);
-  const filiationClause = formatFiliationClause({ parent1, parent2 });
+  const parent1 = fields.parent1FullName || fields.fatherFullName;
+  const parent2 = fields.parent2FullName || fields.motherFullName;
+  const filiationInline = formatFiliationInline(parent1, parent2);
   const statementCity = sanitizeDisplayValue(fields.statementCity, { fallback: '______________________', minLength: 2 });
   const signatureDateFr = sanitizeDisplayValue(formatFrenchDate(fields.statementDate), {
     fallback: '____ / ____ / ______',
     minLength: 4,
   });
-
-  let y = 780;
-
-  page.drawText('DÉCLARATION SUR L’HONNEUR', {
-    x: MARGIN,
-    y,
-    size: 15,
-    font: fontBold,
-    color: COLOR_TEXT,
-  });
-  page.drawText('DE NON-CONDAMNATION ET DE FILIATION', {
-    x: MARGIN,
-    y: y - 18,
-    size: 15,
-    font: fontBold,
-    color: COLOR_TEXT,
-  });
-  y -= 38;
-  page.drawText(
-    'Document établi dans le cadre d’une formalité d’immatriculation, de modification ou de déclaration d’entreprise.',
-    {
-      x: MARGIN,
-      y,
-      size: 8.5,
-      font,
-      color: COLOR_MUTED,
-      maxWidth: CONTENT_WIDTH,
-    },
+  const signatureName = sanitizeDisplayValue(
+    fields.signatureFullName || declarantLine,
+    { fallback: '________________________________________', minLength: 2 },
   );
+
+  let y = 760;
+
+  y = drawCenteredText(page, fontBold, y, 'DÉCLARATION DE NON-CONDAMNATION ET DE FILIATION', 14);
+  y -= 28;
+  y = drawCenteredText(
+    page,
+    font,
+    y,
+    'En application des dispositions de l’article A. 123-51 du code de commerce',
+    10,
+  );
+  y -= 40;
+
+  const identityParagraph = `Je soussigné(e) ${declarantLine}, né(e) le ${birthDateFr} à ${birthCity}, ${filiationInline}, demeurant ${fullAddress}.`;
+  y = drawWrappedLines(page, font, y, identityParagraph, { size: 11, lineHeight: 22 });
   y -= 24;
-  drawLine(page, y);
-  y -= 24;
 
-  const bodyParts = [
-    `Je soussigné(e) ${declarantLine},`,
-    `né(e) le ${birthDateFr} à ${birthCity},`,
-    `demeurant ${fullAddress},`,
-    '',
-    filiationClause ? `${filiationClause},` : null,
-    '',
-    'déclare sur l’honneur, en application de l’article A. 123-51 du Code de commerce,',
-    'n’avoir fait l’objet d’aucune condamnation pénale ni d’aucune sanction civile ou administrative',
-    'de nature à m’interdire :',
-    '',
-    '— de gérer, administrer, diriger ou contrôler une personne morale ;',
-    '— ou d’exercer une activité commerciale.',
-    '',
-    'Je reconnais avoir été informé(e) que toute indication inexacte ou incomplète donnée de mauvaise foi',
-    'dans le cadre d’une formalité au registre du commerce et des sociétés est susceptible d’entraîner',
-    'les sanctions prévues par l’article L. 123-5 du Code de commerce.',
-  ].filter((line) => line !== null);
-
-  bodyParts.forEach((line) => {
-    if (line === '') {
-      y -= 8;
-      return;
-    }
-    y = drawParagraph(page, font, y, line, { lineHeight: 14 });
-  });
-
-  y -= 12;
-  page.drawText(`Fait à ${statementCity}, le ${signatureDateFr}`, {
+  page.drawText('Déclare', {
     x: MARGIN,
     y,
-    size: 10.5,
-    font,
+    size: 12,
+    font: fontBold,
     color: COLOR_TEXT,
   });
   y -= 28;
-  page.drawText('Signature du déclarant :', {
+
+  y = drawWrappedLines(page, font, y, DECLARATION_BODY, { size: 11, lineHeight: 22 });
+  y -= 36;
+
+  page.drawText(`Fait à ${statementCity}, le ${signatureDateFr}`, {
+    x: MARGIN,
+    y,
+    size: 11,
+    font,
+    color: COLOR_TEXT,
+  });
+  y -= 40;
+
+  page.drawText('Signature :', {
     x: MARGIN,
     y,
     size: 10.5,
     font: fontBold,
     color: COLOR_TEXT,
   });
-  y -= 52;
+  y -= 56;
   page.drawLine({
-    start: { x: MARGIN, y: y + 8 },
-    end: { x: MARGIN + 240, y: y + 8 },
+    start: { x: MARGIN, y: y + 12 },
+    end: { x: MARGIN + 220, y: y + 12 },
     thickness: 0.8,
     color: COLOR_MUTED,
   });
-
-  drawLine(page, 92);
-  page.drawText('Rappel légal', {
+  page.drawText(signatureName, {
     x: MARGIN,
-    y: 78,
-    size: 8.5,
-    font: fontBold,
-    color: COLOR_MUTED,
+    y: y - 6,
+    size: 10,
+    font,
+    color: COLOR_TEXT,
   });
-  wrapText(
-    'Rappel légal — Le fait de donner, de mauvaise foi, des indications inexactes ou incomplètes en vue d’une formalité au registre du commerce et des sociétés est puni des sanctions prévues par l’article L. 123-5 du Code de commerce.',
-    96,
-  ).forEach((chunk, index) => {
+
+  wrapText(LEGAL_FOOTER, 96).forEach((chunk, index) => {
     page.drawText(chunk, {
       x: MARGIN,
-      y: 64 - index * 10,
+      y: 72 - index * 11,
       size: 8,
       font,
       color: COLOR_MUTED,

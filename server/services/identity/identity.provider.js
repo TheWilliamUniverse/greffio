@@ -9,6 +9,7 @@ import {
   upsertIdentityVerification,
   updateIdentityVerificationBySessionId,
 } from './identityStore.js';
+import { applyIdentityVerificationToDocument } from './identityDocumentSync.js';
 
 export { isDiditConfigured } from './didit.service.js';
 
@@ -55,6 +56,8 @@ export const startIdentityVerificationForDossier = async ({
     triggeredByDocKey,
   });
 
+  await applyIdentityVerificationToDocument(verification);
+
   return { ok: true, verification };
 };
 
@@ -70,6 +73,9 @@ export const refreshIdentityVerificationStatus = async (dossierId) => {
     status: decision.status,
     result: decision.raw,
   });
+  if (verification) {
+    await applyIdentityVerificationToDocument(verification);
+  }
   return { ok: true, verification };
 };
 
@@ -82,5 +88,8 @@ export const handleDiditWebhookPayload = async (payload = {}) => {
     status,
     result: payload,
   });
+  if (verification) {
+    await applyIdentityVerificationToDocument(verification);
+  }
   return { ok: Boolean(verification), verification };
 };
