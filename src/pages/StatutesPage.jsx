@@ -18,7 +18,7 @@ import { getDossierById } from '@/api/dossiers.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
 import { downloadPreview } from '@/utils/formalityEngine.js';
 import { fullPreviewToDocumentPreview } from '@/utils/statutesPreview.js';
-import { useAuth } from '@/context/AuthContext.jsx';
+import { useAuth } from '@/hooks/useAuth.js';
 
 const parseQuestionnaire = (dataJson) => {
   if (!dataJson) return {};
