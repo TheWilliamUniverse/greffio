@@ -70,8 +70,9 @@ export const listStatutes = async (dossierId) => {
   return parseResponse(response);
 };
 
-export const downloadStatutesPdf = async (dossierId) => {
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}/statutes/pdf`, {
+export const downloadStatutesPdf = async (dossierId, { cacheBust = false } = {}) => {
+  const query = cacheBust ? `?t=${Date.now()}` : '';
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}/statutes/pdf${query}`, {
     method: 'GET',
     headers: tokenHeaders(false),
   });

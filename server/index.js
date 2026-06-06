@@ -91,7 +91,10 @@ import { createSignatureRecord, getLatestSignatureByDossier } from './signatureS
 import { buildMandateText } from './mandateTemplate.js';
 import { generateMandatePdf } from './pdf/mandatePdf.js';
 import { generateNonConvictionPdf, validateNonConvictionFields } from './pdf/nonConvictionPdf.js';
-import { generateStatutesPdf } from './pdf/statutesPdf.js';
+import {
+  NON_CONVICTION_SCHEMA_VERSION,
+  persistNonConvictionPdfForDossier,
+} from './services/nonConvictionDocumentService.js';
 import {
   buildStatutesByLegalForm,
   documentToPreview,
@@ -105,6 +108,10 @@ import { getCompanyLookupMetrics, lookupCompany } from './services/companyLookup
 import { buildIntelligentPrefill } from './services/intelligentIntake.js';
 import { computeDossierRisk, sortAntiRejectionQueue } from './services/opsRisk.js';
 import { draftStatutesDocument } from './services/statutesDrafting.js';
+import {
+  buildStatutesPdfForDossier,
+  resolveStatutesPdfAccess,
+} from './services/statutesPdfService.js';
 import { resolveDossierAccess } from './utils/dossierAccess.js';
 import { registerNonConvictionSignatureRoutes } from './routes/nonConvictionSignatureRoutes.js';
 import { registerPaymentsRoutes } from './routes/paymentsRoutes.js';
@@ -2058,7 +2065,7 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async 
   return res.json({
     ok: true,
     docKey,
-    schemaVersion: 'manager_non_conviction_v5',
+    schemaVersion: NON_CONVICTION_SCHEMA_VERSION,
     title: 'Déclaration de non-condamnation et de filiation',
     fields,
   });
@@ -2081,28 +2088,15 @@ app.post('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async
 
   try {
     await ensureDossierDocuments(dossier.id);
-    const safeReference = String(dossier.reference || dossier.id).replace(/[^a-zA-Z0-9_-]/g, '_');
-    const filename = `Declaration_non_condamnation_filiation_${safeReference}_${Date.now()}.pdf`;
-    const pdfPath = await generateNonConvictionPdf({
-      filename,
-      fields,
-    });
-    const sha256 = createHash('sha256').update(fs.readFileSync(pdfPath)).digest('hex');
-    const updated = await updateDossierDocument({
-      dossierId: dossier.id,
-      docKey,
-      status: DOCUMENT_STATUSES.UPLOADED,
-      filename,
-      fileSizeBytes: fs.statSync(pdfPath).size,
-      mimeType: 'application/pdf',
-      storageUrl: pdfPath,
-      sha256,
-      reviewerId: null,
-      metadata: {
-        editorSchemaVersion: 'manager_non_conviction_v5',
+    const { sha256, filename, updated } = await persistNonConvictionPdfForDossier({
+      dossier,
+      fields: validation.normalized || fields,
+      ensureDossierDocuments,
+      updateDossierDocument,
+      listDossierDocuments,
+      DOCUMENT_STATUSES,
+      metadataExtra: {
         generatedFromEditor: true,
-        fields,
-        generatedAt: new Date().toISOString(),
       },
     });
     if (!updated) {
@@ -2391,15 +2385,15 @@ app.post('/api/dossiers/:dossierId/statutes/generate', requireAuth, async (req, 
   }
 
   const user = dossier.userId ? await getUserById(dossier.userId) : null;
-  const statutesData = mapStatutesData({ dossier, questionnaire, user });
-  let statutesDocument;
+  let buildResult;
   try {
-    statutesDocument = draftStatutesDocument(statutesData);
+    buildResult = await buildStatutesPdfForDossier({ dossier, questionnaire, user });
   } catch (error) {
     if (error?.code === 'STATUTES_INCOMPLETE') {
       return res.status(500).json({ ok: false, error: 'STATUTES_INCOMPLETE', articleCount: error.articleCount });
     }
     if (error?.code === 'STATUTES_VALIDATION_FAILED') {
+      const statutesData = mapStatutesData({ dossier, questionnaire, user });
       return res.status(422).json({
         ok: false,
         error: 'STATUTES_VALIDATION_FAILED',
@@ -2408,41 +2402,29 @@ app.post('/api/dossiers/:dossierId/statutes/generate', requireAuth, async (req, 
         completeness: statutesData.completeness,
       });
     }
+    if (error?.code === 'LEGAL_FORM_UNSUPPORTED') {
+      return res.status(409).json({ ok: false, error: 'LEGAL_FORM_UNSUPPORTED', legalForm });
+    }
     throw error;
   }
 
-  const safeReference = String(dossier.reference || dossier.id).replace(/[^a-zA-Z0-9_-]/g, '_');
-  const filename = `Statuts_${legalForm}_${safeReference}_${Date.now()}.pdf`;
-  const filePath = await generateStatutesPdf({
+  const {
+    filePath,
     filename,
-    document: statutesDocument,
-  });
-  const fileSizeBytes = fs.statSync(filePath).size;
-  const contentHash = createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
-  const docType = `statutes_${legalForm.toLowerCase()}`;
-  const saved = await upsertGeneratedDocument({
-    dossierId: dossier.id,
-    type: docType,
-    status: 'generated',
-    version: 1,
-    fileUrl: filePath,
-    fileSizeBytes,
     contentHash,
-    metadata: {
-      completeness: statutesData.completeness,
-      missingFields: statutesData.missingFields,
-      generatedBy: 'greffio_william_template',
-      template: statutesDocument.metadata?.template,
-      filename,
-    },
-  });
+    saved,
+    statutesDocument,
+    legalForm: builtLegalForm,
+  } = buildResult;
+  const statutesData = mapStatutesData({ dossier, questionnaire, user });
+  const docType = `statutes_${builtLegalForm.toLowerCase()}`;
   await syncGeneratedStatutesToDossierChecklist({
     dossierId: dossier.id,
-    fileUrl: filePath,
-    fileSizeBytes,
+    fileUrl: saved.fileUrl,
+    fileSizeBytes: saved.fileSizeBytes,
     filename,
     contentHash,
-    legalForm,
+    legalForm: builtLegalForm,
   });
   await markDossierStatutesGenerated({
     dossierId: dossier.id,
@@ -2474,10 +2456,10 @@ app.post('/api/dossiers/:dossierId/statutes/generate', requireAuth, async (req, 
       id: saved.id,
       type: docType,
       filePath,
-      fileSizeBytes,
+      fileSizeBytes: saved.fileSizeBytes,
       filename,
       completeness: statutesData.completeness,
-      legalForm,
+      legalForm: builtLegalForm,
       createdAt: saved.createdAt,
     },
     documents: statutesDocs,
@@ -2503,13 +2485,45 @@ app.get('/api/dossiers/:dossierId/statutes/pdf', requireAuth, async (req, res) =
   const { dossier } = access;
 
   const docs = await listGeneratedDocumentsByDossier(dossier.id);
-  const latest = docs.find((item) => /^statutes_/i.test(String(item.type || '')));
-  if (!latest?.fileUrl || !fs.existsSync(latest.fileUrl)) {
-    return res.status(404).json({ ok: false, error: 'STATUTES_PDF_NOT_FOUND' });
+  let latest = docs.find((item) => /^statutes_/i.test(String(item.type || '')));
+
+  let pdfAccess = await resolveStatutesPdfAccess(latest);
+  if (pdfAccess.mode === 'missing') {
+    const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+    const formalityRule = getFormalityRule({ dossier, questionnaire });
+    if (!formalityRule.requiresStatutes) {
+      return res.status(404).json({ ok: false, error: 'STATUTES_PDF_NOT_FOUND' });
+    }
+    const legalForm = resolveLegalForm({ dossier, questionnaire });
+    if (!isStatutesSupportedForm(legalForm)) {
+      return res.status(404).json({ ok: false, error: 'STATUTES_PDF_NOT_FOUND' });
+    }
+    const user = dossier.userId ? await getUserById(dossier.userId) : null;
+    try {
+      const buildResult = await buildStatutesPdfForDossier({ dossier, questionnaire, user });
+      latest = buildResult.saved;
+      pdfAccess = await resolveStatutesPdfAccess(latest);
+    } catch (_error) {
+      return res.status(404).json({ ok: false, error: 'STATUTES_PDF_NOT_FOUND' });
+    }
   }
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename="${path.basename(latest.fileUrl)}"`);
-  return fs.createReadStream(latest.fileUrl).pipe(res);
+
+  if (pdfAccess.mode === 'redirect') {
+    const remoteResponse = await fetch(pdfAccess.url);
+    if (!remoteResponse.ok) {
+      return res.status(404).json({ ok: false, error: 'STATUTES_PDF_NOT_FOUND' });
+    }
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${pdfAccess.filename}"`);
+    const buffer = Buffer.from(await remoteResponse.arrayBuffer());
+    return res.send(buffer);
+  }
+  if (pdfAccess.mode === 'stream') {
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${pdfAccess.filename}"`);
+    return pdfAccess.stream.pipe(res);
+  }
+  return res.status(404).json({ ok: false, error: 'STATUTES_PDF_NOT_FOUND' });
 });
 
 app.post('/api/payments/create', paymentLimiter, requireAuth, async (req, res) => {

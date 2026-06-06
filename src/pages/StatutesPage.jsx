@@ -16,8 +16,7 @@ import { getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.
 import { downloadStatutesPdf, fetchStatutesPreview, generateStatutes, listStatutes } from '@/api/statutes.js';
 import { getDossierById } from '@/api/dossiers.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
-import { downloadPreview } from '@/utils/formalityEngine.js';
-import { fullPreviewToDocumentPreview } from '@/utils/statutesPreview.js';
+import { downloadStatutesOfficeExport } from '@/utils/statutesOfficeExport.js';
 import { useAuth } from '@/hooks/useAuth.js';
 
 const parseQuestionnaire = (dataJson) => {
@@ -215,7 +214,7 @@ export const StatutesPage = () => {
   const onDownload = async () => {
     if (!dossierId) return;
     try {
-      const blob = await downloadStatutesPdf(dossierId);
+      const blob = await downloadStatutesPdf(dossierId, { cacheBust: true });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -233,7 +232,7 @@ export const StatutesPage = () => {
       return;
     }
     try {
-      await downloadPreview(fullPreviewToDocumentPreview(preview), format);
+      await downloadStatutesOfficeExport(preview, format);
       toast.success(`Export ${format.toUpperCase()} lancé.`);
     } catch (_error) {
       toast.error(`Export ${format.toUpperCase()} impossible.`);

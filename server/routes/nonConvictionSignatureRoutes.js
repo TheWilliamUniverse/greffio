@@ -1,9 +1,13 @@
 import fs from 'node:fs';
-import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { generateNonConvictionPdf, validateNonConvictionFields } from '../pdf/nonConvictionPdf.js';
 import { getDeclarationErrorMessage, normalizeDeclarationFields } from '../documents/declarationNonCondamnation/formatters.js';
+import { validateNonConvictionFields } from '../pdf/nonConvictionPdf.js';
 import { stampSignatureOnPdf } from '../pdf/stampSignatureOnPdf.js';
+import {
+  persistNonConvictionPdfForDossier,
+  persistSignedNonConvictionPdf,
+  NON_CONVICTION_DOC_KEY,
+} from '../services/nonConvictionDocumentService.js';
 import {
   createSigningToken,
   createSignatureRequest,
@@ -15,8 +19,6 @@ import {
 import { sendTransactionalEmail } from '../services/emailService.js';
 import { getClientIp } from '../utils/loginContext.js';
 import { resolveDossierAccess } from '../utils/dossierAccess.js';
-
-const DOC_KEY = 'manager_non_conviction';
 
 export const registerNonConvictionSignatureRoutes = (app, {
   requireAuth,
@@ -30,31 +32,23 @@ export const registerNonConvictionSignatureRoutes = (app, {
   appUrl,
 }) => {
   const persistDraftPdf = async ({ dossier, fields }) => {
-    await ensureDossierDocuments(dossier.id);
-    const safeReference = String(dossier.reference || dossier.id).replace(/[^a-zA-Z0-9_-]/g, '_');
-    const filename = `Declaration_non_condamnation_${safeReference}_${Date.now()}.pdf`;
-    const pdfPath = await generateNonConvictionPdf({
-      filename,
+    const result = await persistNonConvictionPdfForDossier({
+      dossier,
       fields,
-    });
-    const sha256 = createHash('sha256').update(fs.readFileSync(pdfPath)).digest('hex');
-    const updated = await updateDossierDocument({
-      dossierId: dossier.id,
-      docKey: DOC_KEY,
-      status: DOCUMENT_STATUSES.UPLOADED,
-      filename,
-      fileSizeBytes: fs.statSync(pdfPath).size,
-      mimeType: 'application/pdf',
-      storageUrl: pdfPath,
-      sha256,
-      metadata: {
-        editorSchemaVersion: 'manager_non_conviction_v5',
+      ensureDossierDocuments,
+      updateDossierDocument,
+      listDossierDocuments,
+      DOCUMENT_STATUSES,
+      metadataExtra: {
         declarationStatus: 'preview_ready',
-        fields,
-        generatedAt: new Date().toISOString(),
       },
     });
-    return { pdfPath, sha256, updated, filename };
+    return {
+      pdfPath: result.pdfPath,
+      sha256: result.sha256,
+      updated: result.updated,
+      filename: result.filename,
+    };
   };
 
   app.post('/api/dossiers/:dossierId/documents/manager_non_conviction/send-signature', requireAuth, async (req, res) => {
@@ -67,27 +61,41 @@ export const registerNonConvictionSignatureRoutes = (app, {
     if (!signerEmail || !signerEmail.includes('@')) {
       return res.status(400).json({ ok: false, error: 'SIGNER_EMAIL_REQUIRED' });
     }
-    const validation = validateNonConvictionFields({ ...fields, signatureFullName: signerFullName, declarationNonCondamnation: true });
-    if (!validation.ok) return res.status(400).json({ ok: false, error: validation.error });
+    const validation = validateNonConvictionFields({
+      ...fields,
+      signatureFullName: signerFullName,
+      declarationNonCondamnation: true,
+      declarationFiliation: fields.declarationFiliation !== false,
+    });
+    if (!validation.ok) {
+      return res.status(400).json({
+        ok: false,
+        error: validation.error,
+        message: getDeclarationErrorMessage(validation.error),
+      });
+    }
 
     try {
-      const { pdfPath, sha256, updated } = await persistDraftPdf({ dossier, fields: { ...fields, signerEmail, signatureFullName } });
+      const { pdfPath, sha256, updated } = await persistDraftPdf({
+        dossier,
+        fields: { ...validation.normalized, signerEmail, signatureFullName: signerFullName },
+      });
       const { raw, hash } = createSigningToken();
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
       await createSignatureRequest({
         dossierId: dossier.id,
         documentId: updated?.id || null,
-        docKey: DOC_KEY,
+        docKey: NON_CONVICTION_DOC_KEY,
         tokenHash: hash,
         signerEmail,
         signerFullName,
         draftPdfPath: pdfPath,
         sha256Draft: sha256,
-        fields: { ...fields, signerEmail, signatureFullName },
+        fields: { ...validation.normalized, signerEmail, signatureFullName: signerFullName },
         expiresAt,
       });
       const signingLink = `${appUrl}/signature/${raw}`;
-      await sendTransactionalEmail({
+      void sendTransactionalEmail({
         to: { email: signerEmail, name: signerFullName },
         templateKey: 'non_conviction_signature_request',
         variables: {
@@ -125,7 +133,12 @@ export const registerNonConvictionSignatureRoutes = (app, {
         message: getDeclarationErrorMessage('SIGNATURE_CONSENT_REQUIRED'),
       });
     }
-    const validation = validateNonConvictionFields({ ...fields, signatureFullName, declarationNonCondamnation: true });
+    const validation = validateNonConvictionFields({
+      ...fields,
+      signatureFullName,
+      declarationNonCondamnation: true,
+      declarationFiliation: fields.declarationFiliation !== false,
+    });
     if (!validation.ok) {
       return res.status(400).json({
         ok: false,
@@ -149,23 +162,21 @@ export const registerNonConvictionSignatureRoutes = (app, {
         documentId: dossier.reference || dossier.id,
         signatureImagePngBase64,
         proofLines: [`Empreinte brouillon : ${sha256Draft.slice(0, 16)}…`],
+        layout: 'non_conviction_official',
       });
-      const sha256Signed = createHash('sha256').update(fs.readFileSync(signedFilename)).digest('hex');
-      await updateDossierDocument({
-        dossierId: dossier.id,
-        docKey: DOC_KEY,
-        status: DOCUMENT_STATUSES.VALID,
-        filename: path.basename(signedFilename),
-        fileSizeBytes: fs.statSync(signedFilename).size,
-        mimeType: 'application/pdf',
-        storageUrl: signedFilename,
-        sha256: sha256Signed,
-        metadata: {
-          declarationStatus: 'signed',
+      const { sha256Signed } = await persistSignedNonConvictionPdf({
+        dossier,
+        signedLocalPath: signedFilename,
+        fields: normalizedFields,
+        updateDossierDocument,
+        listDossierDocuments,
+        DOCUMENT_STATUSES,
+        metadataExtra: {
           signedAt: new Date().toISOString(),
           sha256BeforeSignature: sha256Draft,
           sha256AfterSignature: sha256Signed,
-          fields: normalizedFields,
+          signerEmail,
+          signerFullName,
         },
       });
       try {
@@ -181,7 +192,7 @@ export const registerNonConvictionSignatureRoutes = (app, {
         console.error('SIGNATURE_AUDIT_FAILED', auditError);
       }
       if (signerEmail) {
-        await sendTransactionalEmail({
+        void sendTransactionalEmail({
           to: { email: signerEmail, name: signerFullName },
           templateKey: 'non_conviction_signature_completed',
           variables: {
@@ -265,6 +276,7 @@ export const registerNonConvictionSignatureRoutes = (app, {
         documentId: request.dossierId,
         signatureImagePngBase64,
         proofLines: [`Empreinte : ${request.sha256Draft?.slice(0, 20) || ''}…`],
+        layout: 'non_conviction_official',
       });
       const sha256Signed = createHash('sha256').update(fs.readFileSync(signedFilename)).digest('hex');
       await markSignatureRequestSigned({
@@ -275,21 +287,18 @@ export const registerNonConvictionSignatureRoutes = (app, {
         userAgent: req.headers['user-agent'] || '',
         evidence: { consent: true, signerFullName, sha256Draft: request.sha256Draft, sha256Signed },
       });
-      await updateDossierDocument({
-        dossierId: request.dossierId,
-        docKey: DOC_KEY,
-        status: DOCUMENT_STATUSES.VALID,
-        filename: path.basename(signedFilename),
-        fileSizeBytes: fs.statSync(signedFilename).size,
-        mimeType: 'application/pdf',
-        storageUrl: signedFilename,
-        sha256: sha256Signed,
-        metadata: {
-          declarationStatus: 'signed',
+      const dossier = await getDossier(request.dossierId);
+      await persistSignedNonConvictionPdf({
+        dossier,
+        signedLocalPath: signedFilename,
+        fields: request.fields,
+        updateDossierDocument,
+        listDossierDocuments,
+        DOCUMENT_STATUSES,
+        metadataExtra: {
           signedAt: signedAtIso,
           sha256BeforeSignature: request.sha256Draft,
           sha256AfterSignature: sha256Signed,
-          fields: request.fields,
         },
       });
       await createSignatureRecord({
@@ -299,8 +308,7 @@ export const registerNonConvictionSignatureRoutes = (app, {
         ipAddress: getClientIp(req),
         userAgent: req.headers['user-agent'] || '',
       });
-      const dossier = await getDossier(request.dossierId);
-      await sendTransactionalEmail({
+      void sendTransactionalEmail({
         to: { email: request.signerEmail, name: signerFullName },
         templateKey: 'non_conviction_signature_completed',
         variables: {

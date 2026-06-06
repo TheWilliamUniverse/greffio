@@ -83,6 +83,7 @@ export const NonConvictionDeclarationPage = () => {
       const { blob } = await downloadDossierDocument({
         dossierId,
         docKey: 'manager_non_conviction',
+        cacheBust: true,
       });
       setPreviewBlobUrl((current) => {
         if (current) URL.revokeObjectURL(current);
@@ -106,6 +107,7 @@ export const NonConvictionDeclarationPage = () => {
       const { blob } = await downloadDossierDocument({
         dossierId,
         docKey: 'manager_non_conviction',
+        cacheBust: true,
       });
       setPreviewBlobUrl((current) => {
         if (current) URL.revokeObjectURL(current);

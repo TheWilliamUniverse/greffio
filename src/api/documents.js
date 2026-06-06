@@ -130,8 +130,9 @@ export const getDossierDocumentDownloadUrl = ({ dossierId, docKey }) => (
   `${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}/documents/${docKey}/download`
 );
 
-export const downloadDossierDocument = async ({ dossierId, docKey }) => {
-  const response = await fetch(getDossierDocumentDownloadUrl({ dossierId, docKey }), {
+export const downloadDossierDocument = async ({ dossierId, docKey, cacheBust = false }) => {
+  const cacheQuery = cacheBust ? `?t=${Date.now()}` : '';
+  const response = await fetch(`${getDossierDocumentDownloadUrl({ dossierId, docKey })}${cacheQuery}`, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${authToken()}`,

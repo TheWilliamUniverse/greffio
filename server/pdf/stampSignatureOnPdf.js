@@ -19,24 +19,30 @@ export const stampSignatureOnPdf = async ({
   documentId,
   signatureImagePngBase64 = null,
   proofLines = [],
+  layout = 'default',
 }) => {
   const bytes = fs.readFileSync(inputPath);
   const pdfDoc = await PDFDocument.load(bytes);
   const pages = pdfDoc.getPages();
   const page = pages[pages.length - 1];
-  const { width, height } = page.getSize();
+  const { width } = page.getSize();
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const yBase = 168;
+
+  const isOfficialLayout = layout === 'non_conviction_official';
+  const marginH = 71;
+  const signatureColWidth = 204;
+  const signatureX = isOfficialLayout ? width - marginH - signatureColWidth : 50;
+  const yBase = isOfficialLayout ? 228 : 168;
 
   const proof = buildProofFingerprint(documentId);
   page.drawText(proof, {
-    x: 50,
+    x: marginH,
     y: yBase + 70,
     size: 7,
     font,
     color: rgb(0.2, 0.35, 0.65),
-    maxWidth: width - 100,
+    maxWidth: width - marginH * 2,
   });
 
   if (signatureImagePngBase64) {
@@ -49,40 +55,40 @@ export const stampSignatureOnPdf = async ({
       const png = await pdfDoc.embedPng(imageBytes);
       const dims = png.scale(0.35);
       page.drawImage(png, {
-        x: 50,
+        x: signatureX,
         y: yBase,
-        width: Math.min(dims.width, 220),
+        width: Math.min(dims.width, isOfficialLayout ? 180 : 220),
         height: Math.min(dims.height, 60),
       });
     } else {
       const jpeg = await pdfDoc.embedJpg(imageBytes);
       const dims = jpeg.scale(0.35);
       page.drawImage(jpeg, {
-        x: 50,
+        x: signatureX,
         y: yBase,
-        width: Math.min(dims.width, 220),
+        width: Math.min(dims.width, isOfficialLayout ? 180 : 220),
         height: Math.min(dims.height, 60),
       });
     }
   } else {
     page.drawText(signerFullName, {
-      x: 50,
+      x: signatureX,
       y: yBase + 20,
-      size: 18,
+      size: isOfficialLayout ? 16 : 18,
       font: fontBold,
       color: rgb(0.08, 0.12, 0.2),
     });
   }
 
   page.drawText(`Signé électroniquement par ${signerFullName}`, {
-    x: 50,
+    x: marginH,
     y: yBase - 18,
     size: 9,
     font,
     color: rgb(0.35, 0.4, 0.48),
   });
   page.drawText(`Le ${new Date(signedAtIso).toLocaleString('fr-FR')}`, {
-    x: 50,
+    x: marginH,
     y: yBase - 32,
     size: 9,
     font,
@@ -91,7 +97,7 @@ export const stampSignatureOnPdf = async ({
 
   (proofLines || []).slice(0, 3).forEach((line, index) => {
     page.drawText(line, {
-      x: 50,
+      x: marginH,
       y: 30 - index * 12,
       size: 7,
       font,

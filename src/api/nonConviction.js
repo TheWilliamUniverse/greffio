@@ -1,4 +1,5 @@
 import { getDeclarationErrorMessage } from '@/utils/declarationErrors.js';
+import { runtimeConfig } from '@/config/runtime.js';
 import { getToken } from '@/utils/localStorage.js';
 import {
   getDossierDocumentEditor,

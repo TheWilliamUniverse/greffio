@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
+import { SiteSearchDialog } from '@/components/SiteSearchDialog.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 
 const buildMenuColumns = (profileLink) => [
@@ -60,9 +61,21 @@ const resources = [
 export const NavbarDropdown = () => {
   const [isServicesOpen, setIsServicesOpen] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const { isAuthenticated } = useAuth();
   const profileLink = isAuthenticated ? '/profil' : '/login';
   const menuColumns = buildMenuColumns(profileLink);
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   return (
     <nav className="fixed left-0 right-0 top-0 z-50 border-b border-[#c5d2e6] bg-white shadow-[0_1px_0_rgba(10,18,32,0.1),0_8px_24px_rgba(10,18,32,0.08)]">
@@ -151,7 +164,7 @@ export const NavbarDropdown = () => {
               <User className="h-4 w-4" />
             </Link>
           </Button>
-          <Button variant="outline" size="icon" className="bg-white" aria-label="Recherche">
+          <Button variant="outline" size="icon" className="bg-white" aria-label="Recherche" onClick={() => setSearchOpen(true)}>
             <Search className="h-4 w-4" />
           </Button>
           <Button asChild className="gap-2 bg-[#0f1f3d] hover:bg-[#0f1f3d]/92">
@@ -163,13 +176,14 @@ export const NavbarDropdown = () => {
         </div>
 
         <div className="flex items-center gap-1.5 lg:hidden">
-          <a
-            href="/#inpi-like-lookup"
-            aria-label="Recherche entreprise"
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            aria-label="Recherche sur le site"
             className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-white text-[#0a1220] transition hover:bg-muted"
           >
             <Search className="h-4 w-4" />
-          </a>
+          </button>
           <Link
             to="/login"
             aria-label="Connexion"
@@ -227,6 +241,8 @@ export const NavbarDropdown = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <SiteSearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
     </nav>
   );
 };

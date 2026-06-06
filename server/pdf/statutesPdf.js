@@ -72,21 +72,21 @@ const ensureSpace = (doc, companyName, pages, heightNeeded = 72) => {
 
 const renderCover = (doc, cover, companyName) => {
   doc.y = PAGE.marginTop + 28;
-  doc.font(FONTS.bold).fontSize(26).fillColor('#111111')
+  doc.font(FONTS.bold).fontSize(18).fillColor('#111111')
     .text(cover.title || 'STATUTS', PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
   doc.moveDown(0.9);
-  doc.font(FONTS.bold).fontSize(13)
+  doc.font(FONTS.bold).fontSize(14)
     .text(cover.legalFormLabel || '', PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
   doc.moveDown(1.4);
-  doc.font(FONTS.bold).fontSize(15)
+  doc.font(FONTS.bold).fontSize(18)
     .text(cover.denomination || '', PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
   if (cover.sigle) {
     doc.moveDown(0.35);
-    doc.font(FONTS.regular).fontSize(12)
+    doc.font(FONTS.regular).fontSize(13)
       .text(`(${cover.sigle})`, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
   }
   doc.moveDown(1.2);
-  doc.font(FONTS.regular).fontSize(12).fillColor('#222222');
+  doc.font(FONTS.regular).fontSize(13).fillColor('#222222');
   [
     cover.capitalLine,
     '',
@@ -112,7 +112,7 @@ const renderBlock = (doc, companyName, pages, block) => {
   if (block.kind === 'section-title') {
     ensureSpace(doc, companyName, pages, 48);
     doc.moveDown(0.8);
-    doc.font(FONTS.bold).fontSize(12).fillColor('#111111')
+    doc.font(FONTS.bold).fontSize(16).fillColor('#111111')
       .text(pdfText(block.text), PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'left' });
     doc.moveDown(0.55);
     return;
@@ -120,16 +120,17 @@ const renderBlock = (doc, companyName, pages, block) => {
   if (block.kind === 'legal-title') {
     ensureSpace(doc, companyName, pages, 64);
     doc.moveDown(1.1);
-    doc.font(FONTS.bold).fontSize(11.5).fillColor('#111111')
+    doc.font(FONTS.bold).fontSize(16).fillColor('#111111')
       .text(pdfText(block.text), PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'center' });
     doc.moveDown(0.75);
     return;
   }
   if (block.kind === 'paragraph') {
     ensureSpace(doc, companyName, pages, 36);
-    doc.font(FONTS.regular).fontSize(11)
-      .text(pdfText(block.text), PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify', lineGap: 3 });
-    doc.moveDown(0.45);
+    if (block.subheading) doc.moveDown(0.35);
+    doc.font(block.subheading ? FONTS.bold : FONTS.regular).fontSize(13)
+      .text(pdfText(block.text), PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify', lineGap: 4 });
+    doc.moveDown(block.subheading ? 0.35 : 0.5);
     return;
   }
   if (block.kind === 'article') {
@@ -137,15 +138,15 @@ const renderBlock = (doc, companyName, pages, block) => {
     const heading = block.number
       ? `Article ${block.number} - ${block.title}`
       : String(block.title || '').replace(/^Article\s+/i, 'Article ');
-    doc.font(FONTS.bold).fontSize(11)
+    doc.font(FONTS.bold).fontSize(16)
       .text(heading, PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'left' });
     doc.moveDown(0.35);
     const paragraphs = String(block.body || '').split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
     paragraphs.forEach((paragraph, index) => {
       ensureSpace(doc, companyName, pages, 36);
-      doc.font(FONTS.regular).fontSize(11)
-        .text(pdfText(paragraph), PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify', lineGap: 3 });
-      if (index < paragraphs.length - 1) doc.moveDown(0.45);
+      doc.font(FONTS.regular).fontSize(13)
+        .text(pdfText(paragraph), PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify', lineGap: 4 });
+      if (index < paragraphs.length - 1) doc.moveDown(0.5);
     });
     doc.moveDown(0.75);
   }

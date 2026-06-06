@@ -70,17 +70,24 @@ export const adaptRenderedBlocksToLegacyDocument = ({
   const articleBodies = buildArticleBodiesMap(blocks);
   const legacyBlocks = [];
   const emittedArticles = new Set();
+  let preliminaryTitleAdded = false;
 
   blocks.forEach((block) => {
     if (block.kind === 'cover' || block.kind === 'signature') return;
 
     if (block.kind === 'preamble') {
       const text = String(block.text || '').trim();
-      if (/^(Définitions|Objet du présent acte|IL A ÉTÉ CONVENU)/i.test(text)) {
-        legacyBlocks.push({ kind: 'section-title', text });
-      } else {
-        legacyBlocks.push({ kind: 'paragraph', text });
+      if (!text) return;
+      const isPreliminaryHeading = /^(Définitions|Objet du présent acte|IL A ÉTÉ CONVENU)/i.test(text);
+      if (isPreliminaryHeading && !preliminaryTitleAdded) {
+        legacyBlocks.push({ kind: 'legal-title', text: 'DISPOSITIONS PRÉLIMINAIRES' });
+        preliminaryTitleAdded = true;
       }
+      legacyBlocks.push({
+        kind: 'paragraph',
+        text,
+        subheading: isPreliminaryHeading,
+      });
       return;
     }
 
