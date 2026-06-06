@@ -6,7 +6,7 @@ export const FORMALITY_RULES = Object.freeze({
     requiresMandate: true,
     requiredSections: ['identity', 'activity', 'address', 'tax_social_options', 'documents', 'payment'],
     excludedSections: ['statutes', 'capital', 'associates', 'share_distribution', 'corporate_officers'],
-    excludedDocumentKeys: ['signed_statutes', 'capital_certificate', 'ubo_declaration'],
+    excludedDocumentKeys: ['signed_statutes', 'capital_certificate', 'ubo_declaration', 'subscribers_list', 'formality_powers'],
   },
   SASU_CREATION: { requiresStatutes: true, requiresCapital: true, requiresAssociates: false },
   SAS_CREATION: { requiresStatutes: true, requiresCapital: true, requiresAssociates: true },

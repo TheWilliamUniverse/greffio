@@ -41,6 +41,8 @@ const DOSSIER_DOCUMENT_TEMPLATES = Object.freeze([
   { key: 'registered_office_proof', label: 'Justificatif siège social', required: true },
   { key: 'ubo_declaration', label: 'Déclaration bénéficiaires effectifs', required: false },
   { key: 'manager_non_conviction', label: 'Déclaration non-condamnation et filiation', required: false },
+  { key: 'subscribers_list', label: 'Liste des souscripteurs', required: true },
+  { key: 'formality_powers', label: 'Pouvoirs pour formalités', required: true },
   { key: 'filiation_declaration', label: 'Déclaration de filiation', required: false },
   { key: 'regulated_activity_proof', label: 'Autorisation activité réglementée', required: false },
   { key: 'minor_emancipation_order', label: "Ordonnance ou jugement d'émancipation", required: false },

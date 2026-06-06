@@ -68,6 +68,8 @@ export const DocumentsPage = () => {
     ['registered_office_proof', 'Justificatif siège social'],
     ['ubo_declaration', 'Déclaration bénéficiaires effectifs'],
     ['manager_non_conviction', 'Déclaration non-condamnation et filiation (en ligne)'],
+    ['subscribers_list', 'Liste des souscripteurs (en ligne)'],
+    ['formality_powers', 'Pouvoirs pour formalités (en ligne)'],
     ['minor_emancipation_order', "Ordonnance ou jugement d'émancipation"],
     ['minor_parental_authorization', 'Autorisation parentale / tuteur (associé mineur)'],
     ['signed_statutes', 'Statuts signés'],
@@ -326,19 +328,36 @@ export const DocumentsPage = () => {
             {uploadError ? <p className="mt-2 text-xs text-red-600">{uploadError}</p> : null}
             {uploadSuccess ? <p className="mt-2 text-xs text-emerald-700">{uploadSuccess}</p> : null}
             {!currentDossierId ? <p className="mt-2 text-xs text-amber-700">Aucun dossier actif détecté. Ouvrez un dossier puis revenez ici pour déposer vos pièces.</p> : null}
-            <div className="mt-3">
+            <div className="mt-3 flex flex-wrap gap-2">
               <Button
                 variant="outline"
                 className="bg-white"
-                disabled={!currentDossierId}
+                disabled={!currentDossierId || eiLike}
                 onClick={() => {
                   const url = `/dossier/${currentDossierId}/declaration-non-condamnation`;
-                  window.open(url, '_blank', 'noopener,noreferrer');
                   navigate(url);
                 }}
               >
                 <FilePlus2 className="h-4 w-4" />
-                Remplir en ligne : non-condamnation et filiation
+                Non-condamnation
+              </Button>
+              <Button
+                variant="outline"
+                className="bg-white"
+                disabled={!currentDossierId || eiLike}
+                onClick={() => navigate(`/dossier/${currentDossierId}/liste-souscripteurs`)}
+              >
+                <FilePlus2 className="h-4 w-4" />
+                Liste des souscripteurs
+              </Button>
+              <Button
+                variant="outline"
+                className="bg-white"
+                disabled={!currentDossierId || eiLike}
+                onClick={() => navigate(`/dossier/${currentDossierId}/pouvoirs-formalites`)}
+              >
+                <FilePlus2 className="h-4 w-4" />
+                Pouvoirs formalités
               </Button>
             </div>
           </section>

@@ -29,11 +29,12 @@ export const stampSignatureOnPdf = async ({
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
+  const isSubscribersLayout = layout === 'subscribers_list_official';
   const isOfficialLayout = layout === 'non_conviction_official';
-  const marginH = 71;
+  const marginH = isSubscribersLayout ? 56 : 71;
   const signatureColWidth = 204;
-  const signatureX = isOfficialLayout ? width - marginH - signatureColWidth : 50;
-  const yBase = isOfficialLayout ? 228 : 168;
+  const signatureX = isOfficialLayout ? width - marginH - signatureColWidth : marginH;
+  const yBase = isSubscribersLayout ? 118 : (isOfficialLayout ? 228 : 168);
 
   const proof = buildProofFingerprint(documentId);
   page.drawText(proof, {

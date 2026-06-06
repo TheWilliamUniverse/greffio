@@ -8,6 +8,8 @@ import {
   persistSignedNonConvictionPdf,
   NON_CONVICTION_DOC_KEY,
 } from '../services/nonConvictionDocumentService.js';
+import { persistSignedEditableDocumentPdf } from '../services/editableDocumentService.js';
+import { getEditableDocumentConfig } from '../documents/editableDocumentRegistry.js';
 import {
   createSigningToken,
   createSignatureRequest,
@@ -229,13 +231,14 @@ export const registerNonConvictionSignatureRoutes = (app, {
     }
     await appendSignatureAudit(request.id, { type: 'viewed', ipAddress: getClientIp(req) });
     const dossier = await getDossier(request.dossierId);
+    const editableConfig = getEditableDocumentConfig(request.docKey);
     return res.json({
       ok: true,
       status: request.status,
       signerFullName: request.signerFullName,
       signerEmail: request.signerEmail,
       companyName: dossier?.companyName || dossier?.denomination || 'Greffio',
-      documentTitle: 'Déclaration de non-condamnation et de filiation',
+      documentTitle: editableConfig?.publicDocumentTitle || 'Déclaration de non-condamnation et de filiation',
       pdfUrl: `/api/signature/public/${req.params.token}/pdf`,
     });
   });
@@ -276,7 +279,7 @@ export const registerNonConvictionSignatureRoutes = (app, {
         documentId: request.dossierId,
         signatureImagePngBase64,
         proofLines: [`Empreinte : ${request.sha256Draft?.slice(0, 20) || ''}…`],
-        layout: 'non_conviction_official',
+        layout: getEditableDocumentConfig(request.docKey)?.signatureLayout || 'non_conviction_official',
       });
       const sha256Signed = createHash('sha256').update(fs.readFileSync(signedFilename)).digest('hex');
       await markSignatureRequestSigned({
@@ -288,19 +291,38 @@ export const registerNonConvictionSignatureRoutes = (app, {
         evidence: { consent: true, signerFullName, sha256Draft: request.sha256Draft, sha256Signed },
       });
       const dossier = await getDossier(request.dossierId);
-      await persistSignedNonConvictionPdf({
-        dossier,
-        signedLocalPath: signedFilename,
-        fields: request.fields,
-        updateDossierDocument,
-        listDossierDocuments,
-        DOCUMENT_STATUSES,
-        metadataExtra: {
-          signedAt: signedAtIso,
-          sha256BeforeSignature: request.sha256Draft,
-          sha256AfterSignature: sha256Signed,
-        },
-      });
+      const editableConfig = getEditableDocumentConfig(request.docKey);
+      if (editableConfig) {
+        await persistSignedEditableDocumentPdf({
+          docKey: editableConfig.docKey,
+          schemaVersion: editableConfig.schemaVersion,
+          dossier,
+          signedLocalPath: signedFilename,
+          fields: request.fields,
+          updateDossierDocument,
+          listDossierDocuments,
+          DOCUMENT_STATUSES,
+          metadataExtra: {
+            signedAt: signedAtIso,
+            sha256BeforeSignature: request.sha256Draft,
+            sha256AfterSignature: sha256Signed,
+          },
+        });
+      } else {
+        await persistSignedNonConvictionPdf({
+          dossier,
+          signedLocalPath: signedFilename,
+          fields: request.fields,
+          updateDossierDocument,
+          listDossierDocuments,
+          DOCUMENT_STATUSES,
+          metadataExtra: {
+            signedAt: signedAtIso,
+            sha256BeforeSignature: request.sha256Draft,
+            sha256AfterSignature: sha256Signed,
+          },
+        });
+      }
       await createSignatureRecord({
         dossierId: request.dossierId,
         documentId: request.documentId,

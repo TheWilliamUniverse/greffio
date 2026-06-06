@@ -19,6 +19,8 @@ const DOC_KEY_FILENAME_PREFIX = Object.freeze({
   registered_office_proof: 'Justificatif_siege_social',
   ubo_declaration: 'Declaration_beneficiaires_effectifs',
   manager_non_conviction: 'Declaration_non_condamnation',
+  subscribers_list: 'Liste_souscripteurs',
+  formality_powers: 'Pouvoirs_formalites',
   filiation_declaration: 'Declaration_filiation',
   minor_emancipation_order: 'Ordonnance_emancipation',
   minor_parental_authorization: 'Autorisation_parentale_mineur',
@@ -46,6 +48,8 @@ const buildCanonicalDocumentFilename = ({
     || docKey === 'registered_office_proof'
     || docKey === 'ubo_declaration'
     || docKey === 'manager_non_conviction'
+    || docKey === 'subscribers_list'
+    || docKey === 'formality_powers'
     || docKey === 'filiation_declaration'
   ) {
     return `${prefix}_${normalizedCompany}.pdf`;

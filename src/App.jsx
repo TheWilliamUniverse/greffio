@@ -43,6 +43,8 @@ import { PaymentVerificationPage } from '@/pages/PaymentVerificationPage.jsx';
 import { QuestionnairePage } from '@/pages/QuestionnairePage.jsx';
 import { StatutesPage } from '@/pages/StatutesPage.jsx';
 import { NonConvictionDeclarationPage } from '@/pages/NonConvictionDeclarationPage.jsx';
+import { SubscribersListPage } from '@/pages/SubscribersListPage.jsx';
+import { FormalityPowersPage } from '@/pages/FormalityPowersPage.jsx';
 import { SignaturePublicPage } from '@/pages/SignaturePublicPage.jsx';
 import { InterfacesPage } from '@/pages/InterfacesPage.jsx';
 import { ServiceLandingPage } from '@/pages/ServiceLandingPage.jsx';
@@ -157,6 +159,8 @@ function App() {
             <Route path="/dossier/:id" element={<ProtectedRoute><DossierDetailPage /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
             <Route path="/dossier/:dossierId/declaration-non-condamnation" element={<ProtectedRoute><NonConvictionDeclarationPage /></ProtectedRoute>} />
+            <Route path="/dossier/:dossierId/liste-souscripteurs" element={<ProtectedRoute><SubscribersListPage /></ProtectedRoute>} />
+            <Route path="/dossier/:dossierId/pouvoirs-formalites" element={<ProtectedRoute><FormalityPowersPage /></ProtectedRoute>} />
             <Route path="/statuts" element={<ProtectedRoute><StatutesPage /></ProtectedRoute>} />
             <Route path="/signature/:token" element={<SignaturePublicPage />} />
             <Route path="/chat" element={<ProtectedRoute><ChatIAPage /></ProtectedRoute>} />

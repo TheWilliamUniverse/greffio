@@ -155,6 +155,8 @@ export const buildOpsChecklist = ({ dossier, documents = [] }) => {
     { id: 'non_conviction', label: 'Déclaration de non-condamnation signée', status: docStatus('manager_non_conviction'), applicable: !eiLike },
     { id: 'statutes_gen', label: 'Statuts générés', status: docStatus('signed_statutes') !== 'todo' ? 'done' : (String(dossier.status || '').includes('statutes') ? 'in_progress' : 'todo'), applicable: !eiLike },
     { id: 'statutes_signed', label: 'Statuts signés', status: docStatus('signed_statutes'), applicable: !eiLike },
+    { id: 'subscribers_list', label: 'Liste des souscripteurs signée', status: docStatus('subscribers_list'), applicable: !eiLike },
+    { id: 'formality_powers', label: 'Pouvoirs pour formalités signés', status: docStatus('formality_powers'), applicable: !eiLike },
     { id: 'payment', label: 'Paiement confirmé', status: String(dossier.status || '').includes('payment_confirmed') ? 'done' : 'todo', applicable: true },
     { id: 'ready', label: 'Dossier prêt au dépôt', status: String(dossier.opsQueue || '') === 'ready_to_file' ? 'done' : 'todo', applicable: true },
   ];

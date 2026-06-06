@@ -35,6 +35,10 @@ const mapDocumentEditorError = (error) => {
   if (code === 'DOCUMENT_EDITOR_NON_CONDAMNATION_REQUIRED') return 'Cochez la déclaration de non-condamnation.';
   if (code === 'DOCUMENT_EDITOR_FILIATION_REQUIRED') return 'Cochez la déclaration de filiation.';
   if (code === 'DOCUMENT_EDITOR_PARENTS_REQUIRED') return 'Renseignez les deux lignées parentales.';
+  if (code === 'DOCUMENT_EDITOR_COMPANY_REQUIRED') return 'Indiquez la dénomination sociale.';
+  if (code === 'DOCUMENT_EDITOR_SUBSCRIBERS_REQUIRED') return 'Ajoutez au moins un souscripteur.';
+  if (code === 'DOCUMENT_EDITOR_SUBSCRIBER_IDENTITY_REQUIRED') return 'Chaque souscripteur doit avoir un nom.';
+  if (code === 'DOCUMENT_EDITOR_MANDATAIRE_REQUIRED') return 'Indiquez le mandataire.';
   if (code === 'DOCUMENT_SLOT_NOT_FOUND') return 'Emplacement document introuvable. Réouvrez le dossier puis réessayez.';
   if (code === 'DOCUMENT_EDITOR_GENERATION_FAILED') return 'Génération PDF impossible. Réessayez dans quelques secondes.';
   return "Le document n'a pas pu être généré.";

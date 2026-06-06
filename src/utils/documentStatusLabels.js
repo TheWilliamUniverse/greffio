@@ -25,6 +25,8 @@ export const getDocumentTypeLabel = (docKey, fallbackLabel = '') => {
     registered_office_proof: 'Justificatif siège social',
     ubo_declaration: 'Déclaration bénéficiaires effectifs',
     manager_non_conviction: 'Déclaration non-condamnation et filiation',
+    subscribers_list: 'Liste des souscripteurs',
+    formality_powers: 'Pouvoirs pour formalités',
     filiation_declaration: 'Déclaration de filiation',
     regulated_activity_proof: 'Autorisation activité réglementée',
     minor_emancipation_order: "Ordonnance ou jugement d'émancipation",

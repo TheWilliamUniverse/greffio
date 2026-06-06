@@ -115,6 +115,12 @@ import {
 } from './services/statutesPdfService.js';
 import { resolveDossierAccess } from './utils/dossierAccess.js';
 import { registerNonConvictionSignatureRoutes } from './routes/nonConvictionSignatureRoutes.js';
+import { registerEditableDocumentSignatureRoutes } from './routes/editableDocumentSignatureRoutes.js';
+import {
+  getEditableDocumentConfig,
+  getSupportedEditableDocumentKeys,
+} from './documents/editableDocumentRegistry.js';
+import { persistEditableDocumentPdf } from './services/editableDocumentService.js';
 import { registerPaymentsRoutes } from './routes/paymentsRoutes.js';
 import { registerAppVersionRoutes } from './routes/appVersionRoutes.js';
 import verificationRouter from './routes/verificationRoutes.js';
@@ -2030,11 +2036,13 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async 
   if (!access.ok) return res.status(access.status).json({ ok: false, error: access.error });
   const { dossier } = access;
   const docKey = String(req.params.docKey || '');
-  const supported = new Set(['manager_non_conviction']);
+  const editableConfig = getEditableDocumentConfig(docKey);
+  const supported = new Set(['manager_non_conviction', ...getSupportedEditableDocumentKeys()]);
   if (!supported.has(docKey)) {
     return res.status(409).json({ ok: false, error: 'DOCUMENT_EDITOR_NOT_SUPPORTED' });
   }
   const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+  const dossierUser = dossier.userId ? await getUserById(dossier.userId) : null;
   let savedFields = {};
   try {
     await ensureDossierDocuments(dossier.id);
@@ -2047,6 +2055,23 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async 
     console.error('DOCUMENT_EDITOR_LOAD_FAILED', error);
     return res.status(500).json({ ok: false, error: 'DOCUMENT_EDITOR_LOAD_FAILED' });
   }
+
+  if (editableConfig) {
+    const fields = editableConfig.buildInitialFields({
+      dossier,
+      questionnaire,
+      user: dossierUser,
+      savedFields,
+    });
+    return res.json({
+      ok: true,
+      docKey,
+      schemaVersion: editableConfig.schemaVersion,
+      title: editableConfig.title,
+      fields,
+    });
+  }
+
   const initialFields = {
     declarantFirstName: questionnaire.firstName || '',
     declarantLastName: questionnaire.lastName || '',
@@ -2091,11 +2116,48 @@ app.post('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async
   if (!access.ok) return res.status(access.status).json({ ok: false, error: access.error });
   const { dossier } = access;
   const docKey = String(req.params.docKey || '');
-  if (docKey !== 'manager_non_conviction') {
+  const editableConfig = getEditableDocumentConfig(docKey);
+  if (docKey !== 'manager_non_conviction' && !editableConfig) {
     return res.status(409).json({ ok: false, error: 'DOCUMENT_EDITOR_NOT_SUPPORTED' });
   }
 
   const fields = req.body?.fields || {};
+
+  if (editableConfig) {
+    const validation = editableConfig.validateFields(fields);
+    if (!validation.ok) {
+      return res.status(400).json({ ok: false, error: validation.error });
+    }
+    try {
+      await ensureDossierDocuments(dossier.id);
+      const { sha256, filename, updated } = await persistEditableDocumentPdf({
+        docKey: editableConfig.docKey,
+        schemaVersion: editableConfig.schemaVersion,
+        dossier,
+        fields: validation.normalized || fields,
+        generatePdf: editableConfig.generatePdf,
+        filenamePrefix: editableConfig.filenamePrefix,
+        ensureDossierDocuments,
+        updateDossierDocument,
+        listDossierDocuments,
+        DOCUMENT_STATUSES,
+        metadataExtra: { generatedFromEditor: true },
+      });
+      if (!updated) {
+        return res.status(409).json({ ok: false, error: 'DOCUMENT_SLOT_NOT_FOUND' });
+      }
+      return res.status(201).json({
+        ok: true,
+        filename,
+        sha256,
+        documents: await listDossierDocuments(dossier.id),
+      });
+    } catch (error) {
+      console.error('DOCUMENT_EDITOR_GENERATION_FAILED', error);
+      return res.status(500).json({ ok: false, error: 'DOCUMENT_EDITOR_GENERATION_FAILED' });
+    }
+  }
+
   const validation = validateNonConvictionFields(fields);
   if (!validation.ok) {
     return res.status(400).json({ ok: false, error: validation.error });
@@ -2842,6 +2904,17 @@ app.post('/api/webhooks/didit', express.text({ type: '*/*' }), createDiditWebhoo
 
 app.use('/api/verification', verificationRouter);
 app.use('/api/identity', identityRouter);
+
+registerEditableDocumentSignatureRoutes(app, {
+  requireAuth,
+  getDossier,
+  ensureDossierDocuments,
+  updateDossierDocument,
+  listDossierDocuments,
+  DOCUMENT_STATUSES,
+  createSignatureRecord,
+  appUrl,
+});
 
 registerNonConvictionSignatureRoutes(app, {
   requireAuth,

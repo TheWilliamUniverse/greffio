@@ -745,6 +745,53 @@ const transactionalTemplates = Object.freeze({
     `,
   }),
 
+  editable_document_signature_request: defineTemplate({
+    subject: 'Demande de signature électronique - {{documentTitle}}',
+    tags: ['signature', 'editable_document'],
+    requiredVariables: ['firstName', 'companyName', 'signingLink', 'documentTitle'],
+    preheader: 'Un document Greffio attend votre signature.',
+    textLines: [
+      'Bonjour {{firstName}},',
+      '',
+      'Le document « {{documentTitle}} » est prêt à être signé dans Greffio.',
+      '',
+      'Dossier : {{companyName}}',
+      '',
+      'Signer le document : {{signingLink}}',
+      '',
+      'Greffio',
+    ],
+    bodyHtml: `
+      <p style="margin:0 0 16px;">Bonjour <strong>{{firstName}}</strong>,</p>
+      <p style="margin:0 0 16px;">Le document <strong>{{documentTitle}}</strong> est prêt à être signé dans Greffio.</p>
+      <p style="margin:0 0 8px;font-size:14px;"><strong>Dossier :</strong> {{companyName}}</p>
+      ${ctaButton('Signer le document', '{{signingLink}}')}
+    `,
+  }),
+
+  editable_document_signature_completed: defineTemplate({
+    subject: 'Document signé - {{documentTitle}}',
+    tags: ['signature', 'editable_document'],
+    requiredVariables: ['firstName', 'companyName', 'signedDownloadLink', 'documentTitle'],
+    preheader: 'Votre document a été signé.',
+    textLines: [
+      'Bonjour {{firstName}},',
+      '',
+      'Votre document « {{documentTitle}} » a été signé électroniquement.',
+      'Dossier : {{companyName}}',
+      '',
+      'Retrouvez le document : {{signedDownloadLink}}',
+      '',
+      'Greffio',
+    ],
+    bodyHtml: `
+      <p style="margin:0 0 16px;">Bonjour <strong>{{firstName}}</strong>,</p>
+      <p style="margin:0 0 16px;">Votre document <strong>{{documentTitle}}</strong> a été signé électroniquement.</p>
+      <p style="margin:0 0 16px;font-size:14px;">Dossier : {{companyName}}</p>
+      ${ctaButton('Accéder à mes documents', '{{signedDownloadLink}}')}
+    `,
+  }),
+
   resource_order_internal: defineTemplate({
     subject: 'Nouvelle commande ressource — {{service_title}}',
     tags: ['ops', 'resource_order'],
