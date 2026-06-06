@@ -5,6 +5,7 @@ import { AuthProvider } from '@/context/AuthContext.jsx';
 import { ProtectedRoute } from '@/components/ProtectedRoute.jsx';
 import { Header } from '@/components/Header.jsx';
 import { LandingPage } from '@/pages/LandingPage.jsx';
+import { PricingPage } from '@/pages/PricingPage.jsx';
 import { FormalityWizardPage } from '@/pages/FormalityWizardPage.jsx';
 import { SignupPage } from '@/pages/SignupPage.jsx';
 import { LoginPage } from '@/pages/LoginPage.jsx';
@@ -69,7 +70,7 @@ const NotFound = () => <NotFoundPage />;
 
 const Layout = ({ children }) => {
   const location = useLocation();
-  const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/services', '/paiement', '/ressources', '/app', '/guide', '/procuration', '/contact', '/credentials-unlock', '/login', '/password-reset'];
+  const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/services', '/paiement', '/ressources', '/app', '/guide', '/procuration', '/contact', '/credentials-unlock', '/login', '/password-reset', '/tarifs'];
   const shouldHideHeader = hideHeaderRoutes.some((route) => location.pathname === route || location.pathname.startsWith('/service/'))
     || location.pathname.startsWith('/ressources/guides/')
     || (isCapacitorNative() && shouldUseMobileShell(location.pathname));
@@ -99,6 +100,7 @@ function App() {
         <Layout>
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/tarifs" element={<PricingPage />} />
             <Route path="/home" element={<HomePage />} />
             <Route path="/services" element={<ServicesPage />} />
             <Route path="/simulateur" element={<FormalityWizardPage />} />

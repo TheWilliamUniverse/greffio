@@ -44,6 +44,7 @@ const buildMenuColumns = (profileLink) => [
     links: [
       { label: 'Ressources', to: '/ressources' },
       { label: 'Guide', to: '/guide' },
+      { label: 'Tarifs', to: '/tarifs' },
       { label: 'Contact', to: '/contact' },
       { label: 'App mobile', to: '/app' },
     ],
@@ -137,7 +138,7 @@ export const NavbarDropdown = () => {
           </div>
 
           <a href="#platform" className="text-sm font-semibold text-[#0a1220] transition-colors hover:text-primary">Plateforme</a>
-          <a href="#pricing" className="text-sm font-semibold text-[#0a1220] transition-colors hover:text-primary">Tarifs</a>
+          <Link to="/tarifs" className="text-sm font-semibold text-[#0a1220] transition-colors hover:text-primary">Tarifs</Link>
           <Link to="/ressources" className="text-sm font-semibold text-[#0a1220] transition-colors hover:text-primary">Ressources</Link>
           <Link to="/guide" className="text-sm font-semibold text-[#0a1220] transition-colors hover:text-primary">Guide</Link>
           <Link to="/contact" className="text-sm font-semibold text-[#0a1220] transition-colors hover:text-primary">Contact</Link>

@@ -24,6 +24,7 @@ import { LEGAL_SERVICES } from '@/config/businessCatalog.js';
 import { getServiceRoute } from '@/config/serviceLandingPages.js';
 import { lookupPublicCompanyBySiren } from '@/api/company.js';
 import { GooglePlayStoreLink } from '@/components/store/GooglePlayStoreLink.jsx';
+import { LANDING_FAQ, PRICING_DISCLAIMER, PRICING_PLANS } from '@/config/pricingPlans.js';
 import { useNavigate } from 'react-router-dom';
 
 const platformFeatures = [
@@ -119,7 +120,7 @@ export const LandingPage = () => {
               </Button>
             </div>
             <div className="mt-8 grid max-w-xl grid-cols-1 gap-3 text-sm font-semibold text-[hsl(var(--greffio-blue-900))] sm:grid-cols-3">
-              <div className="rounded-md bg-white/72 p-3">0€ pour démarrer</div>
+              <div className="rounded-md bg-white/72 p-3">Diagnostic dès 0€</div>
               <div className="rounded-md bg-white/72 p-3">Équipe Greffio assignée</div>
               <div className="rounded-md bg-white/72 p-3">Dossier centralisé</div>
             </div>
@@ -269,11 +270,11 @@ export const LandingPage = () => {
         <div className="mx-auto max-w-7xl rounded-md border border-border p-6 shadow-elevation-sm">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-bold uppercase text-primary">Informations de l’entreprise</p>
-              <h2 className="mt-1 text-3xl font-extrabold">Recherche SIREN / SIRET (style guichet unique)</h2>
+              <p className="text-sm font-bold uppercase text-primary">Informations entreprise</p>
+              <h2 className="mt-1 text-3xl font-extrabold">Recherche publique SIREN / SIRET</h2>
             </div>
             <div className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-primary">
-              Signature qualifiée nécessaire (modification/dépôt)
+              Données publiques — dépôt officiel soumis aux règles du guichet unique
             </div>
           </div>
           <div className="grid gap-4 md:grid-cols-[1fr_auto]">
@@ -360,45 +361,70 @@ export const LandingPage = () => {
         </div>
       </section>
 
+      <section id="en-clair" className="px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl rounded-md border border-border bg-white p-6 shadow-elevation-sm md:p-8">
+          <p className="text-sm font-bold uppercase text-primary">En clair</p>
+          <h2 className="mt-2 text-3xl font-extrabold">Ce que Greffio facture — et ce qu’il ne facture pas</h2>
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <div className="rounded-md border border-border bg-background p-5">
+              <h3 className="font-bold">Prestation Greffio</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Questionnaire, préparation documentaire, contrôles de cohérence, suivi dossier et échanges avec l’équipe.
+              </p>
+            </div>
+            <div className="rounded-md border border-border bg-background p-5">
+              <h3 className="font-bold">Frais légaux (hors Greffio)</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Greffe, annonce légale, RCS et autres organismes tiers : montants affichés avant validation, selon la formalité.
+              </p>
+            </div>
+          </div>
+          <p className="mt-5 text-sm leading-6 text-muted-foreground">{PRICING_DISCLAIMER}</p>
+          <p className="mt-4 text-sm leading-6 text-muted-foreground">
+            Greffio est un service privé d’assistance administrative. Ce n’est pas un service officiel de l’État, des greffes ou d’Infogreffe.
+          </p>
+          <Button asChild variant="outline" className="mt-6 bg-white">
+            <Link to="/tarifs">
+              Voir le détail des tarifs
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      </section>
+
       <section id="pricing" className="bg-white px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl text-center">
           <p className="text-sm font-bold uppercase text-primary">Tarifs</p>
           <h2 className="mt-2 text-4xl font-extrabold">Des offres claires pour démarrer, déléguer ou industrialiser.</h2>
           <div className="mt-10 grid gap-4 md:grid-cols-3">
-            {[
-              { name: 'Starter', price: '0€', text: 'Questionnaire, checklist et espace documentaire.', cta: 'Démarrer' },
-              {
-                name: 'Formalité',
-                price: '70€',
-                compareAt: '149€',
-                badge: 'Offre Jeune',
-                text: 'Dossier complet, relecture et dépôt au greffe. Tarif jeune (-26 ans) en ce moment.',
-                cta: 'Créer mon dossier',
-                highlight: true,
-                ctaLink: '/simulateur?offer=jeune-entrepreneur',
-              },
-              { name: 'Cabinet partenaire', price: 'À venir', text: 'Gestion multi-clients, équipe, reporting et marque blanche en déploiement progressif.', cta: 'Être notifié' },
-            ].map((plan) => (
-              <div key={plan.name} className={`rounded-md border p-6 text-left ${plan.highlight ? 'border-primary bg-secondary shadow-elevation-md' : 'border-border bg-background'}`}>
+            {PRICING_PLANS.map((plan) => (
+              <div key={plan.id} className={`rounded-md border p-6 text-left ${plan.highlight ? 'border-primary bg-secondary shadow-elevation-md' : 'border-border bg-background'}`}>
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-lg font-extrabold">{plan.name}</p>
+                  <div>
+                    <p className="text-lg font-extrabold">{plan.name}</p>
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">{plan.subtitle}</p>
+                  </div>
                   {plan.badge ? <span className="rounded-full bg-[hsl(var(--greffio-citron))] px-2 py-1 text-xs font-bold text-[hsl(var(--greffio-blue-900))]">{plan.badge}</span> : null}
                 </div>
                 <p className="mt-3 text-3xl font-extrabold">
                   {plan.price}
-                  {plan.compareAt ? <span className="ml-2 text-lg font-semibold text-muted-foreground line-through">{plan.compareAt}</span> : null}
+                  {plan.youngPrice ? (
+                    <span className="mt-2 block text-sm font-semibold text-muted-foreground">
+                      Jeune -26 ans : {plan.youngPrice} HT
+                    </span>
+                  ) : null}
                 </p>
                 <p className="mt-3 min-h-[52px] text-sm leading-6 text-muted-foreground">{plan.text}</p>
                 <Button asChild className="mt-6 w-full" variant={plan.highlight ? 'default' : 'outline'}>
-                  <Link to={plan.ctaLink || '/simulateur'}>{plan.cta}</Link>
+                  <Link to={plan.ctaLink}>{plan.cta}</Link>
                 </Button>
               </div>
             ))}
           </div>
-          <p className="mx-auto mt-6 max-w-3xl text-sm leading-6 text-muted-foreground">
-            En ce moment : Offre Spéciale Jeune Entrepreneur.e — réservée aux créateurs et porteurs de projet de moins de 26 ans.
-            Tarif Formalité à 70 € au lieu de 149 €.
-          </p>
+          <p className="mx-auto mt-6 max-w-3xl text-sm leading-6 text-muted-foreground">{PRICING_DISCLAIMER}</p>
+          <Button asChild variant="link" className="mt-2">
+            <Link to="/tarifs">FAQ tarifs complète</Link>
+          </Button>
         </div>
       </section>
 
@@ -409,14 +435,10 @@ export const LandingPage = () => {
             <h2 className="mt-2 text-4xl font-extrabold">Ce que l’app prend en charge.</h2>
           </div>
           <div className="grid gap-4">
-            {[
-              ['Greffio remplace-t-il mon expert ', 'Non. Greffio organise le flux, les documents, les relances et la relation. L’équipe Greffio et les professionnels autorisés gardent la main sur les validations.'],
-              ['Les clients ont-ils leur dashboard ', 'Oui. Chaque utilisateur connecté accède à son tableau de bord, ses pièces, ses messages et ses échéances.'],
-              ['Peut-on traiter plusieurs clients ', 'Oui. Le module équipe permet de suivre plusieurs dossiers, assigner l’équipe Greffio ou un intervenant autorisé et prioriser les actions.'],
-            ].map(([question, answer]) => (
-              <div key={question} className="rounded-md border border-border bg-white p-5">
-                <h3 className="font-bold">{question}</h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{answer}</p>
+            {LANDING_FAQ.map((item) => (
+              <div key={item.q} className="rounded-md border border-border bg-white p-5">
+                <h3 className="font-bold">{item.q}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.a}</p>
               </div>
             ))}
           </div>
@@ -436,6 +458,7 @@ export const LandingPage = () => {
             <div>
               <p className="font-bold text-white">Produit</p>
               <Link to="/simulateur" className="mt-3 block hover:text-white">Créer un dossier</Link>
+              <Link to="/tarifs" className="mt-2 block hover:text-white">Tarifs</Link>
               <Link to="/login" className="mt-2 block hover:text-white">Espace client</Link>
               <Link to="/contact" className="mt-2 block hover:text-white">Contact</Link>
             </div>

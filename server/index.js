@@ -110,6 +110,8 @@ import { registerNonConvictionSignatureRoutes } from './routes/nonConvictionSign
 import { registerPaymentsRoutes } from './routes/paymentsRoutes.js';
 import { registerAppVersionRoutes } from './routes/appVersionRoutes.js';
 import verificationRouter from './routes/verificationRoutes.js';
+import identityRouter, { createDiditWebhookHandler } from './routes/identityRoutes.js';
+import { startIdentityVerificationForDossier } from './services/identity/identity.provider.js';
 import {
   createTrustedDevice,
   hasValidTrustedDevice,
@@ -1853,6 +1855,27 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
     }
   }
 
+  let identityVerification = null;
+  if (docKey === 'identity_proof') {
+    try {
+      const identityResult = await startIdentityVerificationForDossier({
+        dossierId: dossier.id,
+        userId: req.auth.sub,
+        email: recipientEmail || req.auth.email,
+        triggeredByDocKey: docKey,
+      });
+      if (identityResult.ok && identityResult.verification) {
+        identityVerification = {
+          status: identityResult.verification.status,
+          verificationUrl: identityResult.verification.verification_url,
+          reused: Boolean(identityResult.reused),
+        };
+      }
+    } catch (identityError) {
+      console.error('[identity] auto-start after upload failed', identityError);
+    }
+  }
+
   return res.status(201).json({
     ok: true,
     file: {
@@ -1864,6 +1887,7 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
     },
     analysis,
     warning: storageUploadWarning,
+    identityVerification,
     documents: await listDossierDocuments(dossier.id),
   });
 });
@@ -2785,8 +2809,10 @@ const handleGoCardlessWebhook = async (req, res) => {
 
 app.post('/webhooks/gocardless', express.text({ type: '*/*' }), handleGoCardlessWebhook);
 app.post('/api/webhooks/gocardless', express.text({ type: '*/*' }), handleGoCardlessWebhook);
+app.post('/api/webhooks/didit', express.text({ type: '*/*' }), createDiditWebhookHandler());
 
 app.use('/api/verification', verificationRouter);
+app.use('/api/identity', identityRouter);
 
 registerNonConvictionSignatureRoutes(app, {
   requireAuth,

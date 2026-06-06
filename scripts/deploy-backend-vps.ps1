@@ -53,6 +53,12 @@ if (Test-Path $Staging) { Remove-Item -Recurse -Force $Staging }
 New-Item -ItemType Directory -Force -Path $Staging | Out-Null
 
 robocopy "$RepoRoot\server" "$Staging\server" /E /XD __pycache__ tests-tmp /NFL /NDL /NJH /NJS /NP | Out-Null
+if (Test-Path "$RepoRoot\scripts") {
+    robocopy "$RepoRoot\scripts" "$Staging\scripts" /E /NFL /NDL /NJH /NJS /NP | Out-Null
+}
+if (Test-Path "$RepoRoot\docs") {
+    robocopy "$RepoRoot\docs" "$Staging\docs" /E /NFL /NDL /NJH /NJS /NP | Out-Null
+}
 Copy-Item -Path "$RepoRoot\package.json"      -Destination $Staging
 Copy-Item -Path "$RepoRoot\package-lock.json" -Destination $Staging
 if (Test-Path "$RepoRoot\ecosystem.config.cjs") {
@@ -60,7 +66,7 @@ if (Test-Path "$RepoRoot\ecosystem.config.cjs") {
 }
 
 if (Test-Path $TarFile) { Remove-Item $TarFile -Force }
-& tar.exe -czf "$TarFile" -C "$Staging" "server" "package.json" "package-lock.json" "ecosystem.config.cjs"
+& tar.exe -czf "$TarFile" -C "$Staging" "server" "scripts" "docs" "package.json" "package-lock.json" "ecosystem.config.cjs"
 $tarSize = (Get-Item $TarFile).Length
 Write-Host "Tarball : $TarFile ($([math]::Round($tarSize/1MB,2)) MB)"
 
@@ -102,9 +108,12 @@ BACKUP="/opt/greffio-backup-$STAMP"
 mkdir -p "$BACKUP"
 cp -r server "$BACKUP/server"
 cp package.json package-lock.json ecosystem.config.cjs "$BACKUP/" 2>/dev/null || true
+cp -r scripts "$BACKUP/scripts" 2>/dev/null || true
+cp -r docs "$BACKUP/docs" 2>/dev/null || true
 echo "Backup : $BACKUP"
 rm -rf server/routes server/config server/payments server/migrations
 tar -xzf /tmp/greffio-deploy.tar.gz -C /opt/greffio/
+chmod +x /opt/greffio/scripts/setup-aws-s3-production.sh 2>/dev/null || true
 npm ci --omit=dev --no-audit --no-fund 2>&1 | tail -3
 npm run db:migrate
 pm2 restart greffio-api --update-env > /dev/null

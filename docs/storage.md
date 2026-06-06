@@ -69,9 +69,47 @@ Exemple : `dossiers/dos_9283/identity_card/7f7e8f4e-a3f4-4c5c-bdf4.pdf`
 
 1. Créer le bucket `greffio-production-documents` (eu-west-3), Block Public Access ON.
 2. Créer un utilisateur IAM avec la policy ci-dessus.
-3. Ajouter les variables dans `/opt/greffio/.env`.
-4. `pm2 restart greffio-api`
-5. Vérifier : `GET /api/ready` → `storageDriver: "s3"`.
+3. Déployer le code (`scripts/deploy-backend-vps.ps1`).
+4. Lancer le script interactif (demande les clés AWS, ne jamais les committer) :
+
+```bash
+sudo /opt/greffio/scripts/setup-aws-s3-production.sh
+```
+
+Le script :
+
+1. installe AWS CLI v2 si absent ;
+2. sauvegarde `/opt/greffio/.env` (horodaté) ;
+3. met à jour les variables S3 ;
+4. teste `sts get-caller-identity` et list/upload/read/delete S3 ;
+5. exécute `npm ci`, migrations, `pm2 restart greffio-api --update-env` ;
+6. vérifie `GET /api/ready` → `"storageDriver": "s3"`.
+
+## Vérification manuelle
+
+```bash
+curl https://api.greffio.willentreprises.com/api/ready
+```
+
+Attendu :
+
+```json
+{
+  "storageDriver": "s3"
+}
+```
+
+## Dépannage
+
+Si l’API renvoie encore `storageDriver: local` :
+
+```bash
+grep -E "DOCUMENT_STORAGE_DRIVER|AWS_REGION|AWS_S3_BUCKET|AWS_S3_PRESIGNED_URL_TTL_SECONDS" /opt/greffio/.env
+pm2 describe greffio-api
+pm2 logs greffio-api --lines 200
+```
+
+Causes fréquentes : variables `.env` manquantes, PM2 redémarré sans `--update-env`, mauvaises credentials ou région, policy IAM trop restrictive.
 
 ## Tests manuels
 

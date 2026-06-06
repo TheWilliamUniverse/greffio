@@ -14,6 +14,7 @@ import { isEiLikeFormality } from '@/config/formalities.js';
 import { getDocumentStatusLabel, getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 import { isInternalUser } from '@/utils/roles.js';
 import { getDossierById } from '@/api/dossiers.js';
+import { IdentityVerificationCard } from '@/components/identity/IdentityVerificationCard.jsx';
 
 export const DocumentsPage = () => {
   const navigate = useNavigate();
@@ -259,6 +260,7 @@ export const DocumentsPage = () => {
   };
 
   const waitingDocs = normalizedDocuments.filter((document) => ['REQUESTED', 'PENDING_REVIEW', 'INVALID', 'REJECTED', 'GENERATED'].includes(document.status));
+  const identityDocUploaded = normalizedDocuments.some((document) => document.docKey === 'identity_proof' && document.hasFile);
   const summary = [
     { label: 'Pièces en coffre', value: normalizedDocuments.length, text: 'document(s) du dossier actif', icon: Archive },
     { label: 'À traiter', value: waitingDocs.length, text: 'pièces à compléter ou signer', icon: FileText },
@@ -330,6 +332,10 @@ export const DocumentsPage = () => {
               </Button>
             </div>
           </section>
+
+          {currentDossierId ? (
+            <IdentityVerificationCard dossierId={currentDossierId} identityDocUploaded={identityDocUploaded} />
+          ) : null}
 
           {editorData ? (
             <section className="rounded-md border border-primary/25 bg-white p-5 shadow-elevation-sm">
