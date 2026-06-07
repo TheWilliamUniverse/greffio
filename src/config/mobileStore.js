@@ -28,7 +28,7 @@ export const MOBILE_STORE = {
 export const MOBILE_BOTTOM_TABS = [
   { id: 'home', label: 'Accueil', path: '/dashboard', icon: 'home' },
   { id: 'dossiers', label: 'Dossiers', path: '/dossiers', icon: 'folders' },
+  { id: 'new', label: 'Nouveau', path: '/questionnaire', icon: 'plus' },
   { id: 'documents', label: 'Documents', path: '/documents', icon: 'files' },
-  { id: 'assistant', label: 'Assistant', path: '/mobile/search', icon: 'search' },
   { id: 'account', label: 'Compte', path: '/mobile/account', icon: 'user' },
 ];

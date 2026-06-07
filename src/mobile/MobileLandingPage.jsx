@@ -1,10 +1,29 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import {
+  ArrowRight,
+  Building2,
+  CalendarDays,
+  CreditCard,
+  FileCheck2,
+  MessageSquareText,
+  MonitorSmartphone,
+  ShieldCheck,
+  Sparkles,
+} from 'lucide-react';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
+import { Input } from '@/components/ui/input.jsx';
+import { CompanyLookupCard } from '@/components/CompanyLookupCard.jsx';
 import { LandingPricingSection } from '@/components/pricing/LandingPricingSection.jsx';
 import { GooglePlayStoreLink } from '@/components/store/GooglePlayStoreLink.jsx';
+import { LEGAL_SERVICES } from '@/config/businessCatalog.js';
+import { getServiceRoute } from '@/config/serviceLandingPages.js';
+import { lookupPublicCompanyBySiren } from '@/api/company.js';
+import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
+import { useMobileMotion } from '@/mobile/ui/mobileMotion.js';
+import { useAuth } from '@/hooks/useAuth.js';
 
 const steps = [
   'Choisissez votre formalité',
@@ -14,107 +33,332 @@ const steps = [
   'Suivez l’envoi au greffe',
 ];
 
+const howItWorks = [
+  {
+    title: '1. Cadrage du dossier',
+    text: 'Vous choisissez la formalité et renseignez les informations essentielles. Greffio crée immédiatement votre dossier de travail.',
+  },
+  {
+    title: '2. Pièces et vérifications',
+    text: 'Vous déposez vos justificatifs, l’équipe contrôle la complétude et vous indique clairement la prochaine action.',
+  },
+  {
+    title: '3. Signature et paiement',
+    text: 'Les documents sont finalisés, vous signez le mandat et validez le paiement sécurisé.',
+  },
+  {
+    title: '4. Dépôt et suivi',
+    text: 'Le dossier est préparé pour le dépôt, puis suivi avec des statuts lisibles jusqu’au retour administratif.',
+  },
+];
+
+const platformFeatures = [
+  { icon: FileCheck2, title: 'Dossiers guidés', text: 'Création, modification, dépôt de capital et envoi au greffe dans un parcours unique.' },
+  { icon: MessageSquareText, title: 'Relation équipe-client', text: 'Messages, demandes de pièces et validations partagés entre clients et équipe Greffio.' },
+  { icon: CalendarDays, title: 'Conformité active', text: 'Échéances, relances et registre documentaire après l’immatriculation.' },
+  { icon: CreditCard, title: 'Facturation prête', text: 'Offres, paiements et frais légaux rattachés à chaque formalité.' },
+];
+
 const faq = [
+  {
+    q: 'Combien coûte Greffio pour démarrer ?',
+    a: 'Vous pouvez commencer sans frais initiaux. Les tarifs détaillés par formalité sont affichés avant validation.',
+  },
   {
     q: 'Greffio remplace-t-il mon expert-comptable ?',
     a: 'Non. Greffio organise le flux, les documents et les relances. Les validations réglementées restent du ressort des professionnels habilités.',
   },
   {
-    q: 'Les clients ont-ils leur dashboard ?',
-    a: 'Oui. Chaque utilisateur connecté accède à son tableau de bord, ses pièces, ses messages et ses échéances.',
+    q: 'Quels sont les délais habituels ?',
+    a: 'Ils varient selon la formalité et la complétude du dossier. Greffio vous indique la prochaine action à chaque étape.',
   },
 ];
 
-export const MobileLandingPage = () => (
-  <div className="bg-background text-foreground">
-    <header className="sticky top-0 z-30 border-b border-border/70 bg-white/95 px-4 py-3 pt-[env(safe-area-inset-top)] backdrop-blur">
-      <div className="mx-auto flex max-w-lg items-center justify-between">
-        <GreffioLogo variant="full" className="h-8" />
-        <Link to="/login" className="text-sm font-semibold text-primary">Connexion</Link>
-      </div>
-    </header>
+const heroHighlights = ['0€ pour démarrer', 'Équipe Greffio assignée', 'Dossier centralisé'];
+const featuredServices = LEGAL_SERVICES.slice(0, 6);
 
-    <section className="px-4 pb-8 pt-6">
-      <p className="text-xs font-bold uppercase tracking-wide text-primary">Formalités d’entreprise</p>
-      <h1 className="mt-3 text-3xl font-extrabold leading-tight text-[hsl(var(--greffio-blue-900))]">
-        Créer et suivre vos formalités simplement.
-      </h1>
-      <p className="mt-4 text-base leading-7 text-muted-foreground">
-        Un parcours guidé, des documents centralisés et un suivi clair avec l’équipe Greffio.
-      </p>
-      <div className="mt-6 flex flex-col gap-3">
-        <Button asChild size="lg" className="h-12 w-full text-base">
-          <Link to="/simulateur">
-            Commencer
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+export const MobileLandingPage = () => {
+  const { currentUser } = useAuth();
+  const { revealMount, staggerItem } = useMobileMotion();
+  const [lookupIdentifier, setLookupIdentifier] = useState('');
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupError, setLookupError] = useState('');
+  const [lookupCompany, setLookupCompany] = useState(null);
+
+  const dashboardTarget = currentUser ? '/dashboard' : '/login';
+
+  const performLookup = async () => {
+    const digits = String(lookupIdentifier || '').replace(/\D/g, '');
+    if (digits.length !== 9 && digits.length !== 14) {
+      setLookupError('Saisissez un SIREN (9) ou SIRET (14).');
+      return;
+    }
+    try {
+      setLookupLoading(true);
+      setLookupError('');
+      const payload = await lookupPublicCompanyBySiren(digits);
+      setLookupCompany(payload?.company || null);
+    } catch (error) {
+      setLookupCompany(null);
+      if (error?.message === 'INVALID_SIREN_OR_SIRET') {
+        setLookupError('Saisissez un identifiant valide (SIREN 9 chiffres ou SIRET 14 chiffres).');
+      } else {
+        setLookupError('Entreprise introuvable actuellement. Réessayez ou saisissez un autre identifiant.');
+      }
+    } finally {
+      setLookupLoading(false);
+    }
+  };
+
+  return (
+    <div className="overflow-x-hidden bg-background text-foreground">
+      <motion.header
+        {...revealMount(0)}
+        className="sticky top-0 z-30 border-b border-border/70 bg-white/95 px-4 py-3 pt-[env(safe-area-inset-top)] backdrop-blur"
+      >
+        <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
+          <GreffioLogo variant="full" className="h-8" />
+          <div className="flex items-center gap-3">
+            <Link to="/services" className="text-sm font-semibold text-muted-foreground">Services</Link>
+            <Link to={dashboardTarget} className="text-sm font-semibold text-primary">Connexion</Link>
+          </div>
+        </div>
+      </motion.header>
+
+      <section className="relative overflow-hidden px-4 pb-8 pt-6">
+        <div className="pointer-events-none absolute -right-16 top-0 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
+        <motion.div {...revealMount(0.04)} className="relative">
+          <motion.div
+            {...revealMount(0.08)}
+            className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-secondary/60 px-3 py-1.5 text-xs font-bold text-primary shadow-elevation-sm"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Formalités d’entreprise
+          </motion.div>
+          <h1 className="text-3xl font-extrabold leading-tight text-[hsl(var(--greffio-blue-900))]">
+            Créer et suivre vos formalités simplement.
+          </h1>
+          <p className="mt-4 text-base leading-7 text-muted-foreground">
+            Un parcours guidé, des documents centralisés et un suivi clair avec l’équipe Greffio.
+          </p>
+          <motion.div {...revealMount(0.14)} className="mt-6 flex flex-col gap-3">
+            <Button asChild size="lg" className="h-12 w-full rounded-2xl text-base shadow-elevation-sm">
+              <Link to="/simulateur?type=statuts">
+                Générer mes statuts
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="h-12 w-full rounded-2xl bg-white text-base">
+              <Link to={dashboardTarget}>Accéder au dashboard</Link>
+            </Button>
+          </motion.div>
+          <motion.ul {...revealMount(0.2)} className="mt-6 grid gap-2">
+            {heroHighlights.map((item, index) => (
+              <motion.li
+                key={item}
+                {...staggerItem(index)}
+                className="rounded-2xl bg-secondary/60 px-3 py-2.5 text-sm font-semibold text-[hsl(var(--greffio-blue-900))]"
+              >
+                {item}
+              </motion.li>
+            ))}
+          </motion.ul>
+        </motion.div>
+      </section>
+
+      <MobileAnimatedSection id="services" className="border-y border-border bg-white px-4 py-10" delay={0.02}>
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="text-sm font-bold uppercase text-primary">Formalités</p>
+            <h2 className="mt-1 text-2xl font-extrabold">Catalogue relié au dashboard</h2>
+          </div>
+          <Link to="/services" className="text-sm font-semibold text-primary">Tout voir</Link>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">6 formalités phares — 27 démarches disponibles.</p>
+        <div className="mt-5 space-y-3">
+          {featuredServices.map((service, index) => (
+            <motion.div key={service.id} {...staggerItem(index)}>
+              <Link
+                to={getServiceRoute(service.id)}
+                className="block rounded-3xl border border-border bg-background p-4 shadow-elevation-sm transition active:scale-[0.99]"
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${service.accent}`}>
+                    <Building2 className="h-5 w-5 text-[hsl(var(--greffio-blue-900))]" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold uppercase text-muted-foreground">{service.category}</p>
+                    <h3 className="font-extrabold">{service.title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{service.description}</p>
+                    <p className="mt-2 text-sm font-bold text-primary">Dès {service.price}</p>
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+        <Button asChild variant="outline" className="mt-5 h-11 w-full rounded-2xl bg-white">
+          <Link to="/services">Voir toutes les formalités</Link>
         </Button>
-        <Button asChild size="lg" variant="outline" className="h-12 w-full bg-white text-base">
-          <Link to="/simulateur?type=statuts">Faire une simulation</Link>
-        </Button>
-      </div>
-      <ul className="mt-6 grid gap-2 text-sm font-semibold text-[hsl(var(--greffio-blue-900))]">
-        {['0€ pour démarrer', 'Équipe Greffio assignée', 'Dossier centralisé'].map((item) => (
-          <li key={item} className="rounded-md bg-secondary/60 px-3 py-2">{item}</li>
-        ))}
-      </ul>
-    </section>
+      </MobileAnimatedSection>
 
-    <section className="border-y border-border bg-white px-4 py-10">
-      <p className="text-sm font-bold uppercase text-primary">Comment ça marche</p>
-      <ol className="mt-4 space-y-3">
-        {steps.map((step, index) => (
-          <li key={step} className="flex items-start gap-3 rounded-md border border-border bg-background p-3">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--greffio-blue))] text-xs font-extrabold text-white">
-              {index + 1}
-            </span>
-            <span className="text-sm font-semibold leading-6">{step}</span>
-          </li>
-        ))}
-      </ol>
-    </section>
+      <MobileAnimatedSection id="platform" className="px-4 py-10" delay={0.04}>
+        <p className="text-sm font-bold uppercase text-primary">Plateforme</p>
+        <h2 className="mt-1 text-2xl font-extrabold">Pensé pour clients et professionnels</h2>
+        <div className="mt-5 grid gap-3">
+          {platformFeatures.map((feature, index) => (
+            <motion.div
+              key={feature.title}
+              {...staggerItem(index)}
+              className="rounded-3xl border border-border bg-white p-4 shadow-sm"
+            >
+              <feature.icon className="mb-3 h-5 w-5 text-primary" />
+              <h3 className="font-bold">{feature.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{feature.text}</p>
+            </motion.div>
+          ))}
+        </div>
+      </MobileAnimatedSection>
 
-    <section id="pricing" className="px-4 py-10">
-      <LandingPricingSection />
-    </section>
+      <MobileAnimatedSection id="comment-ca-marche" className="border-y border-border bg-white px-4 py-10" delay={0.02}>
+        <p className="text-sm font-bold uppercase text-primary">Comment ça marche</p>
+        <ol className="mt-4 space-y-3">
+          {steps.map((step, index) => (
+            <motion.li
+              key={step}
+              {...staggerItem(index)}
+              className="flex items-start gap-3 rounded-2xl border border-border bg-background p-3"
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--greffio-blue))] text-xs font-extrabold text-white">
+                {index + 1}
+              </span>
+              <span className="text-sm font-semibold leading-6">{step}</span>
+            </motion.li>
+          ))}
+        </ol>
+        <div className="mt-6 space-y-3">
+          {howItWorks.map((step, index) => (
+            <motion.article
+              key={step.title}
+              {...staggerItem(index)}
+              className="rounded-3xl border border-border bg-background p-4"
+            >
+              <h3 className="font-extrabold">{step.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{step.text}</p>
+            </motion.article>
+          ))}
+        </div>
+      </MobileAnimatedSection>
 
-    <section className="px-4 py-10">
-      <p className="text-sm font-bold uppercase text-primary">Application mobile</p>
-      <h2 className="mt-2 text-2xl font-extrabold">Greffio sur Android</h2>
-      <p className="mt-3 text-sm leading-6 text-muted-foreground">
-        Suivez votre dossier, vos documents et vos notifications depuis l’application Greffio.
-      </p>
-      <div className="mt-5">
-        <GooglePlayStoreLink size="md" />
-      </div>
-    </section>
+      <MobileAnimatedSection id="inpi-like-lookup" className="px-4 py-10" delay={0.04}>
+        <p className="text-sm font-bold uppercase text-primary">Informations entreprise</p>
+        <h2 className="mt-1 text-2xl font-extrabold">Recherche SIREN / SIRET</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Préremplissez une modification ou une cessation avec les données publiques.
+        </p>
+        <div className="mt-4 flex flex-col gap-3">
+          <Input
+            type="search"
+            inputMode="numeric"
+            autoComplete="off"
+            placeholder="SIREN (9) ou SIRET (14)"
+            className="h-12 rounded-2xl text-base"
+            value={lookupIdentifier}
+            onChange={(event) => {
+              setLookupIdentifier(event.target.value);
+              setLookupError('');
+              setLookupCompany(null);
+            }}
+          />
+          <Button type="button" className="h-12 rounded-2xl" onClick={() => void performLookup()} disabled={lookupLoading}>
+            {lookupLoading ? 'Recherche…' : 'Rechercher'}
+          </Button>
+        </div>
+        {lookupError ? <p className="mt-2 text-xs text-red-600">{lookupError}</p> : null}
+        {lookupCompany ? (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mt-4 max-w-full overflow-hidden">
+            <CompanyLookupCard
+              company={lookupCompany}
+              onUse={() => {
+                window.location.href = `/simulateur?type=modification&siren=${lookupCompany.siren || ''}`;
+              }}
+            />
+          </motion.div>
+        ) : null}
+      </MobileAnimatedSection>
 
-    <section className="px-4 pb-10">
-      <p className="text-sm font-bold uppercase text-primary">Questions clés</p>
-      <div className="mt-4 space-y-3">
-        {faq.map((item) => (
-          <article key={item.q} className="rounded-md border border-border bg-white p-4">
-            <h3 className="font-bold">{item.q}</h3>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.a}</p>
-          </article>
-        ))}
-      </div>
-      <p className="mt-4 text-sm text-muted-foreground">
-        Tarifs et conformité détaillés sur{' '}
-        <Link to="/tarifs" className="font-semibold text-primary">la page Tarifs</Link>.
-      </p>
-    </section>
+      <MobileAnimatedSection className="mx-4 rounded-3xl border border-primary/20 bg-secondary/40 px-4 py-8" delay={0.02}>
+        <div className="flex items-start gap-3">
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+          <div>
+            <p className="font-extrabold text-[hsl(var(--greffio-blue-900))]">Greffio, service privé indépendant</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Greffio n’est pas un service officiel de l’État ni des greffes. Nous organisons vos démarches avec rigueur et traçabilité.
+            </p>
+          </div>
+        </div>
+      </MobileAnimatedSection>
 
-    <footer className="border-t border-border bg-[hsl(var(--greffio-blue-900))] px-4 py-8 text-white">
-      <GreffioLogo variant="inverse" />
-      <p className="mt-4 text-sm leading-6 text-white/70">
-        Service privé d’assistance aux formalités d’entreprise — non affilié aux greffes ou à l’État.
-      </p>
-      <div className="mt-4 flex flex-wrap gap-4 text-sm text-white/80">
-        <Link to="/mentions-legales" className="hover:text-white">Mentions légales</Link>
-        <Link to="/confidentialite" className="hover:text-white">Confidentialité</Link>
-        <Link to="/contact" className="hover:text-white">Contact</Link>
-      </div>
-    </footer>
-  </div>
-);
+      <MobileAnimatedSection id="pricing" className="px-4 py-10" delay={0.04}>
+        <LandingPricingSection />
+      </MobileAnimatedSection>
+
+      <MobileAnimatedSection id="app-mobile" className="border-y border-border bg-white px-4 py-10" delay={0.02}>
+        <p className="text-sm font-bold uppercase text-primary">Application</p>
+        <h2 className="mt-2 text-2xl font-extrabold">Greffio sur mobile</h2>
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">
+          Suivez votre dossier, vos documents et vos notifications depuis l’application Android ou l’espace web mobile.
+        </p>
+        <div className="mt-5 flex flex-col gap-3">
+          <GooglePlayStoreLink size="md" />
+          <Button asChild variant="outline" className="h-11 rounded-2xl bg-white">
+            <Link to="/app">
+              <MonitorSmartphone className="h-4 w-4" />
+              Ouvrir l’espace web mobile
+            </Link>
+          </Button>
+        </div>
+      </MobileAnimatedSection>
+
+      <MobileAnimatedSection id="faq" className="px-4 pb-10" delay={0.04}>
+        <p className="text-sm font-bold uppercase text-primary">Questions clés</p>
+        <div className="mt-4 space-y-3">
+          {faq.map((item, index) => (
+            <motion.article
+              key={item.q}
+              {...staggerItem(index)}
+              className="rounded-2xl border border-border bg-white p-4"
+            >
+              <h3 className="font-bold">{item.q}</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.a}</p>
+            </motion.article>
+          ))}
+        </div>
+      </MobileAnimatedSection>
+
+      <motion.footer
+        {...revealMount(0)}
+        className="border-t border-border bg-[hsl(var(--greffio-blue-900))] px-4 py-8 text-white"
+      >
+        <GreffioLogo variant="inverse" />
+        <p className="mt-4 text-sm leading-6 text-white/70">
+          Service privé d’assistance aux formalités d’entreprise — non affilié aux greffes ou à l’État.
+        </p>
+        <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-white/80">
+          {[
+            ['/mentions-legales', 'Mentions légales'],
+            ['/confidentialite', 'Confidentialité'],
+            ['/cookies', 'Cookies'],
+            ['/contact', 'Contact'],
+            ['/suppression-compte', 'Suppression compte'],
+            ['/suppression-donnees', 'Suppression données'],
+          ].map(([to, label]) => (
+            <Link key={to} to={to} className="inline-flex min-h-[44px] items-center hover:text-white">
+              {label}
+            </Link>
+          ))}
+        </div>
+      </motion.footer>
+    </div>
+  );
+};

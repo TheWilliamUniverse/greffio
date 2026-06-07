@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FileText, FolderKanban, LayoutDashboard, MessageSquareText, Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth.js';
+import { MOBILE_AUTH_TABS_WEB } from '@/config/mobileNavigation.js';
 import { isCapacitorNative, shouldUseMobileWebShell } from '@/utils/platform.js';
 
 const HIDE_ON_PREFIXES = [
@@ -9,13 +9,7 @@ const HIDE_ON_PREFIXES = [
   '/signature/',
 ];
 
-const ITEMS = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Accueil' },
-  { to: '/dossiers', icon: FolderKanban, label: 'Dossiers' },
-  { to: '/questionnaire', icon: Plus, label: 'Nouveau', primary: true },
-  { to: '/documents', icon: FileText, label: 'Documents' },
-  { to: '/team', icon: MessageSquareText, label: 'Messages' },
-];
+const ITEMS = MOBILE_AUTH_TABS_WEB;
 
 const isActive = (pathname, to) => {
   if (to === '/dashboard') return pathname === '/dashboard';

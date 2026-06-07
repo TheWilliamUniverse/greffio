@@ -72,7 +72,7 @@ export const MobileSidebarDrawer = ({ open, onClose, className }) => {
   if (!open) return null;
 
   return (
-    <div className={cn('fixed inset-0 z-50 md:hidden', className)} role="dialog" aria-modal="true">
+    <div className={cn('fixed inset-0 z-50', className)} role="dialog" aria-modal="true">
       <button
         type="button"
         aria-label="Fermer le menu"
@@ -154,7 +154,7 @@ export const MobileSidebarTrigger = ({ onClick, className }) => (
     onClick={onClick}
     aria-label="Ouvrir le menu de navigation"
     className={cn(
-      'inline-flex h-10 w-10 items-center justify-center rounded-md border border-border bg-white text-[#0a1220] transition hover:bg-muted md:hidden',
+      'inline-flex h-10 w-10 items-center justify-center rounded-md border border-border bg-white text-[#0a1220] transition hover:bg-muted',
       className,
     )}
   >

@@ -29,10 +29,10 @@ import { SignupPage } from '@/pages/SignupPage.jsx';
 import { LoginPage } from '@/pages/LoginPage.jsx';
 import { PasswordResetPage } from '@/pages/PasswordResetPage.jsx';
 import { CredentialsUnlockPage } from '@/pages/CredentialsUnlockPage.jsx';
-import { DocumentsPage } from '@/pages/DocumentsPage.jsx';
-import { TeamPage } from '@/pages/TeamPage.jsx';
-import { ProfilePage } from '@/pages/ProfilePage.jsx';
-import { SettingsPage } from '@/pages/SettingsPage.jsx';
+import { DocumentsEntry } from '@/mobile/entries/DocumentsEntry.jsx';
+import { TeamEntry } from '@/mobile/entries/TeamEntry.jsx';
+import { ProfileEntry } from '@/mobile/entries/ProfileEntry.jsx';
+import { SettingsEntry } from '@/mobile/entries/SettingsEntry.jsx';
 import { ServiceDetailPage } from '@/pages/ServiceDetailPage.jsx';
 import { LegalMentionsPage } from '@/pages/LegalMentionsPage.jsx';
 import { PrivacyPolicyPage } from '@/pages/PrivacyPolicyPage.jsx';
@@ -165,7 +165,7 @@ function AppRoutes() {
             <Route path="/mobile/account" element={<ProtectedRoute><MobileAccountPage /></ProtectedRoute>} />
             <Route path="/dossiers" element={<ProtectedRoute><DossiersEntry /></ProtectedRoute>} />
             <Route path="/dossier/:id" element={<ProtectedRoute><DossierDetailEntry /></ProtectedRoute>} />
-            <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
+            <Route path="/documents" element={<ProtectedRoute><DocumentsEntry /></ProtectedRoute>} />
             <Route path="/dossier/:dossierId/declaration-non-condamnation" element={<ProtectedRoute>{withSuspense(LazyNonConvictionDeclarationPage, 'Chargement déclaration…')}</ProtectedRoute>} />
             <Route path="/dossier/:dossierId/liste-souscripteurs" element={<ProtectedRoute><SubscribersListPage /></ProtectedRoute>} />
             <Route path="/dossier/:dossierId/pouvoirs-formalites" element={<ProtectedRoute><FormalityPowersPage /></ProtectedRoute>} />
@@ -173,10 +173,10 @@ function AppRoutes() {
             <Route path="/signature/:token" element={<SignaturePublicPage />} />
             <Route path="/chat" element={<ProtectedRoute>{withSuspense(LazyChatIAPage, 'Chargement assistant…')}</ProtectedRoute>} />
             <Route path="/analytics" element={<ProtectedRoute>{withSuspense(LazyAnalyticsPage, 'Chargement analytics…')}</ProtectedRoute>} />
-            <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
+            <Route path="/team" element={<ProtectedRoute><TeamEntry /></ProtectedRoute>} />
             <Route path="/interfaces" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><InterfacesPage /></ProtectedRoute>} />
-            <Route path="/profil" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+            <Route path="/profil" element={<ProtectedRoute><ProfileEntry /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><SettingsEntry /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

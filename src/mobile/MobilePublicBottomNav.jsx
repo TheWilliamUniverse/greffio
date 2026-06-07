@@ -1,13 +1,13 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, CircleUserRound, Home, Receipt, Sparkles } from 'lucide-react';
+import { CircleUserRound, Home, LayoutGrid, Receipt, Sparkles } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth.js';
 
 const PUBLIC_ITEMS = [
   { to: '/', label: 'Accueil', icon: Home, match: (path) => path === '/' },
   { to: '/simulateur', label: 'Simuler', icon: Sparkles, match: (path) => path.startsWith('/simulateur') },
+  { to: '/services', label: 'Services', icon: LayoutGrid, match: (path) => path.startsWith('/services') || path.startsWith('/service/') },
   { to: '/tarifs', label: 'Tarifs', icon: Receipt, match: (path) => path.startsWith('/tarifs') },
-  { to: '/guide', label: 'Guide', icon: BookOpen, match: (path) => path.startsWith('/guide') },
   { to: '/login', label: 'Compte', icon: CircleUserRound, match: (path) => path.startsWith('/login') || path.startsWith('/signup') },
 ];
 

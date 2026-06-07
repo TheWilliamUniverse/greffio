@@ -1,8 +1,9 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { MobileWebHeader } from '@/mobile/MobileWebHeader.jsx';
 import { MobilePublicBottomNav } from '@/mobile/MobilePublicBottomNav.jsx';
 import { WebMobileBottomNav } from '@/components/WebMobileBottomNav.jsx';
+import { MobileSidebarDrawer } from '@/components/MobileSidebarDrawer.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 import { shouldUseMobileWebShell } from '@/utils/platform.js';
 
@@ -14,6 +15,8 @@ const PAGE_TITLES = {
   '/guide': 'Guide',
   '/login': 'Connexion',
   '/signup': 'Inscription',
+  '/analytics': 'Pilotage',
+  '/interfaces': 'Interfaces',
   '/simulateur': 'Simulation',
   '/contact': 'Contact',
   '/app': 'Application',
@@ -45,8 +48,10 @@ const resolveTitle = (pathname) => {
 export const MobileWebShell = ({ children }) => {
   const location = useLocation();
   const { currentUser } = useAuth();
+  const [navOpen, setNavOpen] = useState(false);
   const isLanding = location.pathname === '/';
   const title = isLanding ? '' : resolveTitle(location.pathname);
+  const showAuthenticatedNav = Boolean(currentUser) && !isLanding;
 
   if (!shouldUseMobileWebShell(location.pathname)) {
     return children;
@@ -54,7 +59,15 @@ export const MobileWebShell = ({ children }) => {
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background md:contents">
-      {!isLanding ? <MobileWebHeader title={title} /> : null}
+      {showAuthenticatedNav ? (
+        <MobileSidebarDrawer open={navOpen} onClose={() => setNavOpen(false)} />
+      ) : null}
+      {!isLanding ? (
+        <MobileWebHeader
+          title={title}
+          onMenuClick={showAuthenticatedNav ? () => setNavOpen(true) : undefined}
+        />
+      ) : null}
       <main
         className={`flex-1 md:contents ${
           isLanding

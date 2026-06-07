@@ -2,13 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
+import { MobileMenuButton } from '@/mobile/MobileAuthenticatedNav.jsx';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet.jsx';
 import { fetchMobileNotifications } from '@/api/mobile.js';
 import { useAuth } from '@/hooks/useAuth.js';
 
-export const MobileTopBar = () => {
+export const MobileTopBar = ({ onMenuClick, notificationsOpen, onNotificationsOpenChange }) => {
   const { isAuthenticated } = useAuth();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = notificationsOpen ?? internalOpen;
+  const setOpen = onNotificationsOpenChange ?? setInternalOpen;
   const [notifications, setNotifications] = useState([]);
   const unread = notifications.length;
 
@@ -31,11 +34,14 @@ export const MobileTopBar = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-white/90 px-4 py-3 backdrop-blur-md pt-[calc(0.75rem+env(safe-area-inset-top))]">
-        <Link to="/dashboard" className="flex items-center gap-2">
-          <GreffioLogo variant="mark" className="h-7 w-auto" />
-          <span className="text-sm font-extrabold tracking-tight text-[hsl(var(--greffio-blue-900))]">Greffio</span>
-        </Link>
+      <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-border/60 bg-white/90 px-4 py-3 backdrop-blur-md pt-[calc(0.75rem+env(safe-area-inset-top))]">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          {onMenuClick ? <MobileMenuButton onClick={onMenuClick} className="shrink-0" /> : null}
+          <Link to="/dashboard" className="flex min-w-0 items-center gap-2">
+            <GreffioLogo variant="mark" className="h-7 w-auto" />
+            <span className="truncate text-sm font-extrabold tracking-tight text-[hsl(var(--greffio-blue-900))]">Greffio</span>
+          </Link>
+        </div>
         <button
           type="button"
           onClick={() => setOpen(true)}
