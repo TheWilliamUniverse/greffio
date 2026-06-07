@@ -262,7 +262,7 @@ export const SubscribersListPage = () => {
                 }} />
                 {fields.signatureIsLegalEntity ? (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Pour {fields.signatureCompanyName || fields.companyName} — qualité : {fields.signatureRepresentativeQuality || 'Président'}
+                    Pour {fields.signatureCompanyName || fields.companyName} — qualité : {fields.signatureRepresentativeQuality || 'à compléter'}
                   </p>
                 ) : null}
               </div>

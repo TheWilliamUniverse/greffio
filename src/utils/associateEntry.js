@@ -1,4 +1,4 @@
-import { LEGAL_ENTITY_SIGNATORY_QUALITIES, resolveLegalEntitySignatoryQuality } from '@/utils/officerFromAssociates.js';
+import { LEGAL_ENTITY_SIGNATORY_QUALITIES } from '@/utils/officerFromAssociates.js';
 
 export const ASSOCIATE_TYPES = Object.freeze({
   PERSON: 'personne_physique',
@@ -19,12 +19,7 @@ export const isAssociateEntryComplete = (associate = {}) => {
       && String(associate.siren || '').trim()
       && String(associate.address || '').trim()
       && String(associate.representativeName || '').trim()
-      && LEGAL_ENTITY_SIGNATORY_QUALITIES.includes(
-        resolveLegalEntitySignatoryQuality({
-          roleLabel: associate.roleLabel,
-          representativeQuality: associate.representativeQuality,
-        }),
-      ),
+      && LEGAL_ENTITY_SIGNATORY_QUALITIES.includes(String(associate.representativeQuality || '').trim()),
     );
   }
   return Boolean(String(associate.firstName || '').trim() && String(associate.lastName || '').trim());

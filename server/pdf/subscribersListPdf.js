@@ -148,7 +148,7 @@ export const generateSubscribersListPdf = async ({ filename, fields = {} }) => {
       : [
         `Pour ${fields.signatureCompanyName || fields.companyName || 'la personne morale'}`,
         fields.signatureRepresentativeName ? `Représentée par ${fields.signatureRepresentativeName}` : 'Représentée par [représentant légal]',
-        `Qualité : ${fields.signatureRepresentativeQuality || 'Président'}`,
+        `Qualité : ${fields.signatureRepresentativeQuality || 'à compléter'}`,
       ];
     signatureLines.forEach((line) => {
       page.drawText(String(line), { x: MARGIN_H, y, size: 10.5, font, color: COLOR_TEXT });

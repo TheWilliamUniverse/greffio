@@ -20,7 +20,6 @@ import {
   ASSOCIATE_ROLE_OPTIONS,
   isOfficerRole,
   LEGAL_ENTITY_SIGNATORY_QUALITIES,
-  resolveLegalEntitySignatoryQuality,
 } from '@/utils/officerFromAssociates.js';
 
 const fieldClass = 'h-12 rounded-xl border-2 border-[#d4e2f5] bg-white px-3 text-sm font-medium focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/12';
@@ -34,7 +33,7 @@ const emptyAssociate = () => ({
   siren: '',
   legalForm: 'SAS',
   representativeName: '',
-  representativeQuality: 'Président',
+  representativeQuality: '',
   rcsCity: '',
   birthDate: '',
   address: '',
@@ -64,17 +63,6 @@ export const AssociatesMinorPanel = ({
         merged.birthDate = '';
         merged.firstName = '';
         merged.lastName = '';
-        merged.representativeQuality = resolveLegalEntitySignatoryQuality({
-          roleLabel: merged.roleLabel,
-          representativeQuality: merged.representativeQuality,
-        });
-        if (patch.roleLabel !== undefined) {
-          if (/directeur\s+général/i.test(merged.roleLabel)) {
-            merged.representativeQuality = 'Directeur Général';
-          } else if (/président/i.test(merged.roleLabel)) {
-            merged.representativeQuality = 'Président';
-          }
-        }
       } else {
         const minor = isLegallyMinor(merged.birthDate);
         if (!minor) {
@@ -233,12 +221,10 @@ export const AssociatesMinorPanel = ({
                       <Label>Qualité du signataire *</Label>
                       <select
                         className={`${fieldClass} w-full`}
-                        value={resolveLegalEntitySignatoryQuality({
-                          roleLabel: associate.roleLabel,
-                          representativeQuality: associate.representativeQuality,
-                        })}
+                        value={associate.representativeQuality || ''}
                         onChange={(e) => updateAssociate(index, { representativeQuality: e.target.value })}
                       >
+                        <option value="">Choisir la qualité du signataire</option>
                         {LEGAL_ENTITY_SIGNATORY_QUALITIES.map((quality) => (
                           <option key={quality} value={quality}>{quality}</option>
                         ))}

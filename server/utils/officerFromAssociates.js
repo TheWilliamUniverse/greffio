@@ -8,10 +8,10 @@ const buildCompanyLabel = (associate = {}) => {
   const company = String(associate.companyName || associate.label || '').trim();
   const rep = String(associate.representativeName || '').trim();
   const quality = resolveLegalEntitySignatoryQuality({
-    roleLabel: associate.roleLabel,
     representativeQuality: associate.representativeQuality,
   });
-  if (rep) return `${company}, représentée par ${rep}, en qualité de ${quality}`;
+  if (rep && quality) return `${company}, représentée par ${rep}, en qualité de ${quality}`;
+  if (rep) return `${company}, représentée par ${rep}`;
   return company;
 };
 

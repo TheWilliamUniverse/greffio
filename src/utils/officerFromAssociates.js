@@ -7,13 +7,9 @@ export const ASSOCIATE_ROLE_OPTIONS = Object.freeze({
 
 export const LEGAL_ENTITY_SIGNATORY_QUALITIES = Object.freeze(['Président', 'Directeur Général']);
 
-export const resolveLegalEntitySignatoryQuality = ({ roleLabel = '', representativeQuality = '' } = {}) => {
+export const resolveLegalEntitySignatoryQuality = ({ representativeQuality = '' } = {}) => {
   const quality = String(representativeQuality || '').trim();
-  if (LEGAL_ENTITY_SIGNATORY_QUALITIES.includes(quality)) return quality;
-  const role = String(roleLabel || '');
-  if (/directeur\s+général/i.test(role) || /^directeur/i.test(quality)) return 'Directeur Général';
-  if (/président/i.test(role) || /^président/i.test(quality)) return 'Président';
-  return 'Président';
+  return LEGAL_ENTITY_SIGNATORY_QUALITIES.includes(quality) ? quality : '';
 };
 
 export const isPresidentRole = (roleLabel = '') => /président/i.test(String(roleLabel));

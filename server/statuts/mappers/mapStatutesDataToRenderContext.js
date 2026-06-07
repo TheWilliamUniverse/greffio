@@ -56,10 +56,7 @@ export const mapStatutesDataToRenderContext = (statutesData = {}) => {
       capitalSocial: isLegalEntity ? associate.capitalSocial : undefined,
       representativeName: isLegalEntity ? associate.representativeName : undefined,
       representativeQuality: isLegalEntity
-        ? resolveLegalEntitySignatoryQuality({
-          roleLabel: associate.roleLabel,
-          representativeQuality: associate.representativeQuality,
-        })
+        ? resolveLegalEntitySignatoryQuality({ representativeQuality: associate.representativeQuality })
         : undefined,
       address: associate.address,
       birthDate: isLegalEntity ? undefined : associate.birthDate,

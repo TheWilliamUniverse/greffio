@@ -350,6 +350,7 @@ test('personne morale — descriptif complet dans le préambule', () => {
         siren: '102 230 414',
         address: '470 Promenade des Anglais, 06200 Nice',
         representativeName: 'Nobatène ABDOU',
+        representativeQuality: 'Président',
         roleLabel: 'Président désigné',
       },
       {
@@ -380,6 +381,7 @@ test('formatLegalEntityAssociateDescription — forme juridique explicite', () =
     siren: '102 230 414',
     address: '470 Promenade des Anglais, 06200 Nice',
     representativeName: 'Nobatène ABDOU',
+    representativeQuality: 'Président',
     roleLabel: 'Président désigné',
   }, { greffeCity: 'Nice' });
   assert.match(text, /WILLIAM ESTABLISHMENTS, Société par Actions Simplifiée \(SAS\), immatriculée au RCS de Nice sous le numéro 102 230 414/);

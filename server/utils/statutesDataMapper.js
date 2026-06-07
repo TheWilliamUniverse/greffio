@@ -4,7 +4,7 @@ import { formatFrInteger, parseFrenchAmount } from '../statuts/shared/numberForm
 import { isLegallyMinor } from './minorAssociateRules.js';
 import { resolveOfficersFromAssociates } from './officerFromAssociates.js';
 import { resolveGreffeCity } from '../statuts/shared/resolveTribunalCommerce.js';
-import { sortAssociatesPresidentFirst, resolveLegalEntitySignatoryQuality } from '../shared/partyIdentityFormatter.js';
+import { sortAssociatesPresidentFirst } from '../shared/partyIdentityFormatter.js';
 
 const pick = (...values) => {
   for (const value of values) {
@@ -92,10 +92,7 @@ const parseAssociateEntry = (entry, fallback = {}) => {
       rcsCity: pick(entry.rcsCity, entry.greffeCity, ''),
       capitalSocial: pick(entry.capitalSocial, ''),
       representativeName: pick(entry.representativeName, ''),
-      representativeQuality: resolveLegalEntitySignatoryQuality({
-        roleLabel: pick(entry.roleLabel, entry.role, 'Associé'),
-        representativeQuality: pick(entry.representativeQuality, entry.representativeRole, ''),
-      }),
+      representativeQuality: pick(entry.representativeQuality, entry.representativeRole, ''),
       address: pick(entry.address, fallback.address, 'Siège social à compléter'),
       share: pick(entry.percentage, entry.share, ''),
       titlesCount: pick(entry.sharesOrParts, entry.titlesCount, ''),

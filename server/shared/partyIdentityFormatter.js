@@ -36,14 +36,24 @@ export const sortAssociatesPresidentFirst = (associates = []) => (
 
 export const LEGAL_ENTITY_SIGNATORY_QUALITIES = Object.freeze(['Président', 'Directeur Général']);
 
-/** Qualité documentaire du signataire PM : Président ou Directeur Général uniquement. */
-export const resolveLegalEntitySignatoryQuality = ({ roleLabel = '', representativeQuality = '' } = {}) => {
+/** Qualité documentaire du signataire PM : uniquement si choisie explicitement (Président ou Directeur Général). */
+export const resolveLegalEntitySignatoryQuality = ({ representativeQuality = '' } = {}) => {
   const quality = String(representativeQuality || '').trim();
-  if (LEGAL_ENTITY_SIGNATORY_QUALITIES.includes(quality)) return quality;
-  const role = String(roleLabel || '');
-  if (/directeur\s+général/i.test(role) || /^directeur/i.test(quality)) return 'Directeur Général';
-  if (/président/i.test(role) || /^président/i.test(quality)) return 'Président';
-  return 'Président';
+  return LEGAL_ENTITY_SIGNATORY_QUALITIES.includes(quality) ? quality : '';
+};
+
+export const formatLegalEntitySignatureMention = ({
+  companyName = '',
+  representativeName = '',
+  representativeQuality = '',
+} = {}) => {
+  const company = String(companyName || '').trim();
+  const rep = String(representativeName || '').trim();
+  const quality = resolveLegalEntitySignatoryQuality({ representativeQuality });
+  if (!company) return '';
+  if (rep && quality) return `Pour ${company}, représentée par ${rep}, en qualité de ${quality}.`;
+  if (rep) return `Pour ${company}, représentée par ${rep}.`;
+  return `Pour ${company}.`;
 };
 
 export const formatLegalEntityAssociateDescription = (associate = {}, { greffeCity, companyCapital } = {}) => {
@@ -58,12 +68,13 @@ export const formatLegalEntityAssociateDescription = (associate = {}, { greffeCi
   const seatPart = associate.address ? `, dont le siège social est situé ${associate.address}` : '';
   const repName = String(associate.representativeName || '').trim();
   const repQuality = resolveLegalEntitySignatoryQuality({
-    roleLabel: associate.roleLabel,
     representativeQuality: associate.representativeQuality || associate.representativeRole,
   });
-  const repPart = repName
+  const repPart = repName && repQuality
     ? `, représentée par ${repName}, agissant en qualité de ${repQuality}, dûment habilitée aux fins des présentes`
-    : '';
+    : repName
+      ? `, représentée par ${repName}`
+      : '';
   return `${name}, ${legalForm}${capitalPart}, ${rcsPart}${seatPart}${repPart}.`;
 };
 
@@ -92,7 +103,6 @@ export const formatSubscriberListRow = (associate = {}, { securitiesUnit = 'Acti
     const companyName = String(associate.label || associate.companyName || '').trim() || 'Société à compléter';
     const repName = String(associate.representativeName || '').trim();
     const repQuality = resolveLegalEntitySignatoryQuality({
-      roleLabel: associate.roleLabel,
       representativeQuality: associate.representativeQuality,
     });
     const roleTitle = String(associate.roleLabel || 'Associé (personne morale)').trim();
@@ -184,8 +194,12 @@ export const resolveDocumentSignature = ({
     const companyName = String(officer.label || officer.companyName || '').trim();
     const repName = String(officer.representativeName || '').trim();
     const repQuality = resolveLegalEntitySignatoryQuality({
-      roleLabel: officer.roleLabel,
       representativeQuality: officer.representativeQuality,
+    });
+    const signatureMention = formatLegalEntitySignatureMention({
+      companyName,
+      representativeName: repName,
+      representativeQuality: repQuality,
     });
     return {
       isLegalEntity: true,
@@ -194,11 +208,13 @@ export const resolveDocumentSignature = ({
       representativeQuality: repQuality,
       signatoryName: repName || fallbackName,
       signatoryTitle: fallbackTitle,
-      signatureLines: [
-        `Pour ${companyName || 'la personne morale'}`,
-        repName ? `Représentée par ${repName}` : 'Représentée par [représentant légal]',
-        `Qualité : ${repQuality}`,
-      ],
+      signatureLines: signatureMention
+        ? [signatureMention]
+        : [
+          `Pour ${companyName || 'la personne morale'}`,
+          repName ? `Représentée par ${repName}` : 'Représentée par [représentant légal]',
+          `Qualité : ${repQuality || 'à compléter'}`,
+        ],
       presidentName: repName || fallbackName,
     };
   }
@@ -220,7 +236,6 @@ export const formatSignatureColumnForParty = (associate = {}) => {
     const companyName = String(associate.label || associate.companyName || '').trim();
     const repName = String(associate.representativeName || '').trim();
     const repQuality = resolveLegalEntitySignatoryQuality({
-      roleLabel: associate.roleLabel,
       representativeQuality: associate.representativeQuality,
     });
     return {
@@ -229,7 +244,7 @@ export const formatSignatureColumnForParty = (associate = {}) => {
       mention: 'Lu et approuvé',
       subLines: [
         repName ? `Représentée par ${repName}` : 'Représentant légal à compléter',
-        `Qualité : ${repQuality}`,
+        `Qualité : ${repQuality || 'à compléter'}`,
       ],
     };
   }
@@ -251,6 +266,12 @@ export const validateLegalEntityParties = (associates = [], { requireRepresentat
     }
     if (requireRepresentative && !String(associate.representativeName || '').trim()) {
       errors.push(`Personne morale sans représentant légal : ${label}.`);
+    }
+    const signatoryQuality = resolveLegalEntitySignatoryQuality({
+      representativeQuality: associate.representativeQuality,
+    });
+    if (requireRepresentative && !signatoryQuality) {
+      errors.push(`Personne morale sans qualité de signataire (Président ou Directeur Général) : ${label}.`);
     }
   });
   return { ok: errors.length === 0, errors };
