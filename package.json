@@ -36,6 +36,8 @@
     "lighthouse:ci:mobile": "lhci autorun --config=lighthouserc.mobile.cjs",
     "ops:send-dossier-reminders": "node server/scripts/send-dossier-reminders.js",
     "ops:send-weekly-digest": "node server/scripts/send-dossier-reminders.js digest",
+    "ops:setup-vps-cron": "powershell -ExecutionPolicy Bypass -File scripts/setup-vps-cron.ps1",
+    "test:assistant": "node server/scripts/test-assistant.js",
     "build:tribunal-catalog": "node scripts/build-tribunal-commerce-catalog.mjs",
     "test:login-alerts": "node --test server/utils/loginAlerts.test.js",
     "test:mfa-email-code": "node --test server/mfaEmailCodeStore.test.js",

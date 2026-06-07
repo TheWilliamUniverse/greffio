@@ -5,10 +5,10 @@ import { Input } from '@/components/ui/input.jsx';
 import { askAssistant } from '@/api/assistant.js';
 
 const quickPrompts = [
-  'Quels documents manquent pour une SASU ',
+  'Où en est mon dossier ?',
+  'Quels documents manquent pour une SASU',
   'Explique la différence SAS et SARL',
-  'Prépare une relance client polie',
-  'Quels frais légaux prévoir ',
+  'Quels frais légaux prévoir',
 ];
 
 export default function IntegratedAiChat() {

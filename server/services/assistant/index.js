@@ -23,10 +23,11 @@ export const isAssistantConfigured = () => (
 );
 
 const buildEnrichedContext = async ({ message, userContext = {}, dossierId = null }) => {
-  const dossier = userContext.userId
+  const dossierBlock = userContext.userId
     ? await buildUserDossierContext({ userId: userContext.userId, dossierId })
     : { hasDossier: false };
-  const intent = classifyDossierIntent({ message, dossierContext: dossier });
+  const dossier = dossierBlock.hasDossier ? dossierBlock : null;
+  const intent = classifyDossierIntent({ message, dossierContext: dossierBlock });
   const knowledge = assistantConfig.enableRag
     ? await retrieveKnowledgeChunks({
       query: message,
@@ -37,12 +38,12 @@ const buildEnrichedContext = async ({ message, userContext = {}, dossierId = nul
 
   return {
     ...userContext,
-    dossier,
+    dossier: dossierBlock,
     intent: intent.id,
     intentLabel: intent.label,
     knowledgeSnippets: knowledge.map((item) => item.text),
-    legalStructure: userContext.legalStructure || dossier.legalForm || null,
-    company: userContext.company || (dossier.companyName ? { name: dossier.companyName, legalForm: dossier.legalForm } : null),
+    legalStructure: userContext.legalStructure || dossierBlock.legalForm || null,
+    company: userContext.company || (dossierBlock.companyName ? { name: dossierBlock.companyName, legalForm: dossierBlock.legalForm } : null),
   };
 };
 
@@ -74,6 +75,24 @@ export const askGreffioAssistant = async ({
         answer: quickAnswer,
         provider: 'local_rules',
         mode: 'rules_fast',
+      });
+    }
+  }
+
+  const dossierBlock = userContext.userId
+    ? await buildUserDossierContext({ userId: userContext.userId, dossierId })
+    : { hasDossier: false };
+
+  if (assistantConfig.enableLocalRules && dossierBlock.hasDossier) {
+    const dossierAnswer = tryLocalRulesAnswer({
+      message: cleanMessage,
+      userContext: { ...userContext, dossier: dossierBlock, legalStructure: dossierBlock.legalForm },
+    });
+    if (dossierAnswer) {
+      return finalize({
+        answer: dossierAnswer,
+        provider: 'local_rules',
+        mode: 'rules_dossier',
       });
     }
   }
