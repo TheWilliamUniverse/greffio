@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { DossierMessageThread } from '@/components/messaging/DossierMessageThread.jsx';
 import { listDossiers } from '@/api/dossiers.js';
 import { fetchDossierMessages, postDossierMessage } from '@/api/dossierMessages.js';
+import { useDossierMessagesPoll } from '@/hooks/useDossierMessagesPoll.js';
 
 const workstreams = [
   { name: 'Équipe formalités Greffio', role: 'Contrôle statuts, formulaires, bénéficiaires effectifs', status: 'Activable' },
@@ -14,9 +15,16 @@ const workstreams = [
 
 export const TeamPage = () => {
   const [queue, setQueue] = useState([]);
-  const [messages, setMessages] = useState([]);
-  const [messagesLoading, setMessagesLoading] = useState(false);
   const [selectedDossierId, setSelectedDossierId] = useState(null);
+
+  const {
+    messages,
+    setMessages,
+    loading: messagesLoading,
+  } = useDossierMessagesPoll(selectedDossierId, fetchDossierMessages, {
+    enabled: Boolean(selectedDossierId),
+    intervalMs: 15000,
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -40,27 +48,6 @@ export const TeamPage = () => {
     void load();
     return () => { mounted = false; };
   }, []);
-
-  useEffect(() => {
-    if (!selectedDossierId) {
-      setMessages([]);
-      return;
-    }
-    let mounted = true;
-    const loadMessages = async () => {
-      setMessagesLoading(true);
-      try {
-        const items = await fetchDossierMessages(selectedDossierId);
-        if (mounted) setMessages(items);
-      } catch (_error) {
-        if (mounted) setMessages([]);
-      } finally {
-        if (mounted) setMessagesLoading(false);
-      }
-    };
-    void loadMessages();
-    return () => { mounted = false; };
-  }, [selectedDossierId]);
 
   const currentDossier = queue.find((item) => item.id === selectedDossierId) || queue[0];
 

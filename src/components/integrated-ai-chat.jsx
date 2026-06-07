@@ -34,13 +34,17 @@ export default function IntegratedAiChat() {
     ]);
     setInput('');
     setSending(true);
+    setMessages((current) => [
+      ...current,
+      { role: 'assistant', content: '…', pending: true },
+    ]);
     try {
       const payload = await askAssistant({
         message: clean,
         history: nextMessages.slice(-8),
       });
       setMessages((current) => [
-        ...current,
+        ...current.filter((item) => !item.pending),
         {
           role: 'assistant',
           content: payload?.answer || 'Je n’ai pas pu générer de réponse pour le moment. Réessayez ou contactez l’équipe Greffio.',
@@ -48,7 +52,7 @@ export default function IntegratedAiChat() {
       ]);
     } catch (_error) {
       setMessages((current) => [
-        ...current,
+        ...current.filter((item) => !item.pending),
         { role: 'assistant', content: 'Je n’ai pas pu joindre l’assistant pour le moment. Réessayez dans quelques secondes ou contactez l’équipe Greffio.' },
       ]);
     } finally {
@@ -74,8 +78,8 @@ export default function IntegratedAiChat() {
       <div className="flex-1 space-y-4 overflow-y-auto p-4">
         {messages.map((message, index) => (
           <div key={`${message.role}-${index}`} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[82%] rounded-md px-4 py-3 text-sm leading-6 ${message.role === 'user' ? 'bg-primary text-white' : 'bg-muted text-foreground'}`}>
-              {message.content}
+            <div className={`max-w-[82%] rounded-md px-4 py-3 text-sm leading-6 ${message.role === 'user' ? 'bg-primary text-white' : 'bg-muted text-foreground'} ${message.pending ? 'animate-pulse opacity-80' : ''}`}>
+              {message.pending ? 'Réponse en cours…' : message.content}
             </div>
           </div>
         ))}

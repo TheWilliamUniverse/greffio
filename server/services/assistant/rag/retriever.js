@@ -37,6 +37,10 @@ export const retrieveKnowledgeChunks = async ({ query = '', intent = 'general', 
     .filter((item) => item.score > 0)
     .sort((a, b) => b.score - a.score);
 
+  if (keywordScored[0]?.score >= 3) {
+    return keywordScored.slice(0, topK);
+  }
+
   if (!assistantConfig.enableRag) {
     return keywordScored.slice(0, topK);
   }

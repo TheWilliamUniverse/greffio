@@ -8,9 +8,9 @@ export const assistantConfig = {
   enableLocalRules: process.env.AI_ENABLE_LOCAL_RULES !== 'false',
   enableProviderFallback: process.env.AI_ENABLE_PROVIDER_FALLBACK !== 'false',
   enableRag: process.env.AI_ENABLE_RAG !== 'false',
-  ragTopK: Number(process.env.AI_RAG_TOP_K || 4),
-  maxTokens: Number(process.env.AI_MAX_TOKENS || 700),
-  temperature: Number(process.env.AI_TEMPERATURE || 0.35),
+  ragTopK: Number(process.env.AI_RAG_TOP_K || 3),
+  maxTokens: Number(process.env.AI_MAX_TOKENS || 450),
+  temperature: Number(process.env.AI_TEMPERATURE || 0.3),
 };
 
 export const readOpenAiKey = () => String(process.env.OPENAI_API_KEY || '').trim();

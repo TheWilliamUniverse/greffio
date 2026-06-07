@@ -28,12 +28,33 @@ export const tryLocalRulesAnswer = ({ message = '', userContext = {} } = {}) => 
     ].join('\n');
   }
 
-  if (text.includes('sas') && text.includes('sarl')) {
+  if (text.includes('sas') && (text.includes('sarl') || text.includes('>') || text.includes('vs'))) {
     return [
       'SAS vs SARL — repères rapides :',
       '• SAS : grande souplesse statutaire, président, actions, régime social du dirigeant variable.',
       '• SARL : cadre plus codifié, parts sociales, gérant, régime TNS fréquent.',
       '• Dans Greffio : choisissez la forme au questionnaire, puis complétez gouvernance, capital et documents annexes.',
+    ].join('\n');
+  }
+
+  if (text.includes('relance') || text.includes('relancer')) {
+    return [
+      'Modèle de relance client (Greffio) :',
+      '« Bonjour, votre dossier avance bien. Il nous manque encore [pièce ou validation] pour poursuivre le dépôt. Vous pouvez compléter depuis votre espace Greffio ou répondre ici. L’équipe reste disponible. »',
+      '',
+      'Adaptez le libellé entre crochets selon le statut réel du dossier (Documents ou Messages).',
+    ].join('\n');
+  }
+
+  if (text.includes('sasu') && (text.includes('document') || text.includes('manque'))) {
+    return [
+      'Checklist SASU dans Greffio :',
+      '• Identité et domicile du dirigeant',
+      '• Statuts générés et signés',
+      '• Attestation de dépôt de capital',
+      '• Déclaration de non-condamnation',
+      '• Liste des souscripteurs et pouvoirs pour formalités',
+      'Consultez l’onglet Documents pour le statut exact de chaque pièce.',
     ].join('\n');
   }
 

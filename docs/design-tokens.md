@@ -1,5 +1,7 @@
 # Greffio — Design tokens (cockpit & mobile)
 
+> Audit complet : voir [`docs/audit-branding-greffio.md`](./audit-branding-greffio.md) (palette normalisée, typographie, mini brand book).
+
 Tokens figés pour éviter les dérives visuelles. Ne pas modifier sans validation produit.
 
 ## Couleurs marque

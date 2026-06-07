@@ -61,6 +61,23 @@ export const askGreffioAssistant = async ({
     });
   }
 
+  if (assistantConfig.enableLocalRules) {
+    const quickAnswer = tryLocalRulesAnswer({
+      message: cleanMessage,
+      userContext: {
+        ...userContext,
+        legalStructure: userContext.legalStructure || userContext?.company?.legalForm || null,
+      },
+    });
+    if (quickAnswer) {
+      return finalize({
+        answer: quickAnswer,
+        provider: 'local_rules',
+        mode: 'rules_fast',
+      });
+    }
+  }
+
   const enrichedContext = await buildEnrichedContext({
     message: cleanMessage,
     userContext,

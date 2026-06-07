@@ -5,7 +5,7 @@ import { NavbarDropdown } from '@/components/NavbarDropdown.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { PricingClarityBlock } from '@/components/pricing/PricingClarityBlock.jsx';
 import { PricingFaqSection } from '@/components/pricing/PricingFaqSection.jsx';
-import { PricingPlansGrid } from '@/components/pricing/PricingPlansGrid.jsx';
+import { LandingPricingSection } from '@/components/pricing/LandingPricingSection.jsx';
 import { motion } from 'framer-motion';
 import { usePricingMotion } from '@/components/pricing/usePricingMotion.js';
 
@@ -18,9 +18,9 @@ export const PricingPage = () => {
 
       <main className="mx-auto max-w-6xl px-4 pb-20 pt-28 sm:px-6 lg:px-8">
         <motion.div {...reveal()}>
-          <p className="text-sm font-bold uppercase text-primary">Tarifs Greffio</p>
+          <p className="text-sm font-bold uppercase text-primary">Tarifs</p>
           <h1 className="mt-2 max-w-3xl text-4xl font-extrabold tracking-tight sm:text-5xl">
-            Des offres claires — prestation Greffio et frais légaux séparés
+            Des offres claires pour démarrer, déléguer ou industrialiser.
           </h1>
           <p className="mt-5 max-w-3xl text-lg leading-8 text-muted-foreground">
             Comparez ce que couvre Greffio avant de démarrer. Les frais de greffe, d’annonce légale ou d’organismes tiers sont indiqués avant validation.
@@ -29,7 +29,7 @@ export const PricingPage = () => {
 
         <PricingClarityBlock showCta={false} className="px-0 py-10" />
 
-        <PricingPlansGrid showHeader={false} showFooter={false} />
+        <LandingPricingSection showHeader={false} className="mt-2" />
 
         <PricingFaqSection />
 

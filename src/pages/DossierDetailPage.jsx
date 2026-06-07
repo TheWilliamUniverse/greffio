@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.jsx';
 import { fetchDossierDetail, trashDossier } from '@/api/dossiers.js';
 import { fetchDossierMessages, postDossierMessage } from '@/api/dossierMessages.js';
+import { useDossierMessagesPoll } from '@/hooks/useDossierMessagesPoll.js';
 import { fetchVerificationProfile, runDossierVerification } from '@/api/verification.js';
 import { VerificationStatusCard } from '@/components/verification/VerificationStatusCard.jsx';
 import { saveCurrentDossierId } from '@/utils/sessionStore.js';
@@ -104,8 +105,14 @@ export const DossierDetailPage = () => {
   const [dossier, setDossier] = useState(null);
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [messages, setMessages] = useState([]);
-  const [messagesLoading, setMessagesLoading] = useState(false);
+  const {
+    messages,
+    setMessages,
+    loading: messagesLoading,
+  } = useDossierMessagesPoll(id, fetchDossierMessages, {
+    enabled: Boolean(id) && !internalView,
+    intervalMs: 15000,
+  });
   const [verificationProfile, setVerificationProfile] = useState(null);
   const [verificationRunning, setVerificationRunning] = useState(false);
   const missingDocuments = useMemo(() => docs.filter((document) => ['ATTENTE_DOCS', 'URGENT', 'EN_ANALYSE', 'A_SIGNER', 'BROUILLON'].includes(document.status)), [docs]);
@@ -149,24 +156,6 @@ export const DossierDetailPage = () => {
       }
     };
     void load();
-  }, [id, internalView]);
-
-  useEffect(() => {
-    if (!id || internalView) return;
-    let mounted = true;
-    const loadMessages = async () => {
-      setMessagesLoading(true);
-      try {
-        const items = await fetchDossierMessages(id);
-        if (mounted) setMessages(items);
-      } catch (_error) {
-        if (mounted) setMessages([]);
-      } finally {
-        if (mounted) setMessagesLoading(false);
-      }
-    };
-    void loadMessages();
-    return () => { mounted = false; };
   }, [id, internalView]);
 
   const handleRunVerification = async () => {

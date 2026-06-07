@@ -26,6 +26,7 @@ import {
   sendOpsDossierMessageEmail,
 } from '@/api/dossierMessages.js';
 import { DossierMessageThread } from '@/components/messaging/DossierMessageThread.jsx';
+import { useDossierMessagesPoll } from '@/hooks/useDossierMessagesPoll.js';
 import { OpsCompletionBadge, OpsPriorityBadge, OpsQueueBadge, OpsRiskBadge, OpsSlaBadge } from '@/components/ops/OpsBadges.jsx';
 import { formatDateTime } from '@/components/ops/opsLabels.js';
 import { GREFFIO_OPS_TEAM, OPS_PRIORITY_LABELS, OPS_QUEUE_LABELS } from '@/config/opsTeam.js';
@@ -51,8 +52,14 @@ export const OpsDossierDetailPage = () => {
   const [saving, setSaving] = useState(false);
   const [docUpdating, setDocUpdating] = useState('');
   const [docPreviewing, setDocPreviewing] = useState('');
-  const [messages, setMessages] = useState([]);
-  const [messagesLoading, setMessagesLoading] = useState(false);
+  const {
+    messages,
+    setMessages,
+    loading: messagesLoading,
+  } = useDossierMessagesPoll(dossierId, fetchOpsDossierMessages, {
+    enabled: Boolean(dossierId),
+    intervalMs: 15000,
+  });
 
   const loadDetail = async () => {
     setLoading(true);
@@ -69,24 +76,6 @@ export const OpsDossierDetailPage = () => {
 
   useEffect(() => {
     void loadDetail();
-  }, [dossierId]);
-
-  useEffect(() => {
-    if (!dossierId) return;
-    let mounted = true;
-    const loadMessages = async () => {
-      setMessagesLoading(true);
-      try {
-        const items = await fetchOpsDossierMessages(dossierId);
-        if (mounted) setMessages(items);
-      } catch (_error) {
-        if (mounted) setMessages([]);
-      } finally {
-        if (mounted) setMessagesLoading(false);
-      }
-    };
-    void loadMessages();
-    return () => { mounted = false; };
   }, [dossierId]);
 
   const dossier = payload?.dossier;
