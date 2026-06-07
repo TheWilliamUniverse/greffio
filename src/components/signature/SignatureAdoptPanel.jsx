@@ -1,9 +1,23 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 
 const SIGNATURE_FONT = '"Segoe Script", "Brush Script MT", cursive';
+
+const setupCanvas = (canvas) => {
+  if (!canvas) return;
+  const ratio = Math.max(window.devicePixelRatio || 1, 2);
+  const width = canvas.clientWidth || 420;
+  const height = 90;
+  canvas.width = Math.floor(width * ratio);
+  canvas.height = Math.floor(height * ratio);
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#0f172a';
+};
 
 export const SignatureAdoptPanel = ({
   defaultName = '',
@@ -11,6 +25,7 @@ export const SignatureAdoptPanel = ({
   onCancel,
   onConfirm,
   loading = false,
+  errorMessage = '',
 }) => {
   const [fullName, setFullName] = useState(defaultName);
   const [email, setEmail] = useState(defaultEmail);
@@ -21,28 +36,38 @@ export const SignatureAdoptPanel = ({
 
   const previewName = useMemo(() => fullName.trim() || 'Votre signature', [fullName]);
 
+  useEffect(() => {
+    if (mode !== 'drawn') return undefined;
+    setupCanvas(canvasRef.current);
+    const onResize = () => setupCanvas(canvasRef.current);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [mode]);
+
+  const getPoint = (event, canvas) => {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = event.clientX ?? event.touches?.[0]?.clientX ?? 0;
+    const clientY = event.clientY ?? event.touches?.[0]?.clientY ?? 0;
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  };
+
   const startDraw = (event) => {
+    event.preventDefault?.();
     const canvas = canvasRef.current;
     if (!canvas) return;
     drawing.current = true;
     const ctx = canvas.getContext('2d');
-    const rect = canvas.getBoundingClientRect();
-    const x = (event.clientX || event.touches?.[0]?.clientX) - rect.left;
-    const y = (event.clientY || event.touches?.[0]?.clientY) - rect.top;
-    ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
+    const { x, y } = getPoint(event, canvas);
     ctx.beginPath();
     ctx.moveTo(x, y);
   };
 
   const draw = (event) => {
     if (!drawing.current) return;
+    event.preventDefault?.();
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    const rect = canvas.getBoundingClientRect();
-    const x = (event.clientX || event.touches?.[0]?.clientX) - rect.left;
-    const y = (event.clientY || event.touches?.[0]?.clientY) - rect.top;
+    const { x, y } = getPoint(event, canvas);
     ctx.lineTo(x, y);
     ctx.stroke();
   };
@@ -63,9 +88,6 @@ export const SignatureAdoptPanel = ({
       <p className="text-lg font-bold">Adopter votre signature</p>
       <p className="mt-1 text-sm text-white/70">
         Consentement simple dans Greffio pour formaliser votre accord sur ce document.
-      </p>
-      <p className="mt-3 rounded-lg border border-white/15 bg-white/5 p-3 text-xs leading-relaxed text-white/75">
-        Cette signature atteste votre accord dans l&apos;espace Greffio. Certaines formalités peuvent exiger une signature électronique avancée ou qualifiée via un prestataire tiers ou une étape officielle.
       </p>
 
       <div className="mt-5 space-y-3">
@@ -111,9 +133,8 @@ export const SignatureAdoptPanel = ({
         ) : (
           <canvas
             ref={canvasRef}
-            width={420}
             height={90}
-            className="mt-2 w-full cursor-crosshair rounded-lg bg-white"
+            className="mt-2 h-[90px] w-full cursor-crosshair touch-none rounded-lg bg-white"
             onMouseDown={startDraw}
             onMouseMove={draw}
             onMouseUp={endDraw}
@@ -131,6 +152,10 @@ export const SignatureAdoptPanel = ({
           En cliquant sur « Signer », je reconnais avoir vérifié les informations du document et j&apos;accepte que mon consentement simple soit enregistré dans Greffio pour ce document.
         </span>
       </label>
+
+      {errorMessage ? (
+        <p className="mt-3 rounded-lg border border-red-400/40 bg-red-950/40 p-3 text-sm text-red-200">{errorMessage}</p>
+      ) : null}
 
       <div className="mt-5 flex justify-end gap-2">
         <Button type="button" variant="outline" className="border-white/30 bg-transparent text-white" onClick={onCancel}>

@@ -1,0 +1,91 @@
+import React from 'react';
+import { DEMARCHE_CATALOG } from '@/lib/questionnaireFlow.js';
+
+const formatValue = (value) => {
+  if (value == null || value === '') return '—';
+  if (Array.isArray(value)) return value.length ? `${value.length} élément(s)` : '—';
+  return String(value);
+};
+
+const SECTIONS = [
+  {
+    title: 'Déclarant',
+    keys: ['initiatorType', 'firstName', 'lastName', 'email', 'phone', 'nationality'],
+    labels: {
+      initiatorType: 'Type',
+      firstName: 'Prénom',
+      lastName: 'Nom',
+      email: 'Email',
+      phone: 'Téléphone',
+      nationality: 'Nationalité',
+    },
+  },
+  {
+    title: 'Formalité',
+    keys: ['typeFormalite', 'formeJuridique'],
+    labels: {
+      typeFormalite: 'Démarche',
+      formeJuridique: 'Forme juridique',
+    },
+    format: (key, value) => {
+      if (key === 'typeFormalite') {
+        return DEMARCHE_CATALOG.find((item) => item.key === value)?.label || formatValue(value);
+      }
+      return formatValue(value);
+    },
+  },
+  {
+    title: 'Entreprise',
+    keys: ['denomination', 'adresseSiege', 'codePostal', 'villeSiege', 'activite', 'capital'],
+    labels: {
+      denomination: 'Dénomination',
+      adresseSiege: 'Siège',
+      codePostal: 'Code postal',
+      villeSiege: 'Ville',
+      activite: 'Activité',
+      capital: 'Capital',
+    },
+  },
+];
+
+export const QuestionnaireRecapPanel = ({ formData = {}, onEditStep }) => (
+  <div className="space-y-4">
+    {SECTIONS.map((section) => {
+      const rows = section.keys
+        .map((key) => ({
+          key,
+          label: section.labels[key] || key,
+          value: section.format ? section.format(key, formData[key]) : formatValue(formData[key]),
+        }))
+        .filter((row) => row.value !== '—');
+      if (!rows.length) return null;
+      return (
+        <section key={section.title} className="rounded-2xl border border-[#d4e2f5] bg-white p-4 shadow-sm">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h3 className="text-sm font-extrabold text-foreground">{section.title}</h3>
+            {onEditStep ? (
+              <button
+                type="button"
+                className="text-xs font-semibold text-primary underline-offset-2 hover:underline"
+                onClick={() => onEditStep(section.title)}
+              >
+                Modifier
+              </button>
+            ) : null}
+          </div>
+          <dl className="space-y-2">
+            {rows.map((row) => (
+              <div key={row.key} className="grid gap-1 sm:grid-cols-[140px_1fr]">
+                <dt className="text-xs font-semibold uppercase text-muted-foreground">{row.label}</dt>
+                <dd className="text-sm font-medium text-foreground">{row.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      );
+    })}
+    <p className="text-sm leading-6 text-muted-foreground">
+      Vérifiez l’exactitude de ces informations avant de générer vos documents. Une erreur peut retarder le dépôt au greffe.
+    </p>
+  </div>
+);

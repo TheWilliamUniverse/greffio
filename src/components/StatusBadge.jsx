@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils.js';
 import { getDocumentStatusLabel } from '@/utils/documentStatusLabels.js';
+import { getStatusGlossary } from '@/utils/statusGlossary.js';
 
 const labels = {
   EN_COURS: 'EN COURS',
@@ -26,8 +27,10 @@ const labels = {
   GENERATED: 'GÉNÉRÉ',
 };
 
-export const StatusBadge = ({ status, className }) => {
+export const StatusBadge = ({ status, className, showGlossary = true }) => {
   const normalizedStatus = status.toUpperCase();
+  const label = labels[normalizedStatus] || getDocumentStatusLabel(status).toUpperCase() || 'INCONNU';
+  const glossary = showGlossary ? getStatusGlossary(normalizedStatus) : '';
 
   const getStatusStyles = (s) => {
     switch (s) {
@@ -67,8 +70,14 @@ export const StatusBadge = ({ status, className }) => {
   };
 
   return (
-    <span className={cn('px-2.5 py-0.5 rounded-full text-xs font-medium border', getStatusStyles(normalizedStatus), className)}>
-      {labels[normalizedStatus] || getDocumentStatusLabel(status).toUpperCase() || 'INCONNU'}
+    <span
+      className={cn('inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border', getStatusStyles(normalizedStatus), className)}
+      title={glossary || undefined}
+    >
+      {label}
+      {glossary ? (
+        <span className="sr-only"> — {glossary}</span>
+      ) : null}
     </span>
   );
 };

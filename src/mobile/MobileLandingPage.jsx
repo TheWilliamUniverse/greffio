@@ -29,7 +29,7 @@ export const MobileLandingPage = () => (
   <div className="bg-background text-foreground">
     <header className="sticky top-0 z-30 border-b border-border/70 bg-white/95 px-4 py-3 pt-[env(safe-area-inset-top)] backdrop-blur">
       <div className="mx-auto flex max-w-lg items-center justify-between">
-        <GreffioLogo variant="tile" className="scale-[0.9] origin-left" />
+        <GreffioLogo variant="full" className="h-8" />
         <Link to="/login" className="text-sm font-semibold text-primary">Connexion</Link>
       </div>
     </header>

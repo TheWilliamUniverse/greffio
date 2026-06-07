@@ -16,6 +16,7 @@ import { parseJsonField } from '@/utils/jsonField.js';
 import { isInternalUser } from '@/utils/roles.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { toast } from 'sonner';
+import { DossierBreadcrumb } from '@/components/layout/DossierBreadcrumb.jsx';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 import { mapDossierStatusForBadge, mapDossierClientAction } from '@/utils/dossierClientStatus.js';
 import { DossierMessageThread } from '@/components/messaging/DossierMessageThread.jsx';
@@ -224,6 +225,7 @@ export const DossierDetailPage = () => {
       <Sidebar />
       <main className="flex-1 overflow-y-auto p-5 md:p-8">
         <div className="mx-auto max-w-6xl space-y-6">
+          <DossierBreadcrumb dossierId={id} dossierName={dossier.name} />
           <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
             <Link to="/dossiers">
               <ArrowLeft className="h-4 w-4" />
@@ -277,9 +279,8 @@ export const DossierDetailPage = () => {
                 </div>
               </div>
               <div>
-                <div className="mb-2 flex justify-between text-sm font-bold">
-                  <span>Étape {dossier.currentStep || 0}/{dossier.totalSteps || dossier.steps.length || 0}</span>
-                  <span>{dossier.progress || 0}%</span>
+                <div className="mb-2 text-sm font-bold text-primary">
+                  {dossier.nextAction}
                 </div>
                 <div className="h-3 rounded-full bg-muted">
                   <div className="h-3 rounded-full bg-primary" style={{ width: `${dossier.progress || 0}%` }} />

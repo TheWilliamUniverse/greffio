@@ -81,6 +81,12 @@ export const stampSignatureOnPdf = async ({
     });
   }
 
+  const signedLabel = new Date(signedAtIso).toLocaleString('fr-FR');
+  const footerLines = [
+    `Document signé le ${signedLabel}`,
+    ...(proofLines || []).slice(0, 2),
+  ];
+
   page.drawText(`Signé électroniquement par ${signerFullName}`, {
     x: marginH,
     y: yBase - 18,
@@ -96,13 +102,13 @@ export const stampSignatureOnPdf = async ({
     color: rgb(0.35, 0.4, 0.48),
   });
 
-  (proofLines || []).slice(0, 3).forEach((line, index) => {
+  footerLines.forEach((line, index) => {
     page.drawText(line, {
       x: marginH,
-      y: 30 - index * 12,
+      y: 36 - index * 12,
       size: 7,
       font,
-      color: rgb(0.5, 0.52, 0.56),
+      color: rgb(0.35, 0.4, 0.48),
     });
   });
 

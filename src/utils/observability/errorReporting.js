@@ -18,6 +18,15 @@ export const reportClientError = (error, context = {}) => {
     return;
   }
   window.dispatchEvent(new CustomEvent('greffio:client-error', { detail: payload }));
+  const dsn = import.meta.env.VITE_SENTRY_DSN;
+  if (dsn) {
+    void fetch(`${runtimeConfig.apiBaseUrl}/api/observability/client-error`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      keepalive: true,
+    }).catch(() => {});
+  }
 };
 
 export const initClientErrorReporting = () => {

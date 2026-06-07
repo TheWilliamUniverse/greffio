@@ -337,6 +337,17 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'greffio-api', timestamp: new Date().toISOString() });
 });
 
+app.post('/api/observability/client-error', express.json({ limit: '32kb' }), (req, res) => {
+  const payload = req.body || {};
+  console.error('[CLIENT_ERROR]', {
+    message: payload.message,
+    route: payload.route,
+    source: payload.source,
+    timestamp: new Date().toISOString(),
+  });
+  return res.status(204).end();
+});
+
 app.get('/api/ready', async (_req, res) => {
   const checks = {
     storageDriver: objectStorageConfig.driver,

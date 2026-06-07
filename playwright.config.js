@@ -14,6 +14,9 @@ export default defineConfig({
     { name: 'chromium-desktop', use: { ...devices['Desktop Chrome'] } },
     { name: 'mobile-chrome', use: { ...devices['Pixel 7'] } },
     { name: 'mobile-safari', use: { ...devices['iPhone 13'] } },
+    { name: 'iphone-se', use: { ...devices['iPhone SE'] } },
+    { name: 'ipad-tablet', use: { ...devices['iPad Pro 11'] } },
+    { name: 'galaxy-fold', use: { viewport: { width: 344, height: 882 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true } },
     { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
   ],
   webServer: process.env.PLAYWRIGHT_SKIP_WEBSERVER

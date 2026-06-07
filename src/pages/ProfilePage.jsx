@@ -298,6 +298,7 @@ export const ProfilePage = () => {
                     { key: 'email', label: 'Notifications par email' },
                     { key: 'sms', label: 'Notifications par SMS' },
                     { key: 'dossierUpdates', label: 'Mises à jour de dossier' },
+                    { key: 'emailReminders', label: 'Relances si action requise' },
                     { key: 'marketing', label: 'Actualités Greffio' },
                   ].map((item) => (
                     <label key={item.key} className="interactive-hover flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--we-border)] bg-white p-4">
@@ -318,6 +319,26 @@ export const ProfilePage = () => {
                       <span className="text-sm font-medium text-foreground">{item.label}</span>
                     </label>
                   ))}
+                </div>
+                <div className="mt-4">
+                  <Label htmlFor="emailDigest">Fréquence des emails dossier</Label>
+                  <select
+                    id="emailDigest"
+                    className="mt-2 h-11 w-full rounded-xl border border-[var(--we-border)] bg-white px-3 text-sm"
+                    value={form.profile.preferences.notifications.emailDigest || 'immediate'}
+                    onChange={(event) => patchProfile({
+                      preferences: {
+                        ...form.profile.preferences,
+                        notifications: {
+                          ...form.profile.preferences.notifications,
+                          emailDigest: event.target.value,
+                        },
+                      },
+                    })}
+                  >
+                    <option value="immediate">À chaque étape importante</option>
+                    <option value="weekly">Résumé hebdomadaire uniquement</option>
+                  </select>
                 </div>
               </ProfileSection>
 

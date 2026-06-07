@@ -92,3 +92,25 @@ export const resolveSimulatorFormFromQuery = (formalityParam = '') => {
   }
   return null;
 };
+
+/** Mappe le brouillon simulateur vers le questionnaire dossier. */
+export const mapSimulatorDraftToQuestionnaire = (draft = {}) => {
+  if (!draft || typeof draft !== 'object') return {};
+  const journey = String(draft.journey || draft.data?.journey || 'statuts').toLowerCase();
+  const legalForm = String(draft.legalForm || draft.data?.legalForm || '').trim();
+  const typeFormalite = journey === 'statuts' || journey === 'creation'
+    ? (legalForm.toUpperCase().includes('SASU') ? 'creation_sasu'
+      : legalForm.toUpperCase().includes('SAS') ? 'creation_sas'
+        : legalForm.toUpperCase().includes('SARL') ? 'creation_sarl'
+          : legalForm.toUpperCase().includes('EI') || legalForm.toLowerCase().includes('micro') ? 'micro_entreprise'
+            : 'creation_societe')
+    : String(draft.typeFormalite || draft.data?.typeFormalite || '');
+  const preset = resolveDemarchePreset(typeFormalite);
+  return {
+    typeFormalite: preset.typeFormalite || typeFormalite,
+    formeJuridique: preset.formeJuridique || legalForm.toUpperCase(),
+    denomination: draft.companyName || draft.data?.companyName || draft.denomination || '',
+    activite: draft.activity || draft.data?.activity || '',
+    capital: draft.capital || draft.data?.capital || '',
+  };
+};

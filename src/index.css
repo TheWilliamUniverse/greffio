@@ -308,4 +308,14 @@
     min-height: 100dvh;
     padding-bottom: env(safe-area-inset-bottom);
   }
+
+  @media (max-width: 767px) and (orientation: landscape) {
+    .landscape-compact-shell {
+      padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
+    }
+
+    .landscape-editor-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+  }
 }

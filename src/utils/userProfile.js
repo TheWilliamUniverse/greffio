@@ -37,6 +37,8 @@ export const defaultUserProfile = () => ({
       email: true,
       sms: false,
       dossierUpdates: true,
+      emailReminders: true,
+      emailDigest: 'immediate',
       marketing: false,
     },
     security: {

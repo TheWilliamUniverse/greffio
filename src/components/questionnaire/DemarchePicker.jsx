@@ -14,11 +14,24 @@ import {
 
 const normalize = (value) => String(value || '').trim().toLowerCase();
 
-export const DemarchePicker = ({ value, onChange, categoryFirst = false }) => {
+export const DemarchePicker = ({
+  value,
+  onChange,
+  categoryFirst = false,
+  primaryCategory: controlledCategory,
+  onPrimaryCategoryChange,
+  categoryConfirmed: controlledConfirmed,
+  onCategoryConfirmedChange,
+}) => {
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
-  const [primaryCategory, setPrimaryCategory] = useState('');
-  const [categoryConfirmed, setCategoryConfirmed] = useState(false);
+  const [localPrimaryCategory, setLocalPrimaryCategory] = useState('');
+  const [localCategoryConfirmed, setLocalCategoryConfirmed] = useState(false);
+
+  const primaryCategory = controlledCategory ?? localPrimaryCategory;
+  const categoryConfirmed = controlledConfirmed ?? localCategoryConfirmed;
+  const setPrimaryCategory = onPrimaryCategoryChange || setLocalPrimaryCategory;
+  const setCategoryConfirmed = onCategoryConfirmedChange || setLocalCategoryConfirmed;
 
   const categoryFilterIds = useMemo(() => {
     if (!primaryCategory) return null;

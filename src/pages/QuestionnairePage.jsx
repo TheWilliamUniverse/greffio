@@ -18,10 +18,14 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   EXISTING_BUSINESS_FORMALITIES,
   QUESTIONNAIRE_FLOW,
+  getApplicableFlowSteps,
+  getFieldValidationMessage,
   getQuestionnaireProgressPercent,
   getVisibleFieldsForStep,
+  inferDemarcheCategory,
   isFieldValueValid,
   isStepComplete,
+  resolveResumePosition,
 } from '@/lib/questionnaireFlow.js';
 import {
   completeQuestionnaireStep,
@@ -30,7 +34,9 @@ import {
 } from '@/api/questionnaire.js';
 import { lookupCompanyBySiren } from '@/api/company.js';
 import { createDossier } from '@/api/dossiers.js';
+import { QuestionnaireRecapPanel } from '@/components/questionnaire/QuestionnaireRecapPanel.jsx';
 import { clearCurrentDossierId, getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.js';
+import { getProjectDraft } from '@/utils/localStorage.js';
 import { runtimeConfig } from '@/config/runtime.js';
 import { isEiLikeFormality, isStatutesSupportedForm } from '@/config/formalities.js';
 import { AssociatesMinorPanel } from '@/components/questionnaire/AssociatesMinorPanel.jsx';
@@ -46,6 +52,7 @@ import {
   resolveDemarchePreset,
   resolveLegalFormFromContext,
   resolveServiceFromFormality,
+  mapSimulatorDraftToQuestionnaire,
 } from '@/utils/formalityMapping.js';
 
 const defaultData = {
@@ -87,6 +94,7 @@ const STEP_TITLES_BY_ID = Object.freeze({
   entreprise: 'Informations',
   gouvernance: 'Associés',
   beneficiaires: 'Bénéficiaires',
+  recap: 'Récapitulatif',
   validation: 'Validation',
 });
 const PROGRESSIVE_STEPS = QUESTIONNAIRE_FLOW.map((flowStep) => ({
@@ -137,6 +145,9 @@ export const QuestionnairePage = () => {
   const [loading, setLoading] = useState(true);
   const [intakeHints, setIntakeHints] = useState({ score: null, warnings: [], issues: [] });
   const [stepError, setStepError] = useState('');
+  const [demarcheCategory, setDemarcheCategory] = useState('');
+  const [demarcheCategoryConfirmed, setDemarcheCategoryConfirmed] = useState(false);
+  const [touchedFields, setTouchedFields] = useState({});
 
   const step = QUESTIONNAIRE_FLOW[stepIndex];
   const visibleStepFields = useMemo(
@@ -221,6 +232,16 @@ export const QuestionnairePage = () => {
     }
     return resolvedId;
   };
+
+  const buildPersistPayload = (data, resumeMeta = {}) => ({
+    ...data,
+    _resume: {
+      stepId: step?.id,
+      fieldKey: activeField?.key || '',
+      demarcheCategory: resumeMeta.demarcheCategory ?? demarcheCategory,
+      categoryConfirmed: resumeMeta.categoryConfirmed ?? demarcheCategoryConfirmed,
+    },
+  });
 
   const persistQuestionnaire = async ({
     dataPatch,
@@ -320,7 +341,19 @@ export const QuestionnairePage = () => {
           }
         }
 
-        let currentDossierId = dossierId;
+        const queryDossierId = searchParams.get('dossierId');
+        if (queryDossierId) {
+          saveCurrentDossierId(queryDossierId);
+          setDossierId(queryDossierId);
+        }
+
+        let mergedData = { ...defaultData };
+        if (searchParams.get('fromSimulator') === '1') {
+          const simulatorDraft = getProjectDraft();
+          mergedData = { ...mergedData, ...mapSimulatorDraftToQuestionnaire(simulatorDraft) };
+        }
+
+        let currentDossierId = queryDossierId || dossierId || getCurrentDossierId();
         if (!currentDossierId) {
           const created = await createDossier(buildDossierBootstrap(mergedData, isAuthenticated ? user?.id || null : null));
           currentDossierId = created?.dossier?.id || null;
@@ -330,7 +363,6 @@ export const QuestionnairePage = () => {
           }
         }
 
-        let mergedData = { ...defaultData };
         if (currentDossierId) {
           let state;
           try {
@@ -352,31 +384,23 @@ export const QuestionnairePage = () => {
               setDossierId(currentDossierId);
             }
           }
-          if (!currentDossierId) {
-            setFormData(mergedData);
-            setLoading(false);
-            return;
-          }
-          if (!state) {
-            state = await getQuestionnaireState(currentDossierId);
-          }
-          const fromApi = state.reference || state?.dossier?.reference || '';
-          const finalReference = isModernReference(fromApi)
-            ? fromApi
-            : makeUiReference();
-          setReference(finalReference);
-          mergedData = {
-            ...mergedData,
-            ...(state.questionnaire || {}),
-          };
-          const prefillSiren = String(searchParams.get('prefillSiren') || '').replace(/\D/g, '');
-          if (prefillSiren.length === 9 || prefillSiren.length === 14) {
+          if (currentDossierId && state) {
+            const fromApi = state.reference || state?.dossier?.reference || '';
+            setReference(isModernReference(fromApi) ? fromApi : makeUiReference());
             mergedData = {
               ...mergedData,
-              companySiren: prefillSiren,
-              initiatorType: 'personne_morale',
+              ...(state.questionnaire || {}),
             };
           }
+        }
+
+        const prefillSiren = String(searchParams.get('prefillSiren') || '').replace(/\D/g, '');
+        if (prefillSiren.length === 9 || prefillSiren.length === 14) {
+          mergedData = {
+            ...mergedData,
+            companySiren: prefillSiren,
+            initiatorType: 'personne_morale',
+          };
         }
 
         const accountContact = contactDetailsFromUser(userForContact);
@@ -390,12 +414,14 @@ export const QuestionnairePage = () => {
           };
         }
 
-        setFormData(mergedData);
+        const resume = mergedData._resume || {};
+        const { stepIndex: resumeStep, fieldIndex: resumeField, demarcheCategory: resumeCategory, categoryConfirmed } = resolveResumePosition(mergedData, resume);
 
-        const contactFlowStep = QUESTIONNAIRE_FLOW[0];
-        if (isAuthenticated && isStepComplete(contactFlowStep, mergedData)) {
-          setStepIndex(1);
-        }
+        setFormData(mergedData);
+        setStepIndex(resumeStep);
+        setFieldIndex(resumeField);
+        setDemarcheCategory(resumeCategory || inferDemarcheCategory(mergedData.typeFormalite));
+        setDemarcheCategoryConfirmed(categoryConfirmed);
       } catch (_error) {
         // Keep graceful UI fallback.
       } finally {
@@ -414,7 +440,7 @@ export const QuestionnairePage = () => {
       try {
         setAutosaveState('saving');
         await persistQuestionnaire({
-          dataPatch: formData,
+          dataPatch: buildPersistPayload(formData),
           progressPercent: progress,
         });
         if (autosaveRequestId.current !== requestId) return;
@@ -484,9 +510,14 @@ export const QuestionnairePage = () => {
   const goNext = async () => {
     setStepError('');
     if (!canContinue) {
-      const label = activeField?.label || 'ce champ';
-      setStepError(`Complétez « ${label} » avant de continuer.`);
-      toast.error('Répondez à la question affichée pour continuer.');
+      const message = activeField
+        ? getFieldValidationMessage(activeField, formData[activeField.key], formData)
+        : 'Complétez les informations demandées avant de continuer.';
+      setStepError(message);
+      if (activeField?.key) {
+        setTouchedFields((current) => ({ ...current, [activeField.key]: true }));
+      }
+      toast.error(message);
       return;
     }
     if (!isLastFieldInStep) {
@@ -496,7 +527,7 @@ export const QuestionnairePage = () => {
     try {
       setAutosaveState('saving');
       const saveResult = await persistQuestionnaire({
-        dataPatch: step.id === 'contact' ? contactPayload : formData,
+        dataPatch: buildPersistPayload(step.id === 'contact' ? { ...formData, ...contactPayload } : formData),
         progressPercent: progress,
       });
       const activeDossierId = saveResult?.dossierId || getCurrentDossierId();
@@ -508,7 +539,7 @@ export const QuestionnairePage = () => {
       await completeQuestionnaireStep({
         dossierId: activeDossierId,
         stepId: step.id,
-        dataPatch: step.id === 'contact' ? contactPayload : formData,
+        dataPatch: buildPersistPayload(step.id === 'contact' ? { ...formData, ...contactPayload } : formData),
         progressPercent: progress,
       });
       setAutosaveState('saved');
@@ -543,9 +574,14 @@ export const QuestionnairePage = () => {
       return;
     }
     let nextIndex = stepIndex + 1;
+    const applicableSteps = getApplicableFlowSteps(formData);
     while (nextIndex < QUESTIONNAIRE_FLOW.length) {
       const nextStep = QUESTIONNAIRE_FLOW[nextIndex];
-      const visibleFields = nextStep.fields.filter((field) => !field.condition || field.condition(formData));
+      if (!applicableSteps.some((entry) => entry.id === nextStep.id)) {
+        nextIndex += 1;
+        continue;
+      }
+      const visibleFields = getVisibleFieldsForStep(nextStep, formData);
       if (visibleFields.length) break;
       nextIndex += 1;
     }
@@ -625,6 +661,11 @@ export const QuestionnairePage = () => {
 
   const renderQuestionField = (field) => {
     if (!field) return null;
+
+    if (field.type === 'recap_summary') {
+      return <QuestionnaireRecapPanel formData={formData} />;
+    }
+
     if (field.type === 'select') {
       const options = field.options || [];
       const normalizedOptions = options.map((option) => (
@@ -642,6 +683,10 @@ export const QuestionnairePage = () => {
                 value={formData.typeFormalite}
                 onChange={(nextValue) => updateField(field, nextValue)}
                 categoryFirst={isAuthenticated}
+                primaryCategory={demarcheCategory}
+                onPrimaryCategoryChange={setDemarcheCategory}
+                categoryConfirmed={demarcheCategoryConfirmed}
+                onCategoryConfirmedChange={setDemarcheCategoryConfirmed}
               />
             </div>
           </div>
@@ -769,6 +814,9 @@ export const QuestionnairePage = () => {
 
     const value = formData[field.key] ?? '';
     const invalid = field.required && !isFieldValueValid(field, value, formData);
+    const showInlineError = touchedFields[field.key] && invalid;
+    const inlineMessage = getFieldValidationMessage(field, value, formData);
+    const markTouched = () => setTouchedFields((current) => ({ ...current, [field.key]: true }));
 
     if (field.type === 'textarea') {
       return (
@@ -779,8 +827,10 @@ export const QuestionnairePage = () => {
             placeholder={field.placeholder || ''}
             rows={4}
             onChange={(event) => updateField(field, event.target.value)}
-            className={`${fieldClass} min-h-[110px] w-full ${invalid && String(value).length > 0 ? 'border-red-400' : ''}`}
+            onBlur={markTouched}
+            className={`${fieldClass} min-h-[110px] w-full ${showInlineError ? 'border-red-400' : ''}`}
           />
+          {showInlineError ? <p className="text-xs text-red-600">{inlineMessage}</p> : null}
         </div>
       );
     }
@@ -798,7 +848,8 @@ export const QuestionnairePage = () => {
               : event.target.value;
             updateField(field, nextValue);
           }}
-          className={`${fieldClass} ${invalid && String(value).length > 0 ? 'border-red-400' : ''}`}
+          onBlur={markTouched}
+          className={`${fieldClass} ${showInlineError ? 'border-red-400' : ''}`}
         />
         {field.key === 'companySiren' && formData.initiatorType === 'personne_morale' ? (
           <div className="flex items-center gap-2">
@@ -828,8 +879,8 @@ export const QuestionnairePage = () => {
         {(field.key === 'companySiren' || field.key === 'existingBusinessSiren') && foundCompany && foundCompanyFieldKey === field.key ? (
           <CompanyLookupCard company={foundCompany} onUse={applyFoundCompany} />
         ) : null}
-        {invalid && String(value).length > 0 ? (
-          <p className="text-xs text-red-600">Ce champ est requis.</p>
+        {showInlineError ? (
+          <p className="text-xs text-red-600">{inlineMessage}</p>
         ) : null}
       </div>
     );

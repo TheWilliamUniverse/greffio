@@ -1,5 +1,6 @@
 import { isLegallyMinor } from '@/config/minorAssociateRules.js';
 import { ASSOCIATE_TYPES, isAssociateEntryComplete } from '@/utils/associateEntry.js';
+import { resolveDemarchePreset } from '@/utils/formalityMapping.js';
 
 export const DEMARCHE_CATEGORIES = [
   { id: 'creation', label: 'Création', description: 'Immatriculer une nouvelle structure' },
@@ -200,6 +201,11 @@ export const QUESTIONNAIRE_FLOW = [
     id: 'forme',
     title: 'Forme juridique',
     description: 'Sélectionnez la structure cible de votre activité.',
+    condition: (data) => {
+      const preset = String(data.formeJuridique || '').trim();
+      if (preset && resolveDemarchePreset(data.typeFormalite).formeJuridique) return false;
+      return !isEiLikeFormality(data);
+    },
     fields: [
       {
         key: 'formeJuridique',
@@ -330,6 +336,14 @@ export const QUESTIONNAIRE_FLOW = [
     ],
   },
   {
+    id: 'recap',
+    title: 'Récapitulatif',
+    description: 'Relisez vos réponses avant de valider le dossier.',
+    fields: [
+      { key: '_recapSummary', label: 'Récapitulatif', type: 'recap_summary', required: false },
+    ],
+  },
+  {
     id: 'validation',
     title: 'Validation finale',
     description: 'Vérifiez puis validez avant génération des documents.',
@@ -400,5 +414,68 @@ export const isStepComplete = (step, formData) => {
   if (step.condition && !step.condition(formData)) return true;
   const visibleFields = step.fields.filter((field) => !field.condition || field.condition(formData));
   if (!visibleFields.length) return true;
+  if (step.id === 'recap') return true;
   return visibleFields.every((field) => isFieldValueValid(field, formData[field.key], formData));
+};
+
+export const inferDemarcheCategory = (typeFormalite = '') => {
+  const item = DEMARCHE_CATALOG.find((entry) => entry.key === typeFormalite);
+  if (!item) return '';
+  const primary = PRIMARY_FORMALITY_CATEGORIES.find((entry) => entry.categories.includes(item.category));
+  return primary?.id || '';
+};
+
+export const resolveResumePosition = (formData = {}, resume = {}) => {
+  const applicable = getApplicableFlowSteps(formData);
+  let stepIndex = 0;
+  let fieldIndex = 0;
+
+  if (resume?.stepId) {
+    const savedIndex = applicable.findIndex((entry) => entry.id === resume.stepId);
+    if (savedIndex >= 0) stepIndex = savedIndex;
+  } else {
+    for (let index = 0; index < applicable.length; index += 1) {
+      if (!isStepComplete(applicable[index], formData)) {
+        stepIndex = index;
+        break;
+      }
+      if (index === applicable.length - 1) stepIndex = index;
+    }
+  }
+
+  const step = applicable[stepIndex] || applicable[0];
+  const fields = getVisibleFieldsForStep(step, formData);
+  if (resume?.fieldKey && fields.length) {
+    const savedField = fields.findIndex((field) => field.key === resume.fieldKey);
+    if (savedField >= 0) fieldIndex = savedField;
+  } else if (fields.length) {
+    for (let index = 0; index < fields.length; index += 1) {
+      if (!isFieldValueValid(fields[index], formData[fields[index].key], formData)) {
+        fieldIndex = index;
+        break;
+      }
+    }
+  }
+
+  return {
+    stepIndex,
+    fieldIndex,
+    demarcheCategory: resume?.demarcheCategory || inferDemarcheCategory(formData.typeFormalite),
+    categoryConfirmed: resume?.categoryConfirmed ?? Boolean(formData.typeFormalite),
+  };
+};
+
+export const getFieldValidationMessage = (field, value, formData = {}) => {
+  if (!field?.required) return '';
+  if (isFieldValueValid(field, value, formData)) return '';
+  if (field.type === 'email') return 'Indiquez une adresse email valide pour recevoir les notifications.';
+  if (field.type === 'checkbox') return 'Cette confirmation est nécessaire pour poursuivre.';
+  if (field.key === 'companySiren' || field.key === 'existingBusinessSiren') {
+    return 'Le SIREN (9 chiffres) ou SIRET (14 chiffres) est requis pour identifier l’entreprise.';
+  }
+  if (field.key === 'typeFormalite') return 'Choisissez la formalité correspondant à votre projet.';
+  if (field.key === 'formeJuridique') return 'Indiquez la forme juridique de votre structure.';
+  if (field.key === 'dirigeant') return 'Le dirigeant doit être identifié conformément à la réglementation.';
+  if (field.type === 'associates_minor_panel') return 'Renseignez au moins un associé complet (identité et parts).';
+  return `${field.label || 'Ce champ'} est requis pour constituer votre dossier.`;
 };

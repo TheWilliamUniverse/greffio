@@ -1,6 +1,7 @@
 import { sendTransactionalEmail } from '../services/emailService.js';
 import { getDossier } from '../store.js';
 import { shouldSendDossierEmail } from './dossierEmailPolicy.js';
+import { shouldSendReminderForUser } from './dossierReminderPolicy.js';
 
 const defaultClientUrl = process.env.APP_URL || 'https://greffio.willentreprises.com';
 
@@ -12,6 +13,7 @@ const sendDossierEmail = async ({
   userId = null,
   toEmail,
   variables = {},
+  daysSinceAction = 0,
 }) => {
   if (!toEmail) {
     return { ok: false, error: 'RECIPIENT_EMAIL_REQUIRED' };
@@ -25,6 +27,17 @@ const sendDossierEmail = async ({
   });
   if (!policy.ok) {
     return { ok: true, skipped: true, reason: policy.reason, templateId };
+  }
+
+  const reminderPolicy = await shouldSendReminderForUser({
+    userId,
+    templateId,
+    dossierId: dossier?.id || null,
+    recipientEmail: toEmail,
+    daysSinceAction,
+  });
+  if (!reminderPolicy.ok) {
+    return { ok: true, skipped: true, reason: reminderPolicy.reason, templateId };
   }
 
   const mergedVariables = {

@@ -107,6 +107,7 @@ export const SignaturePublicPage = () => {
               loading={signing}
               onCancel={() => window.close()}
               onConfirm={onSign}
+              errorMessage={error}
             />
             {error ? <p className="mt-3 text-center text-sm text-red-300">{error}</p> : null}
           </div>

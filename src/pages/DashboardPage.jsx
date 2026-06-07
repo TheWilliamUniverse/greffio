@@ -26,6 +26,7 @@ import { RememberMfaDeviceBanner } from '@/components/security/RememberMfaDevice
 import { isEiLikeFormality } from '@/config/formalities.js';
 import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 import { mapDossierStatusForBadge, mapDossierClientAction } from '@/utils/dossierClientStatus.js';
+import { resolveDossierContinueUrl } from '@/utils/dossierContinueUrl.js';
 import { isLoginAlertsConfigured, getLoginAlertsSettings, rememberLoginAlertsChoice } from '@/utils/userProfile.js';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 import { countActionableDocuments, resolveClientDocumentStatus, documentHasFile } from '@/utils/documentWorkflow.js';
@@ -144,6 +145,9 @@ export const DashboardPage = () => {
 
   const today = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
   const activeDossiers = dossiers.filter((dossier) => dossier.status !== 'VALIDE' && dossier.status !== 'TERMINE').length;
+  const primaryContinueUrl = dossiersRaw[0]
+    ? resolveDossierContinueUrl(dossiersRaw[0])
+    : '/simulateur';
   const documentsToReview = countActionableDocuments(documents);
   const averageProgress = dossiers.length ? Math.round(dossiers.reduce((sum, dossier) => sum + (dossier.progress || 0), 0) / dossiers.length) : 0;
   const nextDueDate = useMemo(() => {

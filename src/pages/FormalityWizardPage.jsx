@@ -56,7 +56,7 @@ import { isCapacitorNative } from '@/utils/platform.js';
 const resolveOfferLink = ({ offer, journey, isAuthenticated }) => {
   if (offer.price === '0€') {
     if (isAuthenticated) {
-      return journey === 'statuts' ? '/statuts-gratuits' : '/questionnaire';
+      return journey === 'statuts' ? '/statuts-gratuits' : '/questionnaire?fromSimulator=1';
     }
     return `/signup?service=${encodeURIComponent(journey)}`;
   }

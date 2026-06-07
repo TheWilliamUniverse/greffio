@@ -21,6 +21,18 @@ export const isMobileApp = () => isCapacitorNative();
 export const MOBILE_BREAKPOINT = 768;
 export const TABLET_BREAKPOINT = 1024;
 
+/** Tablette (768–1024) : layout desktop, pas mobile étiré. */
+export const isTabletViewport = () => {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth >= MOBILE_BREAKPOINT && window.innerWidth < TABLET_BREAKPOINT;
+};
+
+export const isDesktopBrowserViewport = () => {
+  if (typeof window === 'undefined') return true;
+  if (isCapacitorNative()) return false;
+  return window.innerWidth >= MOBILE_BREAKPOINT;
+};
+
 export const isMobileBrowserViewport = () => {
   if (typeof window === 'undefined') return false;
   return !isCapacitorNative() && window.innerWidth < MOBILE_BREAKPOINT;
