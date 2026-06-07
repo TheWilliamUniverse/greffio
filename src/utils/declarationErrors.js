@@ -57,6 +57,12 @@ export const getDeclarationErrorMessage = (code = '', payload = null) => {
     case 'SIGNWELL_SIGN_NOW_FAILED':
     case 'SIGNWELL_NOT_CONFIGURED':
       return 'L’envoi via SignWell a échoué. Vérifiez la configuration API sur le serveur.';
+    case 'SIGNWELL_API_ERROR':
+    case 'not_authorized_error':
+      if (/verify your email/i.test(String(payload?.message || ''))) {
+        return 'Compte SignWell : vérifiez l’email du compte sur signwell.com pour activer l’API. Greffio basculera sur la signature interne si disponible.';
+      }
+      return payload?.message || 'SignWell a refusé la requête. Réessayez ou contactez le support Greffio.';
     case 'SEND_SIGNATURE_REQUEST_FAILED':
       return 'L’envoi du lien de signature a échoué.';
     case 'PUBLIC_SIGN_FAILED':

@@ -22,7 +22,7 @@ import { sendTransactionalEmail } from '../services/emailService.js';
 import { getClientIp } from '../utils/loginContext.js';
 import { resolveDossierAccess } from '../utils/dossierAccess.js';
 import { ensureSignatureDraftPdf } from '../services/signatureDraftPdfService.js';
-import { isSignwellConfigured, sendDocumentForSignature, SIGNWELL_PROVIDER } from '../services/signature/signwellOrchestrator.js';
+import { isSignwellConfigured, sendDocumentForSignature, SIGNWELL_PROVIDER, isSignwellStrictMode, formatSignwellApiError } from '../services/signature/signwellOrchestrator.js';
 import { getSignwellDocumentBySignatureRequestId } from '../signwellStore.js';
 
 export const registerNonConvictionSignatureRoutes = (app, {
@@ -137,11 +137,14 @@ export const registerNonConvictionSignatureRoutes = (app, {
           });
         } catch (signwellError) {
           console.error('SIGNWELL_SEND_FAILED', signwellError);
-          return res.status(502).json({
-            ok: false,
-            error: signwellError?.code || 'SIGNWELL_SEND_FAILED',
-            message: 'Envoi SignWell impossible. Réessayez ou contactez le support Greffio.',
-          });
+          if (isSignwellStrictMode()) {
+            const formatted = formatSignwellApiError(signwellError);
+            return res.status(502).json({
+              ok: false,
+              error: formatted.code,
+              message: formatted.message,
+            });
+          }
         }
       }
 
@@ -246,11 +249,15 @@ export const registerNonConvictionSignatureRoutes = (app, {
           });
         } catch (signwellError) {
           console.error('SIGNWELL_SIGN_NOW_FAILED', signwellError);
-          return res.status(502).json({
-            ok: false,
-            error: signwellError?.code || 'SIGNWELL_SIGN_NOW_FAILED',
-            message: 'Redirection SignWell impossible. Réessayez ou contactez le support Greffio.',
-          });
+          if (isSignwellStrictMode()) {
+            const formatted = formatSignwellApiError(signwellError);
+            return res.status(502).json({
+              ok: false,
+              error: formatted.code,
+              message: formatted.message,
+            });
+          }
+          console.warn('[signwell] sign-now fallback to internal consent signature', signwellError?.message);
         }
       }
 

@@ -22,6 +22,14 @@ import {
 
 export { isSignwellConfigured, SIGNWELL_PROVIDER };
 
+export const isSignwellStrictMode = () => process.env.SIGNWELL_STRICT === 'true';
+
+export const formatSignwellApiError = (error) => ({
+  code: error?.code || 'SIGNWELL_API_ERROR',
+  message: error?.message || 'SIGNWELL_API_ERROR',
+  signwellCode: error?.signwellCode || null,
+});
+
 const extractSigningUrl = (document) => {
   const recipients = document?.recipients || [];
   const recipient = recipients.find((entry) => entry?.embedded_signing_url || entry?.signing_url) || recipients[0];

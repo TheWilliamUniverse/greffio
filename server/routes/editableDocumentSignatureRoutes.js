@@ -17,7 +17,7 @@ import {
 import { sendTransactionalEmail } from '../services/emailService.js';
 import { getClientIp } from '../utils/loginContext.js';
 import { resolveDossierAccess } from '../utils/dossierAccess.js';
-import { isSignwellConfigured, sendDocumentForSignature } from '../services/signature/signwellOrchestrator.js';
+import { isSignwellConfigured, sendDocumentForSignature, isSignwellStrictMode, formatSignwellApiError } from '../services/signature/signwellOrchestrator.js';
 
 export const registerEditableDocumentSignatureRoutes = (app, {
   requireAuth,
@@ -123,10 +123,14 @@ export const registerEditableDocumentSignatureRoutes = (app, {
             });
           } catch (signwellError) {
             console.error('SIGNWELL_SEND_FAILED', signwellError);
-            return res.status(502).json({
-              ok: false,
-              error: signwellError?.code || 'SIGNWELL_SEND_FAILED',
-            });
+            if (isSignwellStrictMode()) {
+              const formatted = formatSignwellApiError(signwellError);
+              return res.status(502).json({
+                ok: false,
+                error: formatted.code,
+                message: formatted.message,
+              });
+            }
           }
         }
 
@@ -224,10 +228,15 @@ export const registerEditableDocumentSignatureRoutes = (app, {
             });
           } catch (signwellError) {
             console.error('SIGNWELL_SIGN_NOW_FAILED', signwellError);
-            return res.status(502).json({
-              ok: false,
-              error: signwellError?.code || 'SIGNWELL_SIGN_NOW_FAILED',
-            });
+            if (isSignwellStrictMode()) {
+              const formatted = formatSignwellApiError(signwellError);
+              return res.status(502).json({
+                ok: false,
+                error: formatted.code,
+                message: formatted.message,
+              });
+            }
+            console.warn('[signwell] sign-now fallback to internal consent signature', signwellError?.message);
           }
         }
 

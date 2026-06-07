@@ -40,8 +40,10 @@ export const signwellFetch = async (path, { method = 'GET', body } = {}) => {
   }
 
   if (!response.ok) {
-    const error = new Error(payload?.message || payload?.meta?.message || 'SIGNWELL_API_ERROR');
-    error.code = payload?.meta?.error || 'SIGNWELL_API_ERROR';
+    const apiMessage = payload?.message || payload?.meta?.message || 'SIGNWELL_API_ERROR';
+    const error = new Error(apiMessage);
+    error.code = 'SIGNWELL_API_ERROR';
+    error.signwellCode = payload?.meta?.error || payload?.error || null;
     error.status = response.status;
     error.payload = payload;
     throw error;
