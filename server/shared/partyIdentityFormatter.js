@@ -34,6 +34,28 @@ export const sortAssociatesPresidentFirst = (associates = []) => (
   })
 );
 
+/** Ordre canon William : personne morale d’abord, puis rôle, puis nom. */
+export const sortAssociatesStatutesCanon = (associates = []) => (
+  [...(associates || [])].sort((a, b) => {
+    const legalDelta = Number(isLegalEntityParty(a)) - Number(isLegalEntityParty(b));
+    if (legalDelta !== 0) return -legalDelta;
+    const delta = rolePriority(a.roleLabel) - rolePriority(b.roleLabel);
+    if (delta !== 0) return delta;
+    return String(a.label || a.companyName || '').localeCompare(String(b.label || b.companyName || ''), 'fr', { sensitivity: 'base' });
+  })
+);
+
+export const formatStatutesPersonDisplayName = (associate = {}) => {
+  const raw = String(
+    associate.label || associate.fullName || [associate.firstName, associate.lastName].filter(Boolean).join(' '),
+  ).trim() || 'Associé à compléter';
+  const parts = raw.split(/\s+/);
+  if (parts.length >= 2) {
+    return `${parts.slice(0, -1).join(' ')} ${parts[parts.length - 1].toUpperCase()}`;
+  }
+  return raw;
+};
+
 export const LEGAL_ENTITY_SIGNATORY_QUALITIES = Object.freeze(['Président', 'Directeur Général']);
 
 /** Qualité documentaire du signataire PM : uniquement si choisie explicitement (Président ou Directeur Général). */
@@ -56,7 +78,11 @@ export const formatLegalEntitySignatureMention = ({
   return `Pour ${company}.`;
 };
 
-export const formatLegalEntityAssociateDescription = (associate = {}, { greffeCity, companyCapital } = {}) => {
+export const formatLegalEntityAssociateDescription = (associate = {}, {
+  greffeCity,
+  companyCapital,
+  includeRepresentative = true,
+} = {}) => {
   const name = associate.fullName || associate.label || associate.companyName || 'Société associée à compléter';
   const legalForm = associate.legalFormLabel || legalFormLabelFromCode(associate.legalForm);
   const greffe = greffeCity || associate.rcsCity || 'Nice';
@@ -66,15 +92,18 @@ export const formatLegalEntityAssociateDescription = (associate = {}, { greffeCi
   const capital = String(associate.capitalSocial || companyCapital || '').trim();
   const capitalPart = capital ? ` au capital de ${capital}` : '';
   const seatPart = associate.address ? `, dont le siège social est situé ${associate.address}` : '';
-  const repName = String(associate.representativeName || '').trim();
-  const repQuality = resolveLegalEntitySignatoryQuality({
-    representativeQuality: associate.representativeQuality || associate.representativeRole,
-  });
-  const repPart = repName && repQuality
-    ? `, représentée par ${repName}, agissant en qualité de ${repQuality}, dûment habilitée aux fins des présentes`
-    : repName
-      ? `, représentée par ${repName}`
-      : '';
+  let repPart = '';
+  if (includeRepresentative) {
+    const repName = String(associate.representativeName || '').trim();
+    const repQuality = resolveLegalEntitySignatoryQuality({
+      representativeQuality: associate.representativeQuality || associate.representativeRole,
+    });
+    repPart = repName && repQuality
+      ? `, représentée par ${repName}, agissant en qualité de ${repQuality}, dûment habilitée aux fins des présentes`
+      : repName
+        ? `, représentée par ${repName}`
+        : '';
+  }
   return `${name}, ${legalForm}${capitalPart}, ${rcsPart}${seatPart}${repPart}.`;
 };
 

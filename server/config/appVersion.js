@@ -34,15 +34,15 @@ const parseChangelog = (value) => {
     .filter(Boolean);
 };
 
-const DEFAULT_LATEST_VERSION_CODE = 261510002;
+const DEFAULT_LATEST_VERSION_CODE = 261510003;
 const DEFAULT_MIN_VERSION_CODE = 261422041;
-const DEFAULT_LATEST_VERSION_NAME = '1.2.3';
+const DEFAULT_LATEST_VERSION_NAME = '1.2.4';
 
 const DEFAULT_CHANGELOG = [
-  'Liens profonds Android : domaine greffio.willentreprises.com associé à l’app',
-  'Parcours démarches en grille 2 colonnes sur l’app mobile',
-  'Connexion : affichage mot de passe et verrouillage après 30 min d’inactivité',
-  'Statuts PDF personnalisés, copies certifiées à 1,49 €, page Documents simplifiée',
+  'Documents : aperçu PDF fiable et page coffre simplifiée',
+  'Assistant Greffio : réponses plus pertinentes sur votre dossier',
+  'Statuts et signatures : corrections d’aperçu et de génération',
+  'Mentions légales : raison sociale WILLIAM ESTABLISHMENTS',
 ];
 
 export const getAppVersionConfig = () => ({

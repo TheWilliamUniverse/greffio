@@ -17,7 +17,6 @@ export const PRIMARY_FORMALITY_CATEGORIES = Object.freeze([
     kicker: 'Création',
     label: 'Immatriculer une nouvelle structure',
     description: 'SAS, SARL, SCI, micro-entreprise, EI…',
-    emoji: '🏢',
     categories: ['creation'],
   },
   {
@@ -25,7 +24,6 @@ export const PRIMARY_FORMALITY_CATEGORIES = Object.freeze([
     kicker: 'Établissements & siège',
     label: 'Ouvrir, fermer ou déplacer un site',
     description: 'Siège, établissement secondaire, transfert.',
-    emoji: '📍',
     categories: ['etablissements'],
   },
   {
@@ -33,7 +31,6 @@ export const PRIMARY_FORMALITY_CATEGORIES = Object.freeze([
     kicker: 'Modifications',
     label: 'Capital, gouvernance, activité',
     description: 'Dirigeant, dénomination, objet social, capital.',
-    emoji: '✏️',
     categories: ['modifications', 'gestion'],
   },
   {
@@ -41,7 +38,6 @@ export const PRIMARY_FORMALITY_CATEGORIES = Object.freeze([
     kicker: 'Documents & régularisation',
     label: 'Kbis, corrections, étranger',
     description: 'Régularisation, documents officiels, société étrangère.',
-    emoji: '📄',
     categories: ['autres'],
   },
 ]);

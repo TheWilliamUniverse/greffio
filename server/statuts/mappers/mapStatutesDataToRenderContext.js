@@ -2,7 +2,9 @@ import { resolveWilliamObjetSocialBullets } from '../catalogs/objectSocialCatalo
 import { formatFrEuros, formatFrInteger, parseFrenchAmount } from '../shared/numberFormat.js';
 import { formatStatutesFiscalEnd } from '../shared/statutesDates.js';
 import { resolveGreffeCity, resolveTribunalCommerce } from '../shared/resolveTribunalCommerce.js';
-import { sortAssociatesPresidentFirst, resolveLegalEntitySignatoryQuality } from '../../shared/partyIdentityFormatter.js';
+import { sortAssociatesStatutesCanon, resolveLegalEntitySignatoryQuality, formatStatutesPersonDisplayName } from '../../shared/partyIdentityFormatter.js';
+import { deriveStatutsCapitalModel, validateStatutsCapitalModel } from '../shared/deriveStatutsCapital.js';
+import { resolveGlobalLiberationPercent } from '../shared/parseLiberationPercent.js';
 
 const parseAmount = parseFrenchAmount;
 
@@ -16,7 +18,32 @@ const legalFormLabel = (form) => {
 export const mapStatutesDataToRenderContext = (statutesData = {}) => {
   const legalForm = String(statutesData.legalForm || 'SAS').toUpperCase();
   const capitalAmount = parseAmount(statutesData.capital) || parseAmount(statutesData.capitalRaw);
-  const nombreTitres = parseAmount(statutesData.nombreTitres) || capitalAmount || 5000;
+  const shareCount = parseAmount(statutesData.nombreTitres) || capitalAmount || 1000;
+  const nominalFromData = parseAmount(statutesData.valeurNominale);
+  const liberationPercent = resolveGlobalLiberationPercent({
+    liberationCapital: statutesData.liberationCapital,
+    liberationRate: statutesData.liberationRate,
+    liberationCapitalAutre: statutesData.liberationCapitalAutre,
+    liberationCapitalCustom: statutesData.liberationCapitalCustom,
+    liberationCapitalDetail: statutesData.liberationCapitalDetail,
+  });
+
+  const capitalModel = deriveStatutsCapitalModel({
+    capitalAmount,
+    shareCount,
+    nominalValue: nominalFromData > 0 ? nominalFromData : null,
+    liberationPercent,
+    associates: sortAssociatesStatutesCanon(statutesData.associates || []),
+  });
+
+  const capitalValidation = validateStatutsCapitalModel(capitalModel);
+  if (!capitalValidation.ok && capitalAmount > 0 && shareCount > 0) {
+    const error = new Error('STATUTES_CAPITAL_INCONSISTENT');
+    error.code = 'STATUTES_CAPITAL_INCONSISTENT';
+    error.validation = capitalValidation;
+    throw error;
+  }
+
   const objectSocialBullets = resolveWilliamObjetSocialBullets({
     objetSocialBullets: statutesData.objetSocialBullets,
     objetSocial: statutesData.objetSocial,
@@ -28,23 +55,11 @@ export const mapStatutesDataToRenderContext = (statutesData = {}) => {
   const seat = statutesData.seat || {};
   const greffeCity = resolveGreffeCity({ greffe: statutesData.greffe, seat });
 
-  const associates = sortAssociatesPresidentFirst(statutesData.associates || []).map((associate) => {
+  const associates = capitalModel.associatesComputed.map((associate) => {
     const isLegalEntity = associate.associateType === 'personne_morale';
-    let sharePercentage = parseAmount(String(associate.share || '').replace('%', ''));
-    if (!sharePercentage && associate.share) {
-      const pctMatch = String(associate.share).match(/([\d,.]+)\s*%/);
-      if (pctMatch) sharePercentage = parseAmount(pctMatch[1]);
-    }
-    let shares = parseAmount(associate.titlesCount) || parseAmount(associate.shares);
-    if (!shares && sharePercentage && nombreTitres > 0) {
-      shares = Math.round((nombreTitres * sharePercentage) / 100);
-    }
-    if (!sharePercentage && shares && nombreTitres > 0) {
-      sharePercentage = Math.round((shares / nombreTitres) * 1000) / 10;
-    }
     const fullName = isLegalEntity
       ? (associate.companyName || associate.label || 'Société associée à compléter')
-      : (associate.label || associate.fullName || 'Associé à compléter');
+      : formatStatutesPersonDisplayName(associate);
     return {
       isLegalEntity,
       fullName,
@@ -62,20 +77,19 @@ export const mapStatutesDataToRenderContext = (statutesData = {}) => {
       birthDate: isLegalEntity ? undefined : associate.birthDate,
       birthPlace: isLegalEntity ? undefined : associate.birthPlace,
       nationality: isLegalEntity ? undefined : associate.nationality,
+      civility: isLegalEntity ? undefined : associate.civility,
       isMinor: Boolean(associate.isMinor),
       isEmancipated: Boolean(associate.isMinorEmancipated),
       legalRepresentatives: associate.legalRepresentatives
         ? String(associate.legalRepresentatives).split(/\s+et\s+/i).map((s) => s.trim()).filter(Boolean)
         : [],
-      shares: shares || null,
-      sharePercentage,
+      shares: associate.shares || null,
+      sharePercentage: associate.sharePercentage,
       roleLabel: associate.roleLabel || 'Associé',
-      cashContributionFormatted: associate.contributionCash
-        ? (formatFrEuros(associate.contributionCash) || associate.contributionCash)
-        : undefined,
-      cashReleasedFormatted: associate.liberationAmount
-        ? (formatFrEuros(associate.liberationAmount) || associate.liberationAmount)
-        : undefined,
+      cashContributionFormatted: associate.subscribedFormatted || formatFrEuros(associate.subscribedAmount),
+      cashReleasedFormatted: associate.releasedFormatted || formatFrEuros(associate.releasedAmount),
+      liberationPercent: associate.liberationPercent,
+      liberationRateLabel: associate.liberationRateLabel,
       inKindContributions: associate.contributionInKind && associate.contributionInKind !== 'Aucun'
         ? [{ label: String(associate.contributionInKind), valueFormatted: formatFrEuros(statutesData.apportsNatureTotal) || 'à compléter' }]
         : [],
@@ -95,13 +109,16 @@ export const mapStatutesDataToRenderContext = (statutesData = {}) => {
 
   return {
     legalForm,
+    capitalModel,
     company: {
       name: statutesData.denomination || 'Dénomination à compléter',
       sigle: statutesData.sigle && statutesData.sigle !== 'Non prévu' ? statutesData.sigle : undefined,
       legalFormLabel: legalFormLabel(legalForm),
-      capitalAmount: capitalAmount || nombreTitres,
-      shareCount: nombreTitres,
-      capitalFormatted: formatFrEuros(statutesData.capital) || formatFrEuros(statutesData.capitalRaw) || `${formatFrInteger(capitalAmount || nombreTitres)} euros`,
+      capitalAmount: capitalModel.capitalTotal || shareCount,
+      shareCount: capitalModel.shareCount,
+      nominalValue: capitalModel.nominalValue,
+      nominalValueFormatted: capitalModel.nominalValueFormatted,
+      capitalFormatted: capitalModel.capitalFormatted || formatFrEuros(statutesData.capital) || `${formatFrInteger(capitalAmount || shareCount)} euros`,
       registeredOffice: registeredOffice || 'Siège social à compléter',
       rcsCity: greffeCity || statutesData.greffe,
       durationYears: parseAmount(String(statutesData.duree || '99').replace(/\D/g, '')) || 99,
@@ -117,10 +134,11 @@ export const mapStatutesDataToRenderContext = (statutesData = {}) => {
         : undefined,
     },
     apports: {
-      cashTotalFormatted: formatFrEuros(statutesData.apportsNumeraireTotal) || formatFrEuros(statutesData.capital),
+      cashTotalFormatted: capitalModel.capitalFormatted || formatFrEuros(statutesData.apportsNumeraireTotal) || formatFrEuros(statutesData.capital),
       inKindTotalFormatted: formatFrEuros(statutesData.apportsNatureTotal) || '0 euro',
-      depositedFundsFormatted: formatFrEuros(statutesData.depotFonds) || formatFrEuros(statutesData.apportsLibérés),
-      liberationRate: statutesData.liberationCapital || '50 %',
+      inKindTotalAmount: parseAmount(statutesData.apportsNatureTotal) || 0,
+      depositedFundsFormatted: capitalModel.depositedFundsFormatted,
+      liberationRate: capitalModel.liberationRateLabel,
     },
     execution: {
       city: statutesData.signatureCity || seat.city,

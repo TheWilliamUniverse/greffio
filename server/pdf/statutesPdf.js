@@ -79,7 +79,7 @@ const renderBoldStatutesLine = (doc, companyName, pages, text, { underline = fal
   const x = PAGE.marginLeft;
   const width = contentWidth(doc);
   const cleanText = pdfText(text);
-  doc.font(FONTS.bold).fontSize(13);
+  doc.font(FONTS.bold).fontSize(14);
   const startY = doc.y;
   doc.text(cleanText, x, startY, { width, align: 'left', lineGap: 4 });
   if (underline) {
@@ -105,7 +105,7 @@ const renderStatutesBodyParagraph = (doc, companyName, pages, paragraph) => {
     return;
   }
   ensureSpace(doc, companyName, pages, 36);
-  doc.font(FONTS.regular).fontSize(13)
+  doc.font(FONTS.regular).fontSize(14)
     .text(pdfText(paragraph), PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify', lineGap: 4 });
   doc.moveDown(0.5);
 };
@@ -169,7 +169,7 @@ const renderBlock = (doc, companyName, pages, block) => {
   if (block.kind === 'paragraph') {
     ensureSpace(doc, companyName, pages, 36);
     if (block.subheading) doc.moveDown(0.35);
-    doc.font(block.subheading ? FONTS.bold : FONTS.regular).fontSize(13)
+    doc.font(block.subheading ? FONTS.bold : FONTS.regular).fontSize(14)
       .text(pdfText(block.text), PAGE.marginLeft, doc.y, { width: contentWidth(doc), align: 'justify', lineGap: 4 });
     doc.moveDown(block.subheading ? 0.35 : 0.5);
     return;
@@ -251,11 +251,6 @@ const renderSignatureBlock = (doc, companyName, pages, block) => {
       const x = PAGE.marginLeft + (colWidth * index);
       doc.font(FONTS.regular).fontSize(11).text(col.name, x, startY, { width: colWidth - 8 });
       doc.font(FONTS.regular).fontSize(10.5).text(col.role, x, doc.y + 2, { width: colWidth - 8 });
-      (col.subLines || []).forEach((subLine) => {
-        doc.font(FONTS.regular).fontSize(9.5).fillColor('#444444')
-          .text(subLine, x, doc.y + 2, { width: colWidth - 8 });
-      });
-      doc.fillColor('#111111');
     });
     doc.y = startY + 36;
     block.columns.forEach((col, index) => {
@@ -336,8 +331,8 @@ const generateStatutesPdf = async ({ filename, document: statutesDocument }) => 
   renderCover(doc, statutesDocument.cover || {});
   finishCoverAndStartBody(doc, companyName, pages);
   (statutesDocument.blocks || []).forEach((block) => renderBlock(doc, companyName, pages, block));
-  renderAnnexes(doc, companyName, pages, statutesDocument.annexes || []);
   renderSignatures(doc, companyName, pages, statutesDocument.signatures || {});
+  renderAnnexes(doc, companyName, pages, statutesDocument.annexes || []);
 
   doc.end();
   await new Promise((resolve, reject) => {

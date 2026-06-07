@@ -11,8 +11,8 @@ const PT = {
   coverReference: COVER_REFERENCE_FONT_SIZE_PT * 2,
   sectionTitle: 32,
   articleTitle: 32,
-  body: 26,
-  subheading: 26,
+  body: 28,
+  subheading: 28,
 };
 
 const escapeXml = (value) => String(value ?? '')
@@ -49,8 +49,8 @@ export const buildStatutesExportElements = (preview) => {
 
   (preview.blocks || []).forEach((block) => {
     if (block.kind === 'legal-title') {
-      inPreliminary = false;
-      preliminaryOpened = false;
+      inPreliminary = /^DISPOSITIONS PRÉLIMINAIRES/i.test(String(block.text || ''));
+      preliminaryOpened = inPreliminary;
       elements.push({ type: 'section-title', text: block.text });
       return;
     }
@@ -85,17 +85,17 @@ export const buildStatutesExportElements = (preview) => {
     }
   });
 
+  if (preview.signatures) {
+    elements.push({ type: 'section-title', text: preview.signatures.title || 'SIGNATURES' });
+    (preview.signatures.intro || []).forEach((line) => elements.push({ type: 'body', text: line }));
+  }
+
   (preview.annexes || []).forEach((annex) => {
     elements.push({ type: 'section-title', text: annex.title });
     (annex.paragraphs || annex.lines || []).forEach((line) => {
       elements.push({ type: 'body', text: line });
     });
   });
-
-  if (preview.signatures) {
-    elements.push({ type: 'section-title', text: preview.signatures.title || 'SIGNATURES' });
-    (preview.signatures.intro || []).forEach((line) => elements.push({ type: 'body', text: line }));
-  }
 
   return elements;
 };
@@ -155,10 +155,10 @@ export const buildStatutesOdtBlob = (preview) => {
     if (item.type === 'section-title') return `${odtParagraph('', { size: '8pt' })}${odtParagraph(item.text, { bold: true, size: '16pt' })}`;
     if (item.type === 'article') {
       const paragraphs = String(item.body || '').split(/\n\n+/).map((part) => part.trim()).filter(Boolean);
-      const bodyOdt = paragraphs.map((paragraph) => odtParagraph(paragraph, { size: '13pt' })).join('');
+      const bodyOdt = paragraphs.map((paragraph) => odtParagraph(paragraph, { size: '14pt' })).join('');
       return `${odtParagraph(item.heading, { bold: true, size: '16pt' })}${bodyOdt}${odtParagraph('', { size: '8pt' })}`;
     }
-    if (item.type === 'body') return odtParagraph(item.text, { bold: Boolean(item.subheading), size: '13pt' });
+    if (item.type === 'body') return odtParagraph(item.text, { bold: Boolean(item.subheading), size: '14pt' });
     return '';
   }).join('');
 
@@ -175,8 +175,8 @@ export const buildStatutesOdtBlob = (preview) => {
   <office:styles>
     <style:style style:name="Body" style:family="paragraph"><style:paragraph-properties fo:margin-bottom="0.18cm" fo:line-height="140%"/></style:style>
     <style:style style:name="Bold" style:family="paragraph"><style:paragraph-properties fo:margin-bottom="0.18cm" fo:line-height="140%"/></style:style>
-    <style:style style:name="BodySpan" style:family="text"><style:text-properties fo:font-size="13pt"/></style:style>
-    <style:style style:name="BoldSpan" style:family="text"><style:text-properties fo:font-weight="bold" fo:font-size="13pt"/></style:style>
+    <style:style style:name="BodySpan" style:family="text"><style:text-properties fo:font-size="14pt"/></style:style>
+    <style:style style:name="BoldSpan" style:family="text"><style:text-properties fo:font-weight="bold" fo:font-size="14pt"/></style:style>
   </office:styles>
 </office:document-styles>`),
     'content.xml': strToU8(`<?xml version="1.0" encoding="UTF-8"?>

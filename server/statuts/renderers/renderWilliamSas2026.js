@@ -7,7 +7,7 @@ import { mergeWrapFragments } from '../shared/normalizeStatutesParagraphs.js';
 import { formatStatutesFrenchDate, formatStatutesFiscalEnd } from '../shared/statutesDates.js';
 import { personalizeTribunalMentions, resolveTribunalCommerce } from '../shared/resolveTribunalCommerce.js';
 import { formatLegalEntityAssociateDescription } from '../shared/formatLegalEntityAssociate.js';
-import { formatPhysicalPersonIdentityLine } from '../../shared/partyIdentityFormatter.js';
+import { formatStatutesPersonDisplayName } from '../../shared/partyIdentityFormatter.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_PATH = path.join(__dirname, '../templates/williamEstablishmentsSas2026.model.json');
@@ -23,6 +23,91 @@ export const loadWilliamTemplate = () => {
 const formatBirthDateFr = (value) => {
   const formatted = formatStatutesFrenchDate(value);
   return formatted || null;
+};
+
+const formatPhysicalAssociatePreambleLine = (associate) => {
+  const civility = String(associate.civility || '').trim();
+  const isFemale = /^mme/i.test(civility);
+  const prefix = isFemale ? 'Madame' : (/^m/i.test(civility) ? 'Monsieur' : '');
+  const displayName = associate.fullName || formatStatutesPersonDisplayName(associate);
+  const birthDate = formatBirthDateFr(associate.birthDate);
+  const bornLabel = isFemale ? 'née' : 'né';
+  const identity = [
+    prefix ? `${prefix} ${displayName}` : displayName,
+    associate.address ? `demeurant ${associate.address}` : undefined,
+    birthDate || associate.birthPlace
+      ? `${bornLabel} le ${birthDate ?? '[date à compléter]'}${associate.birthPlace ? ` à ${associate.birthPlace}` : ''}`
+      : undefined,
+    associate.nationality ? `de nationalité ${associate.nationality}` : undefined,
+    associate.isMinor && associate.isEmancipated ? 'mineur émancipé' : undefined,
+    associate.isMinor && !associate.isEmancipated ? 'mineur non émancipé' : undefined,
+  ].filter(Boolean).join(', ');
+  return `${identity}.`;
+};
+
+const resolvePresidentLine = (context) => {
+  const presidentRef = String(context.officers?.president || '').trim();
+  if (!presidentRef) return 'Le Président est [Président à compléter].';
+  const presidentAssociate = (context.associates || []).find(
+    (associate) => associate.isLegalEntity && (
+      associate.fullName === presidentRef
+      || presidentRef.includes(associate.fullName)
+      || associate.fullName.includes(presidentRef)
+    ),
+  );
+  if (presidentAssociate?.representativeName && presidentAssociate?.representativeQuality) {
+    return `Le Président est ${presidentAssociate.fullName}, représentée par ${presidentAssociate.representativeName}, en qualité de ${presidentAssociate.representativeQuality}.`;
+  }
+  return `Le Président est ${presidentRef}.`;
+};
+
+const resolveDirectorGeneralLine = (context) => {
+  const directorRef = String(context.officers?.directorGeneral || '').trim();
+  if (!directorRef) return null;
+  const directorAssociate = (context.associates || []).find(
+    (associate) => !associate.isLegalEntity && (
+      associate.fullName === directorRef
+      || directorRef.includes(associate.fullName)
+      || associate.fullName.includes(directorRef)
+    ),
+  );
+  const displayName = directorAssociate?.fullName || formatStatutesPersonDisplayName({ label: directorRef });
+  return `Le Directeur Général est ${displayName}.`;
+};
+
+const formatCashApportLine = (associate, context) => {
+  const amount = associate.cashContributionFormatted;
+  if (!amount) return null;
+  const liberationPct = associate.liberationPercent
+    ?? context.capitalModel?.liberationPercent
+    ?? parseFrenchAmount(String(context.apports?.liberationRate || '').replace('%', ''))
+    ?? 50;
+  const rateLabel = associate.liberationRateLabel ?? context.apports?.liberationRate ?? `${liberationPct} %`;
+  if (liberationPct >= 100) {
+    return `Apport en numéraire de ${amount}, entièrement libérés lors de la constitution.`;
+  }
+  return `Apport en numéraire de ${amount}, libéré à hauteur de ${rateLabel} lors de la constitution, soit ${associate.cashReleasedFormatted ?? '[montant libéré à compléter]'}.`;
+};
+
+const ARTICLE_74_VARIANTS = {
+  full: {
+    title: '7.4 Libération intégrale des apports',
+    text: 'Les apports en numéraire sont intégralement libérés lors de la constitution de la Société. En conséquence, aucun appel complémentaire de fonds n\'est prévu au titre des apports souscrits à la date des présents statuts.',
+  },
+  partial: {
+    title: '7.4 Libération partielle des apports',
+    text: 'Les apports en numéraire qui ne sont pas intégralement libérés lors de la constitution de la Société seront libérés sur appel du Président, dans les conditions prévues par la loi et dans un délai maximal de cinq années à compter de l\'immatriculation de la Société.',
+  },
+  differentiated: {
+    title: '7.4 Libération partielle et différenciée des apports',
+    text: 'Les apports en numéraire peuvent être libérés selon des proportions distinctes pour chaque associé, dès lors que les montants effectivement libérés sont clairement identifiés aux présents statuts et respectent les exigences légales applicables. Les fractions non libérées seront appelées par le Président dans les conditions prévues par la loi et dans un délai maximal de cinq années à compter de l\'immatriculation de la Société.',
+  },
+};
+
+const renderArticle74 = (context) => {
+  const variant = context.capitalModel?.liberationArticle74Variant || 'partial';
+  const block = ARTICLE_74_VARIANTS[variant] || ARTICLE_74_VARIANTS.partial;
+  return [`${block.title} :`, block.text];
 };
 
 const renderDefinitionsAndObjetActe = (context) => {
@@ -57,20 +142,11 @@ export const renderAssociatesPreamble = (context) => {
     if (associate.isLegalEntity) {
       lines.push(formatLegalEntityAssociateDescription(associate, {
         greffeCity: context.jurisdiction?.greffeCity || context.company?.rcsCity,
-        companyCapital: context.company?.capitalFormatted,
+        includeRepresentative: true,
       }));
       return;
     }
-    lines.push(formatPhysicalPersonIdentityLine({
-      label: associate.fullName,
-      address: associate.address,
-      birthDate: formatBirthDateFr(associate.birthDate) || associate.birthDate,
-      birthPlace: associate.birthPlace,
-      nationality: associate.nationality,
-      civility: associate.civility,
-      isMinor: associate.isMinor,
-      isMinorEmancipated: associate.isEmancipated,
-    }));
+    lines.push(formatPhysicalAssociatePreambleLine(associate));
     if (associate.isMinor && !associate.isEmancipated && associate.legalRepresentatives?.length) {
       lines.push(`Représenté(e) légalement par ${associate.legalRepresentatives.join(' et ')}, jusqu'à sa majorité.`);
     }
@@ -97,15 +173,17 @@ export const renderCapitalDistribution = (context) => {
 
 export const renderApports = (context) => {
   const lines = [];
+  const inKindTotal = context.apports?.inKindTotalAmount ?? parseFrenchAmount(context.apports?.inKindTotalFormatted);
   lines.push(`Les associés apportent en numéraire la somme de ${context.apports?.cashTotalFormatted ?? '[montant à compléter]'}.`);
-  lines.push(`Les apports en nature sont chiffrés à ${context.apports?.inKindTotalFormatted ?? '[montant à compléter]'}.`);
+  if (!inKindTotal) {
+    lines.push('Il n\'y a aucun apport en nature.');
+  } else {
+    lines.push(`Les apports en nature sont chiffrés à ${context.apports?.inKindTotalFormatted ?? '[montant à compléter]'}.`);
+  }
   (context.associates || []).forEach((associate, index) => {
     lines.push(`7.${index + 1} Apports de ${associate.fullName} :`);
-    if (associate.cashContributionFormatted) {
-      lines.push(
-        `Apport en numéraire de ${associate.cashContributionFormatted}, libéré à hauteur de ${context.apports?.liberationRate ?? '[taux à compléter]'} lors de la constitution, soit ${associate.cashReleasedFormatted ?? '[montant libéré à compléter]'}.`,
-      );
-    }
+    const cashLine = formatCashApportLine(associate, context);
+    if (cashLine) lines.push(cashLine);
     if (associate.inKindContributions?.length) {
       lines.push(`Apports en nature : ${associate.inKindContributions.map((item) => `${item.label} (${item.valueFormatted})`).join(', ')}.`);
       const total = associate.inKindContributions
@@ -120,9 +198,8 @@ export const renderApports = (context) => {
     }
   });
   lines.push('Les associés ont décidé de ne pas recourir à un commissaire aux apports conformément à la loi.');
-  lines.push('7.4 Libération partielle des apports');
-  lines.push('Les apports en numéraires qui ne sont pas libérés au moment de la constitution de la Société, le seront par appel du Président dans les cinq années civiles qui suivent sa création, en vertu de la Loi.');
-  lines.push('7.5 Dépôt des fonds');
+  lines.push(...renderArticle74(context));
+  lines.push('7.5 Dépôt des fonds :');
   lines.push(`La somme de ${context.apports?.depositedFundsFormatted ?? '[montant à compléter]'}, correspondant aux apports en numéraire libérés à la constitution est déposée sur un compte ouvert au nom de la société en formation, attesté par le dépositaire.`);
   return lines;
 };
@@ -130,7 +207,7 @@ export const renderApports = (context) => {
 const renderArticle6 = (context) => {
   const minors = (context.associates || []).filter((a) => a.isMinor);
   if (!minors.length) {
-    return ['Les associés déclarent qu\'aucun d\'entre eux n\'est mineur au jour de la constitution.'];
+    return ['Les associés exercent leurs droits dans les conditions prévues par la loi et par les présents statuts.'];
   }
   const lines = [];
   if (minors.some((a) => a.isEmancipated)) {
@@ -195,8 +272,9 @@ const renderArticleBody = (article, context) => {
       break;
     case 5: {
       const shareCount = context.company.shareCount || context.company.capitalAmount;
+      const nominalLabel = context.company.nominalValueFormatted || formatFrInteger(context.company.nominalValue || 1);
       lines = [
-        `Le capital social est fixé à la somme de ${context.company.capitalFormatted}, divisé en ${formatFrInteger(shareCount)} actions de 1 euro chacune.`,
+        `Le capital social est fixé à la somme de ${context.company.capitalFormatted}, divisé en ${formatFrInteger(shareCount)} actions de ${nominalLabel} euro${Number(context.company.nominalValue || 1) > 1 ? 's' : ''} chacune.`,
         ...(context.options?.variableCapital ? [
           `Le capital est variable conformément aux articles L.231-1 à L.231-8 du Code de commerce, avec un minimum de ${context.options.capitalMinFormatted ?? '[minimum à compléter]'} et un maximum de ${context.options.capitalMaxFormatted ?? '[maximum à compléter]'}.`,
           'Les augmentations ou réductions dans la fourchette du capital variable sont décidées par décision collective ordinaire des associés. Celles-ci sont constatées par le Président au registre, sans modification statutaire.',
@@ -216,11 +294,10 @@ const renderArticleBody = (article, context) => {
     case 8: {
       lines = [
         'La société est dirigée par un Président nommé par décision collective des associés.',
-        `Le Président est ${context.officers?.president ?? '[Président à compléter]'}.`,
+        resolvePresidentLine(context),
       ];
-      if (context.officers?.directorGeneral) {
-        lines.push(`Le Directeur Général est ${context.officers.directorGeneral}.`);
-      }
+      const directorLine = resolveDirectorGeneralLine(context);
+      if (directorLine) lines.push(directorLine);
       break;
     }
     case 9: {

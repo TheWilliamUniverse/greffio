@@ -5,6 +5,7 @@ import { isLegallyMinor } from './minorAssociateRules.js';
 import { resolveOfficersFromAssociates } from './officerFromAssociates.js';
 import { resolveGreffeCity } from '../statuts/shared/resolveTribunalCommerce.js';
 import { sortAssociatesPresidentFirst } from '../shared/partyIdentityFormatter.js';
+import { resolveGlobalLiberationPercent, formatLiberationRateLabel } from '../statuts/shared/parseLiberationPercent.js';
 
 const pick = (...values) => {
   for (const value of values) {
@@ -222,11 +223,18 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
   let associates = buildAssociates(questionnaire, user, legalForm);
   const capitalAmountNum = parseFrenchAmount(capitalRaw) || 1000;
   const totalSharesNum = parseFrenchAmount(nombreTitres) || capitalAmountNum;
+  const liberationPercent = resolveGlobalLiberationPercent({
+    liberationCapital: questionnaire.liberationCapital,
+    liberationCapitalAutre: questionnaire.liberationCapitalAutre,
+    liberationCapitalCustom: questionnaire.liberationCapitalCustom,
+    liberationCapitalDetail: questionnaire.liberationCapitalDetail,
+  });
+  const liberationRate = formatLiberationRateLabel(liberationPercent);
   associates = enrichAssociatesForCapital(associates, {
     capitalAmount: capitalAmountNum,
     totalShares: totalSharesNum,
     nominalValue: valeurNominale,
-    liberationRate: pick(questionnaire.liberationCapital, '50 %'),
+    liberationRate,
   });
   associates = sortAssociatesPresidentFirst(associates);
   const officersFromAssociates = resolveOfficersFromAssociates(questionnaire.associates || [], {
@@ -272,7 +280,7 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
     capitalVariable: ['variable', 'Variable', true].includes(questionnaire.capitalVariable),
     capitalMin: pick(questionnaire.capitalMin, ''),
     capitalMax: pick(questionnaire.capitalMax, '5 000 000'),
-    liberationCapital: pick(questionnaire.liberationCapital, '100 %'),
+    liberationCapital: liberationRate,
     apportsNumeraire: pick(questionnaire.contributions?.cash, questionnaire.apportsNumeraire, 'Oui'),
     apportsNature: pick(questionnaire.contributions?.inKind, questionnaire.apportsNature, 'Non'),
     detailApportsNature: pick(questionnaire.detailApportsNature, 'Aucun apport en nature'),
@@ -289,11 +297,20 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
     directeursGeneraux: pick(questionnaire.directeursGeneraux, 'Aucun'),
     apportsNumeraireTotal: pick(questionnaire.apportsNumeraireTotal, capitalFormatted),
     apportsNatureTotal: pick(questionnaire.apportsNatureTotal, ''),
-    depotFonds: pick(
-      questionnaire.depotFonds,
-      questionnaire.apportsLibérés,
-      formatEuros(Math.round(capitalAmountNum * (parseFrenchAmount(String(pick(questionnaire.liberationCapital, '50')).replace('%', '')) / 100 || 0.5))),
-    ),
+    depotFonds: (() => {
+      const liberationPct = parseFrenchAmount(String(liberationRate).replace('%', '')) / 100 || 0.5;
+      const fromAssociates = associates.reduce((sum, associate) => {
+        const released = parseFrenchAmount(associate.liberationAmount);
+        if (released > 0) return sum + released;
+        const cash = parseFrenchAmount(associate.contributionCash);
+        return sum + (cash > 0 ? Math.round(cash * liberationPct) : 0);
+      }, 0);
+      return pick(
+        questionnaire.depotFonds,
+        questionnaire.apportsLibérés,
+        fromAssociates > 0 ? formatEuros(fromAssociates) : formatEuros(Math.round(capitalAmountNum * liberationPct)),
+      );
+    })(),
     premierExerciceFin: pick(
       questionnaire.premierExerciceFin,
       questionnaire.premierExerciceCloture,

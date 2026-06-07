@@ -78,8 +78,60 @@ node server/scripts/test-assistant.js "Où en est mon dossier ?"
 
 ## Ce qui est entraîné côté Greffio (sans API externe)
 
-- **25 fiches RAG** (`knowledgeChunks.js`) : SASU, EURL, SCI, capital, UBO, mandat, délais, etc.
-- **Règles locales instantanées** (`localRules.js`) : réponses dossier personnalisées si connecté
+- **~55 fiches RAG** (`knowledgeChunks.js`) : FAQ métier William (20 Q/R), scripts téléphone, objections, SASU, EURL, SCI, capital, UBO, mandat, délais, etc.
+- **Règles locales instantanées** (`localRules.js`) : matching FAQ, checklists pièces par forme (indicatif), réponses dossier personnalisées si connecté
+- **Base métier** (`williamBusinessKnowledge.js`) : FAQ, scripts, objections, règles prudence Guichet unique
 - **Intent classifier** : routage documents / statut / tarifs / greffe
 
-Pour aller plus loin sans nouvelle API : envoyer des **FAQ métier** ou **scripts téléphone greffe** à intégrer dans `knowledgeChunks.js`.
+Les listes de pièces restent **indicatives** : le Guichet unique adapte les justificatifs selon la formalité et les réponses saisies.
+
+---
+
+## Alternatives gratuites à `OPENAI_API_KEY`
+
+Ordre recommandé pour Greffio **sans coût API LLM** :
+
+| Option | Coût | Latence | Qualité | Statut Greffio |
+|--------|------|---------|---------|----------------|
+| **Règles locales + RAG keyword** | 0 € | Instantané | Bonne sur FAQ / pièces / statut dossier | Actif par défaut |
+| **Pack FAQ William** (20 Q/R + scripts + objections) | 0 € | Instantané | Très bonne sur questions clients types | Intégré |
+| **Ollama sur VPS** (`OLLAMA_BASE_URL`) | 0 € (RAM VPS) | 2–15 s selon modèle | Correcte hors cas edge | Câblé en fallback |
+| **Pappers** (`PAPPERS_API_TOKEN`) | Payant (pas OpenAI) | Rapide | Données entreprise FR, pas de chat | Enrichissement SIREN |
+| **Polling messagerie 15 s** | 0 € | ≤ 15 s | N/A | Fallback si WebSocket indisponible |
+| **WebSocket messagerie** | 0 € | < 1 s | N/A | Actif (`/api/ws/dossier-messages`) |
+
+### Configuration sans OpenAI (prod)
+
+```env
+AI_ENABLE_LOCAL_RULES=true
+AI_ENABLE_RAG=true
+AI_ENABLE_PROVIDER_FALLBACK=true
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+AI_OLLAMA_MODEL=llama3.2:3b
+# Ne pas définir OPENAI_API_KEY — l’assistant reste sur règles + RAG + Ollama
+```
+
+### Modèles Ollama recommandés (VPS 8 Go RAM)
+
+- `llama3.2:3b` — le plus rapide, suffisant avec le RAG Greffio
+- `qwen3:8b` — meilleure qualité rédactionnelle, plus lent
+
+### Ce qui ne remplace pas OpenAI gratuitement
+
+- Conseil juridique / fiscal personnalisé complexe → professionnel habilité
+- Génération longue hors base RAG → Ollama local ou clé OpenAI
+- Statut dépôt Guichet unique temps réel → API INPI restreinte (non intégrée)
+
+### WebSocket messagerie (nginx prod)
+
+Si nginx reverse-proxy devant l’API, ajouter sur le bloc `location` API :
+
+```nginx
+location /api/ws/ {
+  proxy_pass http://127.0.0.1:8787;
+  proxy_http_version 1.1;
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection "upgrade";
+  proxy_set_header Host $host;
+}
+```

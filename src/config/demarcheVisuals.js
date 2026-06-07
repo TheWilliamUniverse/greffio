@@ -242,3 +242,8 @@ export const getDemarcheVisual = (item) => {
     description: specific.description || item.hint || categoryDefaults.description || item.label,
   };
 };
+
+/** Icônes Greffio pour les 4 familles de formalité (questionnaire mobile / desktop). */
+export const getCategoryVisual = (categoryId) => (
+  defaultsByCategory[categoryId] || defaultsByCategory.autres
+);

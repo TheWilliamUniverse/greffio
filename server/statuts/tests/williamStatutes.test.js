@@ -213,7 +213,8 @@ test('dossier avec mineur — pas de clause boilerplate art. 382 en signatures',
   const body = doc.blocks.map((b) => b.body || b.text || '').join('\n');
   assert.ok(!/administrateurs légaux conformément aux articles 382/i.test(body));
   assert.ok(!doc.signatures?.minorRepresentationNote);
-  assert.match(doc.signatures?.intro?.[1] || '', /^Le \d/);
+  assert.match(doc.signatures?.intro?.[0] || '', /^Établi à .+ le \d/);
+  assert.match(doc.signatures?.intro?.[1] || '', /^En \d+ exemplaires originaux\.$/);
 });
 
 test('tribunal de commerce déterminé par la ville du siège', () => {
@@ -367,10 +368,9 @@ test('personne morale — descriptif complet dans le préambule', () => {
   assert.ok(pmLine);
   assert.match(pmLine, /Société par Actions Simplifiée \(SAS\)/);
   assert.match(pmLine, /immatriculée au RCS de Nice sous le numéro 102 230 414/);
-  assert.match(pmLine, /dûment habilitée aux fins des présentes/);
   assert.match(pmLine, /siège social est situé 470 Promenade des Anglais/);
   assert.match(pmLine, /représentée par Nobatène ABDOU/);
-  assert.match(pmLine, /agissant en qualité de Président/);
+  assert.match(pmLine, /agissant en qualité de Président, dûment habilitée aux fins des présentes/);
   assert.ok(lines.some((line) => line.includes('Ci-après dénommés collectivement « les Associés »')));
 });
 
@@ -381,11 +381,9 @@ test('formatLegalEntityAssociateDescription — forme juridique explicite', () =
     siren: '102 230 414',
     address: '470 Promenade des Anglais, 06200 Nice',
     representativeName: 'Nobatène ABDOU',
-    representativeQuality: 'Président',
     roleLabel: 'Président désigné',
   }, { greffeCity: 'Nice' });
   assert.match(text, /WILLIAM ESTABLISHMENTS, Société par Actions Simplifiée \(SAS\), immatriculée au RCS de Nice sous le numéro 102 230 414/);
-  assert.match(text, /agissant en qualité de Président, dûment habilitée aux fins des présentes/);
 });
 
 test('layoutStatutesCover — page de garde sur une page avec espacement flexible', () => {
@@ -442,4 +440,102 @@ test('generateStatutesDocument — article 7 avec sous-parties séparées', () =
   const art7 = doc.blocks.find((b) => b.number === 7);
   assert.ok(art7?.body.includes('7.4 Libération partielle des apports'));
   assert.ok(art7?.body.split('\n\n').some((p) => /^7\.1 Apports de/.test(p.trim())));
+});
+
+test('generateStatutesDocument — capital 10 000 € cohérent article 5 / 7 / annexe', () => {
+  const doc = generateStatutesDocument({
+    legalForm: 'SAS',
+    denomination: 'TRUE POWER',
+    capital: '10 000',
+    nombreTitres: '1 000',
+    liberationCapital: '50 %',
+    seat: { line1: '470 Promenade des Anglais', postalCode: '06200', city: 'Nice', country: 'France' },
+    greffe: 'Nice',
+    associates: [
+      { label: 'WILLIAM ESTABLISHMENTS', share: '75 %', titlesCount: '750', contributionCash: '7500', associateType: 'personne_morale', companyName: 'WILLIAM ESTABLISHMENTS', representativeName: 'Nobatène ABDOU', representativeQuality: 'Président' },
+      { label: 'William Abdou', share: '25 %', titlesCount: '250', contributionCash: '2500', birthDate: '28/07/2009', birthPlace: 'Mamoudzou', address: 'Nice' },
+    ],
+    president: 'WILLIAM ESTABLISHMENTS',
+    directeurGeneral: 'William Abdou',
+  });
+  const art5 = doc.blocks.find((b) => b.number === 5);
+  const art7 = doc.blocks.find((b) => b.number === 7);
+  assert.ok(art5?.body.includes('actions de 10 euros chacune'));
+  assert.ok(art7?.body.includes('Il n\'y a aucun apport en nature'));
+  assert.ok(art7?.body.includes('libéré à hauteur de 50 %'));
+  assert.ok(art7?.body.includes('La somme de 5 000 euros'));
+  assert.ok(!/libéré à hauteur de 100 %/i.test(art7?.body || ''));
+  const annexe = doc.annexes?.[0];
+  assert.ok(annexe?.paragraphs?.some((p) => p.includes('Valeur nominale : 10 euro')));
+});
+
+test('generateStatutesDocument — libération 100 % article 7.4 intégrale', () => {
+  const doc = generateStatutesDocument({
+    legalForm: 'SAS',
+    denomination: 'TRUE POWER',
+    capital: '1 000',
+    nombreTitres: '1 000',
+    liberationCapital: '100 %',
+    seat: { line1: '1 rue Test', postalCode: '06200', city: 'Nice', country: 'France' },
+    greffe: 'Nice',
+    associates: [{ label: 'William Abdou', share: '100', titlesCount: '1000', address: 'Nice' }],
+    president: 'William Abdou',
+  });
+  const art7 = doc.blocks.find((b) => b.number === 7);
+  assert.ok(art7?.body.includes('7.4 Libération intégrale des apports'));
+  assert.ok(art7?.body.includes('intégralement libérés lors de la constitution'));
+  assert.ok(art7?.body.includes('entièrement libérés lors de la constitution'));
+});
+
+test('generateStatutesDocument — libération différenciée par associé', () => {
+  const doc = generateStatutesDocument({
+    legalForm: 'SAS',
+    denomination: 'TRUE POWER',
+    capital: '10 000',
+    nombreTitres: '1 000',
+    liberationCapital: '50 %',
+    seat: { line1: '470 Promenade des Anglais', postalCode: '06200', city: 'Nice', country: 'France' },
+    greffe: 'Nice',
+    associates: [
+      { label: 'Associé A', share: '75 %', titlesCount: '750', liberationAmount: '3750' },
+      { label: 'Associé B', share: '25 %', titlesCount: '250', liberationAmount: '2500' },
+    ],
+    president: 'Associé A',
+  });
+  const art7 = doc.blocks.find((b) => b.number === 7);
+  assert.ok(art7?.body.includes('7.4 Libération partielle et différenciée des apports'));
+  assert.ok(art7?.body.includes('libéré à hauteur de 50 %'));
+  assert.ok(art7?.body.includes('entièrement libérés lors de la constitution'));
+});
+
+test('resolveGlobalLiberationPercent — Autre sans valeur bloque la génération', () => {
+  assert.throws(
+    () => mapStatutesDataToRenderContext({
+      legalForm: 'SAS',
+      denomination: 'TEST',
+      capital: '1000',
+      nombreTitres: '1000',
+      liberationCapital: 'Autre',
+      seat: { line1: '1 rue Test', postalCode: '06200', city: 'Nice', country: 'France' },
+      associates: [{ label: 'Test', share: '100', titlesCount: '1000' }],
+    }),
+    (error) => error.code === 'LIBERATION_CUSTOM_PERCENT_INVALID',
+  );
+});
+
+test('deriveStatutsCapitalModel — montant libéré incompatible avec taux bloque', () => {
+  assert.throws(
+    () => mapStatutesDataToRenderContext({
+      legalForm: 'SAS',
+      denomination: 'TEST',
+      capital: '7500',
+      nombreTitres: '7500',
+      liberationCapital: '100 %',
+      seat: { line1: '1 rue Test', postalCode: '06200', city: 'Nice', country: 'France' },
+      associates: [
+        { label: 'Associé A', share: '100', titlesCount: '7500', liberationAmount: '3750', liberationPercent: '100' },
+      ],
+    }),
+    (error) => error.code === 'STATUTES_CAPITAL_INCONSISTENT',
+  );
 });

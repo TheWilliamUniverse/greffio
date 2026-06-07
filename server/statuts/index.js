@@ -4,6 +4,7 @@ import { mapStatutesDataToRenderContext } from './mappers/mapStatutesDataToRende
 import { renderWilliamSas2026Blocks } from './renderers/renderWilliamSas2026.js';
 import { applySasuAdaptationsToBlocks } from './adapters/sasuAdaptations.js';
 import { adaptRenderedBlocksToLegacyDocument } from './adapters/adaptToLegacyDocument.js';
+import { validateGeneratedStatutsText } from './shared/deriveStatutsCapital.js';
 import { assertValidGeneratedStatuts } from './validators/validateGeneratedStatuts.js';
 
 const CANON_FORMS = new Set(['SAS', 'SASU']);
@@ -30,6 +31,21 @@ export const generateStatutesDocument = (statutesData = {}) => {
     statutesData,
     templateId: 'william-establishments-sas-2026',
   });
+
+  const generatedText = [
+    ...(document.blocks || []).map((block) => block.body || block.text || ''),
+    ...(document.annexes || []).flatMap((annexe) => [
+      ...(annexe.paragraphs || []),
+      ...((annexe.table?.rows || []).flat()),
+    ]),
+  ].join('\n');
+  const textValidation = validateGeneratedStatutsText(generatedText, context.capitalModel);
+  if (!textValidation.ok) {
+    const error = new Error('STATUTES_TEXT_VALIDATION_FAILED');
+    error.code = 'STATUTES_TEXT_VALIDATION_FAILED';
+    error.validation = { errors: textValidation.errors };
+    throw error;
+  }
 
   return {
     ...document,

@@ -1,3 +1,27 @@
+import {
+  commonObjections,
+  phoneScripts,
+  williamBusinessFaq,
+} from '../williamBusinessKnowledge.js';
+
+const faqChunks = williamBusinessFaq.map((faq) => ({
+  id: faq.id,
+  topics: faq.id.replace(/^faq_/, '').split('_'),
+  text: `Q: ${faq.question}\nR: ${faq.answer}`,
+}));
+
+const phoneScriptChunks = phoneScripts.map((item) => ({
+  id: item.id,
+  topics: ['script', 'appel', 'telephone', 'greffe', 'client'],
+  text: `${item.title}. ${item.context} ${item.script.join(' ')}`,
+}));
+
+const objectionChunks = commonObjections.map((item) => ({
+  id: item.id,
+  topics: ['objection', 'commercial', 'tarif', 'prix'],
+  text: `Objection : « ${item.objection} » — Réponse : ${item.response}`,
+}));
+
 /** Base de connaissances Greffio (RAG local, sans secrets). */
 export const GREFFIO_KNOWLEDGE_CHUNKS = [
   {
@@ -125,4 +149,7 @@ export const GREFFIO_KNOWLEDGE_CHUNKS = [
     topics: ['delai', 'duree', 'combien de temps'],
     text: 'Délais indicatifs : préparation dossier Greffio quelques jours à semaines selon complétude client ; instruction greffe variable (souvent 3 à 15 jours ouvrés après dépôt complet). Les compléments administratifs rallongent le délai.',
   },
+  ...faqChunks,
+  ...phoneScriptChunks,
+  ...objectionChunks,
 ];

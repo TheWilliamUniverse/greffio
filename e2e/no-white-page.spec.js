@@ -18,6 +18,8 @@ const routes = [
   { name: 'mentions', path: '/mentions-legales' },
   { name: 'cookies', path: '/cookies' },
   { name: 'confidentialite', path: '/confidentialite' },
+  { name: 'suppression-compte', path: '/suppression-compte' },
+  { name: 'suppression-donnees', path: '/suppression-donnees' },
   { name: 'app', path: '/app' },
   { name: 'paiement', path: '/paiement?offer=Dossier%20Standard' },
   { name: 'services', path: '/services' },

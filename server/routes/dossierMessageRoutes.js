@@ -22,7 +22,7 @@ const resolveAuthorName = async (req, authorType) => {
   return 'Greffio';
 };
 
-export const registerDossierMessageRoutes = (app, { requireAuth, requireRole, appUrl }) => {
+export const registerDossierMessageRoutes = (app, { requireAuth, requireRole, appUrl, onMessagesUpdated }) => {
   app.get('/api/dossiers/:dossierId/messages', requireAuth, async (req, res) => {
     const access = await resolveDossierAccess(req, req.params.dossierId);
     if (!access.ok) {
@@ -56,6 +56,7 @@ export const registerDossierMessageRoutes = (app, { requireAuth, requireRole, ap
     if (!message) {
       return res.status(400).json({ ok: false, error: 'MESSAGE_BODY_REQUIRED' });
     }
+    onMessagesUpdated?.(access.dossier.id);
     return res.status(201).json({
       ok: true,
       message,
@@ -86,6 +87,7 @@ export const registerDossierMessageRoutes = (app, { requireAuth, requireRole, ap
       body,
       channel: 'thread',
     });
+    onMessagesUpdated?.(dossier.id);
     return res.status(201).json({
       ok: true,
       message,
@@ -137,6 +139,7 @@ export const registerDossierMessageRoutes = (app, { requireAuth, requireRole, ap
       await markDossierMessageEmailSent(message.id);
     }
 
+    onMessagesUpdated?.(dossier.id);
     return res.status(201).json({
       ok: true,
       message,

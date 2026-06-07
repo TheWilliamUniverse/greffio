@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { DossierMessageThread } from '@/components/messaging/DossierMessageThread.jsx';
 import { listDossiers } from '@/api/dossiers.js';
 import { fetchDossierMessages, postDossierMessage } from '@/api/dossierMessages.js';
-import { useDossierMessagesPoll } from '@/hooks/useDossierMessagesPoll.js';
+import { useDossierMessagesRealtime } from '@/hooks/useDossierMessagesRealtime.js';
 
 const workstreams = [
   { name: 'Équipe formalités Greffio', role: 'Contrôle statuts, formulaires, bénéficiaires effectifs', status: 'Activable' },
@@ -21,7 +21,7 @@ export const TeamPage = () => {
     messages,
     setMessages,
     loading: messagesLoading,
-  } = useDossierMessagesPoll(selectedDossierId, fetchDossierMessages, {
+  } = useDossierMessagesRealtime(selectedDossierId, fetchDossierMessages, {
     enabled: Boolean(selectedDossierId),
     intervalMs: 15000,
   });

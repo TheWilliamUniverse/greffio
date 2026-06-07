@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.jsx';
 import { fetchDossierDetail, trashDossier } from '@/api/dossiers.js';
 import { fetchDossierMessages, postDossierMessage } from '@/api/dossierMessages.js';
-import { useDossierMessagesPoll } from '@/hooks/useDossierMessagesPoll.js';
+import { useDossierMessagesRealtime } from '@/hooks/useDossierMessagesRealtime.js';
 import { fetchVerificationProfile, runDossierVerification } from '@/api/verification.js';
 import { VerificationStatusCard } from '@/components/verification/VerificationStatusCard.jsx';
 import { saveCurrentDossierId } from '@/utils/sessionStore.js';
@@ -109,7 +109,7 @@ export const DossierDetailPage = () => {
     messages,
     setMessages,
     loading: messagesLoading,
-  } = useDossierMessagesPoll(id, fetchDossierMessages, {
+  } = useDossierMessagesRealtime(id, fetchDossierMessages, {
     enabled: Boolean(id) && !internalView,
     intervalMs: 15000,
   });

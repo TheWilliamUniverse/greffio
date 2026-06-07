@@ -140,7 +140,15 @@ export const buildWilliamSignatures = (data) => {
   const city = data.signatureCity || data.seat?.city || 'Ville à compléter';
   const date = data.signatureDate || data.dateDocument
     || new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
-  const copies = data.exemplairesOriginaux || `${Math.max((data.associates || []).length, 1) + 1} exemplaires originaux`;
+  const rawCopies = String(data.exemplairesOriginaux || '').trim();
+  const associateCount = (data.associates || []).length;
+  const copies = /exemplaires?/i.test(rawCopies)
+    ? rawCopies
+    : (() => {
+      const parsed = parseInt(rawCopies.replace(/\D/g, ''), 10);
+      if (Number.isFinite(parsed) && parsed > 0) return `${parsed} exemplaires originaux`;
+      return `${Math.max(associateCount, 1) + 1} exemplaires originaux`;
+    })();
   const associates = data.associates || [];
   const useGrid = associates.length > 1 && ['SAS', 'SASU'].includes(String(data.legalForm || '').toUpperCase());
 
@@ -157,8 +165,7 @@ export const buildWilliamSignatures = (data) => {
   return {
     title: 'SIGNATURES',
     intro: [
-      `Établi à ${city},`,
-      `Le ${date},`,
+      `Établi à ${city} le ${date},`,
       `En ${copies}.`,
       'Chaque associé reconnaît avoir pris connaissance de l\'intégralité des présents statuts et les accepter sans réserve.',
       'Signatures des associés précédées de la mention : « Lu et approuvé »',

@@ -1,6 +1,89 @@
 import { formatDocKeys, hintForDossierStatus } from './assistantCopy.js';
+import {
+  commonObjections,
+  detectLegalFormKey,
+  formatLegalFormChecklist,
+  phoneScripts,
+  williamBusinessFaq,
+} from './williamBusinessKnowledge.js';
 
 const normalize = (value = '') => String(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+const faqKeywords = (question = '') => normalize(question)
+  .split(/[^a-z0-9]+/)
+  .filter((word) => word.length > 3);
+
+const scoreFaqMatch = (text, question) => {
+  const normalizedQuestion = normalize(question);
+  if (text === normalizedQuestion || text.includes(normalizedQuestion)) return 100;
+  const keywords = faqKeywords(question);
+  if (!keywords.length) return 0;
+  const hits = keywords.filter((word) => text.includes(word)).length;
+  const ratio = hits / keywords.length;
+  return ratio >= 0.55 ? Math.round(60 + ratio * 40) : 0;
+};
+
+const tryFaqAnswer = (text) => {
+  let best = null;
+  let bestScore = 0;
+  for (const faq of williamBusinessFaq) {
+    const score = scoreFaqMatch(text, faq.question);
+    if (score > bestScore) {
+      best = faq;
+      bestScore = score;
+    }
+  }
+  if (!best || bestScore < 70) return null;
+  return best.answer;
+};
+
+const tryObjectionAnswer = (text) => {
+  for (const item of commonObjections) {
+    const objectionNorm = normalize(item.objection);
+    const stem = objectionNorm.replace(/[?.!]/g, '').trim();
+    if (text.includes(stem) || text.includes(normalize(item.objection.split(' ').slice(0, 3).join(' ')))) {
+      return item.response;
+    }
+  }
+  return null;
+};
+
+const tryPhoneScriptAnswer = (text) => {
+  const wantsScript = text.includes('script') || text.includes('teleph') || text.includes('appel');
+  if (!wantsScript) return null;
+
+  if (text.includes('greffe') || text.includes('guichet') || text.includes('suivi')) {
+    const script = phoneScripts.find((item) => item.id === 'script_greffe_suivi_dossier');
+    return [script.title, '', ...script.script.map((line, index) => `${index + 1}. ${line}`)].join('\n');
+  }
+  if (text.includes('regularisation') || text.includes('regularis')) {
+    const script = phoneScripts.find((item) => item.id === 'script_client_regularisation');
+    return [script.title, '', ...script.script.map((line, index) => `${index + 1}. ${line}`)].join('\n');
+  }
+  if (text.includes('piece') || text.includes('manque') || text.includes('manquant')) {
+    const script = phoneScripts.find((item) => item.id === 'script_client_piece_manquante');
+    return [script.title, '', ...script.script.map((line, index) => `${index + 1}. ${line}`)].join('\n');
+  }
+  if (text.includes('forme') || text.includes('sasu') || text.includes('micro') || text.includes('sarl')) {
+    const script = phoneScripts.find((item) => item.id === 'script_client_choix_forme');
+    return [script.title, '', ...script.script.map((line, index) => `${index + 1}. ${line}`)].join('\n');
+  }
+  return null;
+};
+
+const tryLegalFormDocumentsAnswer = (text, legalStructure) => {
+  const wantsDocs = text.includes('document')
+    || text.includes('piece')
+    || text.includes('justificatif')
+    || text.includes('checklist')
+    || text.includes('fournir')
+    || text.includes('manque');
+  if (!wantsDocs) return null;
+
+  const formKey = detectLegalFormKey(text, legalStructure);
+  if (!formKey) return null;
+  return formatLegalFormChecklist(formKey);
+};
 
 const tryDossierPersonalAnswer = ({ text, userContext = {} }) => {
   const dossier = userContext?.dossier;
@@ -67,6 +150,18 @@ export const tryLocalRulesAnswer = ({ message = '', userContext = {} } = {}) => 
 
   const personal = tryDossierPersonalAnswer({ text, userContext });
   if (personal) return personal;
+
+  const faq = tryFaqAnswer(text);
+  if (faq) return faq;
+
+  const legalFormDocs = tryLegalFormDocumentsAnswer(text, legalStructure);
+  if (legalFormDocs) return legalFormDocs;
+
+  const objection = tryObjectionAnswer(text);
+  if (objection) return objection;
+
+  const phoneScript = tryPhoneScriptAnswer(text);
+  if (phoneScript) return phoneScript;
 
   if (text.includes('document') && (text.includes('manque') || text.includes('manquant') || text.includes('fournir'))) {
     return [

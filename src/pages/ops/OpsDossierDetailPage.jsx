@@ -26,7 +26,7 @@ import {
   sendOpsDossierMessageEmail,
 } from '@/api/dossierMessages.js';
 import { DossierMessageThread } from '@/components/messaging/DossierMessageThread.jsx';
-import { useDossierMessagesPoll } from '@/hooks/useDossierMessagesPoll.js';
+import { useDossierMessagesRealtime } from '@/hooks/useDossierMessagesRealtime.js';
 import { OpsCompletionBadge, OpsPriorityBadge, OpsQueueBadge, OpsRiskBadge, OpsSlaBadge } from '@/components/ops/OpsBadges.jsx';
 import { formatDateTime } from '@/components/ops/opsLabels.js';
 import { GREFFIO_OPS_TEAM, OPS_PRIORITY_LABELS, OPS_QUEUE_LABELS } from '@/config/opsTeam.js';
@@ -56,7 +56,7 @@ export const OpsDossierDetailPage = () => {
     messages,
     setMessages,
     loading: messagesLoading,
-  } = useDossierMessagesPoll(dossierId, fetchOpsDossierMessages, {
+  } = useDossierMessagesRealtime(dossierId, fetchOpsDossierMessages, {
     enabled: Boolean(dossierId),
     intervalMs: 15000,
   });

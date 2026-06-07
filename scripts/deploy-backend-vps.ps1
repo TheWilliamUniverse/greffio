@@ -124,6 +124,22 @@ echo "--- /api/ready ---"
 curl -fsS http://127.0.0.1:8787/api/ready && echo
 echo "--- /api/app-version ---"
 curl -fsS http://127.0.0.1:8787/api/app-version && echo
+ENV_FILE="/opt/greffio/.env"
+if [ -f "$ENV_FILE" ]; then
+  upsert_env() { key="$1"; value="$2"; if grep -q "^${key}=" "$ENV_FILE"; then sed -i "s|^${key}=.*|${key}=${value}|" "$ENV_FILE"; else echo "${key}=${value}" >> "$ENV_FILE"; fi; }
+  upsert_env AI_PRIMARY_PROVIDER ollama
+  upsert_env AI_OLLAMA_MODEL qwen2.5:7b
+  upsert_env OLLAMA_CHAT_MODEL qwen2.5:7b
+  upsert_env OLLAMA_BASE_URL http://127.0.0.1:11434
+  upsert_env OLLAMA_ENABLED true
+  upsert_env AI_EMBEDDING_MODEL nomic-embed-text
+  upsert_env AI_ENABLE_RAG true
+  upsert_env AI_ENABLE_PROVIDER_FALLBACK true
+  upsert_env AI_ENABLE_LOCAL_RULES true
+  upsert_env AI_TEMPERATURE 0.2
+  pm2 restart greffio-api --update-env > /dev/null || true
+  sleep 2
+fi
 '@
 
 Invoke-RemoteShell -RemoteCommand ($RemoteScript -replace "`r", '')

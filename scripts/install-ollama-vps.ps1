@@ -55,8 +55,8 @@ systemctl restart ollama 2>/dev/null || true
 sleep 3
 
 echo "Pull modeles LLM + embeddings..."
-ollama pull qwen3:8b
-ollama pull bge-m3
+ollama pull qwen2.5:7b
+ollama pull nomic-embed-text
 
 echo "Verification API locale..."
 curl -fsS http://127.0.0.1:11434/api/tags | head -c 400 || true
@@ -76,12 +76,16 @@ upsert_env() {
 }
 
 upsert_env AI_PRIMARY_PROVIDER ollama
-upsert_env AI_OLLAMA_MODEL qwen3:8b
+upsert_env AI_OLLAMA_MODEL qwen2.5:7b
+upsert_env OLLAMA_CHAT_MODEL qwen2.5:7b
 upsert_env OLLAMA_BASE_URL http://127.0.0.1:11434
-upsert_env AI_EMBEDDING_MODEL bge-m3
+upsert_env OLLAMA_ENABLED true
+upsert_env AI_EMBEDDING_MODEL nomic-embed-text
+upsert_env OLLAMA_EMBED_MODEL nomic-embed-text
 upsert_env AI_ENABLE_RAG true
 upsert_env AI_ENABLE_PROVIDER_FALLBACK true
 upsert_env AI_ENABLE_LOCAL_RULES true
+upsert_env AI_TEMPERATURE 0.2
 
 echo "Variables IA mises a jour dans $ENV_FILE"
 

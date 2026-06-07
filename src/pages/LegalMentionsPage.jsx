@@ -4,6 +4,7 @@ import { BadgeEuro, CreditCard, FileCheck2, Scale, ShieldCheck } from 'lucide-re
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { runtimeConfig } from '@/config/runtime.js';
+import { PAYMENT_METHODS } from '@/config/businessCatalog.js';
 import { PUBLISHER_LEGAL_NAME, PUBLISHER_RCS } from '@/config/publisher.js';
 
 const Section = ({ title, children }) => (

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft, Check } from 'lucide-react';
 import { PRIMARY_FORMALITY_CATEGORIES } from '@/lib/questionnaireFlow.js';
+import { getCategoryVisual } from '@/config/demarcheVisuals.js';
 
 export const FormalityCategoryPicker = ({ value, onChange, onContinue }) => (
   <div className="space-y-5">
@@ -17,6 +18,7 @@ export const FormalityCategoryPicker = ({ value, onChange, onContinue }) => (
     <ul className="grid grid-cols-2 gap-3 sm:gap-4">
       {PRIMARY_FORMALITY_CATEGORIES.map((category) => {
         const selected = value === category.id;
+        const visual = getCategoryVisual(category.id);
         return (
           <li key={category.id}>
             <button
@@ -28,8 +30,16 @@ export const FormalityCategoryPicker = ({ value, onChange, onContinue }) => (
                   : 'border-border/80 shadow-[0_2px_14px_rgba(15,39,80,0.06)] hover:border-primary/25'
               }`}
             >
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-secondary/80 text-2xl">
-                {category.emoji}
+              <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl sm:h-16 sm:w-16">
+                <img
+                  src={visual.icon}
+                  alt=""
+                  width={64}
+                  height={64}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
               <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.12em] text-primary/70">
                 {category.kicker}

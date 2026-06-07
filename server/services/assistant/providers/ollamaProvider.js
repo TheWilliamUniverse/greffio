@@ -1,7 +1,5 @@
 import { assistantConfig } from '../config.js';
-
-const SYSTEM_PROMPT = `Tu es l'assistant Greffio (formalités françaises). Réponds en français, clairement, sans jargon technique ni mention de fournisseur IA.
-Utilise le contexte dossier et les extraits de connaissance fournis quand ils sont pertinents.`;
+import { GREFFIO_SYSTEM_PROMPT } from '../prompts/greffioSystemPrompt.js';
 
 const buildContextBlock = (userContext = {}) => {
   const parts = [
@@ -24,7 +22,7 @@ export const askOllama = async ({ message, history = [], userContext = {} }) => 
 
   const recentHistory = Array.isArray(history) ? history.slice(-8) : [];
   const promptParts = [
-    SYSTEM_PROMPT,
+    GREFFIO_SYSTEM_PROMPT,
     buildContextBlock(userContext),
     ...recentHistory.map((item) => `${item.role === 'user' ? 'Client' : 'Assistant'}: ${item.content}`),
     `Client: ${message}`,

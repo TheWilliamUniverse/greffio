@@ -2,6 +2,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
 import helmet from 'helmet';
+import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -119,6 +120,7 @@ import {
 import { resolveDossierAccess } from './utils/dossierAccess.js';
 import { registerNonConvictionSignatureRoutes } from './routes/nonConvictionSignatureRoutes.js';
 import { registerDossierMessageRoutes } from './routes/dossierMessageRoutes.js';
+import { createDossierMessageHub } from './messaging/dossierMessageHub.js';
 import { registerEditableDocumentSignatureRoutes } from './routes/editableDocumentSignatureRoutes.js';
 import {
   getEditableDocumentConfig,
@@ -3032,8 +3034,6 @@ registerNonConvictionSignatureRoutes(app, {
   appUrl,
 });
 
-registerDossierMessageRoutes(app, { requireAuth, requireRole, appUrl });
-
 // Webhook CAWL : on accepte le corps brut (texte) pour permettre la
 // vérification HMAC à venir. Doit être enregistré AVANT le router générique
 // JSON afin de ne pas perdre le payload.
@@ -3066,12 +3066,26 @@ registerPaymentsRoutes(app, {
 
 registerAppVersionRoutes(app);
 
+const dossierMessageEvents = {
+  notify: () => {},
+};
+
+registerDossierMessageRoutes(app, {
+  requireAuth,
+  requireRole,
+  appUrl,
+  onMessagesUpdated: (dossierId) => dossierMessageEvents.notify(dossierId),
+});
+
 const bootstrap = async () => {
   await initSchema();
   if (process.env.NODE_ENV !== 'production') {
     await ensureSeedDossier();
   }
-  app.listen(port, () => {
+  const server = http.createServer(app);
+  const messageHub = createDossierMessageHub(server);
+  dossierMessageEvents.notify = messageHub.notifyDossierMessagesUpdated;
+  server.listen(port, () => {
     // eslint-disable-next-line no-console
     console.log(`[greffio-api] listening on http://localhost:${port} | storage=${objectStorageConfig.driver}`);
   });

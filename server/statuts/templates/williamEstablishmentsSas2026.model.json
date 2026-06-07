@@ -308,7 +308,8 @@
         "Le projet de cession doit être notifié à la société par lettre recommandée avec accusé de réception.",
         "Dans les huit jours, le Président convoque une assemblée des associés ou procède à une consultation écrite pour statuer sur cette demande.",
         "La décision est communiquée dans un délai de trois mois : passé ce délai, l’agrément est considéré comme acquis.",
-        "En cas de refus, la société ou les associés doivent racheter les actions dans un délai de trois mois, sauf si le cédant y renonce. L’agrément est accordé si les associés représentant plus de 75% des actions se prononcent favorablement."
+        "En cas de refus, la société ou les associés doivent racheter les actions dans un délai de trois mois, sauf si le cédant y renonce.",
+        "L’agrément est accordé si les associés représentant plus de 75% des actions se prononcent favorablement."
       ],
       "titleGroup": "TITRE IV – ACTIONS & MOUVEMENT DES TITRES"
     },
@@ -320,12 +321,12 @@
       "paragraphs": [
         "Un associé peut être exclu de la Société par décision collective extraordinaire représentant au moins 75% des actions représentées, l’associé concerné ne prenant pas part au vote.",
         "L’exclusion peut être prononcée notamment en cas de :",
-        "Violation grave des statuts ;",
-        "Manquement grave à ses obligations;",
-        "Concurrence déloyale ou activité concurrente ;",
-        "Condamnation pénale incompatible avec l’intérêt social ;",
-        "Perte de la qualité requise pour être associé ;",
-        "Comportement portant atteinte aux intérêts sociaux.",
+        "- Violation grave des statuts ;",
+        "- Manquement grave à ses obligations;",
+        "- Concurrence déloyale ou activité concurrente ;",
+        "- Condamnation pénale incompatible avec l’intérêt social ;",
+        "- Perte de la qualité requise pour être associé ;",
+        "- Comportement portant atteinte aux intérêts sociaux.",
         "L’associé concerné est préalablement informé par lettre recommandée et peut présenter ses observations.",
         "Les actions de l’associé exclu seront rachetées par la Société ou par les autres associés dans un délai de trois mois, à une valeur déterminée :",
         "soit d’un commun accord ;",

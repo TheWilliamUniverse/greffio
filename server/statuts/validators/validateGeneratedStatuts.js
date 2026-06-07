@@ -1,6 +1,10 @@
 import { countWilliamArticles, estimatePageCount } from '../renderers/renderWilliamSas2026.js';
 import { blocksContainSampleParasiteText } from '../renderers/williamParagraphSanitizer.js';
 import { validateLegalEntityParties } from '../../shared/partyIdentityFormatter.js';
+import {
+  validateGeneratedStatutsText,
+  validateStatutsCapitalModel,
+} from '../shared/deriveStatutsCapital.js';
 
 const REQUIRED_TITLES_SAS = [
   'TITRE I – FORMATION DE LA SOCIÉTÉ',
@@ -64,6 +68,11 @@ export const validateGeneratedStatuts = ({ blocks = [], context = {}, legalForm 
   const totalShares = (context.associates || []).reduce((sum, a) => sum + (Number(a.shares) || 0), 0);
   if (shareCount > 0 && totalShares > 0 && totalShares !== shareCount) {
     errors.push(`Incohérence capital/actions : ${totalShares} actions pour ${shareCount} attendues.`);
+  }
+
+  if (context.capitalModel) {
+    const capitalValidation = validateStatutsCapitalModel(context.capitalModel);
+    if (!capitalValidation.ok) errors.push(...capitalValidation.errors);
   }
 
   (context.associates || []).forEach((associate) => {
