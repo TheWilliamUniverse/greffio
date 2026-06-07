@@ -82,10 +82,14 @@ export const createDossierMessageHub = (httpServer) => {
     ws.on('error', () => removeClient(ws));
   });
 
-  const notifyDossierMessagesUpdated = (dossierId) => {
+  const notifyDossierMessagesUpdated = (dossierId, messages) => {
     const clients = rooms.get(String(dossierId));
     if (!clients?.size) return;
-    const payload = JSON.stringify({ type: 'messages_updated', dossierId: String(dossierId) });
+    const payload = JSON.stringify({
+      type: 'messages_updated',
+      dossierId: String(dossierId),
+      messages: Array.isArray(messages) ? messages : undefined,
+    });
     for (const client of clients) {
       if (client.readyState === 1) client.send(payload);
     }

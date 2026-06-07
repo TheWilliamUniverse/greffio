@@ -38,7 +38,7 @@ export const DossierMessageThread = ({
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages.length]);
+  }, [messages.length, messages[messages.length - 1]?.id, messages[messages.length - 1]?.updatedAt]);
 
   const submitMessage = async () => {
     const body = draft.trim();

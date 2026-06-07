@@ -6,8 +6,8 @@ import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.jsx';
 import { fetchDossierDetail, trashDossier } from '@/api/dossiers.js';
-import { fetchDossierMessages, postDossierMessage } from '@/api/dossierMessages.js';
-import { useDossierMessagesRealtime } from '@/hooks/useDossierMessagesRealtime.js';
+import { fetchDossierMessages, fetchOpsDossierMessages, postDossierMessage, postOpsDossierMessage } from '@/api/dossierMessages.js';
+import { useDossierMessagesRealtime, sendDossierMessageOptimistic } from '@/hooks/useDossierMessagesRealtime.js';
 import { fetchVerificationProfile, runDossierVerification } from '@/api/verification.js';
 import { VerificationStatusCard } from '@/components/verification/VerificationStatusCard.jsx';
 import { saveCurrentDossierId } from '@/utils/sessionStore.js';
@@ -109,10 +109,11 @@ export const DossierDetailPage = () => {
     messages,
     setMessages,
     loading: messagesLoading,
-  } = useDossierMessagesRealtime(id, fetchDossierMessages, {
-    enabled: Boolean(id) && !internalView,
-    intervalMs: 15000,
-  });
+  } = useDossierMessagesRealtime(
+    id,
+    internalView ? fetchOpsDossierMessages : fetchDossierMessages,
+    { enabled: Boolean(id) },
+  );
   const [verificationProfile, setVerificationProfile] = useState(null);
   const [verificationRunning, setVerificationRunning] = useState(false);
   const missingDocuments = useMemo(() => docs.filter((document) => ['ATTENTE_DOCS', 'URGENT', 'EN_ANALYSE', 'A_SIGNER', 'BROUILLON'].includes(document.status)), [docs]);
@@ -426,8 +427,14 @@ export const DossierDetailPage = () => {
                 messages={messages}
                 loading={messagesLoading}
                 onSend={async (body) => {
-                  const result = await postDossierMessage(id, body);
-                  setMessages(result?.messages || []);
+                  await sendDossierMessageOptimistic({
+                    dossierId: id,
+                    body,
+                    setMessages,
+                    postMessage: internalView ? postOpsDossierMessage : postDossierMessage,
+                    authorType: internalView ? 'ops' : 'client',
+                    authorName: internalView ? 'Équipe Greffio' : 'Vous',
+                  });
                 }}
               />
             </TabsContent>

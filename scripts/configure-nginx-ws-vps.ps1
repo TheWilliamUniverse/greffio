@@ -40,6 +40,8 @@ $RemoteScript = @'
 set -e
 CONF=""
 for candidate in \
+  /etc/nginx/sites-enabled/greffio-api.conf \
+  /etc/nginx/sites-available/greffio-api.conf \
   /etc/nginx/sites-enabled/greffio \
   /etc/nginx/sites-enabled/api.greffio.willentreprises.com \
   /etc/nginx/sites-enabled/default \

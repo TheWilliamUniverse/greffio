@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { DossierMessageThread } from '@/components/messaging/DossierMessageThread.jsx';
 import { listDossiers } from '@/api/dossiers.js';
 import { fetchDossierMessages, postDossierMessage } from '@/api/dossierMessages.js';
-import { useDossierMessagesRealtime } from '@/hooks/useDossierMessagesRealtime.js';
+import { useDossierMessagesRealtime, sendDossierMessageOptimistic } from '@/hooks/useDossierMessagesRealtime.js';
 
 const workstreams = [
   { name: 'Équipe formalités Greffio', role: 'Contrôle statuts, formulaires, bénéficiaires effectifs', status: 'Activable' },
@@ -23,7 +23,6 @@ export const TeamPage = () => {
     loading: messagesLoading,
   } = useDossierMessagesRealtime(selectedDossierId, fetchDossierMessages, {
     enabled: Boolean(selectedDossierId),
-    intervalMs: 15000,
   });
 
   useEffect(() => {
@@ -116,8 +115,14 @@ export const TeamPage = () => {
                     messages={messages}
                     loading={messagesLoading}
                     onSend={async (body) => {
-                      const result = await postDossierMessage(currentDossier.id, body);
-                      setMessages(result?.messages || []);
+                      await sendDossierMessageOptimistic({
+                        dossierId: currentDossier.id,
+                        body,
+                        setMessages,
+                        postMessage: postDossierMessage,
+                        authorType: 'client',
+                        authorName: 'Vous',
+                      });
                     }}
                   />
                 ) : (

@@ -56,11 +56,12 @@ export const registerDossierMessageRoutes = (app, { requireAuth, requireRole, ap
     if (!message) {
       return res.status(400).json({ ok: false, error: 'MESSAGE_BODY_REQUIRED' });
     }
-    onMessagesUpdated?.(access.dossier.id);
+    const messages = await listDossierMessagesByDossier(access.dossier.id);
+    onMessagesUpdated?.(access.dossier.id, messages);
     return res.status(201).json({
       ok: true,
       message,
-      messages: await listDossierMessagesByDossier(access.dossier.id),
+      messages,
     });
   });
 
@@ -87,11 +88,12 @@ export const registerDossierMessageRoutes = (app, { requireAuth, requireRole, ap
       body,
       channel: 'thread',
     });
-    onMessagesUpdated?.(dossier.id);
+    const messages = await listDossierMessagesByDossier(dossier.id);
+    onMessagesUpdated?.(dossier.id, messages);
     return res.status(201).json({
       ok: true,
       message,
-      messages: await listDossierMessagesByDossier(dossier.id),
+      messages,
     });
   });
 
@@ -139,12 +141,13 @@ export const registerDossierMessageRoutes = (app, { requireAuth, requireRole, ap
       await markDossierMessageEmailSent(message.id);
     }
 
-    onMessagesUpdated?.(dossier.id);
+    const messages = await listDossierMessagesByDossier(dossier.id);
+    onMessagesUpdated?.(dossier.id, messages);
     return res.status(201).json({
       ok: true,
       message,
       email: emailResult,
-      messages: await listDossierMessagesByDossier(dossier.id),
+      messages,
     });
   });
 };

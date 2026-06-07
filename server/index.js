@@ -3067,14 +3067,14 @@ registerPaymentsRoutes(app, {
 registerAppVersionRoutes(app);
 
 const dossierMessageEvents = {
-  notify: () => {},
+  notify: (_dossierId, _messages) => {},
 };
 
 registerDossierMessageRoutes(app, {
   requireAuth,
   requireRole,
   appUrl,
-  onMessagesUpdated: (dossierId) => dossierMessageEvents.notify(dossierId),
+  onMessagesUpdated: (dossierId, messages) => dossierMessageEvents.notify(dossierId, messages),
 });
 
 const bootstrap = async () => {

@@ -26,7 +26,7 @@ import {
   sendOpsDossierMessageEmail,
 } from '@/api/dossierMessages.js';
 import { DossierMessageThread } from '@/components/messaging/DossierMessageThread.jsx';
-import { useDossierMessagesRealtime } from '@/hooks/useDossierMessagesRealtime.js';
+import { useDossierMessagesRealtime, sendDossierMessageOptimistic } from '@/hooks/useDossierMessagesRealtime.js';
 import { OpsCompletionBadge, OpsPriorityBadge, OpsQueueBadge, OpsRiskBadge, OpsSlaBadge } from '@/components/ops/OpsBadges.jsx';
 import { formatDateTime } from '@/components/ops/opsLabels.js';
 import { GREFFIO_OPS_TEAM, OPS_PRIORITY_LABELS, OPS_QUEUE_LABELS } from '@/config/opsTeam.js';
@@ -58,7 +58,6 @@ export const OpsDossierDetailPage = () => {
     loading: messagesLoading,
   } = useDossierMessagesRealtime(dossierId, fetchOpsDossierMessages, {
     enabled: Boolean(dossierId),
-    intervalMs: 15000,
   });
 
   const loadDetail = async () => {
@@ -372,8 +371,14 @@ export const OpsDossierDetailPage = () => {
                 viewerRole="ops"
                 clientEmail={ownerEmail}
                 onSend={async (body) => {
-                  const result = await postOpsDossierMessage(dossier.id, body);
-                  setMessages(result?.messages || []);
+                  await sendDossierMessageOptimistic({
+                    dossierId: dossier.id,
+                    body,
+                    setMessages,
+                    postMessage: postOpsDossierMessage,
+                    authorType: 'ops',
+                    authorName: 'Équipe Greffio',
+                  });
                 }}
                 onSendEmail={async ({ body, toEmail, subject }) => {
                   const result = await sendOpsDossierMessageEmail(dossier.id, { body, toEmail, subject });

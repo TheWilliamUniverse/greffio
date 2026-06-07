@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const sameMessageList = (left = [], right = []) => {
+export const sameDossierMessageList = (left = [], right = []) => {
   if (left.length !== right.length) return false;
   for (let index = 0; index < left.length; index += 1) {
     if (left[index]?.id !== right[index]?.id) return false;
@@ -13,7 +13,7 @@ const sameMessageList = (left = [], right = []) => {
 export const useDossierMessagesPoll = (
   dossierId,
   fetchMessages,
-  { enabled = true, intervalMs = 15000 } = {},
+  { enabled = true, intervalMs = 4000 } = {},
 ) => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -25,7 +25,7 @@ export const useDossierMessagesPoll = (
     if (!silent) setLoading(true);
     try {
       const items = await fetchRef.current(dossierId);
-      setMessages((current) => (sameMessageList(current, items) ? current : items));
+      setMessages((current) => (sameDossierMessageList(current, items) ? current : items));
       return items;
     } catch (_error) {
       if (!silent) setMessages([]);
