@@ -197,18 +197,19 @@ const ensureSeedDossier = async (dossierId = 'dos_seed_001') => {
 
 const createDossier = async ({
   userId = null,
-  companyName = 'Projet Greffio',
+  companyName = null,
   legalForm = 'SASU',
   service = 'creation-sasu',
   status = DOSSIER_STATUSES.QUOTE_GENERATED,
 }) => {
   const createdAt = nowIso();
   const reference = makeShortReference();
+  const resolvedCompanyName = String(companyName || '').trim() || `Brouillon · ${reference}`;
   const dossier = {
     id: `dos_${randomUUID()}`,
     reference,
     userId,
-    companyName,
+    companyName: resolvedCompanyName,
     legalForm,
     service,
     status,
@@ -867,7 +868,15 @@ const updateDossierQuestionnaire = async ({
     mergedData.typeFormalite || dossier.typeFormalite,
     nextLegalForm,
   ) || dossier.service;
-  const nextCompanyName = String(mergedData.denomination || mergedData.companyName || dossier.companyName || '').trim() || dossier.companyName;
+  const resolvedDenom = String(mergedData.denomination || mergedData.companyName || '').trim();
+  const currentName = String(dossier.companyName || '').trim();
+  const isPlaceholderName = (value) => {
+    const normalized = String(value || '').trim().toLowerCase();
+    return !normalized || ['projet greffio', 'greffio demo company', 'brouillon en cours'].includes(normalized);
+  };
+  const nextCompanyName = (resolvedDenom && !isPlaceholderName(resolvedDenom))
+    ? resolvedDenom
+    : ((!isPlaceholderName(currentName) ? currentName : (resolvedDenom || currentName || dossier.reference || 'Brouillon en cours')));
 
   if (hasPostgres) {
     await query(`

@@ -20,7 +20,7 @@ import {
   SIGNWELL_PROVIDER,
 } from './signwell.service.js';
 
-export { isSignwellConfigured };
+export { isSignwellConfigured, SIGNWELL_PROVIDER };
 
 const extractSigningUrl = (document) => {
   const recipients = document?.recipients || [];

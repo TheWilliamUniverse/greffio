@@ -66,6 +66,7 @@ export const createSignwellDocument = async ({
     id: String(recipient.id || index + 1),
     email: String(recipient.email || '').trim().toLowerCase(),
     name: String(recipient.name || recipient.email || 'Signataire').trim(),
+    send_email: false,
   })).filter((recipient) => recipient.email.includes('@'));
 
   if (!normalizedRecipients.length) {
@@ -82,6 +83,7 @@ export const createSignwellDocument = async ({
       draft: false,
       with_signature_page: true,
       embedded_signing: embeddedSigning,
+      ...(embeddedSigning ? { embedded_signing_notifications: false } : {}),
       redirect_url: redirectUrl,
       message: message || '<p>Veuillez signer ce document Greffio.</p>',
       subject: subject || `Signature — ${safeName}`,

@@ -89,6 +89,30 @@ export const getSignwellDocumentBySignwellId = async (signwellDocumentId) => {
   return mapRow(result.rows[0]);
 };
 
+export const getSignwellDocumentBySignatureRequestId = async (signatureRequestId) => {
+  if (!hasPostgres || !signatureRequestId) return null;
+  const result = await query(`
+    SELECT
+      id,
+      dossier_id AS "dossierId",
+      doc_key AS "docKey",
+      signwell_document_id AS "signwellDocumentId",
+      signature_request_id AS "signatureRequestId",
+      signer_email AS "signerEmail",
+      signer_full_name AS "signerFullName",
+      status,
+      signing_url AS "signingUrl",
+      metadata_json AS "metadataJson",
+      created_at AS "createdAt",
+      updated_at AS "updatedAt"
+    FROM signwell_documents
+    WHERE signature_request_id = $1
+    ORDER BY created_at DESC
+    LIMIT 1
+  `, [signatureRequestId]);
+  return mapRow(result.rows[0]);
+};
+
 export const updateSignwellDocumentStatus = async (id, status, extra = {}) => {
   if (!hasPostgres) return;
   const updatedAt = nowIso();

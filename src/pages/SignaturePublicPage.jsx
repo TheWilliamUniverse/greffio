@@ -2,12 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { SignatureAdoptPanel } from '@/components/signature/SignatureAdoptPanel.jsx';
+import { SignatureDocumentAcknowledge } from '@/components/signature/SignatureDocumentAcknowledge.jsx';
+import { SignwellPublicSigningPanel } from '@/components/signature/SignwellPublicSigningPanel.jsx';
 import {
   fetchPublicSignatureSession,
   getPublicSignaturePdfUrl,
   submitPublicSignature,
 } from '@/api/nonConviction.js';
 import { mapSignaturePublicError } from '@/utils/signaturePublicErrors.js';
+import { redirectToSignwellSigning } from '@/utils/signwellClient.js';
 import { PdfPreviewPanel } from '@/components/documents/PdfPreviewPanel.jsx';
 
 export const SignaturePublicPage = () => {
@@ -19,6 +22,8 @@ export const SignaturePublicPage = () => {
   const [error, setError] = useState('');
   const [previewAcknowledged, setPreviewAcknowledged] = useState(false);
   const [previewBlobUrl, setPreviewBlobUrl] = useState('');
+
+  const isSignwellSession = session?.provider === 'signwell' && Boolean(session?.signwellSigningUrl);
 
   useEffect(() => {
     const load = async () => {
@@ -67,7 +72,7 @@ export const SignaturePublicPage = () => {
     if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);
   }, [previewBlobUrl]);
 
-  const onSign = async (payload) => {
+  const onSignInternal = async (payload) => {
     if (!previewAcknowledged) {
       setError(mapSignaturePublicError('SIGNATURE_PREVIEW_REQUIRED'));
       return;
@@ -82,6 +87,16 @@ export const SignaturePublicPage = () => {
     } finally {
       setSigning(false);
     }
+  };
+
+  const onContinueSignwell = () => {
+    if (!previewAcknowledged) {
+      setError(mapSignaturePublicError('SIGNATURE_PREVIEW_REQUIRED'));
+      return;
+    }
+    setSigning(true);
+    setError('');
+    redirectToSignwellSigning(session.signwellSigningUrl);
   };
 
   if (loading) {
@@ -116,34 +131,41 @@ export const SignaturePublicPage = () => {
         <p className="text-sm text-white/60">{session?.companyName}</p>
       </header>
       <div className="grid flex-1 lg:grid-cols-2">
-        <div className="min-h-[50vh] lg:min-h-0">
+        <div className="min-h-[50vh] border-b border-white/10 px-4 pb-4 lg:min-h-0 lg:border-b-0 lg:border-r lg:border-white/10">
           <PdfPreviewPanel
             title="Document à signer"
             blobUrl={previewBlobUrl}
             filename="document-a-signer.pdf"
             emptyMessage="Chargement du document…"
           />
-          <label className="mt-3 flex items-start gap-2 px-4 text-sm text-white/80">
-            <input
-              type="checkbox"
-              className="mt-1"
-              checked={previewAcknowledged}
-              onChange={(event) => setPreviewAcknowledged(event.target.checked)}
-            />
-            J’ai consulté le document et je souhaite le signer.
-          </label>
+          <SignatureDocumentAcknowledge
+            checked={previewAcknowledged}
+            onChange={setPreviewAcknowledged}
+          />
         </div>
         <div className="flex items-center justify-center p-6">
-          <div className="w-full max-w-md">
-            <SignatureAdoptPanel
-              defaultName={session?.signerFullName || ''}
-              defaultEmail={session?.signerEmail || ''}
+          {isSignwellSession ? (
+            <SignwellPublicSigningPanel
+              signerFullName={session?.signerFullName}
+              signerEmail={session?.signerEmail}
+              signingUrl={session?.signwellSigningUrl}
+              previewAcknowledged={previewAcknowledged}
+              onContinue={onContinueSignwell}
               loading={signing}
-              onCancel={() => window.close()}
-              onConfirm={onSign}
               errorMessage={error}
             />
-          </div>
+          ) : (
+            <div className="w-full max-w-md">
+              <SignatureAdoptPanel
+                defaultName={session?.signerFullName || ''}
+                defaultEmail={session?.signerEmail || ''}
+                loading={signing}
+                onCancel={() => window.close()}
+                onConfirm={onSignInternal}
+                errorMessage={error}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

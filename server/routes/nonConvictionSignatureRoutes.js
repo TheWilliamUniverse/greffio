@@ -22,7 +22,8 @@ import { sendTransactionalEmail } from '../services/emailService.js';
 import { getClientIp } from '../utils/loginContext.js';
 import { resolveDossierAccess } from '../utils/dossierAccess.js';
 import { ensureSignatureDraftPdf } from '../services/signatureDraftPdfService.js';
-import { isSignwellConfigured, sendDocumentForSignature } from '../services/signature/signwellOrchestrator.js';
+import { isSignwellConfigured, sendDocumentForSignature, SIGNWELL_PROVIDER } from '../services/signature/signwellOrchestrator.js';
+import { getSignwellDocumentBySignatureRequestId } from '../signwellStore.js';
 
 export const registerNonConvictionSignatureRoutes = (app, {
   requireAuth,
@@ -206,6 +207,53 @@ export const registerNonConvictionSignatureRoutes = (app, {
       if (!pdfPath || !fs.existsSync(pdfPath)) {
         throw new Error('PDF_GENERATION_FAILED');
       }
+
+      if (isSignwellConfigured()) {
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+        const { hash } = createSigningToken();
+        const signatureRequest = await createSignatureRequest({
+          dossierId: dossier.id,
+          documentId: updated?.id || null,
+          docKey: NON_CONVICTION_DOC_KEY,
+          tokenHash: hash,
+          signerEmail,
+          signerFullName,
+          draftPdfPath: pdfPath,
+          sha256Draft,
+          fields: { ...normalizedFields, signerEmail, signatureFullName },
+          expiresAt,
+        });
+        try {
+          const signwellResult = await sendDocumentForSignature({
+            dossier,
+            docKey: NON_CONVICTION_DOC_KEY,
+            documentTitle: 'Déclaration de non-condamnation',
+            pdfPath,
+            sha256Draft,
+            signerEmail,
+            signerFullName,
+            signatureRequestId: signatureRequest.id,
+            fields: { ...normalizedFields, signerEmail, signatureFullName },
+            appUrl,
+            emailSubject: `Signature — Déclaration de non-condamnation (${dossier.companyName || dossier.denomination || 'Greffio'})`,
+          });
+          return res.json({
+            ok: true,
+            status: 'signature_pending',
+            provider: signwellResult.provider,
+            signingLink: signwellResult.signingLink,
+            signwellDocumentId: signwellResult.signwellDocumentId,
+          });
+        } catch (signwellError) {
+          console.error('SIGNWELL_SIGN_NOW_FAILED', signwellError);
+          return res.status(502).json({
+            ok: false,
+            error: signwellError?.code || 'SIGNWELL_SIGN_NOW_FAILED',
+            message: 'Redirection SignWell impossible. Réessayez ou contactez le support Greffio.',
+          });
+        }
+      }
+
       const signedFilename = pdfPath.replace(/\.pdf$/i, '_signed.pdf');
       await stampSignatureOnPdf({
         inputPath: pdfPath,
@@ -291,6 +339,10 @@ export const registerNonConvictionSignatureRoutes = (app, {
     await appendSignatureAudit(request.id, { type: 'viewed', ipAddress: getClientIp(req) });
     const dossier = await getDossier(request.dossierId);
     const editableConfig = getEditableDocumentConfig(request.docKey);
+    const signwellRecord = isSignwellConfigured()
+      ? await getSignwellDocumentBySignatureRequestId(request.id)
+      : null;
+    const useSignwell = Boolean(signwellRecord?.signingUrl);
     return res.json({
       ok: true,
       status: request.status,
@@ -299,6 +351,8 @@ export const registerNonConvictionSignatureRoutes = (app, {
       companyName: dossier?.companyName || dossier?.denomination || 'Greffio',
       documentTitle: editableConfig?.publicDocumentTitle || 'Déclaration de non-condamnation et de filiation',
       pdfUrl: `/api/signature/public/${req.params.token}/pdf`,
+      provider: useSignwell ? SIGNWELL_PROVIDER : 'internal',
+      signwellSigningUrl: signwellRecord?.signingUrl || null,
     });
   });
 

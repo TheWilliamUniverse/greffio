@@ -1,7 +1,8 @@
 export const getDeclarationErrorMessage = (code = '', payload = null) => {
-  if (payload?.message && code !== 'API_ERROR') return payload.message;
+  if (payload?.message) return payload.message;
   switch (String(code || '').trim()) {
     case 'AUTH_TOKEN_MISSING':
+    case 'AUTH_TOKEN_INVALID':
     case 'UNAUTHORIZED':
       return 'Votre session a expiré. Veuillez vous reconnecter.';
     case 'FORBIDDEN':
@@ -45,7 +46,17 @@ export const getDeclarationErrorMessage = (code = '', payload = null) => {
     case 'DOCUMENT_EDITOR_GENERATION_FAILED':
       return 'La génération du document a échoué.';
     case 'STORAGE_UPLOAD_FAILED':
-      return 'Le document signé n’a pas pu être enregistré.';
+    case 'STORAGE_DOWNLOAD_FAILED':
+    case 'STORAGE_URL_MISSING':
+    case 'FILE_BUFFER_REQUIRED':
+      return 'Le document signé n’a pas pu être enregistré. Vérifiez le stockage documents (S3) côté serveur.';
+    case 'DOCUMENT_FILE_NOT_FOUND':
+    case 'DOCUMENT_DOWNLOAD_FAILED':
+      return 'Le document a été traité mais le fichier n’est pas encore accessible. Rechargez la page ou ouvrez « Documents ».';
+    case 'SIGNWELL_SEND_FAILED':
+    case 'SIGNWELL_SIGN_NOW_FAILED':
+    case 'SIGNWELL_NOT_CONFIGURED':
+      return 'L’envoi via SignWell a échoué. Vérifiez la configuration API sur le serveur.';
     case 'SEND_SIGNATURE_REQUEST_FAILED':
       return 'L’envoi du lien de signature a échoué.';
     case 'PUBLIC_SIGN_FAILED':

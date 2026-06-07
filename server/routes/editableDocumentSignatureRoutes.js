@@ -185,6 +185,52 @@ export const registerEditableDocumentSignatureRoutes = (app, {
         if (!pdfPath || !fs.existsSync(pdfPath)) {
           throw new Error('PDF_GENERATION_FAILED');
         }
+
+        if (isSignwellConfigured()) {
+          const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+          const { hash } = createSigningToken();
+          const signatureRequest = await createSignatureRequest({
+            dossierId: dossier.id,
+            documentId: updated?.id || null,
+            docKey,
+            tokenHash: hash,
+            signerEmail,
+            signerFullName,
+            draftPdfPath: pdfPath,
+            sha256Draft,
+            fields: { ...normalizedFields, signerEmail, signatureFullName: signerFullName },
+            expiresAt,
+          });
+          try {
+            const signwellResult = await sendDocumentForSignature({
+              dossier,
+              docKey,
+              documentTitle: config.publicDocumentTitle,
+              pdfPath,
+              sha256Draft,
+              signerEmail,
+              signerFullName,
+              signatureRequestId: signatureRequest.id,
+              fields: { ...normalizedFields, signerEmail, signatureFullName: signerFullName },
+              appUrl,
+              emailSubject: `Signature — ${config.publicDocumentTitle}`,
+            });
+            return res.json({
+              ok: true,
+              status: 'signature_pending',
+              provider: signwellResult.provider,
+              signingLink: signwellResult.signingLink,
+              signwellDocumentId: signwellResult.signwellDocumentId,
+            });
+          } catch (signwellError) {
+            console.error('SIGNWELL_SIGN_NOW_FAILED', signwellError);
+            return res.status(502).json({
+              ok: false,
+              error: signwellError?.code || 'SIGNWELL_SIGN_NOW_FAILED',
+            });
+          }
+        }
+
         const signedFilename = pdfPath.replace(/\.pdf$/i, '_signed.pdf');
         await stampSignatureOnPdf({
           inputPath: pdfPath,

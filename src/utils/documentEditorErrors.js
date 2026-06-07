@@ -2,7 +2,10 @@ import { getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.
 import { getDeclarationErrorMessage } from '@/utils/declarationErrors.js';
 
 export const getDocumentEditorLoadErrorMessage = (error) => {
-  const code = String(error?.code || error?.message || error?.payload?.error || '').trim();
+  const code = String(error?.code || error?.payload?.error || error?.message || '').trim();
+  if (code === 'Failed to fetch') {
+    return 'Connexion à l’API impossible. Vérifiez votre réseau ou réessayez dans quelques instants.';
+  }
   return getDeclarationErrorMessage(code, error?.payload);
 };
 

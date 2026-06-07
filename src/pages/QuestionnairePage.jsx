@@ -33,9 +33,10 @@ import {
   patchQuestionnaireState,
 } from '@/api/questionnaire.js';
 import { lookupCompanyBySiren } from '@/api/company.js';
-import { createDossier } from '@/api/dossiers.js';
+import { createDossier, listDossiers } from '@/api/dossiers.js';
 import { QuestionnaireRecapPanel } from '@/components/questionnaire/QuestionnaireRecapPanel.jsx';
 import { clearCurrentDossierId, getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.js';
+import { buildDossierBootstrap, pickResumableDraftDossier } from '@/utils/dossierBootstrap.js';
 import { getProjectDraft } from '@/utils/localStorage.js';
 import { runtimeConfig } from '@/config/runtime.js';
 import { isEiLikeFormality, isStatutesSupportedForm } from '@/config/formalities.js';
@@ -105,19 +106,6 @@ const PROGRESSIVE_STEPS = QUESTIONNAIRE_FLOW.map((flowStep) => ({
 const normalizeFormalityToService = (typeFormalite, formeJuridique) => (
   resolveServiceFromFormality(typeFormalite, formeJuridique)
 );
-
-const buildDossierBootstrap = (formData, userId = null) => {
-  const legalForm = resolveLegalFormFromContext({
-    formeJuridique: formData.formeJuridique,
-    typeFormalite: formData.typeFormalite,
-  }) || 'SASU';
-  return {
-    userId,
-    companyName: formData.denomination || 'Projet Greffio',
-    legalForm,
-    service: normalizeFormalityToService(formData.typeFormalite, legalForm),
-  };
-};
 
 const sanitizeSiren = (value) => String(value || '').replace(/\D/g, '').slice(0, 9);
 const sanitizeCompanyIdentifier = (value) => String(value || '').replace(/\D/g, '').slice(0, 14);
@@ -215,7 +203,18 @@ export const QuestionnairePage = () => {
       const existing = dossierId || getCurrentDossierId();
       if (existing) return existing;
     }
-    const created = await createDossier(buildDossierBootstrap(formData, isAuthenticated ? user?.id || null : null));
+    const created = await createDossier(buildDossierBootstrap(
+      {
+        ...formData,
+        legalForm: resolveLegalFormFromContext({
+          formeJuridique: formData.formeJuridique,
+          typeFormalite: formData.typeFormalite,
+        }) || 'SASU',
+        service: normalizeFormalityToService(formData.typeFormalite, formData.formeJuridique),
+      },
+      isAuthenticated ? user?.id || null : null,
+      reference,
+    ));
     const id = created?.dossier?.id || null;
     if (id) {
       saveCurrentDossierId(id);
@@ -354,12 +353,17 @@ export const QuestionnairePage = () => {
         }
 
         let currentDossierId = queryDossierId || dossierId || getCurrentDossierId();
-        if (!currentDossierId) {
-          const created = await createDossier(buildDossierBootstrap(mergedData, isAuthenticated ? user?.id || null : null));
-          currentDossierId = created?.dossier?.id || null;
-          if (currentDossierId) {
-            saveCurrentDossierId(currentDossierId);
-            setDossierId(currentDossierId);
+        if (!currentDossierId && isAuthenticated) {
+          try {
+            const payload = await listDossiers();
+            const resumable = pickResumableDraftDossier(payload?.dossiers || []);
+            if (resumable?.id) {
+              currentDossierId = resumable.id;
+              saveCurrentDossierId(currentDossierId);
+              setDossierId(currentDossierId);
+            }
+          } catch (_listError) {
+            // Pas bloquant : le dossier sera créé au premier enregistrement.
           }
         }
 
@@ -377,7 +381,18 @@ export const QuestionnairePage = () => {
             }
           }
           if (!currentDossierId) {
-            const created = await createDossier(buildDossierBootstrap(mergedData, isAuthenticated ? user?.id || null : null));
+            const created = await createDossier(buildDossierBootstrap(
+              {
+                ...mergedData,
+                legalForm: resolveLegalFormFromContext({
+                  formeJuridique: mergedData.formeJuridique,
+                  typeFormalite: mergedData.typeFormalite,
+                }) || 'SASU',
+                service: normalizeFormalityToService(mergedData.typeFormalite, mergedData.formeJuridique),
+              },
+              isAuthenticated ? user?.id || null : null,
+              reference,
+            ));
             currentDossierId = created?.dossier?.id || null;
             if (currentDossierId) {
               saveCurrentDossierId(currentDossierId);

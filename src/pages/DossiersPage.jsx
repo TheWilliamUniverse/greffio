@@ -9,7 +9,7 @@ import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
-import { resolveDossierContinueUrl } from '@/utils/dossierContinueUrl.js';
+import { resolveDossierDisplayName } from '@/utils/dossierBootstrap.js';
 
 const STATUS_LABELS = {
   draft: 'BROUILLON',
@@ -148,7 +148,7 @@ const normalizeApiDossier = (dossier) => {
   return {
     id: dossier.id,
     reference: dossier.reference || '',
-    name: dossier.companyName || dossier.denomination || 'Projet Greffio',
+    name: resolveDossierDisplayName(dossier),
     legalForm: dossier.legalForm || dossier.formeJuridique || 'Forme à préciser',
     status: toVisualStatus(status),
     rawStatus: status,

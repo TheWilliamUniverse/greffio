@@ -17,6 +17,7 @@ import {
 } from '@/api/nonConviction.js';
 import { runtimeConfig } from '@/config/runtime.js';
 import { getDocumentEditorLoadErrorMessage } from '@/utils/documentEditorErrors.js';
+import { handleSignNowApiResponse } from '@/utils/signwellClient.js';
 import { DocumentEditorLoadGate } from '@/components/documents/DocumentEditorLoadGate.jsx';
 
 const OFFICIAL_SIMULATOR = 'https://www.service-public.gouv.fr/simulateur/calcul/DeclarationDeNonCondamnationEtDeFiliation';
@@ -129,23 +130,31 @@ export const NonConvictionDeclarationPage = () => {
         setPreviewKey((k) => k + 1);
       }
       await saveNonConvictionDraft(dossierId, normalized);
-      await signNonConvictionNow(dossierId, {
+      const result = await signNonConvictionNow(dossierId, {
         fields: normalized,
         ...signaturePayload,
         previewAcknowledged: true,
       });
+      if (handleSignNowApiResponse(result) === 'redirect') {
+        toast.info('Ouverture de la signature sécurisée SignWell…');
+        return;
+      }
       toast.success('Déclaration signée et archivée.');
       setSignMode(null);
-      const { blob } = await downloadDossierDocument({
-        dossierId,
-        docKey: 'manager_non_conviction',
-        cacheBust: true,
-      });
-      setPreviewBlobUrl((current) => {
-        if (current) URL.revokeObjectURL(current);
-        return URL.createObjectURL(blob);
-      });
-      setPreviewKey((k) => k + 1);
+      try {
+        const { blob } = await downloadDossierDocument({
+          dossierId,
+          docKey: 'manager_non_conviction',
+          cacheBust: true,
+        });
+        setPreviewBlobUrl((current) => {
+          if (current) URL.revokeObjectURL(current);
+          return URL.createObjectURL(blob);
+        });
+        setPreviewKey((k) => k + 1);
+      } catch (downloadError) {
+        toast.warning(mapError(downloadError));
+      }
     } catch (error) {
       toast.error(mapError(error));
     } finally {

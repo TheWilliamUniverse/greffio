@@ -192,7 +192,7 @@ export const AuthProvider = ({ children }) => {
         role: 'CLIENT',
         loginAlertsEnabled: userData.loginAlertsEnabled !== false,
         company: {
-          name: userData.companyName || 'Projet Greffio',
+          name: userData.companyName || userData.firstName || 'Mon espace Greffio',
           legalStructure: userData.legalStructure || userData.legalForm || 'SAS',
           location: userData.location || userData.city || 'France',
           activity: userData.activity || userData.objetSocial || '',
