@@ -1,24 +1,27 @@
 import React, { useCallback, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Building2, Menu, ShieldCheck, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { cn } from '@/lib/utils.js';
+import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import {
-  buildMobileDrawerNavItems,
+  MOBILE_PUBLIC_DRAWER_ITEMS,
   isMobileDrawerNavActive,
 } from '@/config/mobileNavigation.js';
 import { useAuth } from '@/hooks/useAuth.js';
-import { isInternalUser } from '@/utils/roles.js';
 
 /**
- * Drawer mobile/tablette pour le cockpit Greffio.
+ * Menu ☰ simplifié pour visiteurs (landing et pages publiques mobile).
  */
-export const MobileSidebarDrawer = ({ open, onClose, className }) => {
-  const { currentUser } = useAuth();
+export const MobilePublicDrawer = ({ open, onClose, className }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const company = currentUser?.company || {};
-  const internalView = isInternalUser(currentUser);
-  const items = buildMobileDrawerNavItems(internalView);
+  const { currentUser } = useAuth();
+
+  const items = MOBILE_PUBLIC_DRAWER_ITEMS.map((item) => (
+    item.to === '/login' && currentUser
+      ? { ...item, to: '/dashboard', label: 'Mon espace' }
+      : item
+  ));
 
   const handleNavigate = useCallback((to) => {
     onClose?.();
@@ -47,26 +50,16 @@ export const MobileSidebarDrawer = ({ open, onClose, className }) => {
   if (!open) return null;
 
   return (
-    <div className={cn('fixed inset-0 z-50', className)} role="dialog" aria-modal="true">
+    <div className={cn('fixed inset-0 z-50 md:hidden', className)} role="dialog" aria-modal="true">
       <button
         type="button"
         aria-label="Fermer le menu"
         onClick={onClose}
         className="absolute inset-0 bg-[#0a1220]/45 backdrop-blur-[2px]"
       />
-      <aside className="absolute left-0 top-0 flex h-full w-[88%] max-w-[320px] flex-col bg-white shadow-elevation-lg">
-        <div className="flex items-center justify-between border-b border-border px-5 py-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[hsl(var(--greffio-blue))] text-white">
-              <Building2 className="h-5 w-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-foreground">{company.name || 'Projet à créer'}</p>
-              <p className="truncate text-xs text-muted-foreground">
-                {company.legalStructure || 'Dossier'} · {company.siren || 'Espace client'}
-              </p>
-            </div>
-          </div>
+      <aside className="absolute left-0 top-0 flex h-full w-[88%] max-w-[300px] flex-col bg-white shadow-elevation-lg">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4 pt-[calc(1rem+env(safe-area-inset-top))]">
+          <GreffioLogo variant="full" className="h-7" />
           <button
             type="button"
             onClick={onClose}
@@ -78,7 +71,7 @@ export const MobileSidebarDrawer = ({ open, onClose, className }) => {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-4 py-4">
-          <p className="mb-2 px-3 text-xs font-semibold uppercase text-muted-foreground">Espace opérationnel</p>
+          <p className="mb-2 px-3 text-xs font-semibold uppercase text-muted-foreground">Navigation</p>
           <div className="space-y-1">
             {items.map((item) => {
               const active = isMobileDrawerNavActive(location.pathname, item.to);
@@ -105,38 +98,7 @@ export const MobileSidebarDrawer = ({ open, onClose, className }) => {
             })}
           </div>
         </nav>
-
-        <div className="border-t border-border p-4">
-          <Link
-            to="/questionnaire"
-            onClick={(event) => {
-              event.preventDefault();
-              handleNavigate('/questionnaire');
-            }}
-            className="block rounded-md bg-secondary p-3 text-sm font-semibold text-foreground"
-          >
-            <div className="mb-1 flex items-center gap-2 text-primary">
-              <ShieldCheck className="h-4 w-4" />
-              Équipe Greffio
-            </div>
-            Démarrer une nouvelle formalité accompagnée.
-          </Link>
-        </div>
       </aside>
     </div>
   );
 };
-
-export const MobileSidebarTrigger = ({ onClick, className }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    aria-label="Ouvrir le menu de navigation"
-    className={cn(
-      'inline-flex h-11 w-11 items-center justify-center rounded-md border border-border bg-white text-[#0a1220] transition hover:bg-muted active:scale-[0.97]',
-      className,
-    )}
-  >
-    <Menu className="h-5 w-5" />
-  </button>
-);

@@ -7,6 +7,7 @@ import {
   CalendarDays,
   CreditCard,
   FileCheck2,
+  FileText,
   MessageSquareText,
   ShieldCheck,
   Sparkles,
@@ -19,6 +20,9 @@ import { LEGAL_SERVICES } from '@/config/businessCatalog.js';
 import { getServiceRoute } from '@/config/serviceLandingPages.js';
 import { lookupPublicCompanyBySiren } from '@/api/company.js';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
+import { MobileMenuButton } from '@/mobile/MobileAuthenticatedNav.jsx';
+import { MobilePublicDrawer } from '@/mobile/MobilePublicDrawer.jsx';
+import { MobileCockpitHeaderActions } from '@/mobile/ui/MobileCockpitHeaderActions.jsx';
 import { useMobileMotion } from '@/mobile/ui/mobileMotion.js';
 import { useAuth } from '@/hooks/useAuth.js';
 
@@ -63,6 +67,45 @@ const platformFeatures = [
 const heroHighlights = ['0€ pour démarrer', 'Équipe Greffio assignée', 'Dossier centralisé'];
 const featuredServices = LEGAL_SERVICES.slice(0, 6);
 
+const MobileLandingHeroMockup = ({ revealMount }) => (
+  <motion.div
+    {...revealMount(0.24)}
+    className="relative mx-auto mt-8 max-w-[280px]"
+    aria-hidden="true"
+  >
+    <div className="rounded-[2rem] border-[6px] border-[hsl(var(--greffio-blue-900))] bg-[hsl(var(--greffio-blue-900))] p-2 shadow-elevation-lg">
+      <div className="overflow-hidden rounded-[1.4rem] bg-[#f6f8fc]">
+        <div className="border-b border-border/70 bg-white px-3 py-2.5">
+          <div className="mx-auto h-1 w-10 rounded-full bg-muted" />
+          <p className="mt-2 text-center text-[10px] font-bold text-[hsl(var(--greffio-blue-900))]">Greffio · Espace client</p>
+        </div>
+        <div className="space-y-2 p-3">
+          <div className="rounded-xl bg-emerald-50 px-2 py-1.5 text-[9px] font-semibold text-emerald-800">
+            Connecté à l&apos;équipe Greffio
+          </div>
+          <div className="rounded-xl border border-border bg-white p-2.5">
+            <p className="text-[10px] font-bold uppercase text-primary">Documents</p>
+            <p className="mt-0.5 text-[9px] text-muted-foreground">Pièces liées à vos formalités</p>
+            <div className="mt-2 flex items-center gap-2 rounded-lg border border-border/70 bg-background p-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-secondary">
+                <FileText className="h-3.5 w-3.5 text-primary" />
+              </span>
+              <span className="text-[9px] font-semibold">Non-condamnation</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-4 gap-1 rounded-xl border border-border bg-white p-1.5">
+            {['Accueil', 'Dossiers', 'Docs', 'Messages'].map((label) => (
+              <div key={label} className="rounded-lg py-1 text-center text-[8px] font-semibold text-muted-foreground">
+                {label}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </motion.div>
+);
+
 export const MobileLandingPage = () => {
   const { currentUser } = useAuth();
   const { revealMount, staggerItem } = useMobileMotion();
@@ -70,6 +113,7 @@ export const MobileLandingPage = () => {
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupError, setLookupError] = useState('');
   const [lookupCompany, setLookupCompany] = useState(null);
+  const [navOpen, setNavOpen] = useState(false);
 
   const dashboardTarget = currentUser ? '/dashboard' : '/login';
 
@@ -98,15 +142,18 @@ export const MobileLandingPage = () => {
 
   return (
     <div className="overflow-x-hidden bg-background text-foreground">
+      <MobilePublicDrawer open={navOpen} onClose={() => setNavOpen(false)} />
       <motion.header
         {...revealMount(0)}
-        className="sticky top-0 z-30 border-b border-border/70 bg-white/95 px-4 py-3 pt-[env(safe-area-inset-top)] backdrop-blur"
+        className="sticky top-0 z-30 border-b border-border/70 bg-white/95 backdrop-blur"
       >
-        <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
-          <GreffioLogo variant="full" className="h-8" />
-          <div className="flex items-center gap-3">
-            <Link to="/services" className="text-sm font-semibold text-muted-foreground">Services</Link>
-            <Link to={dashboardTarget} className="text-sm font-semibold text-primary">Connexion</Link>
+        <div className="mx-auto flex min-h-[4.75rem] max-w-lg items-center justify-between gap-2 px-4 py-2.5 pt-[env(safe-area-inset-top)]">
+          <Link to="/" className="shrink-0" aria-label="Accueil Greffio">
+            <GreffioLogo variant="full" className="h-8" />
+          </Link>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <MobileCockpitHeaderActions />
+            <MobileMenuButton onClick={() => setNavOpen(true)} />
           </div>
         </div>
       </motion.header>
@@ -149,6 +196,7 @@ export const MobileLandingPage = () => {
               </motion.li>
             ))}
           </motion.ul>
+          <MobileLandingHeroMockup revealMount={revealMount} />
         </motion.div>
       </section>
 

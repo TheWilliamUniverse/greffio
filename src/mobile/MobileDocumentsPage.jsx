@@ -1,11 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
+  Eye,
   FilePlus2,
   FileText,
   FolderKanban,
+  PenLine,
   Search,
+  Trash2,
   Upload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
@@ -19,7 +22,11 @@ import { useMobileSafeBottomPadding } from '@/hooks/useMobileSafeBottomPadding.j
 import { useAuth } from '@/hooks/useAuth.js';
 import { useDossierQuery } from '@/hooks/queries/useDossierQuery.js';
 import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
-import { uploadDossierDocument } from '@/api/documents.js';
+import {
+  deleteDossierDocument,
+  downloadDossierDocument,
+  uploadDossierDocument,
+} from '@/api/documents.js';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
 import { isInternalUser } from '@/utils/roles.js';
 import { getDocumentStatusLabel, getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
@@ -32,15 +39,29 @@ import { parseJsonField } from '@/utils/jsonField.js';
 
 const FILTERS = ['Tous', 'Validés', 'En attente', 'Brouillons'];
 
+const ONLINE_DOC_EDITOR_PATHS = {
+  manager_non_conviction: (dossierId) => `/dossier/${dossierId}/declaration-non-condamnation`,
+  subscribers_list: (dossierId) => `/dossier/${dossierId}/liste-souscripteurs`,
+  formality_powers: (dossierId) => `/dossier/${dossierId}/pouvoirs-formalites`,
+};
+
+const mobileDocActionButtonClass = 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-white text-[#0a1220] transition hover:bg-muted active:scale-[0.97] disabled:opacity-40';
+
 export const MobileDocumentsPage = () => {
+  const navigate = useNavigate();
   const { currentUser } = useAuth();
   const internalView = isInternalUser(currentUser);
   const bottomPad = useMobileSafeBottomPadding();
   const { staggerItem } = useMobileMotion();
   const uploadRef = useRef(null);
+  const rowUploadRef = useRef(null);
+  const pendingUploadDocKey = useRef(null);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('Tous');
   const [uploading, setUploading] = useState(false);
+  const [uploadingDocKey, setUploadingDocKey] = useState(null);
+  const [previewLoadingDocKey, setPreviewLoadingDocKey] = useState(null);
+  const [deletingDocKey, setDeletingDocKey] = useState(null);
   const [uploadError, setUploadError] = useState('');
   const [dossierId, setDossierId] = useState(() => getCurrentDossierId());
   const { data: dossiersList = [], isLoading: loadingDossiers } = useDossiersQuery(currentUser?.id);
@@ -65,6 +86,7 @@ export const MobileDocumentsPage = () => {
         status: displayStatus,
         statusLabel: getDocumentStatusLabel(displayStatus),
         hasFile,
+        canUpload: !['VALID', 'VALIDATED', 'SIGNED'].includes(displayStatus),
         date: item.updatedAt || item.uploadedAt || item.createdAt,
       };
     });
@@ -100,20 +122,102 @@ export const MobileDocumentsPage = () => {
 
   const identityDocUploaded = documents.some((doc) => doc.docKey === 'identity_proof' && doc.hasFile);
 
-  const handleUpload = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file || !dossierId) return;
+  const uploadPdfFile = async (docKey, file) => {
+    if (!file || !dossierId || !docKey) return;
+    setUploadError('');
+    if (file.type !== 'application/pdf') {
+      setUploadError('Seuls les fichiers PDF sont autorisés.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('Le fichier dépasse 10 Mo.');
+      return;
+    }
     try {
       setUploading(true);
-      setUploadError('');
-      await uploadDossierDocument({ dossierId, docKey: 'identity_proof', file });
+      setUploadingDocKey(docKey);
+      await uploadDossierDocument({
+        dossierId,
+        docKey,
+        file,
+        ownerFirstName: currentUser?.firstName || '',
+        ownerLastName: currentUser?.lastName || '',
+      });
       await refetch();
     } catch (_error) {
       setUploadError('Impossible d’envoyer ce fichier. Réessayez.');
     } finally {
       setUploading(false);
-      event.target.value = '';
+      setUploadingDocKey(null);
     }
+  };
+
+  const handleUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !dossierId) return;
+    await uploadPdfFile('identity_proof', file);
+    event.target.value = '';
+  };
+
+  const triggerRowUpload = (docKey) => {
+    pendingUploadDocKey.current = docKey;
+    rowUploadRef.current?.click();
+  };
+
+  const onRowUpload = async (event) => {
+    const file = event.target.files?.[0];
+    const docKey = pendingUploadDocKey.current;
+    await uploadPdfFile(docKey, file);
+    event.target.value = '';
+    pendingUploadDocKey.current = null;
+  };
+
+  const openDocumentPreview = async (docKey) => {
+    if (!dossierId || !docKey) return;
+    setPreviewLoadingDocKey(docKey);
+    setUploadError('');
+    try {
+      const { filename, blob } = await downloadDossierDocument({
+        dossierId,
+        docKey,
+        inline: true,
+      });
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.target = '_blank';
+      anchor.rel = 'noopener noreferrer';
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+    } catch (_error) {
+      setUploadError('Impossible d’afficher l’aperçu de ce document pour le moment.');
+    } finally {
+      setPreviewLoadingDocKey(null);
+    }
+  };
+
+  const removeAttachment = async (docKey, label) => {
+    if (!dossierId || !docKey) return;
+    const confirmed = window.confirm(`Supprimer la pièce jointe « ${label} » ?`);
+    if (!confirmed) return;
+    setUploadError('');
+    setDeletingDocKey(docKey);
+    try {
+      await deleteDossierDocument({ dossierId, docKey });
+      await refetch();
+    } catch (_error) {
+      setUploadError('La suppression a échoué.');
+    } finally {
+      setDeletingDocKey(null);
+    }
+  };
+
+  const openOnlineEditor = (docKey) => {
+    const path = ONLINE_DOC_EDITOR_PATHS[docKey]?.(dossierId);
+    if (path) navigate(path);
   };
 
   if (loadingDossiers || (loadingDossier && dossierId)) return <MobilePageSkeleton />;
@@ -139,6 +243,14 @@ export const MobileDocumentsPage = () => {
           </Button>
         </div>
         <input ref={uploadRef} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => void handleUpload(e)} />
+        <input
+          ref={rowUploadRef}
+          type="file"
+          accept="application/pdf"
+          className="hidden"
+          onChange={(e) => void onRowUpload(e)}
+          disabled={Boolean(uploadingDocKey)}
+        />
       </MobileAnimatedSection>
 
       {!dossierId ? (
@@ -261,6 +373,52 @@ export const MobileDocumentsPage = () => {
                     Mis à jour le {new Date(doc.date).toLocaleDateString('fr-FR')}
                   </p>
                 ) : null}
+                <div className="mt-3 flex flex-wrap gap-2 border-t border-border/60 pt-3">
+                  <button
+                    type="button"
+                    aria-label="Aperçu"
+                    className={mobileDocActionButtonClass}
+                    disabled={!dossierId || !doc.hasFile || previewLoadingDocKey === doc.docKey}
+                    onClick={() => void openDocumentPreview(doc.docKey)}
+                  >
+                    {previewLoadingDocKey === doc.docKey ? <span className="text-xs">…</span> : <Eye className="h-4 w-4" />}
+                  </button>
+                  {ONLINE_DOC_EDITOR_PATHS[doc.docKey] && !eiLike ? (
+                    <button
+                      type="button"
+                      aria-label="Modifier en ligne"
+                      className={mobileDocActionButtonClass}
+                      disabled={!dossierId}
+                      onClick={() => openOnlineEditor(doc.docKey)}
+                    >
+                      <PenLine className="h-4 w-4 text-primary" />
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    aria-label="Déposer un PDF"
+                    className={mobileDocActionButtonClass}
+                    disabled={!dossierId || !doc.canUpload || uploadingDocKey === doc.docKey}
+                    onClick={() => triggerRowUpload(doc.docKey)}
+                  >
+                    {uploadingDocKey === doc.docKey
+                      ? <span className="text-xs">…</span>
+                      : <Upload className="h-4 w-4" />}
+                  </button>
+                  {doc.hasFile ? (
+                    <button
+                      type="button"
+                      aria-label="Supprimer la pièce jointe"
+                      className={`${mobileDocActionButtonClass} text-red-700 hover:border-red-200 hover:bg-red-50`}
+                      disabled={!dossierId || deletingDocKey === doc.docKey}
+                      onClick={() => void removeAttachment(doc.docKey, doc.name)}
+                    >
+                      {deletingDocKey === doc.docKey
+                        ? <span className="text-xs">…</span>
+                        : <Trash2 className="h-4 w-4" />}
+                    </button>
+                  ) : null}
+                </div>
               </motion.article>
             ))}
           </div>

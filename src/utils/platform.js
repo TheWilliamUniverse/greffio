@@ -64,6 +64,7 @@ export const MOBILE_SHELL_PREFIXES = [
   '/profil',
   '/settings',
   '/questionnaire',
+  '/statuts-gratuits',
   '/team',
   '/analytics',
   '/statuts',
@@ -72,6 +73,7 @@ export const MOBILE_SHELL_PREFIXES = [
   '/signature',
   '/paiement',
   '/tarifs',
+  '/contact',
 ];
 
 export const shouldUseMobileShell = (pathname) => {
