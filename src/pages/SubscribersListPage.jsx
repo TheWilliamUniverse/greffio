@@ -26,6 +26,8 @@ const mapError = (error) => {
     DOCUMENT_EDITOR_COMPANY_REQUIRED: 'Indiquez la dénomination sociale.',
     DOCUMENT_EDITOR_SUBSCRIBERS_REQUIRED: 'Ajoutez au moins un souscripteur.',
     DOCUMENT_EDITOR_SUBSCRIBER_IDENTITY_REQUIRED: 'Chaque souscripteur doit avoir un nom.',
+    DOCUMENT_EDITOR_SUBSCRIBER_BIRTH_REQUIRED: 'Chaque personne physique doit avoir une date et un lieu de naissance.',
+    DOCUMENT_EDITOR_LEGAL_ENTITY_REPRESENTATIVE_REQUIRED: 'Chaque personne morale doit avoir un représentant légal signataire.',
     DOCUMENT_EDITOR_SIGNATURE_PLACE_DATE_REQUIRED: 'Indiquez le lieu et la date.',
     DOCUMENT_EDITOR_SIGNATURE_REQUIRED: 'Indiquez le nom du signataire (Président).',
     SIGN_NOW_FAILED: 'La signature n’a pas pu être apposée sur le document.',
@@ -192,20 +194,42 @@ export const SubscribersListPage = () => {
             {(fields.subscribers || []).map((subscriber, index) => (
               <div key={`${subscriber.fullName}-${index}`} className="mt-6 rounded-xl border border-[var(--we-border)] p-4">
                 <p className="text-sm font-extrabold">{subscriber.sectionHeading || `${subscriber.roleTitle} – ${subscriber.fullName}`}</p>
+                {subscriber.isLegalEntity ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Personne morale — signataire : {subscriber.legalRepresentativeName || 'représentant à compléter'}
+                    {subscriber.legalRepresentativeQuality ? ` (${subscriber.legalRepresentativeQuality})` : ''}
+                  </p>
+                ) : null}
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  {[
-                    ['roleTitle', 'Titre'],
-                    ['fullName', 'Nom et prénom'],
-                    ['birthDatePlace', 'Date et lieu de naissance'],
-                    ['nationality', 'Nationalité'],
-                    ['address', 'Adresse'],
-                    ['titlesCount', `${fields.securitiesUnit || 'Actions'} souscrites`],
-                    ['sharePercent', '% du capital'],
-                    ['contributionCash', 'Apport en numéraire'],
-                    ['contributionInKind', 'Apport en nature'],
-                    ['liberationAmount', 'Montant libéré à la constitution'],
-                  ].map(([key, label]) => (
-                    <div key={key} className={key === 'address' ? 'sm:col-span-2' : ''}>
+                  {(subscriber.isLegalEntity
+                    ? [
+                      ['roleTitle', 'Titre'],
+                      ['fullName', 'Dénomination sociale'],
+                      ['legalFormLabel', 'Forme juridique'],
+                      ['siren', 'SIREN'],
+                      ['address', 'Siège social'],
+                      ['legalRepresentativeName', 'Représentant légal (signataire)'],
+                      ['legalRepresentativeQuality', 'Qualité du représentant'],
+                      ['titlesCount', `${fields.securitiesUnit || 'Actions'} souscrites`],
+                      ['sharePercent', '% du capital'],
+                      ['contributionCash', 'Apport en numéraire'],
+                      ['contributionInKind', 'Apport en nature'],
+                      ['liberationAmount', 'Montant libéré à la constitution'],
+                    ]
+                    : [
+                      ['roleTitle', 'Titre'],
+                      ['fullName', 'Nom et prénom'],
+                      ['birthDatePlace', 'Date et lieu de naissance'],
+                      ['nationality', 'Nationalité'],
+                      ['address', 'Adresse'],
+                      ['titlesCount', `${fields.securitiesUnit || 'Actions'} souscrites`],
+                      ['sharePercent', '% du capital'],
+                      ['contributionCash', 'Apport en numéraire'],
+                      ['contributionInKind', 'Apport en nature'],
+                      ['liberationAmount', 'Montant libéré à la constitution'],
+                    ]
+                  ).map(([key, label]) => (
+                    <div key={key} className={['address', 'fullName', 'identitySummary'].includes(key) ? 'sm:col-span-2' : ''}>
                       <Label>{label}</Label>
                       <Input className="mt-1" value={subscriber[key] || ''} onChange={(e) => updateSubscriber(index, key, e.target.value)} />
                     </div>
@@ -228,11 +252,19 @@ export const SubscribersListPage = () => {
                 <Input type="date" className="mt-1" value={fields.statementDate || ''} onChange={(e) => updateField('statementDate', e.target.value)} />
               </div>
               <div className="sm:col-span-2">
-                <Label>Président signataire</Label>
+                <Label>{fields.signatureIsLegalEntity ? 'Signataire (représentant légal)' : 'Président signataire'}</Label>
                 <Input className="mt-1" value={fields.presidentName || fields.signatureFullName || ''} onChange={(e) => {
                   updateField('presidentName', e.target.value);
                   updateField('signatureFullName', e.target.value);
+                  if (fields.signatureIsLegalEntity) {
+                    updateField('signatureRepresentativeName', e.target.value);
+                  }
                 }} />
+                {fields.signatureIsLegalEntity ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Pour {fields.signatureCompanyName || fields.companyName} — qualité : {fields.signatureRepresentativeQuality || 'Président'}
+                  </p>
+                ) : null}
               </div>
             </div>
 

@@ -27,6 +27,7 @@ const mapError = (error) => {
     DOCUMENT_EDITOR_MANDATAIRE_REQUIRED: 'Indiquez le mandataire.',
     DOCUMENT_EDITOR_SIGNATURE_PLACE_DATE_REQUIRED: 'Indiquez le lieu et la date.',
     DOCUMENT_EDITOR_SIGNATURE_REQUIRED: 'Indiquez le nom du signataire.',
+    DOCUMENT_EDITOR_LEGAL_ENTITY_REPRESENTATIVE_REQUIRED: 'Le représentant légal de la personne morale signataire est requis.',
     SIGN_NOW_FAILED: 'La signature n’a pas pu être apposée sur le document.',
     PDF_GENERATION_FAILED: 'La génération du document a échoué.',
     STORAGE_UPLOAD_FAILED: 'Le document n’a pas pu être enregistré.',

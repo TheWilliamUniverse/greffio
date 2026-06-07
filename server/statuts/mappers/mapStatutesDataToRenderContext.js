@@ -2,6 +2,7 @@ import { resolveWilliamObjetSocialBullets } from '../catalogs/objectSocialCatalo
 import { formatFrEuros, formatFrInteger, parseFrenchAmount } from '../shared/numberFormat.js';
 import { formatStatutesFiscalEnd } from '../shared/statutesDates.js';
 import { resolveGreffeCity, resolveTribunalCommerce } from '../shared/resolveTribunalCommerce.js';
+import { sortAssociatesPresidentFirst, resolveLegalEntitySignatoryQuality } from '../../shared/partyIdentityFormatter.js';
 
 const parseAmount = parseFrenchAmount;
 
@@ -24,7 +25,10 @@ export const mapStatutesDataToRenderContext = (statutesData = {}) => {
     activite: statutesData.objetSocial,
   });
 
-  const associates = (statutesData.associates || []).map((associate) => {
+  const seat = statutesData.seat || {};
+  const greffeCity = resolveGreffeCity({ greffe: statutesData.greffe, seat });
+
+  const associates = sortAssociatesPresidentFirst(statutesData.associates || []).map((associate) => {
     const isLegalEntity = associate.associateType === 'personne_morale';
     let sharePercentage = parseAmount(String(associate.share || '').replace('%', ''));
     if (!sharePercentage && associate.share) {
@@ -48,11 +52,19 @@ export const mapStatutesDataToRenderContext = (statutesData = {}) => {
         ? (associate.legalFormLabel || legalFormLabel(associate.legalForm || legalForm))
         : undefined,
       siren: isLegalEntity ? associate.siren : undefined,
+      rcsCity: isLegalEntity ? (associate.rcsCity || greffeCity) : undefined,
+      capitalSocial: isLegalEntity ? associate.capitalSocial : undefined,
       representativeName: isLegalEntity ? associate.representativeName : undefined,
+      representativeQuality: isLegalEntity
+        ? resolveLegalEntitySignatoryQuality({
+          roleLabel: associate.roleLabel,
+          representativeQuality: associate.representativeQuality,
+        })
+        : undefined,
       address: associate.address,
-      birthDate: associate.birthDate,
-      birthPlace: associate.birthPlace,
-      nationality: associate.nationality,
+      birthDate: isLegalEntity ? undefined : associate.birthDate,
+      birthPlace: isLegalEntity ? undefined : associate.birthPlace,
+      nationality: isLegalEntity ? undefined : associate.nationality,
       isMinor: Boolean(associate.isMinor),
       isEmancipated: Boolean(associate.isMinorEmancipated),
       legalRepresentatives: associate.legalRepresentatives
@@ -73,7 +85,6 @@ export const mapStatutesDataToRenderContext = (statutesData = {}) => {
     };
   });
 
-  const seat = statutesData.seat || {};
   const registeredOffice = [
     seat.line1,
     seat.line2,
@@ -82,7 +93,6 @@ export const mapStatutesDataToRenderContext = (statutesData = {}) => {
     statutesData.domiciliation ? `chez ${statutesData.domiciliation}` : '',
   ].filter(Boolean).join(', ');
 
-  const greffeCity = resolveGreffeCity({ greffe: statutesData.greffe, seat });
   const tribunalResolution = resolveTribunalCommerce({ greffe: statutesData.greffe, seat });
   const tribunalCommerce = tribunalResolution.label;
 

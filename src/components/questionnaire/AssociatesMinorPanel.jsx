@@ -19,6 +19,8 @@ import {
 import {
   ASSOCIATE_ROLE_OPTIONS,
   isOfficerRole,
+  LEGAL_ENTITY_SIGNATORY_QUALITIES,
+  resolveLegalEntitySignatoryQuality,
 } from '@/utils/officerFromAssociates.js';
 
 const fieldClass = 'h-12 rounded-xl border-2 border-[#d4e2f5] bg-white px-3 text-sm font-medium focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/12';
@@ -30,7 +32,10 @@ const emptyAssociate = () => ({
   lastName: '',
   companyName: '',
   siren: '',
+  legalForm: 'SAS',
   representativeName: '',
+  representativeQuality: 'Président',
+  rcsCity: '',
   birthDate: '',
   address: '',
   share: '',
@@ -57,6 +62,19 @@ export const AssociatesMinorPanel = ({
         merged.isMinorEmancipated = false;
         merged.legalRepresentatives = '';
         merged.birthDate = '';
+        merged.firstName = '';
+        merged.lastName = '';
+        merged.representativeQuality = resolveLegalEntitySignatoryQuality({
+          roleLabel: merged.roleLabel,
+          representativeQuality: merged.representativeQuality,
+        });
+        if (patch.roleLabel !== undefined) {
+          if (/directeur\s+général/i.test(merged.roleLabel)) {
+            merged.representativeQuality = 'Directeur Général';
+          } else if (/président/i.test(merged.roleLabel)) {
+            merged.representativeQuality = 'Président';
+          }
+        }
       } else {
         const minor = isLegallyMinor(merged.birthDate);
         if (!minor) {
@@ -115,7 +133,7 @@ export const AssociatesMinorPanel = ({
           : (minor && !associate.isMinorEmancipated
             ? ['Associé', 'Associée']
             : ASSOCIATE_ROLE_OPTIONS.PERSON);
-        const needsRepresentative = isCompany && isOfficerRole(associate.roleLabel);
+        const needsRepresentative = isCompany;
         const displayName = buildAssociateDisplayName(associate) || `Associé ${index + 1}`;
         const isExpanded = expandedId === associate.id || associates.length === 1;
 
@@ -191,12 +209,48 @@ export const AssociatesMinorPanel = ({
                       />
                     </div>
                     <div>
+                      <Label>Forme juridique *</Label>
+                      <select
+                        className={`${fieldClass} w-full`}
+                        value={associate.legalForm || 'SAS'}
+                        onChange={(e) => updateAssociate(index, { legalForm: e.target.value })}
+                      >
+                        {['SAS', 'SASU', 'SARL', 'EURL', 'SCI'].map((form) => (
+                          <option key={form} value={form}>{form}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
                       <Label>{needsRepresentative ? 'Représentant légal *' : 'Représentant légal'}</Label>
                       <Input
                         className={fieldClass}
                         value={associate.representativeName || ''}
                         onChange={(e) => updateAssociate(index, { representativeName: e.target.value })}
-                        placeholder="Nom du signataire (personne physique)"
+                        placeholder="Nom et prénom du signataire"
+                      />
+                    </div>
+                    <div>
+                      <Label>Qualité du signataire *</Label>
+                      <select
+                        className={`${fieldClass} w-full`}
+                        value={resolveLegalEntitySignatoryQuality({
+                          roleLabel: associate.roleLabel,
+                          representativeQuality: associate.representativeQuality,
+                        })}
+                        onChange={(e) => updateAssociate(index, { representativeQuality: e.target.value })}
+                      >
+                        {LEGAL_ENTITY_SIGNATORY_QUALITIES.map((quality) => (
+                          <option key={quality} value={quality}>{quality}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <Label>Ville RCS (optionnel)</Label>
+                      <Input
+                        className={fieldClass}
+                        value={associate.rcsCity || ''}
+                        onChange={(e) => updateAssociate(index, { rcsCity: e.target.value })}
+                        placeholder="Ex. Nice"
                       />
                     </div>
                     <div className="sm:col-span-2">
@@ -230,7 +284,7 @@ export const AssociatesMinorPanel = ({
                     </div>
                     {needsRepresentative && !String(associate.representativeName || '').trim() ? (
                       <p className="sm:col-span-2 text-sm text-amber-800">
-                        Président ou Directeur Général : le nom du représentant légal est requis pour les statuts.
+                        Personne morale : le représentant légal signataire est obligatoire pour générer les documents.
                       </p>
                     ) : null}
                   </div>

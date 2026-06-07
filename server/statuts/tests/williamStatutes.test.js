@@ -365,10 +365,11 @@ test('personne morale — descriptif complet dans le préambule', () => {
   const pmLine = lines.find((line) => line.includes('WILLIAM ESTABLISHMENTS'));
   assert.ok(pmLine);
   assert.match(pmLine, /Société par Actions Simplifiée \(SAS\)/);
-  assert.match(pmLine, /immatriculée au RCS de Nice 102 230 414/);
+  assert.match(pmLine, /immatriculée au RCS de Nice sous le numéro 102 230 414/);
+  assert.match(pmLine, /dûment habilitée aux fins des présentes/);
   assert.match(pmLine, /siège social est situé 470 Promenade des Anglais/);
   assert.match(pmLine, /représentée par Nobatène ABDOU/);
-  assert.match(pmLine, /Président désigné/);
+  assert.match(pmLine, /agissant en qualité de Président/);
   assert.ok(lines.some((line) => line.includes('Ci-après dénommés collectivement « les Associés »')));
 });
 
@@ -381,7 +382,8 @@ test('formatLegalEntityAssociateDescription — forme juridique explicite', () =
     representativeName: 'Nobatène ABDOU',
     roleLabel: 'Président désigné',
   }, { greffeCity: 'Nice' });
-  assert.match(text, /WILLIAM ESTABLISHMENTS, Société par Actions Simplifiée \(SAS\), immatriculée au RCS de Nice 102 230 414/);
+  assert.match(text, /WILLIAM ESTABLISHMENTS, Société par Actions Simplifiée \(SAS\), immatriculée au RCS de Nice sous le numéro 102 230 414/);
+  assert.match(text, /agissant en qualité de Président, dûment habilitée aux fins des présentes/);
 });
 
 test('layoutStatutesCover — page de garde sur une page avec espacement flexible', () => {

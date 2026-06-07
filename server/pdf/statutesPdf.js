@@ -251,6 +251,11 @@ const renderSignatureBlock = (doc, companyName, pages, block) => {
       const x = PAGE.marginLeft + (colWidth * index);
       doc.font(FONTS.regular).fontSize(11).text(col.name, x, startY, { width: colWidth - 8 });
       doc.font(FONTS.regular).fontSize(10.5).text(col.role, x, doc.y + 2, { width: colWidth - 8 });
+      (col.subLines || []).forEach((subLine) => {
+        doc.font(FONTS.regular).fontSize(9.5).fillColor('#444444')
+          .text(subLine, x, doc.y + 2, { width: colWidth - 8 });
+      });
+      doc.fillColor('#111111');
     });
     doc.y = startY + 36;
     block.columns.forEach((col, index) => {

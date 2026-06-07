@@ -1,6 +1,12 @@
 import { LEGAL_FORM_LABELS, usesActions } from '../../legal/statutes/shared/formatting.js';
 import { mapStatutesData } from '../../utils/statutesDataMapper.js';
 import { parseFrenchAmount, formatFrInteger } from '../../statuts/shared/numberFormat.js';
+import {
+  formatSubscriberListRow,
+  resolveDocumentSignature,
+  sortAssociatesPresidentFirst,
+  validateLegalEntityParties,
+} from '../../shared/partyIdentityFormatter.js';
 
 const LEGAL_FORM_HEADER = Object.freeze({
   SAS: 'SOCIÉTÉ PAR ACTIONS SIMPLIFIÉE (SAS)',
@@ -10,63 +16,15 @@ const LEGAL_FORM_HEADER = Object.freeze({
   SCI: 'SOCIÉTÉ CIVILE IMMOBILIERE (SCI)',
 });
 
-const formatBirthDateFr = (value = '') => {
-  const raw = String(value || '').trim();
-  if (!raw) return '';
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) return raw;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-    const [y, m, d] = raw.split('-');
-    return `${d}/${m}/${y}`;
-  }
-  const date = new Date(raw);
-  if (Number.isNaN(date.getTime())) return raw;
-  const dd = String(date.getDate()).padStart(2, '0');
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  return `${dd}/${mm}/${date.getFullYear()}`;
-};
-
-const buildObservations = (associate = {}) => {
-  if (associate.isMinorEmancipated) return 'Mineur émancipé';
-  if (associate.isMinor) {
-    const reps = String(associate.legalRepresentatives || '').trim();
-    if (reps) {
-      return `Mineure non émancipée, représentée légalement par ${reps} agissant en qualité de titulaires de l'autorité parentale.`;
-    }
-    return 'Mineure non émancipée, représentée légalement par les titulaires de l\'autorité parentale.';
-  }
-  return 'Majeur';
-};
-
-const mapSubscriberRow = (associate = {}, { securitiesUnit = 'Actions' }) => {
-  const fullName = String(associate.label || '').trim()
-    || [associate.firstName, associate.lastName].filter(Boolean).join(' ').trim();
-  const roleTitle = String(associate.roleLabel || 'Associé').trim();
-  const birthDate = formatBirthDateFr(associate.birthDate);
-  const birthPlace = String(associate.birthPlace || '').trim();
-  const birthDatePlace = [birthDate, birthPlace ? `à ${birthPlace}` : ''].filter(Boolean).join(' ').trim();
-  const cashFormatted = associate.contributionCash
-    ? `${associate.contributionCash}`.replace(/(?<=\d)\s?(?=€)/, ' ')
-    : '0 €';
-  const cashNum = parseFrenchAmount(cashFormatted.replace('€', '')) || 0;
-  const shares = parseFrenchAmount(String(associate.titlesCount || '0')) || 0;
-  const inKindRaw = parseFrenchAmount(String(associate.contributionInKind || '').replace('€', ''));
+const enrichSubscriberContributions = (row = {}) => {
+  const cashFormatted = row.contributionCash || '0 €';
+  const cashNum = parseFrenchAmount(String(cashFormatted).replace('€', '')) || 0;
+  const shares = parseFrenchAmount(String(row.titlesCount || '0')) || 0;
+  const inKindRaw = parseFrenchAmount(String(row.contributionInKind || '').replace('€', ''));
   const inKindComputed = inKindRaw || Math.max(0, shares - cashNum);
-  const contributionInKind = inKindComputed ? `${formatFrInteger(inKindComputed)} €` : '0 €';
-
   return {
-    roleTitle,
-    fullName,
-    sectionHeading: `${roleTitle} – ${fullName}`,
-    birthDatePlace: birthDatePlace || 'À compléter',
-    nationality: String(associate.nationality || 'Française').trim(),
-    address: String(associate.address || 'Adresse à compléter').trim(),
-    titlesCount: String(associate.titlesCount || associate.share || '0').replace(/\s/g, ' ').trim(),
-    sharePercent: String(associate.share || '').trim() || '—',
-    contributionCash: cashFormatted,
-    contributionInKind,
-    liberationAmount: associate.liberationAmount ? `${associate.liberationAmount}`.replace(/(?<=\d)\s?(?=€)/, ' ') : '0 €',
-    observations: buildObservations(associate),
-    securitiesUnit,
+    ...row,
+    contributionInKind: inKindComputed ? `${formatFrInteger(inKindComputed)} €` : '0 €',
   };
 };
 
@@ -74,7 +32,11 @@ export const buildSubscribersListFields = ({ dossier, questionnaire = {}, user =
   const data = mapStatutesData({ dossier, questionnaire, user });
   const legalForm = String(data.legalForm || 'SAS').toUpperCase();
   const securitiesUnit = usesActions(legalForm) ? 'Actions' : 'Parts sociales';
-  const subscribers = (data.associates || []).map((associate) => mapSubscriberRow(associate, { securitiesUnit }));
+  const sortedAssociates = sortAssociatesPresidentFirst(data.associates || []);
+  const subscribers = sortedAssociates.map((associate) => enrichSubscriberContributions(formatSubscriberListRow(associate, {
+    securitiesUnit,
+    companyCapital: data.capital,
+  })));
 
   const depositTotal = subscribers.reduce((sum, row) => {
     const cash = parseFrenchAmount(String(row.contributionCash || '').replace('€', ''));
@@ -82,12 +44,12 @@ export const buildSubscribersListFields = ({ dossier, questionnaire = {}, user =
     return sum + Math.round(cash * liberationPct);
   }, 0) || parseFrenchAmount(data.liberationCapital) || 1500;
 
-  const presidentAssoc = (data.associates || []).find((a) => /président/i.test(String(a.roleLabel || '')))
-    || data.associates?.[0];
-  const presidentName = presidentAssoc?.label
-    || data.president
-    || subscribers[0]?.fullName
-    || 'Le Président';
+  const signatureTitle = ['SARL', 'EURL', 'SCI'].includes(legalForm) ? 'Le Gérant' : 'Le Président';
+  const signature = resolveDocumentSignature({
+    associates: sortedAssociates,
+    fallbackName: data.president || subscribers[0]?.fullName || 'Le Président',
+    fallbackTitle: signatureTitle,
+  });
 
   const initial = {
     legalFormHeader: LEGAL_FORM_HEADER[legalForm] || LEGAL_FORM_LABELS[legalForm]?.toUpperCase() || legalForm,
@@ -99,9 +61,14 @@ export const buildSubscribersListFields = ({ dossier, questionnaire = {}, user =
     certificationParagraph: 'Le présent état, qui constate la souscription des actions et le versement de la moitié du nominal desdites actions, est certifié exact, sincère et véritable par le Président.',
     statementCity: String(questionnaire.registeredOfficeCity || questionnaire.villeSiege || data.seat?.city || 'Ville').trim(),
     statementDate: new Date().toISOString().slice(0, 10),
-    presidentName,
-    presidentSignatureLabel: 'Le Président',
-    signatureFullName: presidentName,
+    presidentName: signature.presidentName,
+    presidentSignatureLabel: signature.signatoryTitle,
+    signatureFullName: signature.signatoryName,
+    signatureIsLegalEntity: signature.isLegalEntity,
+    signatureCompanyName: signature.companyName || '',
+    signatureRepresentativeName: signature.representativeName || '',
+    signatureRepresentativeQuality: signature.representativeQuality || '',
+    signatureLines: signature.signatureLines || [],
     signerEmail: user?.email || '',
   };
 
@@ -109,7 +76,6 @@ export const buildSubscribersListFields = ({ dossier, questionnaire = {}, user =
     initial.certificationParagraph = initial.certificationParagraph
       .replace(/actions/g, 'parts sociales')
       .replace(/Président/g, 'Gérant');
-    initial.presidentSignatureLabel = 'Le Gérant';
   }
 
   return {
@@ -129,11 +95,30 @@ export const validateSubscribersListFields = (fields = {}) => {
   if (subscribers.some((row) => !String(row.fullName || '').trim())) {
     return { ok: false, error: 'DOCUMENT_EDITOR_SUBSCRIBER_IDENTITY_REQUIRED' };
   }
+  if (subscribers.some((row) => row.isLegalEntity && !String(row.legalRepresentativeName || '').trim())) {
+    return { ok: false, error: 'DOCUMENT_EDITOR_LEGAL_ENTITY_REPRESENTATIVE_REQUIRED' };
+  }
+  if (subscribers.some((row) => !row.isLegalEntity && !String(row.birthDatePlace || '').trim())) {
+    return { ok: false, error: 'DOCUMENT_EDITOR_SUBSCRIBER_BIRTH_REQUIRED' };
+  }
   if (!String(fields.statementCity || '').trim() || !String(fields.statementDate || '').trim()) {
     return { ok: false, error: 'DOCUMENT_EDITOR_SIGNATURE_PLACE_DATE_REQUIRED' };
   }
   if (!String(fields.presidentName || fields.signatureFullName || '').trim()) {
     return { ok: false, error: 'DOCUMENT_EDITOR_SIGNATURE_REQUIRED' };
+  }
+  if (fields.signatureIsLegalEntity && !String(fields.signatureRepresentativeName || '').trim()) {
+    return { ok: false, error: 'DOCUMENT_EDITOR_LEGAL_ENTITY_REPRESENTATIVE_REQUIRED' };
+  }
+  const pmValidation = validateLegalEntityParties(
+    subscribers.filter((row) => row.isLegalEntity).map((row) => ({
+      associateType: 'personne_morale',
+      companyName: row.fullName,
+      representativeName: row.legalRepresentativeName,
+    })),
+  );
+  if (!pmValidation.ok) {
+    return { ok: false, error: 'DOCUMENT_EDITOR_LEGAL_ENTITY_REPRESENTATIVE_REQUIRED' };
   }
   return { ok: true, normalized: fields };
 };

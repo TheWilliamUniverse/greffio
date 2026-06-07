@@ -1,5 +1,9 @@
 import { article, legalTitle, paragraph, sectionTitle } from '../shared/formatting.js';
-import { formatLegalEntityAssociateDescription } from '../../../statuts/shared/formatLegalEntityAssociate.js';
+import {
+  formatLegalEntityAssociateDescription,
+  formatPhysicalPersonIdentityLine,
+  formatSignatureColumnForParty,
+} from '../../../shared/partyIdentityFormatter.js';
 
 export const sigleSuffix = (data) => (
   data.sigle && data.sigle !== 'Non prévu' ? `, et de sigle ${data.sigle}` : ''
@@ -26,20 +30,13 @@ export const buildWilliamSoussignes = (data, { unique = false } = {}) => {
   associates.forEach((associate, index) => {
     if (index > 0 && !unique) blocks.push(paragraph('ET'));
     if (associate.associateType === 'personne_morale') {
-      blocks.push(paragraph(formatLegalEntityAssociateDescription(associate, { greffeCity: data.greffe })));
+      blocks.push(paragraph(formatLegalEntityAssociateDescription(associate, {
+        greffeCity: data.greffe,
+        companyCapital: data.capital,
+      })));
       return;
     }
-    const birth = associate.birthDate
-      ? `, né${associate.civility === 'Mme' ? 'e' : ''} le ${associate.birthDate}${associate.birthPlace ? ` à ${associate.birthPlace}` : ''}`
-      : '';
-    const minor = associate.isMinorEmancipated
-      ? ', mineur émancipé'
-      : associate.isMinor
-        ? ''
-        : '';
-    blocks.push(paragraph(
-      `${associate.label}, demeurant ${associate.address}${birth} (France), de nationalité ${associate.nationality || 'française'}${minor}${associate.isMinor && !associate.isMinorEmancipated ? '.' : ','}`,
-    ));
+    blocks.push(paragraph(formatPhysicalPersonIdentityLine(associate)));
     if (associate.legalRepresentatives) {
       blocks.push(paragraph(`Représentée légalement par ${associate.legalRepresentatives}, jusqu'à sa majorité.`));
     } else if (!associate.isMinor || associate.isMinorEmancipated) {
@@ -149,11 +146,7 @@ export const buildWilliamSignatures = (data) => {
 
   const associateBlock = data.associateBlockOverride || (useGrid ? {
     layout: 'grid',
-    columns: associates.map((a) => ({
-      name: a.label,
-      role: a.roleLabel || 'Associé',
-      mention: 'Lu et approuvé',
-    })),
+    columns: associates.map((a) => formatSignatureColumnForParty(a)),
   } : {
     role: associates.length === 1 ? "L'associé unique" : 'Les associés',
     names: associates.map((a) => a.label),

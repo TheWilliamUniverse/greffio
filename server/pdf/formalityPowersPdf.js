@@ -85,14 +85,28 @@ export const generateFormalityPowersPdf = async ({ filename, fields = {} }) => {
   page.drawText(`Fait à ${city}, le ${dateFr}.`, { x: MARGIN_H, y, size: 10.5, font, color: COLOR_TEXT });
   y -= 32;
 
-  page.drawText(`${fields.signatoryName || fields.signatureFullName || 'Le signataire'},`, {
-    x: MARGIN_H,
-    y,
-    size: 10.5,
-    font,
-    color: COLOR_TEXT,
-  });
-  y -= 14;
+  if (fields.signatureIsLegalEntity) {
+    const signatureLines = Array.isArray(fields.signatureLines) && fields.signatureLines.length
+      ? fields.signatureLines
+      : [
+        `Pour ${fields.signatureCompanyName || fields.companyName || 'la personne morale'}`,
+        fields.signatureRepresentativeName ? `Représentée par ${fields.signatureRepresentativeName}` : 'Représentée par [représentant légal]',
+        `Qualité : ${fields.signatureRepresentativeQuality || 'Président'}`,
+      ];
+    signatureLines.forEach((line) => {
+      page.drawText(String(line), { x: MARGIN_H, y, size: 10.5, font, color: COLOR_TEXT });
+      y -= 14;
+    });
+  } else {
+    page.drawText(`${fields.signatoryName || fields.signatureFullName || 'Le signataire'},`, {
+      x: MARGIN_H,
+      y,
+      size: 10.5,
+      font,
+      color: COLOR_TEXT,
+    });
+    y -= 14;
+  }
   page.drawText(String(fields.signatoryTitle || 'Le Président'), {
     x: MARGIN_H,
     y,

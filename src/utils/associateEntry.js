@@ -1,4 +1,4 @@
-import { isOfficerRole } from '@/utils/officerFromAssociates.js';
+import { LEGAL_ENTITY_SIGNATORY_QUALITIES, resolveLegalEntitySignatoryQuality } from '@/utils/officerFromAssociates.js';
 
 export const ASSOCIATE_TYPES = Object.freeze({
   PERSON: 'personne_physique',
@@ -14,15 +14,18 @@ export const buildAssociateDisplayName = (associate = {}) => {
 
 export const isAssociateEntryComplete = (associate = {}) => {
   if (associate.associateType === ASSOCIATE_TYPES.COMPANY) {
-    const base = Boolean(
+    return Boolean(
       String(associate.companyName || '').trim()
       && String(associate.siren || '').trim()
-      && String(associate.address || '').trim(),
+      && String(associate.address || '').trim()
+      && String(associate.representativeName || '').trim()
+      && LEGAL_ENTITY_SIGNATORY_QUALITIES.includes(
+        resolveLegalEntitySignatoryQuality({
+          roleLabel: associate.roleLabel,
+          representativeQuality: associate.representativeQuality,
+        }),
+      ),
     );
-    if (isOfficerRole(associate.roleLabel)) {
-      return base && String(associate.representativeName || '').trim();
-    }
-    return base;
   }
   return Boolean(String(associate.firstName || '').trim() && String(associate.lastName || '').trim());
 };

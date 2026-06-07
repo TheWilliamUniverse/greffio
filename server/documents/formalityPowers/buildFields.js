@@ -1,11 +1,19 @@
 import { mapStatutesData } from '../../utils/statutesDataMapper.js';
 import { buildPowersAnnexe } from '../../legal/statutes/shared/annexes.js';
+import { resolveDocumentSignature } from '../../shared/partyIdentityFormatter.js';
 
 export const buildFormalityPowersFields = ({ dossier, questionnaire = {}, user = null, savedFields = {} } = {}) => {
   const data = mapStatutesData({ dossier, questionnaire, user });
   const annex = buildPowersAnnexe(data);
-  const presidentName = String(data.president || data.associates?.[0]?.label || '').trim()
-    || [questionnaire.firstName, questionnaire.lastName].filter(Boolean).join(' ').trim();
+  const signatureTitle = ['SARL', 'EURL', 'SCI'].includes(String(data.legalForm || '').toUpperCase())
+    ? 'Le Gérant'
+    : 'Le Président';
+  const signature = resolveDocumentSignature({
+    associates: data.associates || [],
+    fallbackName: String(data.president || '').trim()
+      || [questionnaire.firstName, questionnaire.lastName].filter(Boolean).join(' ').trim(),
+    fallbackTitle: signatureTitle,
+  });
 
   const initial = {
     title: 'POUVOIRS POUR FORMALITÉS',
@@ -17,9 +25,14 @@ export const buildFormalityPowersFields = ({ dossier, questionnaire = {}, user =
     paragraphs: annex.paragraphs || [],
     statementCity: String(questionnaire.registeredOfficeCity || questionnaire.villeSiege || data.seat?.city || 'Ville').trim(),
     statementDate: new Date().toISOString().slice(0, 10),
-    signatoryName: presidentName,
-    signatoryTitle: ['SARL', 'EURL', 'SCI'].includes(String(data.legalForm || '').toUpperCase()) ? 'Le Gérant' : 'Le Président',
-    signatureFullName: presidentName,
+    signatoryName: signature.signatoryName,
+    signatoryTitle: signature.signatoryTitle,
+    signatureFullName: signature.signatoryName,
+    signatureIsLegalEntity: signature.isLegalEntity,
+    signatureCompanyName: signature.companyName || '',
+    signatureRepresentativeName: signature.representativeName || '',
+    signatureRepresentativeQuality: signature.representativeQuality || '',
+    signatureLines: signature.signatureLines || [],
     signerEmail: user?.email || '',
   };
 
@@ -38,6 +51,9 @@ export const validateFormalityPowersFields = (fields = {}) => {
   }
   if (!String(fields.signatoryName || fields.signatureFullName || '').trim()) {
     return { ok: false, error: 'DOCUMENT_EDITOR_SIGNATURE_REQUIRED' };
+  }
+  if (fields.signatureIsLegalEntity && !String(fields.signatureRepresentativeName || '').trim()) {
+    return { ok: false, error: 'DOCUMENT_EDITOR_LEGAL_ENTITY_REPRESENTATIVE_REQUIRED' };
   }
   return { ok: true, normalized: fields };
 };

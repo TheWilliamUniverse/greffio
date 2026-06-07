@@ -4,6 +4,7 @@ import { formatFrInteger, parseFrenchAmount } from '../statuts/shared/numberForm
 import { isLegallyMinor } from './minorAssociateRules.js';
 import { resolveOfficersFromAssociates } from './officerFromAssociates.js';
 import { resolveGreffeCity } from '../statuts/shared/resolveTribunalCommerce.js';
+import { sortAssociatesPresidentFirst, resolveLegalEntitySignatoryQuality } from '../shared/partyIdentityFormatter.js';
 
 const pick = (...values) => {
   for (const value of values) {
@@ -88,13 +89,22 @@ const parseAssociateEntry = (entry, fallback = {}) => {
       legalForm: pick(entry.legalForm, ''),
       legalFormLabel: pick(entry.legalFormLabel, ''),
       siren: pick(entry.siren, ''),
+      rcsCity: pick(entry.rcsCity, entry.greffeCity, ''),
+      capitalSocial: pick(entry.capitalSocial, ''),
       representativeName: pick(entry.representativeName, ''),
+      representativeQuality: resolveLegalEntitySignatoryQuality({
+        roleLabel: pick(entry.roleLabel, entry.role, 'Associé'),
+        representativeQuality: pick(entry.representativeQuality, entry.representativeRole, ''),
+      }),
       address: pick(entry.address, fallback.address, 'Siège social à compléter'),
       share: pick(entry.percentage, entry.share, ''),
       titlesCount: pick(entry.sharesOrParts, entry.titlesCount, ''),
       isMinor: false,
       isMinorEmancipated: false,
       legalRepresentatives: '',
+      birthDate: '',
+      birthPlace: '',
+      nationality: '',
       roleLabel: pick(entry.roleLabel, entry.role, 'Associé'),
       contributionCash: pick(entry.contributionCash, entry.apportNumeraire, ''),
       liberationRate: pick(entry.liberationRate, '50%'),
@@ -124,6 +134,7 @@ const parseAssociateEntry = (entry, fallback = {}) => {
   }
   return {
     id: entry.id || `associate_${Math.random().toString(36).slice(2, 8)}`,
+    associateType: 'personne_physique',
     label: pick(entry.label, formatPerson(entry), `${entry.firstName || ''} ${entry.lastName || ''}`.trim()),
     address: pick(entry.address, fallback.address, 'Adresse à compléter'),
     nationality: pick(entry.nationality, fallback.nationality, 'Française'),
@@ -220,6 +231,7 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
     nominalValue: valeurNominale,
     liberationRate: pick(questionnaire.liberationCapital, '50 %'),
   });
+  associates = sortAssociatesPresidentFirst(associates);
   const officersFromAssociates = resolveOfficersFromAssociates(questionnaire.associates || [], {
     fallbackPresident: pick(questionnaire.president, director),
     fallbackDirectorGeneral: pick(questionnaire.directeurGeneral, questionnaire.directeursGeneraux, 'Aucun'),

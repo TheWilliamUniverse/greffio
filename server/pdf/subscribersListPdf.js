@@ -64,19 +64,35 @@ export const generateSubscribersListPdf = async ({ filename, fields = {} }) => {
     page.drawText(heading, { x: MARGIN_H, y, size: 11, font: fontBold, color: COLOR_TEXT });
     y -= 18;
 
-    const rows = [
-      ['Titre', subscriber.roleTitle || 'Associé'],
-      ['Nom et Prénom', subscriber.fullName || '—'],
-      ['Date et lieu de naissance', subscriber.birthDatePlace || '—'],
-      ['Nationalité', subscriber.nationality || 'Française'],
-      ['Adresse', subscriber.address || '—'],
-      [`${securitiesUnit} souscrites`, subscriber.titlesCount || '—'],
-      ['% du capital', subscriber.sharePercent || '—'],
-      ['Apport en numéraire', subscriber.contributionCash || '0 €'],
-      ['Apport en nature', subscriber.contributionInKind || '0 €'],
-      ['Montant libéré à la constitution', subscriber.liberationAmount || '0 €'],
-      ['Observations', subscriber.observations || '—'],
-    ];
+    const rows = subscriber.isLegalEntity
+      ? [
+        ['Type', 'Personne morale'],
+        ['Dénomination sociale', subscriber.fullName || '—'],
+        ['Forme juridique', subscriber.legalFormLabel || '—'],
+        ['SIREN', subscriber.siren || '—'],
+        ['Siège social', subscriber.address || '—'],
+        ['Représentant légal', subscriber.legalRepresentativeName || '—'],
+        ['Qualité du représentant', subscriber.legalRepresentativeQuality || '—'],
+        [`${securitiesUnit} souscrites`, subscriber.titlesCount || '—'],
+        ['% du capital', subscriber.sharePercent || '—'],
+        ['Apport en numéraire', subscriber.contributionCash || '0 €'],
+        ['Apport en nature', subscriber.contributionInKind || '0 €'],
+        ['Montant libéré à la constitution', subscriber.liberationAmount || '0 €'],
+        ['Observations', subscriber.observations || '—'],
+      ]
+      : [
+        ['Titre', subscriber.roleTitle || 'Associé'],
+        ['Nom et Prénom', subscriber.fullName || '—'],
+        ['Date et lieu de naissance', subscriber.birthDatePlace || '—'],
+        ['Nationalité', subscriber.nationality || 'Française'],
+        ['Adresse', subscriber.address || '—'],
+        [`${securitiesUnit} souscrites`, subscriber.titlesCount || '—'],
+        ['% du capital', subscriber.sharePercent || '—'],
+        ['Apport en numéraire', subscriber.contributionCash || '0 €'],
+        ['Apport en nature', subscriber.contributionInKind || '0 €'],
+        ['Montant libéré à la constitution', subscriber.liberationAmount || '0 €'],
+        ['Observations', subscriber.observations || '—'],
+      ];
     rows.forEach(([label, value]) => {
       if (y < MARGIN_BOTTOM + 40) {
         page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
@@ -126,14 +142,28 @@ export const generateSubscribersListPdf = async ({ filename, fields = {} }) => {
   page.drawText(`Fait à ${city}, le ${dateFr}.`, { x: MARGIN_H, y, size: 10.5, font, color: COLOR_TEXT });
   y -= 36;
 
-  page.drawText(`${fields.presidentName || fields.signatureFullName || 'Le Président'},`, {
-    x: MARGIN_H,
-    y,
-    size: 10.5,
-    font,
-    color: COLOR_TEXT,
-  });
-  y -= 14;
+  if (fields.signatureIsLegalEntity) {
+    const signatureLines = Array.isArray(fields.signatureLines) && fields.signatureLines.length
+      ? fields.signatureLines
+      : [
+        `Pour ${fields.signatureCompanyName || fields.companyName || 'la personne morale'}`,
+        fields.signatureRepresentativeName ? `Représentée par ${fields.signatureRepresentativeName}` : 'Représentée par [représentant légal]',
+        `Qualité : ${fields.signatureRepresentativeQuality || 'Président'}`,
+      ];
+    signatureLines.forEach((line) => {
+      page.drawText(String(line), { x: MARGIN_H, y, size: 10.5, font, color: COLOR_TEXT });
+      y -= 14;
+    });
+  } else {
+    page.drawText(`${fields.presidentName || fields.signatureFullName || 'Le Président'},`, {
+      x: MARGIN_H,
+      y,
+      size: 10.5,
+      font,
+      color: COLOR_TEXT,
+    });
+    y -= 14;
+  }
   page.drawText(String(fields.presidentSignatureLabel || 'Le Président'), {
     x: MARGIN_H,
     y,

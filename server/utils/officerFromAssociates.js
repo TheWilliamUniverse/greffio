@@ -1,3 +1,5 @@
+import { resolveLegalEntitySignatoryQuality } from '../shared/partyIdentityFormatter.js';
+
 const isPresidentRole = (roleLabel = '') => /président/i.test(String(roleLabel));
 
 const isDirectorGeneralRole = (roleLabel = '') => /directeur\s+général/i.test(String(roleLabel));
@@ -5,7 +7,11 @@ const isDirectorGeneralRole = (roleLabel = '') => /directeur\s+général/i.test(
 const buildCompanyLabel = (associate = {}) => {
   const company = String(associate.companyName || associate.label || '').trim();
   const rep = String(associate.representativeName || '').trim();
-  if (rep) return `${company}, représentée par ${rep}`;
+  const quality = resolveLegalEntitySignatoryQuality({
+    roleLabel: associate.roleLabel,
+    representativeQuality: associate.representativeQuality,
+  });
+  if (rep) return `${company}, représentée par ${rep}, en qualité de ${quality}`;
   return company;
 };
 

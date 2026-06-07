@@ -1,5 +1,6 @@
 import { countWilliamArticles, estimatePageCount } from '../renderers/renderWilliamSas2026.js';
 import { blocksContainSampleParasiteText } from '../renderers/williamParagraphSanitizer.js';
+import { validateLegalEntityParties } from '../../shared/partyIdentityFormatter.js';
 
 const REQUIRED_TITLES_SAS = [
   'TITRE I – FORMATION DE LA SOCIÉTÉ',
@@ -70,6 +71,18 @@ export const validateGeneratedStatuts = ({ blocks = [], context = {}, legalForm 
       errors.push(`Associé mineur non émancipé sans représentants légaux : ${associate.fullName}.`);
     }
   });
+
+  const pmValidation = validateLegalEntityParties(
+    (context.associates || []).map((associate) => ({
+      associateType: associate.isLegalEntity ? 'personne_morale' : 'personne_physique',
+      companyName: associate.fullName,
+      label: associate.fullName,
+      representativeName: associate.representativeName,
+    })),
+  );
+  if (!pmValidation.ok) {
+    errors.push(...pmValidation.errors);
+  }
 
   if (String(legalForm).toUpperCase() === 'SASU' && (context.associates?.length || 0) > 1) {
     errors.push('SASU : un seul associé attendu.');

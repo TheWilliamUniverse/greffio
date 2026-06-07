@@ -47,6 +47,8 @@ const mapDocumentEditorError = (error) => {
   if (code === 'DOCUMENT_EDITOR_COMPANY_REQUIRED') return 'Indiquez la dénomination sociale.';
   if (code === 'DOCUMENT_EDITOR_SUBSCRIBERS_REQUIRED') return 'Ajoutez au moins un souscripteur.';
   if (code === 'DOCUMENT_EDITOR_SUBSCRIBER_IDENTITY_REQUIRED') return 'Chaque souscripteur doit avoir un nom.';
+  if (code === 'DOCUMENT_EDITOR_SUBSCRIBER_BIRTH_REQUIRED') return 'Chaque personne physique doit avoir une date et un lieu de naissance.';
+  if (code === 'DOCUMENT_EDITOR_LEGAL_ENTITY_REPRESENTATIVE_REQUIRED') return 'Chaque personne morale doit avoir un représentant légal signataire.';
   if (code === 'DOCUMENT_EDITOR_MANDATAIRE_REQUIRED') return 'Indiquez le mandataire.';
   if (code === 'DOCUMENT_SLOT_NOT_FOUND') return 'Emplacement document introuvable. Réouvrez le dossier puis réessayez.';
   if (code === 'DOCUMENT_EDITOR_GENERATION_FAILED') return 'Génération PDF impossible. Réessayez dans quelques secondes.';

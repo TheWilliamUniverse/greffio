@@ -7,6 +7,7 @@ import { mergeWrapFragments } from '../shared/normalizeStatutesParagraphs.js';
 import { formatStatutesFrenchDate, formatStatutesFiscalEnd } from '../shared/statutesDates.js';
 import { personalizeTribunalMentions, resolveTribunalCommerce } from '../shared/resolveTribunalCommerce.js';
 import { formatLegalEntityAssociateDescription } from '../shared/formatLegalEntityAssociate.js';
+import { formatPhysicalPersonIdentityLine } from '../../shared/partyIdentityFormatter.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_PATH = path.join(__dirname, '../templates/williamEstablishmentsSas2026.model.json');
@@ -56,21 +57,20 @@ export const renderAssociatesPreamble = (context) => {
     if (associate.isLegalEntity) {
       lines.push(formatLegalEntityAssociateDescription(associate, {
         greffeCity: context.jurisdiction?.greffeCity || context.company?.rcsCity,
+        companyCapital: context.company?.capitalFormatted,
       }));
       return;
     }
-    const birthDate = formatBirthDateFr(associate.birthDate);
-    const identity = [
-      associate.fullName,
-      associate.address ? `demeurant ${associate.address}` : undefined,
-      birthDate || associate.birthPlace
-        ? `né(e) le ${birthDate ?? '[date à compléter]'}${associate.birthPlace ? ` à ${associate.birthPlace}` : ''}`
-        : undefined,
-      associate.nationality ? `de nationalité ${associate.nationality}` : undefined,
-      associate.isMinor && associate.isEmancipated ? 'mineur émancipé' : undefined,
-      associate.isMinor && !associate.isEmancipated ? 'mineur non émancipé' : undefined,
-    ].filter(Boolean).join(', ');
-    lines.push(`${identity}.`);
+    lines.push(formatPhysicalPersonIdentityLine({
+      label: associate.fullName,
+      address: associate.address,
+      birthDate: formatBirthDateFr(associate.birthDate) || associate.birthDate,
+      birthPlace: associate.birthPlace,
+      nationality: associate.nationality,
+      civility: associate.civility,
+      isMinor: associate.isMinor,
+      isMinorEmancipated: associate.isEmancipated,
+    }));
     if (associate.isMinor && !associate.isEmancipated && associate.legalRepresentatives?.length) {
       lines.push(`Représenté(e) légalement par ${associate.legalRepresentatives.join(' et ')}, jusqu'à sa majorité.`);
     }
