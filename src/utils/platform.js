@@ -70,6 +70,8 @@ export const MOBILE_SHELL_PREFIXES = [
   '/interfaces',
   '/simulateur',
   '/signature',
+  '/paiement',
+  '/tarifs',
 ];
 
 export const shouldUseMobileShell = (pathname) => {

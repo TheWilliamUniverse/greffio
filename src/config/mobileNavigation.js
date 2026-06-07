@@ -17,8 +17,8 @@ export const MOBILE_AUTH_TABS_WEB = [
 ];
 
 /**
- * Onglets app native — alignés sur web sauf le 5e onglet (Compte vs Messages).
- * Assistant et Messages restent accessibles via le drawer.
+ * Onglets app native — source unique partagée avec mobileStore.MOBILE_BOTTOM_TABS.
+ * Web : Messages (5e onglet). Native : Compte (assistant/statuts via drawer ☰).
  */
 export const MOBILE_AUTH_TABS_NATIVE = [
   { id: 'home', label: 'Accueil', path: '/dashboard', icon: 'home' },

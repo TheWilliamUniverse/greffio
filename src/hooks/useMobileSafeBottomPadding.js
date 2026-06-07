@@ -18,3 +18,8 @@ export function useMobileSafeBottomPadding({ hasBottomNav = true } = {}) {
 }
 
 export const MOBILE_BOTTOM_SPACER_CLASS = 'h-24 md:hidden';
+
+/** Alias documenté dans l’audit mobile — même logique que useMobileSafeBottomPadding. */
+export function useWebMobileBottomNavPadding(options) {
+  return useMobileSafeBottomPadding(options);
+}

@@ -12,8 +12,6 @@ import { DossierDetailEntry } from '@/mobile/entries/DossierDetailEntry.jsx';
 import { PaymentEntry } from '@/mobile/entries/PaymentEntry.jsx';
 import { useRouteQueryInvalidation } from '@/hooks/useRouteQueryInvalidation.js';
 import {
-  LazyAnalyticsPage,
-  LazyChatIAPage,
   LazyNonConvictionDeclarationPage,
   LazyOpsCockpitPage,
   LazyOpsDashboardPage,
@@ -22,7 +20,6 @@ import {
   LazyOpsEquipePage,
   LazyOpsLookupObservabilityPage,
   LazyOpsShell,
-  LazyStatutesPage,
   withSuspense,
 } from '@/routes/lazyPages.jsx';
 import { SignupPage } from '@/pages/SignupPage.jsx';
@@ -32,7 +29,10 @@ import { CredentialsUnlockPage } from '@/pages/CredentialsUnlockPage.jsx';
 import { DocumentsEntry } from '@/mobile/entries/DocumentsEntry.jsx';
 import { TeamEntry } from '@/mobile/entries/TeamEntry.jsx';
 import { ProfileEntry } from '@/mobile/entries/ProfileEntry.jsx';
-import { SettingsEntry } from '@/mobile/entries/SettingsEntry.jsx';
+import { ChatEntry } from '@/mobile/entries/ChatEntry.jsx';
+import { AnalyticsEntry } from '@/mobile/entries/AnalyticsEntry.jsx';
+import { StatutsEntry } from '@/mobile/entries/StatutsEntry.jsx';
+import { QuestionnaireEntry } from '@/mobile/entries/QuestionnaireEntry.jsx';
 import { ServiceDetailPage } from '@/pages/ServiceDetailPage.jsx';
 import { LegalMentionsPage } from '@/pages/LegalMentionsPage.jsx';
 import { PrivacyPolicyPage } from '@/pages/PrivacyPolicyPage.jsx';
@@ -47,7 +47,6 @@ import { GuidePage } from '@/pages/GuidePage.jsx';
 import { MandatePage } from '@/pages/MandatePage.jsx';
 import { OpsPlaceholderPage } from '@/pages/ops/OpsPlaceholderPage.jsx';
 import { PaymentVerificationPage } from '@/pages/PaymentVerificationPage.jsx';
-import { QuestionnairePage } from '@/pages/QuestionnairePage.jsx';
 import { SubscribersListPage } from '@/pages/SubscribersListPage.jsx';
 import { FormalityPowersPage } from '@/pages/FormalityPowersPage.jsx';
 import { SignaturePublicPage } from '@/pages/SignaturePublicPage.jsx';
@@ -121,8 +120,8 @@ function AppRoutes() {
             <Route path="/home" element={<HomePage />} />
             <Route path="/services" element={<ServicesPage />} />
             <Route path="/simulateur" element={<FormalityWizardEntry />} />
-            <Route path="/questionnaire" element={<ProtectedRoute><QuestionnairePage /></ProtectedRoute>} />
-            <Route path="/statuts-gratuits" element={<ProtectedRoute><QuestionnairePage /></ProtectedRoute>} />
+            <Route path="/questionnaire" element={<ProtectedRoute><QuestionnaireEntry /></ProtectedRoute>} />
+            <Route path="/statuts-gratuits" element={<ProtectedRoute><QuestionnaireEntry /></ProtectedRoute>} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/password-reset" element={<PasswordResetPage />} />
@@ -169,10 +168,10 @@ function AppRoutes() {
             <Route path="/dossier/:dossierId/declaration-non-condamnation" element={<ProtectedRoute>{withSuspense(LazyNonConvictionDeclarationPage, 'Chargement déclaration…')}</ProtectedRoute>} />
             <Route path="/dossier/:dossierId/liste-souscripteurs" element={<ProtectedRoute><SubscribersListPage /></ProtectedRoute>} />
             <Route path="/dossier/:dossierId/pouvoirs-formalites" element={<ProtectedRoute><FormalityPowersPage /></ProtectedRoute>} />
-            <Route path="/statuts" element={<ProtectedRoute>{withSuspense(LazyStatutesPage, 'Chargement statuts…')}</ProtectedRoute>} />
+            <Route path="/statuts" element={<ProtectedRoute><StatutsEntry /></ProtectedRoute>} />
             <Route path="/signature/:token" element={<SignaturePublicPage />} />
-            <Route path="/chat" element={<ProtectedRoute>{withSuspense(LazyChatIAPage, 'Chargement assistant…')}</ProtectedRoute>} />
-            <Route path="/analytics" element={<ProtectedRoute>{withSuspense(LazyAnalyticsPage, 'Chargement analytics…')}</ProtectedRoute>} />
+            <Route path="/chat" element={<ProtectedRoute><ChatEntry /></ProtectedRoute>} />
+            <Route path="/analytics" element={<ProtectedRoute><AnalyticsEntry /></ProtectedRoute>} />
             <Route path="/team" element={<ProtectedRoute><TeamEntry /></ProtectedRoute>} />
             <Route path="/interfaces" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><InterfacesPage /></ProtectedRoute>} />
             <Route path="/profil" element={<ProtectedRoute><ProfileEntry /></ProtectedRoute>} />

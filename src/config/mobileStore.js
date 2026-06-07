@@ -25,10 +25,4 @@ export const MOBILE_STORE = {
   ],
 };
 
-export const MOBILE_BOTTOM_TABS = [
-  { id: 'home', label: 'Accueil', path: '/dashboard', icon: 'home' },
-  { id: 'dossiers', label: 'Dossiers', path: '/dossiers', icon: 'folders' },
-  { id: 'new', label: 'Nouveau', path: '/questionnaire', icon: 'plus' },
-  { id: 'documents', label: 'Documents', path: '/documents', icon: 'files' },
-  { id: 'account', label: 'Compte', path: '/mobile/account', icon: 'user' },
-];
+export { MOBILE_AUTH_TABS_NATIVE as MOBILE_BOTTOM_TABS } from './mobileNavigation.js';

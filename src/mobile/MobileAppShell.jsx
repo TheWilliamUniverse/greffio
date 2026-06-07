@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { App as CapApp } from '@capacitor/app';
 import { Files, FolderKanban, Home, Plus, UserRound } from 'lucide-react';
-import { MOBILE_BOTTOM_TABS } from '@/config/mobileStore.js';
+import { MOBILE_AUTH_TABS_NATIVE } from '@/config/mobileNavigation.js';
 import { MobileTopBar } from '@/mobile/MobileTopBar.jsx';
 import { MobilePushRegistration } from '@/mobile/MobilePushRegistration.jsx';
 import { MobileSidebarDrawer } from '@/components/MobileSidebarDrawer.jsx';
@@ -135,7 +135,7 @@ const MobileAppShellInner = ({ children }) => {
         </main>
         <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md">
           <ul className="mx-auto grid max-w-lg grid-cols-5">
-            {MOBILE_BOTTOM_TABS.map((tab) => {
+            {MOBILE_AUTH_TABS_NATIVE.map((tab) => {
               const Icon = tabIcons[tab.icon] || Home;
               const active = isTabActive(location.pathname, tab.path);
               const isPrimary = tab.icon === 'plus';

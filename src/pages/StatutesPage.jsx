@@ -20,6 +20,9 @@ import { getDossierById } from '@/api/dossiers.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
 import { downloadStatutesOfficeExport } from '@/utils/statutesOfficeExport.js';
 import { useAuth } from '@/hooks/useAuth.js';
+import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
+import { useMobileSafeBottomPadding } from '@/hooks/useMobileSafeBottomPadding.js';
+import { cn } from '@/lib/utils.js';
 
 const parseQuestionnaire = (dataJson) => {
   if (!dataJson) return {};
@@ -59,7 +62,10 @@ const ChecklistItem = ({ label, ok }) => (
   </div>
 );
 
-export const StatutesPage = () => {
+export const StatutesPage = ({ presentation = 'auto' }) => {
+  const bottomPad = useMobileSafeBottomPadding();
+  const isMobilePresentation = presentation === 'mobile'
+    || (presentation === 'auto' && (isCapacitorNative() || isMobileBrowserViewport()));
   const [searchParams] = useSearchParams();
   const { currentUser } = useAuth();
   const [dossierId, setDossierId] = useState(() => searchParams.get('dossierId') || getCurrentDossierId());
@@ -283,9 +289,12 @@ export const StatutesPage = () => {
   const completeness = preview?.metadata?.completeness ?? 0;
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] overflow-x-hidden bg-[var(--we-bg)]">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto p-5 md:p-8">
+    <div className={cn(
+      'flex overflow-x-hidden bg-[var(--we-bg)]',
+      isMobilePresentation ? 'min-h-0 flex-col' : 'min-h-[calc(100vh-4rem)]',
+    )}>
+      {!isMobilePresentation ? <Sidebar /> : null}
+      <main className={cn('flex-1 overflow-y-auto', isMobilePresentation ? `p-4 ${bottomPad}` : 'p-5 md:p-8')}>
         <div className="mx-auto max-w-5xl space-y-6">
           {dossierId ? (
             <DossierBreadcrumb dossierId={dossierId} dossierName={dossierName} section="Statuts" />

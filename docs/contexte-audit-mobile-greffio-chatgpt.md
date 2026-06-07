@@ -59,7 +59,11 @@ Fichier clé : `src/utils/platform.js`.
 | `src/mobile/MobileDossiersPage.jsx` | `/dossiers` via `DossiersEntry` | Liste dossiers |
 | `src/mobile/MobileDossierDetailPage.jsx` | `/dossier/:id` via `DossierDetailEntry` | Détail dossier |
 | `src/mobile/MobilePaymentPage.jsx` | `/paiement` via `PaymentEntry` | Paiement |
-| `src/mobile/MobileSearchPage.jsx` | `/mobile/search`, `/chat` | Assistant |
+| `src/mobile/MobileSearchPage.jsx` | `/mobile/search` | Recherche rapide |
+| `src/mobile/MobileChatPage.jsx` | `/chat` via `ChatEntry` | Assistant IA |
+| `src/mobile/MobileDocumentsPage.jsx` | `/documents` via `DocumentsEntry` | Didit + docs en ligne |
+| `src/mobile/MobileTeamPage.jsx` | `/team` via `TeamEntry` | Messages |
+| `src/mobile/MobileAnalyticsPage.jsx` | `/analytics` via `AnalyticsEntry` | Pilotage |
 | `src/mobile/MobileAccountPage.jsx` | `/mobile/account`, `/profil`, `/settings` | Compte |
 | `src/mobile/BiometricUnlockScreen.jsx` | Gate biométrie native | Capacitor uniquement |
 
@@ -73,14 +77,19 @@ Pattern : `isCapacitorNative() || isMobileBrowserViewport() ? MobileX : DesktopX
 | `DossiersEntry.jsx` | `MobileDossiersPage` | page desktop |
 | `DossierDetailEntry.jsx` | `MobileDossierDetailPage` | page desktop |
 | `PaymentEntry.jsx` | `MobilePaymentPage` | page desktop |
+| `DocumentsEntry.jsx` | `MobileDocumentsPage` | `DocumentsPage` |
+| `TeamEntry.jsx` | `MobileTeamPage` | `TeamPage` |
+| `ChatEntry.jsx` | `MobileChatPage` | `ChatIAPage` |
+| `AnalyticsEntry.jsx` | `MobileAnalyticsPage` | `AnalyticsPage` |
+| `StatutsEntry.jsx` | `StatutesPage` mobile | lazy desktop |
+| `QuestionnaireEntry.jsx` | shell padding | `QuestionnairePage` |
+| `ProfileEntry.jsx` | redirect `/mobile/account` | `ProfilePage` |
+| `SettingsEntry.jsx` | redirect `/mobile/account` | `SettingsPage` |
 | `FormalityWizardEntry.jsx` | `FormalityWizardPage presentation="mobile"` | desktop |
 
 **Sans entry mobile** (layout desktop étiré sur mobile web / app) :
 
-- `/documents` → `DocumentsPage`
-- `/team` → `TeamPage`
-- `/profil`, `/settings` → pages desktop (partiellement couvert par `/mobile/account` en app)
-- `/analytics`, `/statuts`, `/interfaces`, `/questionnaire` → pages desktop lazy
+- `/interfaces` → `InterfacesPage` (ops)
 - Pages publiques : `/services`, `/tarifs`, `/ressources`, landing services SEO, etc.
 
 ---
@@ -109,6 +118,23 @@ Après :
 - `MobileAppShell` : `MobileSidebarDrawer` + hamburger via `MobileTopBar.onMenuClick`
 - `MobileWebShell` : drawer + hamburger via `MobileWebHeader.onMenuClick` (utilisateur connecté, hors landing)
 - `MobileSidebarDrawer` : retrait de `md:hidden` sur le overlay pour compatibilité tablette native
+
+### 3.3 Header cockpit mobile — premium (v1.2.6)
+
+- `MobileAccountQuickSheet` : sheet compte calquée desktop (avatar, profil, paramètres, déconnexion)
+- `MobileConnectedStrip` : « Connecté à l’équipe Greffio »
+- `MobileCockpitSearchDialog` : API `/api/mobile/search` + types documents + site
+- `MobileLogoutConfirmDialog` : confirmation avant déconnexion
+- `MobileStickyHeaderGroup` : header + pastille sticky, ombre au scroll
+- `MobileShellOverlayContext` : back Android ferme recherche, sheet, dialog logout
+
+### 3.4 Parité routes cockpit — entries complètes
+
+- `DocumentsEntry`, `TeamEntry`, `ChatEntry`, `AnalyticsEntry`, `StatutsEntry`, `QuestionnaireEntry`
+- Bottom nav unifiée via `src/config/mobileNavigation.js` (web Messages / native Compte)
+- `useMobileSafeBottomPadding` + alias `useWebMobileBottomNavPadding`
+- `MOBILE_SHELL_PREFIXES` étendu (`/paiement`, `/tarifs`)
+- Landing : sections tarifs/FAQ/footer lazy (`MobileLandingDeferredSections`)
 
 ---
 
@@ -146,8 +172,8 @@ Après :
 |----------|---------|---------------|
 | Menu hamburger | Ouvre `MobileSidebarDrawer` | OK post-fix |
 | Bottom nav | 5 items (`WebMobileBottomNav`) | Analytics, chat, profil **absents** de la bottom nav → accessibles via drawer |
-| Pages sans entry mobile | Layout desktop compressé | `/documents`, `/team` peuvent être difficiles à utiliser |
-| Padding bottom | `pb-[calc(4.75rem+safe-area)]` dans shell | Hook `useWebMobileBottomNavPadding` **documenté mais non implémenté** sur pages desktop |
+| Pages sans entry mobile | Layout desktop compressé | OK pour cockpit client ; reste `/interfaces` (ops) |
+| Padding bottom | `useMobileSafeBottomPadding` sur pages mobile | Hook implémenté + alias `useWebMobileBottomNavPadding` |
 | Ops `/ops` | Exclu du mobile shell | Comportement voulu (desktop only) |
 
 ### 4.3 Application native Capacitor
@@ -155,7 +181,7 @@ Après :
 | Fonction | Attendu | Risque actuel |
 |----------|---------|---------------|
 | Drawer latéral | Hamburger → `MobileSidebarDrawer` | OK post-fix |
-| Bottom tabs | `MOBILE_BOTTOM_TABS` (5 onglets) | **Diverge** de `WebMobileBottomNav` (web : Accueil, Dossiers, **Nouveau**, Documents, Messages ; app : Accueil, Dossiers, Documents, Assistant, Compte) |
+| Bottom tabs | `MOBILE_AUTH_TABS_NATIVE` | Unifié avec web (Nouveau FAB) ; 5e onglet : Compte natif vs Messages web — documenté |
 | Notifications | Cloche + sheet | OK |
 | Biométrie | `BiometricSessionContext` | Tester unlock cold start |
 | Deep links | `appUrlOpen` dans `MobileAppShell` | Tester liens `greffio.willentreprises.com` |
@@ -170,7 +196,7 @@ Après :
 - [ ] Fermeture drawer à la navigation
 - [ ] Bottom tab active state sur sous-routes
 - [ ] Keyboard ne masque pas les champs (formulaires questionnaire)
-- [ ] Retour Android (back button) ferme drawer avant de quitter
+- [x] Retour Android (back button) ferme drawer, recherche, sheet compte, logout dialog
 - [ ] Offline / erreur réseau — messages clairs
 
 ---
@@ -181,20 +207,20 @@ Après :
 
 | # | Mesure | Fichiers | Effort |
 |---|--------|----------|--------|
-| P0-1 | **Déployer** landing mobile + drawer (commit + push Hostinger) | Tous fichiers §3 | Faible |
-| P0-2 | Vérifier manuellement drawer sur **10 routes** auth : dashboard, dossiers, documents, team, profil, settings, chat, analytics, simulateur, questionnaire | — | QA |
-| P0-3 | **Padding bottom** sur pages desktop utilisées en mobile web : `DocumentsPage`, `TeamPage`, `ProfilePage`, `SettingsPage` — ajouter spacer ou classe shell | Pages concernées | Moyen |
-| P0-4 | Bouton retour Android : drawer ouvert → fermer drawer (`MobileSidebarDrawer` + Capacitor back) | `MobileSidebarDrawer.jsx` | Faible |
+| P0-1 | **Déployer** landing mobile + drawer | ✅ Fait |
+| P0-2 | QA drawer 10 routes auth | Manuel — checklist §4 |
+| P0-3 | Padding bottom pages mobile | ✅ Hook + pages mobile |
+| P0-4 | Back Android overlays | ✅ Fait |
 
 ### P1 — Court terme (parité fonctionnelle)
 
 | # | Mesure | Fichiers | Effort |
 |---|--------|----------|--------|
-| P1-1 | Créer `*Entry.jsx` pour `/documents`, `/team`, `/profil`, `/settings`, `/chat` | `src/mobile/entries/` | Moyen |
-| P1-2 | **Harmoniser** bottom nav web vs app : documenter la divergence ou unifier via config partagée | `WebMobileBottomNav`, `mobileStore.js` | Moyen |
-| P1-3 | Implémenter `useWebMobileBottomNavPadding` hook réel | nouveau hook + pages cockpit | Faible |
-| P1-4 | Étendre `MOBILE_SHELL_PREFIXES` pour toutes routes auth client | `platform.js` | Faible |
-| P1-5 | Landing mobile : ajouter accès rapide **Services** / **Ressources** (sans refonte hero desktop) | `MobileLandingPage` ou header sticky | Faible |
+| P1-1 | Entries `/documents`, `/team`, `/chat`, `/analytics`, `/statuts`, `/questionnaire` | ✅ Fait |
+| P1-2 | Harmoniser bottom nav | ✅ `mobileNavigation.js` |
+| P1-3 | `useWebMobileBottomNavPadding` | ✅ Alias hook |
+| P1-4 | Étendre `MOBILE_SHELL_PREFIXES` | ✅ `/paiement`, `/tarifs` |
+| P1-5 | Landing accès Services / Ressources | Optionnel — lien « Tout voir » services |
 
 ### P2 — Durable (architecture & maintenance)
 
@@ -220,17 +246,15 @@ Après :
 4. Documents → `/documents`
 5. Messages → `/team`
 
-### App native (`MOBILE_BOTTOM_TABS`)
+### App native (`MOBILE_AUTH_TABS_NATIVE` — `mobileNavigation.js`)
 
 1. Accueil → `/dashboard`
 2. Dossiers → `/dossiers`
-3. Documents → `/documents`
-4. Assistant → `/mobile/search`
+3. **Nouveau** (FAB) → `/questionnaire`
+4. Documents → `/documents`
 5. Compte → `/mobile/account`
 
-**Impact utilisateur** : même compte, habitudes différentes selon canal. ChatGPT doit recommander soit unification, soit onboarding/tooltip expliquant la différence.
-
-**Drawer** : accès complet aux deux (analytics, settings, simulateur, etc.) — c’est le **filet de sécurité** navigationnel.
+**Impact utilisateur** : le 5e onglet diffère du web (Messages). Assistant, pilotage et statuts via drawer ☰ ; bandeau explicatif sur `MobileHomePage`.
 
 ---
 
