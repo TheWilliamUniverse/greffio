@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp.jsx';
 import { runtimeConfig } from '@/config/runtime.js';
+import { PUBLISHER_LEGAL_NAME } from '@/config/publisher.js';
 import { isMobileBrowserViewport } from '@/utils/platform.js';
 
 const MFA_MODES = {
@@ -149,7 +150,7 @@ export const LoginPage = () => {
             <div className="rounded-md bg-white/10 p-4">Dépôt au greffe</div>
           </div>
         </div>
-        <p className="text-sm text-white/60">Greffio est une marque déposée de William Establishments.</p>
+        <p className="text-sm text-white/60">Greffio est une marque déposée de {PUBLISHER_LEGAL_NAME}.</p>
       </section>
 
       <section className="flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8">

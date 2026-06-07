@@ -5,6 +5,7 @@ import {
   CalendarClock,
   CheckCircle2,
   Circle,
+  Eye,
   FileText,
   Loader2,
   XCircle,
@@ -14,6 +15,7 @@ import { Input } from '@/components/ui/input.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import {
   createOpsNote,
+  downloadOpsDocument,
   getOpsDossierDetail,
   updateOpsAssignment,
   updateOpsDocumentStatus,
@@ -22,6 +24,8 @@ import { OpsCompletionBadge, OpsPriorityBadge, OpsQueueBadge, OpsRiskBadge, OpsS
 import { formatDateTime } from '@/components/ops/opsLabels.js';
 import { GREFFIO_OPS_TEAM, OPS_PRIORITY_LABELS, OPS_QUEUE_LABELS } from '@/config/opsTeam.js';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
+
+const opsDocumentHasFile = (doc) => Boolean(doc?.storageUrl || (doc?.filename && doc.filename !== 'non uploadé'));
 
 const checklistIcon = (status) => {
   if (status === 'done') return <CheckCircle2 className="h-4 w-4 text-emerald-600" />;
@@ -40,6 +44,7 @@ export const OpsDossierDetailPage = () => {
   const [newNote, setNewNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [docUpdating, setDocUpdating] = useState('');
+  const [docPreviewing, setDocPreviewing] = useState('');
 
   const loadDetail = async () => {
     setLoading(true);
@@ -91,6 +96,26 @@ export const OpsDossierDetailPage = () => {
       setNewNote('');
     } catch (_err) {
       setError('Impossible d’ajouter la note.');
+    }
+  };
+
+  const openOpsDocumentPreview = async (docKey) => {
+    setDocPreviewing(docKey);
+    setError('');
+    try {
+      const { blob } = await downloadOpsDocument({ dossierId, docKey, inline: true, cacheBust: true });
+      const url = window.URL.createObjectURL(blob);
+      const previewWindow = window.open(url, '_blank', 'noopener,noreferrer');
+      if (!previewWindow) {
+        window.URL.revokeObjectURL(url);
+        setError('Autorisez les pop-ups pour ouvrir l’aperçu du document.');
+        return;
+      }
+      setTimeout(() => window.URL.revokeObjectURL(url), 120_000);
+    } catch (_err) {
+      setError('Impossible d’ouvrir ce document pour le moment.');
+    } finally {
+      setDocPreviewing('');
     }
   };
 
@@ -196,6 +221,22 @@ export const OpsDossierDetailPage = () => {
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <StatusBadge status={String(doc.status || '').toUpperCase()} />
+                    {opsDocumentHasFile(doc) ? (
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="h-8 w-8 bg-white"
+                        aria-label="Voir le document"
+                        title="Voir le document"
+                        disabled={docPreviewing === doc.docKey}
+                        onClick={() => void openOpsDocumentPreview(doc.docKey)}
+                      >
+                        {docPreviewing === doc.docKey
+                          ? <Loader2 className="h-4 w-4 animate-spin" />
+                          : <Eye className="h-4 w-4" />}
+                      </Button>
+                    ) : null}
                     {(String(doc.status || '').toLowerCase() === 'uploaded'
                       || String(doc.status || '').toLowerCase() === 'under_review') && (
                       <>

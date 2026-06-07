@@ -3,13 +3,17 @@ import { tryLocalRulesAnswer } from './localRules.js';
 import { askOpenAi, isOpenAiConfigured } from './providers/openaiProvider.js';
 import { askOllama } from './providers/ollamaProvider.js';
 import { professionalFallbackAnswer, sanitizeAssistantAnswer } from './responseSanitizer.js';
+import { buildUserDossierContext } from './dossierContextBuilder.js';
+import { classifyDossierIntent } from './intentClassifier.js';
+import { retrieveKnowledgeChunks } from './rag/retriever.js';
 
-const finalize = ({ answer, provider, model, mode, degraded = false }) => ({
+const finalize = ({ answer, provider, model, mode, degraded = false, intent = null }) => ({
   answer: sanitizeAssistantAnswer(answer) || professionalFallbackAnswer(),
   provider,
   model: model || null,
   mode,
   degraded,
+  intent: intent?.id || null,
 });
 
 export const isAssistantConfigured = () => (
@@ -18,10 +22,35 @@ export const isAssistantConfigured = () => (
   || assistantConfig.primaryProvider === 'local_vllm'
 );
 
+const buildEnrichedContext = async ({ message, userContext = {}, dossierId = null }) => {
+  const dossier = userContext.userId
+    ? await buildUserDossierContext({ userId: userContext.userId, dossierId })
+    : { hasDossier: false };
+  const intent = classifyDossierIntent({ message, dossierContext: dossier });
+  const knowledge = assistantConfig.enableRag
+    ? await retrieveKnowledgeChunks({
+      query: message,
+      intent: intent.id,
+      topK: assistantConfig.ragTopK,
+    })
+    : [];
+
+  return {
+    ...userContext,
+    dossier,
+    intent: intent.id,
+    intentLabel: intent.label,
+    knowledgeSnippets: knowledge.map((item) => item.text),
+    legalStructure: userContext.legalStructure || dossier.legalForm || null,
+    company: userContext.company || (dossier.companyName ? { name: dossier.companyName, legalForm: dossier.legalForm } : null),
+  };
+};
+
 export const askGreffioAssistant = async ({
   message,
   userContext = {},
   history = [],
+  dossierId = null,
 }) => {
   const cleanMessage = String(message || '').trim();
   if (!cleanMessage) {
@@ -32,13 +61,21 @@ export const askGreffioAssistant = async ({
     });
   }
 
+  const enrichedContext = await buildEnrichedContext({
+    message: cleanMessage,
+    userContext,
+    dossierId,
+  });
+  const intent = { id: enrichedContext.intent, label: enrichedContext.intentLabel };
+
   if (assistantConfig.enableLocalRules) {
-    const localAnswer = tryLocalRulesAnswer({ message: cleanMessage, userContext });
+    const localAnswer = tryLocalRulesAnswer({ message: cleanMessage, userContext: enrichedContext });
     if (localAnswer) {
       return finalize({
         answer: localAnswer,
         provider: 'local_rules',
         mode: 'rules',
+        intent,
       });
     }
   }
@@ -57,8 +94,8 @@ export const askGreffioAssistant = async ({
 
   for (const providerName of providers) {
     const result = providerName === 'ollama'
-      ? await askOllama({ message: cleanMessage, history, userContext })
-      : await askOpenAi({ message: cleanMessage, history, userContext });
+      ? await askOllama({ message: cleanMessage, history, userContext: enrichedContext })
+      : await askOpenAi({ message: cleanMessage, history, userContext: enrichedContext });
 
     if (result?.answer) {
       return finalize({
@@ -67,14 +104,16 @@ export const askGreffioAssistant = async ({
         model: result.model,
         mode: 'llm',
         degraded: Boolean(result.degraded),
+        intent,
       });
     }
   }
 
   return finalize({
-    answer: professionalFallbackAnswer(userContext),
+    answer: professionalFallbackAnswer(enrichedContext),
     provider: 'local_fallback',
     mode: 'fallback',
     degraded: true,
+    intent,
   });
 };

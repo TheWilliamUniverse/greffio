@@ -4,7 +4,7 @@ import { BadgeEuro, CreditCard, FileCheck2, Scale, ShieldCheck } from 'lucide-re
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { runtimeConfig } from '@/config/runtime.js';
-import { PAYMENT_METHODS } from '@/config/businessCatalog.js';
+import { PUBLISHER_LEGAL_NAME, PUBLISHER_RCS } from '@/config/publisher.js';
 
 const Section = ({ title, children }) => (
   <section className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
@@ -33,8 +33,8 @@ export const LegalMentionsPage = () => (
 
       <div className="grid gap-4 lg:grid-cols-3">
         {[
-          { icon: Scale, title: 'Éditeur', text: 'William Establishments · RCS Nice 102 230 414' },
-          { icon: ShieldCheck, title: 'Marque', text: 'Greffio est une marque déposée détenue par William Establishments.' },
+          { icon: Scale, title: 'Éditeur', text: `${PUBLISHER_LEGAL_NAME} · ${PUBLISHER_RCS}` },
+          { icon: ShieldCheck, title: 'Marque', text: `Greffio est une marque déposée détenue par ${PUBLISHER_LEGAL_NAME}.` },
           { icon: CreditCard, title: 'Paiements', text: 'Mollie Checkout, CB, wallets, Link, virement SEPA et prélèvement SEPA.' },
         ].map((item) => (
           <div key={item.title} className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
@@ -46,9 +46,9 @@ export const LegalMentionsPage = () => (
       </div>
 
       <Section title="Éditeur du service">
-        <p><strong className="text-foreground">William Establishments</strong>, immatriculée au RCS de Nice sous le numéro 102 230 414.</p>
+        <p><strong className="text-foreground">{PUBLISHER_LEGAL_NAME}</strong>, immatriculée au RCS de Nice sous le numéro 102 230 414.</p>
         <p>SIRET : 10223041400017 · TVA intracommunautaire : FR49102230414.</p>
-        <p>Greffio est une marque déposée et détenue par William Establishments. Toute reproduction non autorisée du nom, du logo, de l’identité visuelle ou des contenus Greffio est interdite.</p>
+        <p>Greffio est une marque déposée et détenue par {PUBLISHER_LEGAL_NAME}. Toute reproduction non autorisée du nom, du logo, de l’identité visuelle ou des contenus Greffio est interdite.</p>
       </Section>
 
       <Section title="Objet du service Greffio">

@@ -1,7 +1,9 @@
+import { PUBLISHER_BRAND_LINE, PUBLISHER_LEGAL_NAME } from '@/config/publisher.js';
+
 export const GREFFIO_COMPANY = Object.freeze({
-  name: 'WILLIAM Establishments',
+  name: PUBLISHER_LEGAL_NAME,
   email: 'contact@willentreprises.com',
-  legalLabel: 'WILLIAM Establishments — Greffio',
+  legalLabel: PUBLISHER_BRAND_LINE,
 });
 
 export const GREFFIO_OPS_TEAM = Object.freeze([

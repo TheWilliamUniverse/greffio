@@ -125,6 +125,40 @@ export const updateOpsResourceOrderStatus = async (orderId, { status, notes }) =
   return parseResponse(response);
 };
 
+export const downloadOpsDocument = async ({ dossierId, docKey, inline = true, cacheBust = false } = {}) => {
+  const params = new URLSearchParams();
+  if (inline) params.set('inline', '1');
+  if (cacheBust) params.set('t', String(Date.now()));
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const response = await fetch(
+    `${runtimeConfig.apiBaseUrl}/api/ops/dossiers/${dossierId}/documents/${encodeURIComponent(docKey)}/download${query}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: authHeaders().Authorization,
+      },
+      cache: 'no-store',
+    },
+  );
+  if (!response.ok) {
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch (_error) {
+      payload = null;
+    }
+    const error = new Error(payload?.error || 'DOCUMENT_DOWNLOAD_FAILED');
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
+  }
+  const contentDisposition = response.headers.get('content-disposition') || '';
+  const nameMatch = contentDisposition.match(/filename="([^"]+)"/i);
+  const filename = nameMatch?.[1] || `${docKey}.pdf`;
+  const blob = await response.blob();
+  return { filename, blob };
+};
+
 export const updateOpsDocumentStatus = async ({
   dossierId,
   docKey,

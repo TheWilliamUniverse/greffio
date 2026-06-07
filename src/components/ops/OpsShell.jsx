@@ -6,6 +6,8 @@ import { OpsSidebar } from '@/components/ops/OpsSidebar.jsx';
 import { OpsTopbar } from '@/components/ops/OpsTopbar.jsx';
 import { OpsSearchDialog } from '@/components/ops/OpsSearchDialog.jsx';
 
+import { PUBLISHER_LEGAL_NAME } from '@/config/publisher.js';
+
 const pageMeta = {
   '/ops/cockpit': {
     title: 'Cockpit ops',
@@ -33,7 +35,7 @@ const pageMeta = {
   },
   '/ops/equipe': {
     title: 'Équipe Greffio',
-    subtitle: 'William, Nobatène, Ibtissam — WILLIAM Establishments.',
+    subtitle: `William, Nobatène, Ibtissam — ${PUBLISHER_LEGAL_NAME}.`,
   },
   '/ops/audit': {
     title: 'Audit',

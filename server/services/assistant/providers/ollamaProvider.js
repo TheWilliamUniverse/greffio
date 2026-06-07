@@ -1,6 +1,21 @@
 import { assistantConfig } from '../config.js';
 
-const SYSTEM_PROMPT = `Tu es l'assistant Greffio (formalités françaises). Réponds en français, clairement, sans jargon technique ni mention de fournisseur IA.`;
+const SYSTEM_PROMPT = `Tu es l'assistant Greffio (formalités françaises). Réponds en français, clairement, sans jargon technique ni mention de fournisseur IA.
+Utilise le contexte dossier et les extraits de connaissance fournis quand ils sont pertinents.`;
+
+const buildContextBlock = (userContext = {}) => {
+  const parts = [
+    `Intent détecté : ${userContext.intentLabel || userContext.intent || 'general'}`,
+    `Contexte utilisateur : ${JSON.stringify({
+      role: userContext.role,
+      dossier: userContext.dossier,
+    })}`,
+  ];
+  if (userContext.knowledgeSnippets?.length) {
+    parts.push(`Connaissances Greffio :\n- ${userContext.knowledgeSnippets.join('\n- ')}`);
+  }
+  return parts.join('\n');
+};
 
 export const askOllama = async ({ message, history = [], userContext = {} }) => {
   const baseUrl = assistantConfig.ollamaBaseUrl;
@@ -10,7 +25,7 @@ export const askOllama = async ({ message, history = [], userContext = {} }) => 
   const recentHistory = Array.isArray(history) ? history.slice(-8) : [];
   const promptParts = [
     SYSTEM_PROMPT,
-    `Contexte : ${JSON.stringify(userContext || {})}`,
+    buildContextBlock(userContext),
     ...recentHistory.map((item) => `${item.role === 'user' ? 'Client' : 'Assistant'}: ${item.content}`),
     `Client: ${message}`,
     'Assistant:',

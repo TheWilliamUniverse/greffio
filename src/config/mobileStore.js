@@ -9,7 +9,7 @@ export const MOBILE_STORE = {
   ios: {
     bundleId: 'com.greffio.app',
     subtitle: 'Formalités entreprise',
-    organization: 'William Establishments',
+    organization: 'WILLIAM ESTABLISHMENTS',
   },
   legal: {
     privacyUrl: 'https://greffio.willentreprises.com/confidentialite',

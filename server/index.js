@@ -540,7 +540,7 @@ app.get('/api/observability/storage', requireAuth, requireRole(['ADMIN', 'OPS', 
 });
 
 app.post('/api/assistant', assistantLimiter, requireAuth, async (req, res) => {
-  const { message, history = [] } = req.body || {};
+  const { message, history = [], dossierId = null } = req.body || {};
   if (!message || !String(message).trim()) {
     return res.status(400).json({ ok: false, error: 'ASSISTANT_MESSAGE_REQUIRED' });
   }
@@ -548,6 +548,7 @@ app.post('/api/assistant', assistantLimiter, requireAuth, async (req, res) => {
     const result = await askGreffioAssistant({
       message: String(message).trim(),
       history: Array.isArray(history) ? history : [],
+      dossierId: dossierId ? String(dossierId) : null,
       userContext: {
         userId: req.auth?.sub || null,
         role: req.auth?.role || 'CLIENT',
@@ -559,6 +560,7 @@ app.post('/api/assistant', assistantLimiter, requireAuth, async (req, res) => {
       answer: result.answer,
       provider: result.provider,
       model: result.model,
+      intent: result.intent || null,
       configured: isAssistantConfigured(),
       degraded: Boolean(result.degraded),
     });
@@ -1683,6 +1685,33 @@ app.post('/api/ops/dossiers/:dossierId/notes', requireAuth, requireRole(['ADMIN'
     ok: true,
     notes: await listOpsNotesByDossier(dossier.id),
   });
+});
+
+app.get('/api/ops/dossiers/:dossierId/documents/:docKey/download', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
+  const dossier = await getDossier(req.params.dossierId);
+  if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+
+  const documents = await listDossierDocuments(dossier.id);
+  const requested = documents.find((item) => item.docKey === req.params.docKey);
+  if (!requested || !requested.storageUrl) {
+    return res.status(404).json({ ok: false, error: 'DOCUMENT_FILE_NOT_FOUND' });
+  }
+
+  const downloadName = requested.filename || `${requested.docKey}.pdf`;
+  const inline = String(req.query.inline || req.query.disposition || '').toLowerCase() === '1'
+    || String(req.query.inline || req.query.disposition || '').toLowerCase() === 'inline';
+  const disposition = inline ? 'inline' : 'attachment';
+
+  try {
+    const buffer = await downloadDocumentBufferFromConfiguredStorage(requested.storageUrl);
+    res.setHeader('Content-Type', requested.mimeType || 'application/pdf');
+    res.setHeader('Content-Disposition', `${disposition}; filename="${downloadName}"`);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.send(buffer);
+  } catch (error) {
+    console.error('OPS_DOCUMENT_DOWNLOAD_FAILED', error);
+    return res.status(404).json({ ok: false, error: 'DOCUMENT_FILE_NOT_FOUND' });
+  }
 });
 
 app.post('/api/ops/dossiers/:dossierId/documents/:docKey/status', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {

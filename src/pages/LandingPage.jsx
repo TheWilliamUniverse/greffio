@@ -23,6 +23,7 @@ import { getServiceRoute } from '@/config/serviceLandingPages.js';
 import { lookupPublicCompanyBySiren } from '@/api/company.js';
 import { GooglePlayStoreLink } from '@/components/store/GooglePlayStoreLink.jsx';
 import { LandingPricingSection } from '@/components/pricing/LandingPricingSection.jsx';
+import { PUBLISHER_LEGAL_NAME } from '@/config/publisher.js';
 import { MobileLandingPage } from '@/mobile/MobileLandingPage.jsx';
 import { useNavigate } from 'react-router-dom';
 
@@ -557,7 +558,7 @@ export const LandingPage = () => {
             </div>
             <div>
               <p className="font-bold text-white">Mentions légales</p>
-              <p className="mt-3">Greffio est une marque déposée de William Establishments. Tous droits réservés.</p>
+              <p className="mt-3">Greffio est une marque déposée de {PUBLISHER_LEGAL_NAME}. Tous droits réservés.</p>
               <p className="mt-2">Les contenus ne constituent pas un conseil juridique personnalisé sans validation professionnelle.</p>
               <Link to="/mentions-legales" className="mt-3 block font-semibold text-white hover:underline">Lire les mentions</Link>
             </div>

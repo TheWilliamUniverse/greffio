@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { COMPANY_FORM_CATALOG, LEGAL_SERVICES } from '@/config/businessCatalog.js';
+import { PUBLISHER_LEGAL_NAME } from '@/config/publisher.js';
 import { LoginAlertsToggle } from '@/components/security/LoginAlertsToggle.jsx';
 import { getProjectDraft } from '@/utils/localStorage.js';
 import { createDossier } from '@/api/dossiers.js';
@@ -312,7 +313,7 @@ export const SignupPage = () => {
                   <label className="flex items-start gap-3 rounded-md border border-border bg-white p-4">
                     <input type="checkbox" className="mt-1" {...register('acceptedTerms', { required: true })} />
                     <span className="text-sm leading-6 text-muted-foreground">
-                      J’accepte les conditions d’utilisation, la politique de confidentialité et les mentions légales. Greffio est une marque déposée de William Establishments.
+                      J’accepte les conditions d’utilisation, la politique de confidentialité et les mentions légales. Greffio est une marque déposée de {PUBLISHER_LEGAL_NAME}.
                     </span>
                   </label>
                   {errors.acceptedTerms ? (

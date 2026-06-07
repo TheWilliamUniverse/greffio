@@ -22,9 +22,16 @@ export const askOpenAi = async ({ message, history = [], userContext = {} }) => 
 
   const client = new OpenAI({ apiKey });
   const recentHistory = Array.isArray(history) ? history.slice(-10) : [];
+  const contextLines = [
+    `Intent : ${userContext.intentLabel || userContext.intent || 'general'}`,
+    `Dossier : ${JSON.stringify(userContext.dossier || {})}`,
+  ];
+  if (userContext.knowledgeSnippets?.length) {
+    contextLines.push(`Connaissances :\n- ${userContext.knowledgeSnippets.join('\n- ')}`);
+  }
   const messages = [
     { role: 'system', content: SYSTEM_PROMPT },
-    { role: 'user', content: `Contexte utilisateur Greffio : ${JSON.stringify(userContext || {})}` },
+    { role: 'user', content: contextLines.join('\n') },
     ...recentHistory
       .filter((item) => item?.role === 'user' || item?.role === 'assistant')
       .map((item) => ({ role: item.role, content: String(item.content || '') })),

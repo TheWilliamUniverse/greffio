@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { OpsKpiCard } from '@/components/ops/OpsKpiCard.jsx';
 import { OpsCompletionBadge, OpsRiskBadge, OpsSlaBadge } from '@/components/ops/OpsBadges.jsx';
 import { formatRelativeTime } from '@/components/ops/opsLabels.js';
+import { GREFFIO_COMPANY } from '@/config/opsTeam.js';
 
 export const OpsCockpitPage = () => {
   const { cockpit, refreshing } = useOutletContext();
@@ -102,7 +103,7 @@ export const OpsCockpitPage = () => {
           <div className="rounded-xl border border-slate-900 bg-slate-900 p-5 text-white shadow-sm">
             <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Équipe Greffio</p>
             <p className="mt-2 text-sm leading-relaxed text-slate-200">
-              William, Nobatène et Ibtissam ABDOU pilotent les formalités pour WILLIAM Establishments.
+              William, Nobatène et Ibtissam ABDOU pilotent les formalités pour {GREFFIO_COMPANY.name}.
               Contact société : contact@willentreprises.com
             </p>
             <Button type="button" variant="secondary" className="mt-4 bg-white text-slate-900 hover:bg-slate-100" asChild>
