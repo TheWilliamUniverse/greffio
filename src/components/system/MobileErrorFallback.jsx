@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button.jsx';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 
@@ -19,10 +18,10 @@ export const MobileErrorFallback = ({
         </Button>
       ) : null}
       <Button asChild variant="outline" className="h-11 w-full bg-white">
-        <Link to="/">Retour à l’accueil</Link>
+        <a href="/">Retour à l’accueil</a>
       </Button>
       <Button asChild variant="ghost" className="h-11 w-full">
-        <Link to="/dashboard">Espace client</Link>
+        <a href="/dashboard">Espace client</a>
       </Button>
     </div>
   </div>

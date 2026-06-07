@@ -29,6 +29,7 @@ import { CredentialsUnlockPage } from '@/pages/CredentialsUnlockPage.jsx';
 import { DocumentsEntry } from '@/mobile/entries/DocumentsEntry.jsx';
 import { TeamEntry } from '@/mobile/entries/TeamEntry.jsx';
 import { ProfileEntry } from '@/mobile/entries/ProfileEntry.jsx';
+import { SettingsEntry } from '@/mobile/entries/SettingsEntry.jsx';
 import { ChatEntry } from '@/mobile/entries/ChatEntry.jsx';
 import { AnalyticsEntry } from '@/mobile/entries/AnalyticsEntry.jsx';
 import { StatutsEntry } from '@/mobile/entries/StatutsEntry.jsx';
