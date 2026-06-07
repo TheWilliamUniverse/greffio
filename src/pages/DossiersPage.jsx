@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 import { resolveDossierDisplayName } from '@/utils/dossierBootstrap.js';
+import { resolveDossierContinueUrl } from '@/utils/dossierContinueUrl.js';
 
 const STATUS_LABELS = {
   draft: 'BROUILLON',
