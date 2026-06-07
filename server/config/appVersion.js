@@ -34,15 +34,15 @@ const parseChangelog = (value) => {
     .filter(Boolean);
 };
 
-const DEFAULT_LATEST_VERSION_CODE = 261510003;
+const DEFAULT_LATEST_VERSION_CODE = 261510004;
 const DEFAULT_MIN_VERSION_CODE = 261422041;
-const DEFAULT_LATEST_VERSION_NAME = '1.2.4';
+const DEFAULT_LATEST_VERSION_NAME = '1.2.5';
 
 const DEFAULT_CHANGELOG = [
-  'Documents : aperçu PDF fiable et page coffre simplifiée',
-  'Assistant Greffio : réponses plus pertinentes sur votre dossier',
-  'Statuts et signatures : corrections d’aperçu et de génération',
-  'Mentions légales : raison sociale WILLIAM ESTABLISHMENTS',
+  'Messages dossier : réception quasi instantanée sans actualiser',
+  'Simulateur statuts : plus d’alerte d’erreur au démarrage',
+  'Mentions légales et assistant dossier : corrections récentes',
+  'Stabilité et performance générales',
 ];
 
 export const getAppVersionConfig = () => ({

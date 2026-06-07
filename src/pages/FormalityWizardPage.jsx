@@ -337,8 +337,9 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
   );
 
   useEffect(() => {
-    if (!williamStatutesForm) {
+    if (!williamStatutesForm || step !== 3) {
       setWilliamStatutesPreview(null);
+      setWilliamStatutesLoading(false);
       return undefined;
     }
     let cancelled = false;
@@ -352,7 +353,6 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
         } catch (_error) {
           if (!cancelled) {
             setWilliamStatutesPreview(null);
-            toast.error('Génération des statuts complets impossible. Vérifiez vos réponses ou réessayez.');
           }
         } finally {
           if (!cancelled) setWilliamStatutesLoading(false);
@@ -363,7 +363,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [data, answers, williamStatutesForm]);
+  }, [data, answers, williamStatutesForm, step]);
 
   const documentPreview = useMemo(() => {
     if (williamStatutesPreview) return williamStatutesPreview;
