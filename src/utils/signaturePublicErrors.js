@@ -11,6 +11,8 @@ export const mapSignaturePublicError = (code, fallback = '') => {
     SIGNER_NAME_REQUIRED: 'Indiquez votre nom complet tel qu’il figure sur le document.',
     SIGNATURE_PREVIEW_REQUIRED: 'Consultez le document avant de le signer.',
     SIGNATURE_PDF_NOT_FOUND: 'Le document n’est plus disponible. Contactez l’équipe Greffio.',
+    PUBLIC_SIGN_FAILED: 'La signature n’a pas pu être enregistrée. Réessayez ou demandez un nouveau lien.',
+    INVALID_SIGNATURE_FORMAT: 'Le format de la signature est invalide. Générez ou dessinez une nouvelle signature.',
   };
   return messages[key] || fallback || 'Signature impossible pour le moment. Réessayez ou contactez l’équipe Greffio.';
 };

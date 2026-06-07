@@ -23,7 +23,7 @@ import { getServiceRoute } from '@/config/serviceLandingPages.js';
 import { lookupPublicCompanyBySiren } from '@/api/company.js';
 import { GooglePlayStoreLink } from '@/components/store/GooglePlayStoreLink.jsx';
 import { LandingPricingSection } from '@/components/pricing/LandingPricingSection.jsx';
-import { PUBLISHER_LEGAL_NAME } from '@/config/publisher.js';
+import { GreffioUltraFooter } from '@/components/layout/GreffioUltraFooter.jsx';
 import { MobileLandingPage } from '@/mobile/MobileLandingPage.jsx';
 import { useNavigate } from 'react-router-dom';
 
@@ -532,39 +532,7 @@ export const LandingPage = () => {
         </div>
       </section>
 
-      <footer id="mentions-legales" className="border-t border-border bg-[hsl(var(--greffio-blue-900))] px-4 py-12 text-white sm:px-6 lg:px-8">
-        <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-[1fr_1.2fr]">
-          <div>
-            <GreffioLogo variant="inverse" />
-            <p className="mt-4 max-w-sm text-sm leading-6 text-white/70">Application SaaS de gestion de formalités administratives, greffe et vie juridique des entreprises.</p>
-            <p className="mt-3 max-w-md text-xs leading-6 text-white/80">
-              Greffio est un service privé indépendant d’assistance aux démarches administratives des entreprises. Greffio n’est pas un service officiel de l’État, des greffes des tribunaux de commerce ou d’Infogreffe.
-            </p>
-          </div>
-          <div className="grid gap-6 text-sm text-white/72 md:grid-cols-3">
-            <div>
-              <p className="font-bold text-white">Produit</p>
-              <Link to="/simulateur" className="mt-3 block hover:text-white">Créer un dossier</Link>
-              <Link to="/login" className="mt-2 block hover:text-white">Espace client</Link>
-              <Link to="/contact" className="mt-2 block hover:text-white">Contact</Link>
-            </div>
-            <div>
-              <p className="font-bold text-white">Conformité</p>
-              <p className="mt-3">RGPD, traçabilité, conservation documentaire et suivi des actions.</p>
-              <p className="mt-2">Données hébergées en Europe, avec infrastructure opérée France/UE selon le service concerné.</p>
-              <Link to="/confidentialite" className="mt-2 block hover:text-white">Politique de confidentialité</Link>
-              <Link to="/cookies" className="mt-2 block hover:text-white">Politique cookies</Link>
-              <a href="https://greffio.willentreprises.com/suppression-compte" className="mt-2 block hover:text-white">Suppression de compte</a>
-            </div>
-            <div>
-              <p className="font-bold text-white">Mentions légales</p>
-              <p className="mt-3">Greffio est une marque déposée de {PUBLISHER_LEGAL_NAME}. Tous droits réservés.</p>
-              <p className="mt-2">Les contenus ne constituent pas un conseil juridique personnalisé sans validation professionnelle.</p>
-              <Link to="/mentions-legales" className="mt-3 block font-semibold text-white hover:underline">Lire les mentions</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <GreffioUltraFooter />
       </div>
     </>
   );

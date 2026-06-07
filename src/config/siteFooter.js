@@ -1,0 +1,49 @@
+/** Colonnes du footer public Greffio — structure type Namirial. */
+export const GREFFIO_FOOTER_COLUMNS = [
+  {
+    id: 'utilitaire',
+    title: 'Utilitaire',
+    links: [
+      { to: '/contact', label: 'Contact & support' },
+      { to: '/tarifs', label: 'Tarifs & offres' },
+      { to: '/app', label: 'Application mobile' },
+      { to: '/guide', label: 'Guide formalités' },
+    ],
+  },
+  {
+    id: 'produit',
+    title: 'Produit',
+    links: [
+      { to: '/services', label: 'Catalogue formalités' },
+      { to: '/simulateur', label: 'Simuler un dossier' },
+      { to: '/login', label: 'Espace client' },
+      { to: '/ressources', label: 'Ressources' },
+    ],
+  },
+  {
+    id: 'conformite',
+    title: 'Conformité',
+    links: [
+      { to: '/confidentialite', label: 'Politique de confidentialité' },
+      { to: '/cookies', label: 'Politique cookies' },
+      { to: '/suppression-compte', label: 'Suppression de compte' },
+      { to: '/suppression-donnees', label: 'Suppression des données' },
+    ],
+  },
+  {
+    id: 'documentation',
+    title: 'Documentation',
+    links: [
+      { to: '/mentions-legales', label: 'Mentions légales & CGV' },
+      { to: '/procuration', label: 'Procuration Greffio' },
+      { to: '/paiement', label: 'Paiement sécurisé' },
+      { to: '/credentials-unlock', label: 'Déverrouillage identifiants' },
+    ],
+  },
+];
+
+export const GREFFIO_FOOTER_PAYMENT_LABELS = [
+  'CB · Visa · Mastercard',
+  'Apple Pay · Google Pay',
+  'Prélèvement SEPA · GoCardless',
+];

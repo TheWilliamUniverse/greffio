@@ -122,6 +122,7 @@ import { registerNonConvictionSignatureRoutes } from './routes/nonConvictionSign
 import { registerDossierMessageRoutes } from './routes/dossierMessageRoutes.js';
 import { createDossierMessageHub } from './messaging/dossierMessageHub.js';
 import { registerEditableDocumentSignatureRoutes } from './routes/editableDocumentSignatureRoutes.js';
+import { registerSignwellRoutes, ensureSignwellWebhookRegistered } from './routes/signwellRoutes.js';
 import {
   getEditableDocumentConfig,
   getSupportedEditableDocumentKeys,
@@ -3034,6 +3035,15 @@ registerNonConvictionSignatureRoutes(app, {
   appUrl,
 });
 
+registerSignwellRoutes(app, {
+  appUrl,
+  getDossier,
+  updateDossierDocument,
+  listDossierDocuments,
+  DOCUMENT_STATUSES,
+  createSignatureRecord,
+});
+
 // Webhook CAWL : on accepte le corps brut (texte) pour permettre la
 // vérification HMAC à venir. Doit être enregistré AVANT le router générique
 // JSON afin de ne pas perdre le payload.
@@ -3082,6 +3092,7 @@ const bootstrap = async () => {
   if (process.env.NODE_ENV !== 'production') {
     await ensureSeedDossier();
   }
+  await ensureSignwellWebhookRegistered();
   const server = http.createServer(app);
   const messageHub = createDossierMessageHub(server);
   dossierMessageEvents.notify = messageHub.notifyDossierMessagesUpdated;

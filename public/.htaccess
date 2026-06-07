@@ -9,6 +9,8 @@
   RewriteBase /
   RewriteRule ^index\.html$ - [L]
   RewriteRule ^\.well-known/ - [L]
+  RewriteCond %{REQUEST_METHOD} POST
+  RewriteRule ^callback/?$ signwell-callback.php [L]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule . /index.html [L]

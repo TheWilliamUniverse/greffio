@@ -21,6 +21,8 @@ import {
 import { sendTransactionalEmail } from '../services/emailService.js';
 import { getClientIp } from '../utils/loginContext.js';
 import { resolveDossierAccess } from '../utils/dossierAccess.js';
+import { ensureSignatureDraftPdf } from '../services/signatureDraftPdfService.js';
+import { isSignwellConfigured, sendDocumentForSignature } from '../services/signature/signwellOrchestrator.js';
 
 export const registerNonConvictionSignatureRoutes = (app, {
   requireAuth,
@@ -84,7 +86,7 @@ export const registerNonConvictionSignatureRoutes = (app, {
       });
       const { raw, hash } = createSigningToken();
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-      await createSignatureRequest({
+      const signatureRequest = await createSignatureRequest({
         dossierId: dossier.id,
         documentId: updated?.id || null,
         docKey: NON_CONVICTION_DOC_KEY,
@@ -96,6 +98,52 @@ export const registerNonConvictionSignatureRoutes = (app, {
         fields: { ...validation.normalized, signerEmail, signatureFullName: signerFullName },
         expiresAt,
       });
+
+      if (isSignwellConfigured()) {
+        try {
+          const signwellResult = await sendDocumentForSignature({
+            dossier,
+            docKey: NON_CONVICTION_DOC_KEY,
+            documentTitle: 'Déclaration de non-condamnation',
+            pdfPath,
+            sha256Draft: sha256,
+            signerEmail,
+            signerFullName,
+            signatureRequestId: signatureRequest.id,
+            fields: { ...validation.normalized, signerEmail, signatureFullName: signerFullName },
+            appUrl,
+            emailSubject: `Signature — Déclaration de non-condamnation (${dossier.companyName || dossier.denomination || 'Greffio'})`,
+          });
+          const signingLink = signwellResult.signingLink || `${appUrl}/signature/${raw}`;
+          void sendTransactionalEmail({
+            to: { email: signerEmail, name: signerFullName },
+            templateKey: 'non_conviction_signature_request',
+            variables: {
+              companyName: dossier.companyName || dossier.denomination || 'Votre société',
+              signingLink,
+              firstName: signerFullName.split(' ')[0] || 'Client',
+            },
+            dossierId: dossier.id,
+            userId: req.auth.sub,
+            tags: ['signature', 'non_conviction', 'signwell'],
+          });
+          return res.json({
+            ok: true,
+            signingLink,
+            status: 'signature_pending',
+            provider: signwellResult.provider,
+            signwellDocumentId: signwellResult.signwellDocumentId,
+          });
+        } catch (signwellError) {
+          console.error('SIGNWELL_SEND_FAILED', signwellError);
+          return res.status(502).json({
+            ok: false,
+            error: signwellError?.code || 'SIGNWELL_SEND_FAILED',
+            message: 'Envoi SignWell impossible. Réessayez ou contactez le support Greffio.',
+          });
+        }
+      }
+
       const signingLink = `${appUrl}/signature/${raw}`;
       void sendTransactionalEmail({
         to: { email: signerEmail, name: signerFullName },
@@ -256,15 +304,26 @@ export const registerNonConvictionSignatureRoutes = (app, {
 
   app.get('/api/signature/public/:token/pdf', async (req, res) => {
     const request = await getSignatureRequestByTokenHash(hashSigningToken(req.params.token));
-    if (!request?.draftPdfPath || !fs.existsSync(request.draftPdfPath)) {
-      return res.status(404).json({ ok: false, error: 'SIGNATURE_PDF_NOT_FOUND' });
-    }
+    if (!request) return res.status(404).json({ ok: false, error: 'SIGNATURE_PDF_NOT_FOUND' });
     if (new Date(request.expiresAt).getTime() < Date.now() && request.status !== 'signed') {
       return res.status(410).json({ ok: false, error: 'SIGNATURE_TOKEN_EXPIRED' });
     }
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'inline; filename="declaration_non_condamnation.pdf"');
-    return fs.createReadStream(request.draftPdfPath).pipe(res);
+    try {
+      const pdfPath = await ensureSignatureDraftPdf({
+        request,
+        getDossier,
+        ensureDossierDocuments,
+        updateDossierDocument,
+        listDossierDocuments,
+        DOCUMENT_STATUSES,
+      });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline; filename="declaration_non_condamnation.pdf"');
+      return fs.createReadStream(pdfPath).pipe(res);
+    } catch (error) {
+      console.error('SIGNATURE_PUBLIC_PDF_FAILED', error);
+      return res.status(404).json({ ok: false, error: 'SIGNATURE_PDF_NOT_FOUND' });
+    }
   });
 
   app.post('/api/signature/public/:token/sign', async (req, res) => {
@@ -291,10 +350,18 @@ export const registerNonConvictionSignatureRoutes = (app, {
     if (!signerFullName) return res.status(400).json({ ok: false, error: 'SIGNER_NAME_REQUIRED' });
 
     try {
-      const signedFilename = request.draftPdfPath.replace('.pdf', `_signed_${Date.now()}.pdf`);
+      const draftPdfPath = await ensureSignatureDraftPdf({
+        request,
+        getDossier,
+        ensureDossierDocuments,
+        updateDossierDocument,
+        listDossierDocuments,
+        DOCUMENT_STATUSES,
+      });
+      const signedFilename = draftPdfPath.replace(/\.pdf$/i, `_signed_${Date.now()}.pdf`);
       const signedAtIso = new Date().toISOString();
       await stampSignatureOnPdf({
-        inputPath: request.draftPdfPath,
+        inputPath: draftPdfPath,
         outputPath: signedFilename,
         signerFullName,
         signedAtIso,
@@ -366,7 +433,17 @@ export const registerNonConvictionSignatureRoutes = (app, {
       return res.json({ ok: true, status: 'signed' });
     } catch (error) {
       console.error('PUBLIC_SIGN_FAILED', error);
-      return res.status(500).json({ ok: false, error: 'PUBLIC_SIGN_FAILED' });
+      let errorCode = 'PUBLIC_SIGN_FAILED';
+      if (error?.code === 'SIGNATURE_PDF_NOT_FOUND' || error?.code === 'DOSSIER_NOT_FOUND') {
+        errorCode = 'SIGNATURE_PDF_NOT_FOUND';
+      } else if (error?.message === 'INVALID_SIGNATURE_FORMAT') {
+        errorCode = 'INVALID_SIGNATURE_FORMAT';
+      }
+      return res.status(errorCode === 'INVALID_SIGNATURE_FORMAT' ? 400 : 500).json({
+        ok: false,
+        error: errorCode,
+        message: getDeclarationErrorMessage(errorCode),
+      });
     }
   });
 };

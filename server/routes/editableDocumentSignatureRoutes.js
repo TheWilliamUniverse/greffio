@@ -17,6 +17,7 @@ import {
 import { sendTransactionalEmail } from '../services/emailService.js';
 import { getClientIp } from '../utils/loginContext.js';
 import { resolveDossierAccess } from '../utils/dossierAccess.js';
+import { isSignwellConfigured, sendDocumentForSignature } from '../services/signature/signwellOrchestrator.js';
 
 export const registerEditableDocumentSignatureRoutes = (app, {
   requireAuth,
@@ -71,7 +72,7 @@ export const registerEditableDocumentSignatureRoutes = (app, {
         });
         const { raw, hash } = createSigningToken();
         const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-        await createSignatureRequest({
+        const signatureRequest = await createSignatureRequest({
           dossierId: dossier.id,
           documentId: updated?.id || null,
           docKey,
@@ -83,6 +84,52 @@ export const registerEditableDocumentSignatureRoutes = (app, {
           fields: { ...validation.normalized, signerEmail, signatureFullName: signerFullName },
           expiresAt,
         });
+
+        if (isSignwellConfigured()) {
+          try {
+            const signwellResult = await sendDocumentForSignature({
+              dossier,
+              docKey,
+              documentTitle: config.publicDocumentTitle,
+              pdfPath,
+              sha256Draft: sha256,
+              signerEmail,
+              signerFullName,
+              signatureRequestId: signatureRequest.id,
+              fields: { ...validation.normalized, signerEmail, signatureFullName: signerFullName },
+              appUrl,
+              emailSubject: `Signature — ${config.publicDocumentTitle}`,
+            });
+            const signingLink = signwellResult.signingLink || `${appUrl}/signature/${raw}`;
+            void sendTransactionalEmail({
+              to: { email: signerEmail, name: signerFullName },
+              templateKey: config.emailTemplateSend,
+              variables: {
+                companyName: dossier.companyName || dossier.denomination || 'Votre société',
+                documentTitle: config.publicDocumentTitle,
+                signingLink,
+                firstName: signerFullName.split(' ')[0] || 'Client',
+              },
+              dossierId: dossier.id,
+              userId: req.auth.sub,
+              tags: ['signature', docKey, 'signwell'],
+            });
+            return res.json({
+              ok: true,
+              signingLink,
+              status: 'signature_pending',
+              provider: signwellResult.provider,
+              signwellDocumentId: signwellResult.signwellDocumentId,
+            });
+          } catch (signwellError) {
+            console.error('SIGNWELL_SEND_FAILED', signwellError);
+            return res.status(502).json({
+              ok: false,
+              error: signwellError?.code || 'SIGNWELL_SEND_FAILED',
+            });
+          }
+        }
+
         const signingLink = `${appUrl}/signature/${raw}`;
         void sendTransactionalEmail({
           to: { email: signerEmail, name: signerFullName },

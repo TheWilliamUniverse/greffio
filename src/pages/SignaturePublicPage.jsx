@@ -18,6 +18,7 @@ export const SignaturePublicPage = () => {
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
   const [previewAcknowledged, setPreviewAcknowledged] = useState(false);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -34,12 +35,45 @@ export const SignaturePublicPage = () => {
     void load();
   }, [token]);
 
+  useEffect(() => {
+    if (!token || !session || session.status === 'signed') return undefined;
+    let cancelled = false;
+    const loadPdf = async () => {
+      try {
+        const response = await fetch(getPublicSignaturePdfUrl(token));
+        if (!response.ok) {
+          const payload = await response.json().catch(() => null);
+          throw new Error(payload?.error || 'SIGNATURE_PDF_NOT_FOUND');
+        }
+        const blob = await response.blob();
+        if (cancelled) return;
+        setPreviewBlobUrl((current) => {
+          if (current) URL.revokeObjectURL(current);
+          return URL.createObjectURL(blob);
+        });
+      } catch (err) {
+        if (!cancelled) {
+          setError(mapSignaturePublicError(err?.message, err?.message));
+        }
+      }
+    };
+    void loadPdf();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, session]);
+
+  useEffect(() => () => {
+    if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);
+  }, [previewBlobUrl]);
+
   const onSign = async (payload) => {
     if (!previewAcknowledged) {
       setError(mapSignaturePublicError('SIGNATURE_PREVIEW_REQUIRED'));
       return;
     }
     setSigning(true);
+    setError('');
     try {
       await submitPublicSignature(token, { ...payload, previewAcknowledged: true });
       setDone(true);
@@ -85,7 +119,7 @@ export const SignaturePublicPage = () => {
         <div className="min-h-[50vh] lg:min-h-0">
           <PdfPreviewPanel
             title="Document à signer"
-            blobUrl={getPublicSignaturePdfUrl(token)}
+            blobUrl={previewBlobUrl}
             filename="document-a-signer.pdf"
             emptyMessage="Chargement du document…"
           />
@@ -109,7 +143,6 @@ export const SignaturePublicPage = () => {
               onConfirm={onSign}
               errorMessage={error}
             />
-            {error ? <p className="mt-3 text-center text-sm text-red-300">{error}</p> : null}
           </div>
         </div>
       </div>

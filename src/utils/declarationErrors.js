@@ -48,6 +48,8 @@ export const getDeclarationErrorMessage = (code = '', payload = null) => {
       return 'Le document signé n’a pas pu être enregistré.';
     case 'SEND_SIGNATURE_REQUEST_FAILED':
       return 'L’envoi du lien de signature a échoué.';
+    case 'PUBLIC_SIGN_FAILED':
+      return 'La signature n’a pas pu être enregistrée. Réessayez ou demandez un nouveau lien.';
     case 'API_ERROR':
       return 'Une erreur est survenue. Veuillez réessayer.';
     default:

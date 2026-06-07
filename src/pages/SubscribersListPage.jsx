@@ -32,6 +32,7 @@ const mapError = (error) => {
     DOCUMENT_EDITOR_SIGNATURE_PLACE_DATE_REQUIRED: 'Indiquez le lieu et la date.',
     DOCUMENT_EDITOR_SIGNATURE_REQUIRED: 'Indiquez le nom du signataire (Président).',
     SIGN_NOW_FAILED: 'La signature n’a pas pu être apposée sur le document.',
+    SIGNATURE_PREVIEW_REQUIRED: 'Consultez le document avant de le signer.',
     PDF_GENERATION_FAILED: 'La génération du document a échoué.',
     STORAGE_UPLOAD_FAILED: 'Le document n’a pas pu être enregistré.',
   };
@@ -109,11 +110,20 @@ export const SubscribersListPage = () => {
   const onSignNow = async (signaturePayload) => {
     setSaving(true);
     try {
+      if (previewKey === 0) {
+        await saveEditableDocumentDraft(dossierId, DOC_KEY, fields);
+        const blob = await previewDossierDocumentPdf({ dossierId, docKey: DOC_KEY, fields });
+        setPreviewBlobUrl((current) => {
+          if (current) URL.revokeObjectURL(current);
+          return URL.createObjectURL(blob);
+        });
+        setPreviewKey((value) => value + 1);
+      }
       await saveEditableDocumentDraft(dossierId, DOC_KEY, fields);
       await signEditableDocumentNow(dossierId, DOC_KEY, {
         fields,
         ...signaturePayload,
-        previewAcknowledged: previewKey > 0,
+        previewAcknowledged: true,
       });
       const { blob } = await downloadDossierDocument({ dossierId, docKey: DOC_KEY, cacheBust: true, inline: true });
       setPreviewBlobUrl((current) => {

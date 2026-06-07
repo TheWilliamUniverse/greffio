@@ -51,6 +51,7 @@ import { PaymentVerificationPage } from '@/pages/PaymentVerificationPage.jsx';
 import { SubscribersListPage } from '@/pages/SubscribersListPage.jsx';
 import { FormalityPowersPage } from '@/pages/FormalityPowersPage.jsx';
 import { SignaturePublicPage } from '@/pages/SignaturePublicPage.jsx';
+import { SignWellCallbackPage } from '@/pages/SignWellCallbackPage.jsx';
 import { InterfacesPage } from '@/pages/InterfacesPage.jsx';
 import { ServiceLandingPage } from '@/pages/ServiceLandingPage.jsx';
 import { ServicesPage } from '@/pages/ServicesPage.jsx';
@@ -171,6 +172,7 @@ function AppRoutes() {
             <Route path="/dossier/:dossierId/pouvoirs-formalites" element={<ProtectedRoute><FormalityPowersPage /></ProtectedRoute>} />
             <Route path="/statuts" element={<ProtectedRoute><StatutsEntry /></ProtectedRoute>} />
             <Route path="/signature/:token" element={<SignaturePublicPage />} />
+            <Route path="/callback" element={<SignWellCallbackPage />} />
             <Route path="/chat" element={<ProtectedRoute><ChatEntry /></ProtectedRoute>} />
             <Route path="/analytics" element={<ProtectedRoute><AnalyticsEntry /></ProtectedRoute>} />
             <Route path="/team" element={<ProtectedRoute><TeamEntry /></ProtectedRoute>} />

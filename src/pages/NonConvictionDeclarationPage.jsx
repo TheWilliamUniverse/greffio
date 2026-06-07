@@ -114,11 +114,25 @@ export const NonConvictionDeclarationPage = () => {
     setSaving(true);
     try {
       const normalized = normalizeFields(fields);
+      setFields(normalized);
+      if (previewKey === 0) {
+        await saveNonConvictionDraft(dossierId, normalized);
+        const blob = await previewDossierDocumentPdf({
+          dossierId,
+          docKey: 'manager_non_conviction',
+          fields: normalized,
+        });
+        setPreviewBlobUrl((current) => {
+          if (current) URL.revokeObjectURL(current);
+          return URL.createObjectURL(blob);
+        });
+        setPreviewKey((k) => k + 1);
+      }
       await saveNonConvictionDraft(dossierId, normalized);
       await signNonConvictionNow(dossierId, {
         fields: normalized,
         ...signaturePayload,
-        previewAcknowledged: previewKey > 0,
+        previewAcknowledged: true,
       });
       toast.success('Déclaration signée et archivée.');
       setSignMode(null);

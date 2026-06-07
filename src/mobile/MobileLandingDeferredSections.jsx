@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { LandingPricingSection } from '@/components/pricing/LandingPricingSection.jsx';
 import { GooglePlayStoreLink } from '@/components/store/GooglePlayStoreLink.jsx';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
+import { GreffioUltraFooter } from '@/components/layout/GreffioUltraFooter.jsx';
 import { useMobileMotion } from '@/mobile/ui/mobileMotion.js';
 
 const faq = [
@@ -25,7 +26,7 @@ const faq = [
 ];
 
 export const MobileLandingDeferredSections = () => {
-  const { staggerItem, revealMount } = useMobileMotion();
+  const { staggerItem } = useMobileMotion();
 
   return (
     <>
@@ -66,29 +67,7 @@ export const MobileLandingDeferredSections = () => {
         </div>
       </MobileAnimatedSection>
 
-      <motion.footer
-        {...revealMount(0)}
-        className="border-t border-border bg-[hsl(var(--greffio-blue-900))] px-4 py-8 text-white"
-      >
-        <GreffioLogo variant="inverse" />
-        <p className="mt-4 text-sm leading-6 text-white/70">
-          Service privé d’assistance aux formalités d’entreprise — non affilié aux greffes ou à l’État.
-        </p>
-        <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-white/80">
-          {[
-            ['/mentions-legales', 'Mentions légales'],
-            ['/confidentialite', 'Confidentialité'],
-            ['/cookies', 'Cookies'],
-            ['/contact', 'Contact'],
-            ['/suppression-compte', 'Suppression compte'],
-            ['/suppression-donnees', 'Suppression données'],
-          ].map(([to, label]) => (
-            <Link key={to} to={to} className="inline-flex min-h-[44px] items-center hover:text-white">
-              {label}
-            </Link>
-          ))}
-        </div>
-      </motion.footer>
+      <GreffioUltraFooter compact showIntro={false} />
     </>
   );
 };

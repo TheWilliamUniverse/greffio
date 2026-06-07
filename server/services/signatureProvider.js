@@ -1,7 +1,7 @@
 /**
  * Abstraction signature Greffio.
  * - simple_consent : enregistrement interne (canvas / consentement)
- * - trusted_signature_provider : Signaturit (à brancher) — pas de Yousign
+ * - trusted_signature_provider : SignWell ou Signaturit
  */
 
 export const SIGNATURE_MODES = {
@@ -11,6 +11,9 @@ export const SIGNATURE_MODES = {
 
 export const resolveSignatureMode = ({ docKey, legalForm } = {}) => {
   const provider = String(process.env.SIGNATURE_PROVIDER || 'internal').toLowerCase();
+  if (provider === 'signwell' && process.env.SIGNWELL_API_KEY) {
+    return SIGNATURE_MODES.TRUSTED_PROVIDER;
+  }
   if (provider === 'signaturit' && process.env.SIGNATURIT_ACCESS_TOKEN) {
     return SIGNATURE_MODES.TRUSTED_PROVIDER;
   }
