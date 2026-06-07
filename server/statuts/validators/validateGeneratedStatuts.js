@@ -78,6 +78,7 @@ export const validateGeneratedStatuts = ({ blocks = [], context = {}, legalForm 
       companyName: associate.fullName,
       label: associate.fullName,
       representativeName: associate.representativeName,
+      representativeQuality: associate.representativeQuality,
     })),
   );
   if (!pmValidation.ok) {
