@@ -641,6 +641,7 @@ export const QuestionnairePage = () => {
               <DemarchePicker
                 value={formData.typeFormalite}
                 onChange={(nextValue) => updateField(field, nextValue)}
+                categoryFirst={isAuthenticated}
               />
             </div>
           </div>

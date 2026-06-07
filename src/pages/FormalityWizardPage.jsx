@@ -798,7 +798,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -22 }}
                 transition={{ duration: 0.22 }}
-                className="p-6 md:p-10"
+                className={`p-4 sm:p-6 md:p-10 ${isMobilePresentation ? 'max-w-full overflow-x-hidden' : ''}`}
                 onKeyDown={handleWizardKeyDown}
               >
                 {step === 0 && (
@@ -826,10 +826,10 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                     ) : null}
                     <div>
                       <p className="text-sm font-bold uppercase text-primary">Démarche</p>
-                      <h1 className="mt-2 text-3xl font-extrabold">Que souhaitez-vous faire </h1>
+                      <h1 className={`mt-2 font-extrabold ${isMobilePresentation ? 'text-2xl' : 'text-3xl'}`}>Que souhaitez-vous faire </h1>
                       <p className="mt-2 text-muted-foreground">Le questionnaire adapte les pièces, les statuts, les relances et les offres proposées.</p>
                     </div>
-                    <div className={`grid gap-4 ${isCapacitorNative() ? 'grid-cols-2' : 'md:grid-cols-2'}`}>
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
                       {journeys.map((journey) => (
                         <button
                           type="button"

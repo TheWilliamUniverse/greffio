@@ -9,6 +9,42 @@ export const DEMARCHE_CATEGORIES = [
   { id: 'autres', label: 'Documents & régularisation', description: 'Kbis, corrections, étranger' },
 ];
 
+/** 4 familles proposées en entrée du questionnaire client connecté. */
+export const PRIMARY_FORMALITY_CATEGORIES = Object.freeze([
+  {
+    id: 'creation',
+    kicker: 'Création',
+    label: 'Immatriculer une nouvelle structure',
+    description: 'SAS, SARL, SCI, micro-entreprise, EI…',
+    emoji: '🏢',
+    categories: ['creation'],
+  },
+  {
+    id: 'etablissements',
+    kicker: 'Établissements & siège',
+    label: 'Ouvrir, fermer ou déplacer un site',
+    description: 'Siège, établissement secondaire, transfert.',
+    emoji: '📍',
+    categories: ['etablissements'],
+  },
+  {
+    id: 'modifications',
+    kicker: 'Modifications',
+    label: 'Capital, gouvernance, activité',
+    description: 'Dirigeant, dénomination, objet social, capital.',
+    emoji: '✏️',
+    categories: ['modifications', 'gestion'],
+  },
+  {
+    id: 'autres',
+    kicker: 'Documents & régularisation',
+    label: 'Kbis, corrections, étranger',
+    description: 'Régularisation, documents officiels, société étrangère.',
+    emoji: '📄',
+    categories: ['autres'],
+  },
+]);
+
 export const DEMARCHE_CATALOG = [
   { key: 'creation_societe', label: 'Créer une société', category: 'creation', hint: 'Forme juridique choisie à l’étape suivante' },
   { key: 'creation_sasu', label: 'Créer une SASU', category: 'creation' },

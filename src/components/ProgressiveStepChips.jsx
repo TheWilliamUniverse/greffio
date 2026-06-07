@@ -7,8 +7,8 @@ export const ProgressiveStepChips = ({
   /** N’affiche que les étapes déjà atteintes (progression séquentielle). */
   revealThroughIndex = null,
 }) => (
-  <nav aria-label="Étapes du questionnaire" className="overflow-x-auto pb-1">
-    <ol className="flex min-w-max items-center gap-1">
+  <nav aria-label="Étapes du questionnaire" className="overflow-x-auto pb-1 md:overflow-visible">
+    <ol className="flex min-w-0 flex-wrap items-center gap-1 sm:min-w-max sm:flex-nowrap">
       {steps.map((step, index) => {
         if (revealThroughIndex != null && index > revealThroughIndex) return null;
         const done = index < activeIndex;

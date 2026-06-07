@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { FileText, Mail, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { Sidebar } from '@/components/Sidebar.jsx';
+import { PdfPreviewPanel } from '@/components/documents/PdfPreviewPanel.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
@@ -284,16 +285,10 @@ export const SubscribersListPage = () => {
             </div>
           </section>
 
-          <section className="flex flex-col bg-[#1e293b]">
-            <div className="border-b border-white/10 px-4 py-3 text-sm font-semibold text-white">Prévisualisation PDF</div>
-            {previewKey > 0 && previewBlobUrl ? (
-              <iframe title="Aperçu liste souscripteurs" src={previewBlobUrl} className="min-h-0 flex-1 w-full bg-[#334155]" />
-            ) : (
-              <div className="flex flex-1 items-center justify-center p-8 text-center text-sm text-white/70">
-                Générez l’aperçu pour afficher le document ici.
-              </div>
-            )}
-          </section>
+          <PdfPreviewPanel
+            blobUrl={previewKey > 0 ? previewBlobUrl : ''}
+            filename="Liste_souscripteurs.pdf"
+          />
         </div>
 
         {signMode ? (

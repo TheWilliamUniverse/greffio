@@ -11,7 +11,9 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 
-const toVisualStatus = (status) => String(status || 'draft').toUpperCase();
+import { mapDossierStatusForBadge } from '@/utils/dossierClientStatus.js';
+
+const toVisualStatus = (status) => mapDossierStatusForBadge(status);
 
 export const MobileDossiersPage = () => {
   const { currentUser } = useAuth();

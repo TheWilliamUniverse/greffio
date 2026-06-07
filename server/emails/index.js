@@ -1,5 +1,6 @@
 import { sendTransactionalEmail } from '../services/emailService.js';
 import { getDossier } from '../store.js';
+import { shouldSendDossierEmail } from './dossierEmailPolicy.js';
 
 const defaultClientUrl = process.env.APP_URL || 'https://greffio.willentreprises.com';
 
@@ -14,6 +15,16 @@ const sendDossierEmail = async ({
 }) => {
   if (!toEmail) {
     return { ok: false, error: 'RECIPIENT_EMAIL_REQUIRED' };
+  }
+
+  const policy = await shouldSendDossierEmail({
+    templateId,
+    dossierId: dossier?.id || null,
+    recipientEmail: toEmail,
+    force: variables?.forceEmail === true,
+  });
+  if (!policy.ok) {
+    return { ok: true, skipped: true, reason: policy.reason, templateId };
   }
 
   const mergedVariables = {

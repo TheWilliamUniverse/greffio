@@ -24,7 +24,7 @@ import { fetchUserProfile } from '@/api/profile.js';
 import { LoginAlertsPromptBanner } from '@/components/security/LoginAlertsPromptBanner.jsx';
 import { RememberMfaDeviceBanner } from '@/components/security/RememberMfaDeviceBanner.jsx';
 import { isEiLikeFormality } from '@/config/formalities.js';
-import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
+import { mapDossierStatusForBadge, mapDossierClientAction } from '@/utils/dossierClientStatus.js';
 import { isLoginAlertsConfigured, getLoginAlertsSettings, rememberLoginAlertsChoice } from '@/utils/userProfile.js';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 import { countActionableDocuments, resolveClientDocumentStatus, documentHasFile } from '@/utils/documentWorkflow.js';
@@ -57,14 +57,14 @@ export const DashboardPage = () => {
     name: dossier.companyName || dossier.denomination || 'Dossier entreprise',
     legalForm: dossier.legalForm || dossier.formeJuridique || 'SASU',
     owner: currentUser?.firstName || 'Client',
-    status: String(dossier.status || '').toUpperCase(),
+    status: mapDossierStatusForBadge(dossier.status),
     phase: resolveFormalityPublicLabel({
       service: dossier.service,
       typeFormalite: dossier.typeFormalite,
       formeJuridique: dossier.legalForm || dossier.formeJuridique,
       legalForm: dossier.legalForm,
     }),
-    nextAction: 'Suivre la checklist et compléter les pièces demandées.',
+    nextAction: mapDossierClientAction(dossier.status, dossier.progressPercent),
     expert: dossier.assignedToUserId || 'Équipe Greffio',
     createdAt: dossier.createdAt,
     dueDate: dossier.updatedAt || dossier.createdAt,
