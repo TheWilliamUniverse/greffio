@@ -18,6 +18,8 @@ import {
   uploadDossierDocument,
 } from '@/api/documents.js';
 import { IdentityVerificationCard } from '@/components/identity/IdentityVerificationCard.jsx';
+import { DossierBreadcrumb } from '@/components/layout/DossierBreadcrumb.jsx';
+import { PdfPreviewPanel } from '@/components/documents/PdfPreviewPanel.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 import { useDossierQuery } from '@/hooks/queries/useDossierQuery.js';
 import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
@@ -42,6 +44,8 @@ export const DocumentsPage = () => {
   const [editorSaving, setEditorSaving] = useState(false);
   const [deletingDocKey, setDeletingDocKey] = useState(null);
   const [uploadingDocKey, setUploadingDocKey] = useState(null);
+  const [previewDoc, setPreviewDoc] = useState(null);
+  const [previewLoadingDocKey, setPreviewLoadingDocKey] = useState(null);
   const rowUploadRef = useRef(null);
   const pendingUploadDocKey = useRef(null);
   const [resolvedDossierId, setResolvedDossierId] = useState(() => getCurrentDossierId());
@@ -247,6 +251,36 @@ export const DocumentsPage = () => {
     }
   };
 
+  useEffect(() => () => {
+    if (previewDoc?.blobUrl) URL.revokeObjectURL(previewDoc.blobUrl);
+  }, [previewDoc?.blobUrl]);
+
+  const openDocumentPreview = async (docKey, label) => {
+    if (!resolvedDossierId || !docKey) return;
+    setPreviewLoadingDocKey(docKey);
+    setUploadError(null);
+    try {
+      const { filename, blob } = await downloadDossierDocument({
+        dossierId: resolvedDossierId,
+        docKey,
+        inline: true,
+      });
+      setPreviewDoc((current) => {
+        if (current?.blobUrl) URL.revokeObjectURL(current.blobUrl);
+        return {
+          docKey,
+          label: label || filename,
+          filename,
+          blobUrl: URL.createObjectURL(blob),
+        };
+      });
+    } catch (_error) {
+      setUploadError('Impossible d’afficher l’aperçu de ce document pour le moment.');
+    } finally {
+      setPreviewLoadingDocKey(null);
+    }
+  };
+
   const openDocumentDownload = async (docKey) => {
     if (!resolvedDossierId || !docKey) return;
     try {
@@ -296,6 +330,13 @@ export const DocumentsPage = () => {
       <Sidebar />
       <main className="flex-1 overflow-y-auto p-5 md:p-8">
         <div className="mx-auto max-w-7xl space-y-6">
+          {resolvedDossierId ? (
+            <DossierBreadcrumb
+              dossierId={resolvedDossierId}
+              dossierName={dossierPayload?.dossier?.companyName || dossierPayload?.dossier?.denomination || 'Dossier'}
+              section="Documents"
+            />
+          ) : null}
           <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
             <div>
               <p className="text-sm font-bold uppercase text-primary">Coffre documentaire</p>
@@ -530,8 +571,8 @@ export const DocumentsPage = () => {
                       size="icon"
                       className="bg-white"
                       aria-label="Aperçu"
-                      onClick={() => openDocumentDownload(document.docKey)}
-                      disabled={!resolvedDossierId || !document.hasFile}
+                      onClick={() => openDocumentPreview(document.docKey, document.name)}
+                      disabled={!resolvedDossierId || !document.hasFile || previewLoadingDocKey === document.docKey}
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -580,6 +621,23 @@ export const DocumentsPage = () => {
               ))}
             </section>
           ) : null}
+
+          {previewDoc?.blobUrl ? (
+            <section className="overflow-hidden rounded-md border border-border bg-white shadow-elevation-sm">
+              <div className="flex items-center justify-between border-b border-border px-5 py-3">
+                <p className="text-sm font-bold text-foreground">Aperçu — {previewDoc.label}</p>
+                <Button type="button" variant="outline" size="sm" className="bg-white" onClick={() => setPreviewDoc(null)}>
+                  Fermer
+                </Button>
+              </div>
+              <PdfPreviewPanel
+                title={previewDoc.label}
+                blobUrl={previewDoc.blobUrl}
+                filename={previewDoc.filename}
+              />
+            </section>
+          ) : null}
+
           {resolvedDossierId ? (
             <div className="text-right">
               <Button asChild variant="outline" className="bg-white">

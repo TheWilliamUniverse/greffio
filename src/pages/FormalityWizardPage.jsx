@@ -829,7 +829,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                       <h1 className={`mt-2 font-extrabold ${isMobilePresentation ? 'text-2xl' : 'text-3xl'}`}>Que souhaitez-vous faire </h1>
                       <p className="mt-2 text-muted-foreground">Le questionnaire adapte les pièces, les statuts, les relances et les offres proposées.</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                    <div className="choice-grid-2">
                       {journeys.map((journey) => (
                         <button
                           type="button"

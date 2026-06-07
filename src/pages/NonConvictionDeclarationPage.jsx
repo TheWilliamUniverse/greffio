@@ -115,7 +115,11 @@ export const NonConvictionDeclarationPage = () => {
     try {
       const normalized = normalizeFields(fields);
       await saveNonConvictionDraft(dossierId, normalized);
-      await signNonConvictionNow(dossierId, { fields: normalized, ...signaturePayload });
+      await signNonConvictionNow(dossierId, {
+        fields: normalized,
+        ...signaturePayload,
+        previewAcknowledged: previewKey > 0,
+      });
       toast.success('Déclaration signée et archivée.');
       setSignMode(null);
       const { blob } = await downloadDossierDocument({

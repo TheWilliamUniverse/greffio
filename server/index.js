@@ -343,8 +343,12 @@ app.post('/api/observability/client-error', express.json({ limit: '32kb' }), (re
     message: payload.message,
     route: payload.route,
     source: payload.source,
+    stack: payload.stack ? String(payload.stack).slice(0, 500) : null,
     timestamp: new Date().toISOString(),
   });
+  if (process.env.SENTRY_DSN) {
+    console.info('[CLIENT_ERROR] Sentry DSN configured — forward via votre agent Sentry serveur si activé.');
+  }
   return res.status(204).end();
 });
 

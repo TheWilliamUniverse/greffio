@@ -100,7 +100,11 @@ export const FormalityPowersPage = () => {
     setSaving(true);
     try {
       await saveEditableDocumentDraft(dossierId, DOC_KEY, fields);
-      await signEditableDocumentNow(dossierId, DOC_KEY, { fields, ...signaturePayload });
+      await signEditableDocumentNow(dossierId, DOC_KEY, {
+        fields,
+        ...signaturePayload,
+        previewAcknowledged: previewKey > 0,
+      });
       const { blob } = await downloadDossierDocument({ dossierId, docKey: DOC_KEY, cacheBust: true, inline: true });
       setPreviewBlobUrl((current) => {
         if (current) URL.revokeObjectURL(current);

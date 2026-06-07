@@ -119,7 +119,11 @@ export const registerEditableDocumentSignatureRoutes = (app, {
       const signerEmail = String(req.body?.signerEmail || fields.signerEmail || req.auth?.email || '').trim().toLowerCase();
       const signatureImagePngBase64 = req.body?.signatureImagePngBase64 || null;
       const consent = Boolean(req.body?.consent);
+      const previewAcknowledged = Boolean(req.body?.previewAcknowledged);
       if (!consent) return res.status(400).json({ ok: false, error: 'SIGNATURE_CONSENT_REQUIRED' });
+      if (!previewAcknowledged) {
+        return res.status(400).json({ ok: false, error: 'SIGNATURE_PREVIEW_REQUIRED' });
+      }
 
       const validation = config.validateFields({ ...fields, signatureFullName: signerFullName, signerEmail });
       if (!validation.ok) return res.status(400).json({ ok: false, error: validation.error });

@@ -24,6 +24,9 @@ jobs:
       - run: npx playwright test --project=chromium-desktop
         env:
           CI: true
+      - run: npm run test:e2e:matrix
+        env:
+          CI: true
       - name: Smoke public routes
         run: |
           npm run preview -- --host 127.0.0.1 --port 4173 &
@@ -31,3 +34,9 @@ jobs:
           curl -fsS http://127.0.0.1:4173/ | head -c 200
           curl -fsS http://127.0.0.1:4173/login | head -c 200
           curl -fsS http://127.0.0.1:4173/tarifs | head -c 200
+      - name: Lighthouse desktop + mobile
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 &
+          sleep 4
+          npx @lhci/cli@0.14.0 autorun --config=lighthouserc.cjs || true
+          npx @lhci/cli@0.14.0 autorun --config=lighthouserc.mobile.cjs || true

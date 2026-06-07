@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, FileText, MessageSquareText, Upload } from 'lucide-react';
 import { useDossierQuery } from '@/hooks/queries/useDossierQuery.js';
 import { saveCurrentDossierId } from '@/utils/sessionStore.js';
+import { DossierBreadcrumb } from '@/components/layout/DossierBreadcrumb.jsx';
 import { MobilePageSkeleton } from '@/mobile/ui/MobilePageSkeleton.jsx';
 import { OfflineDataBanner } from '@/components/system/OfflineDataBanner.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
@@ -58,6 +59,10 @@ export const MobileDossierDetailPage = () => {
 
   return (
     <div className="space-y-5 px-4 py-5 pb-28">
+      <DossierBreadcrumb
+        dossierId={id}
+        dossierName={dossier.companyName || dossier.denomination || 'Formalité'}
+      />
       {isError ? <OfflineDataBanner cachedAt={dataUpdatedAt ? new Date(dataUpdatedAt).toISOString() : null} /> : null}
 
       <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-white via-secondary/20 to-white p-5 shadow-sm">

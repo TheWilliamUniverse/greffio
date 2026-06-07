@@ -306,8 +306,8 @@ export const DashboardPage = () => {
                     <span>Échéance</span>
                     <span>Avancement</span>
                   </div>
-                  {dossiers.slice(0, 4).map((dossier) => (
-                    <Link key={dossier.id} to={`/dossier/${dossier.id}`} className="grid gap-4 border-b border-border px-5 py-4 transition hover:bg-muted/60 lg:grid-cols-[1fr_130px_120px_110px] lg:items-center last:border-b-0">
+                  {dossiers.slice(0, 4).map((dossier, index) => (
+                    <Link key={dossier.id} to={resolveDossierContinueUrl(dossiersRaw[index] || dossier)} className="grid gap-4 border-b border-border px-5 py-4 transition hover:bg-muted/60 lg:grid-cols-[1fr_130px_120px_110px] lg:items-center last:border-b-0">
                       <div>
                         <p className="font-bold text-foreground">{dossier.name}</p>
                         <p className="mt-1 text-sm text-muted-foreground">{dossier.nextAction} · Responsable : {dossier.expert}</p>

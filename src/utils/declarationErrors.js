@@ -34,6 +34,8 @@ export const getDeclarationErrorMessage = (code = '', payload = null) => {
     case 'INVALID_SIGNATURE_FORMAT':
     case 'MISSING_SIGNATURE_DATA':
       return 'Le format de la signature est invalide. Générez ou dessinez une nouvelle signature.';
+    case 'SIGNATURE_PREVIEW_REQUIRED':
+      return 'Consultez le document avant de le signer.';
     case 'PREVIEW_STALE':
       return 'Le document a été modifié depuis le dernier aperçu. Regénérez l’aperçu avant signature.';
     case 'PDF_SIGNATURE_FAILED':

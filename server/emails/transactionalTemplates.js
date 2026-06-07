@@ -352,6 +352,28 @@ const transactionalTemplates = Object.freeze({
     `,
   }),
 
+  weekly_digest: defineTemplate({
+    subject: 'Récapitulatif hebdomadaire de vos dossiers Greffio',
+    tags: ['dossier', 'digest'],
+    requiredVariables: ['firstName', 'dossierCount', 'summaryItems', 'continueUrl'],
+    preheader: 'Vos dossiers en attente, regroupés en un seul email.',
+    textLines: [
+      'Bonjour {{firstName}},',
+      '',
+      'Voici le récapitulatif de vos {{dossierCount}} dossier(s) en attente d’action :',
+      '{{summaryItems}}',
+      '',
+      'Ouvrir mon espace : {{continueUrl}}',
+    ],
+    bodyHtml: `
+      <p style="margin:0 0 16px;">Bonjour <strong>{{firstName}}</strong>,</p>
+      <p style="margin:0 0 16px;">Récapitulatif de vos <strong>{{dossierCount}}</strong> dossier(s) en attente :</p>
+      <p style="margin:0 0 16px;padding:14px 16px;background:#f8fafc;border-radius:12px;line-height:1.6;white-space:pre-line;">{{summaryItems}}</p>
+      ${ctaButton('Ouvrir mon espace', '{{continueUrl}}')}
+      <p style="margin:16px 0 0;font-size:14px;color:#64748b;">Vous pouvez désactiver ce digest ou les relances depuis votre profil Greffio.</p>
+    `,
+  }),
+
   document_received: defineTemplate({
     subject: 'Document reçu pour votre dossier Greffio',
     tags: ['dossier', 'document'],

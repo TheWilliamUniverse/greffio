@@ -9,6 +9,7 @@ import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
+import { resolveDossierContinueUrl } from '@/utils/dossierContinueUrl.js';
 
 const STATUS_LABELS = {
   draft: 'BROUILLON',
@@ -311,7 +312,15 @@ export const DossiersPage = () => {
           ) : (
             <section className="grid gap-4 lg:grid-cols-2">
               {filteredDossiers.map((dossier) => (
-                <Link key={dossier.id} to={`/dossier/${dossier.id}`} className="rounded-md border border-border bg-white p-5 shadow-elevation-sm transition hover:-translate-y-1 hover:border-primary/40 hover:shadow-elevation-md">
+                <Link
+                  key={dossier.id}
+                  to={resolveDossierContinueUrl({
+                    id: dossier.id,
+                    status: dossier.rawStatus,
+                    progressPercent: dossier.progress,
+                  })}
+                  className="rounded-md border border-border bg-white p-5 shadow-elevation-sm transition hover:-translate-y-1 hover:border-primary/40 hover:shadow-elevation-md"
+                >
                   <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusBadge status={dossier.status} />

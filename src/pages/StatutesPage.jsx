@@ -11,6 +11,8 @@ import {
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button.jsx';
 import { Sidebar } from '@/components/Sidebar.jsx';
+import { DossierBreadcrumb } from '@/components/layout/DossierBreadcrumb.jsx';
+import { PdfPreviewPanel } from '@/components/documents/PdfPreviewPanel.jsx';
 import { QuestionnaireNotice } from '@/components/questionnaire/QuestionnaireNotice.jsx';
 import { getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.js';
 import { downloadStatutesPdf, fetchStatutesPreview, generateStatutes, listStatutes } from '@/api/statutes.js';
@@ -66,6 +68,8 @@ export const StatutesPage = () => {
   const [documents, setDocuments] = useState([]);
   const [eiLike, setEiLike] = useState(false);
   const [preview, setPreview] = useState(null);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState('');
+  const [dossierName, setDossierName] = useState('');
   const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
@@ -122,6 +126,7 @@ export const StatutesPage = () => {
 
     try {
       const dossierPayload = await getDossierById(activeId);
+      setDossierName(dossierPayload?.dossier?.companyName || dossierPayload?.dossier?.denomination || 'Dossier');
       const q = parseQuestionnaire(dossierPayload?.dossier?.dataJson);
       const ei = isEiLikeFormality({
         legalForm: dossierPayload?.dossier?.legalForm,
@@ -160,6 +165,40 @@ export const StatutesPage = () => {
   useEffect(() => {
     void load();
   }, [dossierId]);
+
+  useEffect(() => () => {
+    if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+  }, [pdfBlobUrl]);
+
+  useEffect(() => {
+    if (!dossierId || eiLike || !documents.length) {
+      setPdfBlobUrl((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return '';
+      });
+      return undefined;
+    }
+    let cancelled = false;
+    void downloadStatutesPdf(dossierId, { cacheBust: true })
+      .then((blob) => {
+        if (cancelled) return;
+        setPdfBlobUrl((current) => {
+          if (current) URL.revokeObjectURL(current);
+          return URL.createObjectURL(blob);
+        });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPdfBlobUrl((current) => {
+            if (current) URL.revokeObjectURL(current);
+            return '';
+          });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dossierId, documents.length, eiLike]);
 
   const onGenerate = async () => {
     if (!dossierId) {
@@ -248,6 +287,9 @@ export const StatutesPage = () => {
       <Sidebar />
       <main className="flex-1 overflow-y-auto p-5 md:p-8">
         <div className="mx-auto max-w-5xl space-y-6">
+          {dossierId ? (
+            <DossierBreadcrumb dossierId={dossierId} dossierName={dossierName} section="Statuts" />
+          ) : null}
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-sm font-bold uppercase text-primary">Documents juridiques</p>
@@ -407,6 +449,20 @@ export const StatutesPage = () => {
                 </div>
               </section>
             </>
+          ) : null}
+
+          {!eiLike && pdfBlobUrl ? (
+            <section className="overflow-hidden rounded-md border border-[var(--we-border)] bg-white shadow-elevation-sm">
+              <div className="border-b border-[var(--we-border)] bg-[#fafcff] px-5 py-3 text-xs font-bold uppercase text-muted-foreground">
+                Aperçu PDF généré
+              </div>
+              <PdfPreviewPanel
+                title="Statuts Greffio"
+                blobUrl={pdfBlobUrl}
+                filename="Statuts_Greffio.pdf"
+                emptyMessage="Générez les statuts pour afficher le PDF ici."
+              />
+            </section>
           ) : null}
 
           <section className="we-panel overflow-hidden">
