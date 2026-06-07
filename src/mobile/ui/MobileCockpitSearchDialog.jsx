@@ -1,22 +1,44 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, FileText, FolderKanban, Search, X } from 'lucide-react';
+import { ArrowRight, FileText, FolderKanban, Search, Sparkles, X, Zap } from 'lucide-react';
 import { Input } from '@/components/ui/input.jsx';
 import { searchSiteIndex } from '@/config/siteSearchIndex.js';
+import { runMobileSearch } from '@/api/mobile.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
+
+const COCKPIT_DOCUMENT_KEYS = [
+  'identity_proof',
+  'address_proof',
+  'proxy_mandate',
+  'legal_notice_certificate',
+  'registered_office_proof',
+  'ubo_declaration',
+  'manager_non_conviction',
+  'subscribers_list',
+  'formality_powers',
+  'filiation_declaration',
+  'regulated_activity_proof',
+  'minor_emancipation_order',
+  'minor_parental_authorization',
+  'signed_statutes',
+  'capital_certificate',
+];
 
 export const MobileCockpitSearchDialog = ({ open, onClose }) => {
   const navigate = useNavigate();
   const { currentUser, isAuthenticated } = useAuth();
   const [query, setQuery] = useState('');
+  const [apiPayload, setApiPayload] = useState(null);
+  const [apiLoading, setApiLoading] = useState(false);
   const inputRef = useRef(null);
   const { data: dossiers = [] } = useDossiersQuery(currentUser?.id);
 
   useEffect(() => {
     if (!open) return undefined;
     setQuery('');
+    setApiPayload(null);
     const timer = window.setTimeout(() => inputRef.current?.focus(), 50);
     const onKeyDown = (event) => {
       if (event.key === 'Escape') onClose();
@@ -28,11 +50,38 @@ export const MobileCockpitSearchDialog = ({ open, onClose }) => {
     };
   }, [open, onClose]);
 
-  const cockpitResults = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q || q.length < 2 || !isAuthenticated) return { dossiers: [], documents: [] };
+  useEffect(() => {
+    const q = query.trim();
+    if (!open || !isAuthenticated || q.length < 2) {
+      setApiPayload(null);
+      setApiLoading(false);
+      return undefined;
+    }
 
-    const matchedDossiers = dossiers.filter((item) => {
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      setApiLoading(true);
+      try {
+        const payload = await runMobileSearch({ query: q });
+        if (!cancelled) setApiPayload(payload);
+      } catch (_error) {
+        if (!cancelled) setApiPayload(null);
+      } finally {
+        if (!cancelled) setApiLoading(false);
+      }
+    }, 280);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [query, open, isAuthenticated]);
+
+  const localDossierResults = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q || q.length < 2 || !isAuthenticated) return [];
+
+    return dossiers.filter((item) => {
       const haystack = [
         item.companyName,
         item.denomination,
@@ -41,25 +90,44 @@ export const MobileCockpitSearchDialog = ({ open, onClose }) => {
       ].join(' ').toLowerCase();
       return haystack.includes(q);
     }).slice(0, 6);
-
-    const documentHits = [];
-    dossiers.forEach((dossier) => {
-      const docs = Array.isArray(dossier.documents) ? dossier.documents : [];
-      docs.forEach((doc) => {
-        const label = getDocumentTypeLabel(doc.docKey, doc.label);
-        if (label.toLowerCase().includes(q) || String(doc.docKey || '').includes(q)) {
-          documentHits.push({
-            id: `${dossier.id}-${doc.docKey}`,
-            dossierId: dossier.id,
-            dossierName: dossier.companyName || dossier.denomination || 'Dossier',
-            label,
-          });
-        }
-      });
-    });
-
-    return { dossiers: matchedDossiers, documents: documentHits.slice(0, 8) };
   }, [query, dossiers, isAuthenticated]);
+
+  const documentTypeResults = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q || q.length < 2) return [];
+
+    return COCKPIT_DOCUMENT_KEYS
+      .map((docKey) => ({
+        id: docKey,
+        docKey,
+        label: getDocumentTypeLabel(docKey),
+        path: '/documents',
+      }))
+      .filter((item) => item.label.toLowerCase().includes(q) || item.docKey.includes(q))
+      .slice(0, 8);
+  }, [query]);
+
+  const dossierResults = useMemo(() => {
+    if (apiPayload?.results?.length) {
+      return apiPayload.results.map((item) => ({
+        id: item.id,
+        label: item.label,
+        hint: item.hint || 'Ouvrir le dossier',
+        path: item.path,
+      }));
+    }
+    return localDossierResults.map((item) => ({
+      id: item.id,
+      label: item.companyName || item.denomination || 'Dossier',
+      hint: `${item.service || 'Formalité'} · ${item.status || 'En cours'}`,
+      path: `/dossier/${item.id}`,
+    }));
+  }, [apiPayload, localDossierResults]);
+
+  const quickActions = useMemo(() => {
+    if (!isAuthenticated || query.trim().length < 2) return [];
+    return (apiPayload?.actions || []).slice(0, 4);
+  }, [apiPayload, isAuthenticated, query]);
 
   const siteResults = useMemo(() => searchSiteIndex(query, 8), [query]);
 
@@ -69,6 +137,8 @@ export const MobileCockpitSearchDialog = ({ open, onClose }) => {
     onClose();
     navigate(path);
   };
+
+  const hasCockpitHits = dossierResults.length || documentTypeResults.length || quickActions.length;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/45 p-3 pt-[calc(5.5rem+env(safe-area-inset-top))]" onClick={onClose}>
@@ -97,19 +167,44 @@ export const MobileCockpitSearchDialog = ({ open, onClose }) => {
           {isAuthenticated && query.trim().length >= 2 ? (
             <>
               <p className="px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Votre cockpit</p>
-              {cockpitResults.dossiers.length ? (
+              {apiLoading ? (
+                <p className="mb-3 px-2 text-sm text-muted-foreground">Recherche en cours…</p>
+              ) : null}
+              {apiPayload?.summary ? (
+                <p className="mb-3 rounded-xl bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+                  {apiPayload.summary}
+                </p>
+              ) : null}
+              {quickActions.length ? (
                 <ul className="mb-3 space-y-1">
-                  {cockpitResults.dossiers.map((item) => (
+                  {quickActions.map((action) => (
+                    <li key={`${action.path}-${action.label}`}>
+                      <button
+                        type="button"
+                        onClick={() => goTo(action.path)}
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-muted"
+                      >
+                        <Zap className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-semibold">{action.label}</span>
+                        <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {dossierResults.length ? (
+                <ul className="mb-3 space-y-1">
+                  {dossierResults.map((item) => (
                     <li key={item.id}>
                       <button
                         type="button"
-                        onClick={() => goTo(`/dossier/${item.id}`)}
+                        onClick={() => goTo(item.path)}
                         className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-muted"
                       >
                         <FolderKanban className="h-4 w-4 text-primary" />
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold">{item.companyName || item.denomination || 'Dossier'}</span>
-                          <span className="block text-xs text-muted-foreground">Ouvrir le dossier</span>
+                          <span className="block truncate text-sm font-semibold">{item.label}</span>
+                          <span className="block truncate text-xs text-muted-foreground">{item.hint}</span>
                         </span>
                         <ArrowRight className="h-4 w-4 text-muted-foreground" />
                       </button>
@@ -117,26 +212,26 @@ export const MobileCockpitSearchDialog = ({ open, onClose }) => {
                   ))}
                 </ul>
               ) : null}
-              {cockpitResults.documents.length ? (
+              {documentTypeResults.length ? (
                 <ul className="mb-3 space-y-1">
-                  {cockpitResults.documents.map((item) => (
+                  {documentTypeResults.map((item) => (
                     <li key={item.id}>
                       <button
                         type="button"
-                        onClick={() => goTo('/documents')}
+                        onClick={() => goTo(item.path)}
                         className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-muted"
                       >
                         <FileText className="h-4 w-4 text-primary" />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-semibold">{item.label}</span>
-                          <span className="block truncate text-xs text-muted-foreground">{item.dossierName}</span>
+                          <span className="block text-xs text-muted-foreground">Mes documents</span>
                         </span>
                       </button>
                     </li>
                   ))}
                 </ul>
               ) : null}
-              {!cockpitResults.dossiers.length && !cockpitResults.documents.length ? (
+              {!hasCockpitHits && !apiLoading ? (
                 <p className="mb-3 px-2 text-sm text-muted-foreground">Aucun dossier ou document correspondant.</p>
               ) : null}
             </>
@@ -152,7 +247,7 @@ export const MobileCockpitSearchDialog = ({ open, onClose }) => {
                     onClick={onClose}
                     className="flex items-start gap-3 rounded-xl px-3 py-3 hover:bg-muted"
                   >
-                    <Search className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                    <Sparkles className="mt-0.5 h-4 w-4 text-muted-foreground" />
                     <span>
                       <span className="block text-sm font-semibold">{item.title}</span>
                       <span className="block text-xs text-muted-foreground">{item.description}</span>

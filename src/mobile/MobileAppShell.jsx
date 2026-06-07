@@ -6,8 +6,9 @@ import { MOBILE_BOTTOM_TABS } from '@/config/mobileStore.js';
 import { MobileTopBar } from '@/mobile/MobileTopBar.jsx';
 import { MobilePushRegistration } from '@/mobile/MobilePushRegistration.jsx';
 import { MobileSidebarDrawer } from '@/components/MobileSidebarDrawer.jsx';
-import { MobileConnectedStrip } from '@/mobile/ui/MobileConnectedStrip.jsx';
+import { MobileStickyHeaderGroup } from '@/mobile/ui/MobileStickyHeaderGroup.jsx';
 import { MobileShellScrollProvider } from '@/mobile/context/MobileShellScrollContext.jsx';
+import { MobileShellOverlayProvider, useMobileShellOverlay } from '@/mobile/context/MobileShellOverlayContext.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 import { isCapacitorNative } from '@/utils/platform.js';
 
@@ -30,13 +31,21 @@ const isTabActive = (pathname, tabPath) => {
   return pathname === tabPath || pathname.startsWith(`${tabPath}/`);
 };
 
-export const MobileAppShell = ({ children }) => {
+const MobileAppShellInner = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const scrollRef = useRef(null);
   const { isAuthenticated } = useAuth();
   const [navOpen, setNavOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const {
+    accountOpen,
+    setAccountOpen,
+    logoutOpen,
+    setLogoutOpen,
+    searchOpen,
+    setSearchOpen,
+  } = useMobileShellOverlay();
 
   useEffect(() => {
     if (!CapApp?.addListener) return undefined;
@@ -67,6 +76,18 @@ export const MobileAppShell = ({ children }) => {
         setNavOpen(false);
         return;
       }
+      if (searchOpen) {
+        setSearchOpen(false);
+        return;
+      }
+      if (accountOpen) {
+        setAccountOpen(false);
+        return;
+      }
+      if (logoutOpen) {
+        setLogoutOpen(false);
+        return;
+      }
       if (notificationsOpen) {
         setNotificationsOpen(false);
         return;
@@ -83,7 +104,17 @@ export const MobileAppShell = ({ children }) => {
     return () => {
       void handle?.remove?.();
     };
-  }, [navOpen, notificationsOpen, navigate]);
+  }, [
+    navOpen,
+    searchOpen,
+    accountOpen,
+    logoutOpen,
+    notificationsOpen,
+    navigate,
+    setAccountOpen,
+    setLogoutOpen,
+    setSearchOpen,
+  ]);
 
   return (
     <MobileShellScrollProvider scrollRef={scrollRef}>
@@ -92,49 +123,55 @@ export const MobileAppShell = ({ children }) => {
         {isAuthenticated ? (
           <MobileSidebarDrawer open={navOpen} onClose={() => setNavOpen(false)} />
         ) : null}
-        <MobileTopBar
-          onMenuClick={isAuthenticated ? () => setNavOpen(true) : undefined}
-          notificationsOpen={notificationsOpen}
-          onNotificationsOpenChange={setNotificationsOpen}
-        />
-        {isAuthenticated ? <MobileConnectedStrip /> : null}
+        <MobileStickyHeaderGroup showConnectedStrip={isAuthenticated}>
+          <MobileTopBar
+            onMenuClick={isAuthenticated ? () => setNavOpen(true) : undefined}
+            notificationsOpen={notificationsOpen}
+            onNotificationsOpenChange={setNotificationsOpen}
+          />
+        </MobileStickyHeaderGroup>
         <main ref={scrollRef} className="flex-1 overflow-y-auto pb-[calc(5.25rem+env(safe-area-inset-bottom))]">
           {children}
         </main>
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md">
-        <ul className="mx-auto grid max-w-lg grid-cols-5">
-          {MOBILE_BOTTOM_TABS.map((tab) => {
-            const Icon = tabIcons[tab.icon] || Home;
-            const active = isTabActive(location.pathname, tab.path);
-            const isPrimary = tab.icon === 'plus';
-            return (
-              <li key={tab.id}>
-                <Link
-                  to={tab.path}
-                  className={`flex min-h-[48px] flex-col items-center justify-center gap-1 px-1 py-2.5 text-[10px] font-semibold transition ${
-                    active ? 'text-primary' : 'text-muted-foreground'
-                  }`}
-                >
-                  {isPrimary ? (
-                    <span className={`flex h-10 w-10 items-center justify-center rounded-full text-white shadow-elevation-sm ${
-                      active ? 'bg-[hsl(var(--greffio-blue))]' : 'bg-[hsl(var(--greffio-blue))]/90'
-                    }`}>
-                      <Icon className="h-5 w-5" strokeWidth={2.4} />
-                    </span>
-                  ) : (
-                    <span className={`rounded-xl p-1.5 transition ${active ? 'bg-secondary text-primary' : ''}`}>
-                      <Icon className="h-[1.15rem] w-[1.15rem]" strokeWidth={active ? 2.4 : 2} />
-                    </span>
-                  )}
-                  {tab.label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
+        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md">
+          <ul className="mx-auto grid max-w-lg grid-cols-5">
+            {MOBILE_BOTTOM_TABS.map((tab) => {
+              const Icon = tabIcons[tab.icon] || Home;
+              const active = isTabActive(location.pathname, tab.path);
+              const isPrimary = tab.icon === 'plus';
+              return (
+                <li key={tab.id}>
+                  <Link
+                    to={tab.path}
+                    className={`flex min-h-[48px] flex-col items-center justify-center gap-1 px-1 py-2.5 text-[10px] font-semibold transition ${
+                      active ? 'text-primary' : 'text-muted-foreground'
+                    }`}
+                  >
+                    {isPrimary ? (
+                      <span className={`flex h-10 w-10 items-center justify-center rounded-full text-white shadow-elevation-sm ${
+                        active ? 'bg-[hsl(var(--greffio-blue))]' : 'bg-[hsl(var(--greffio-blue))]/90'
+                      }`}>
+                        <Icon className="h-5 w-5" strokeWidth={2.4} />
+                      </span>
+                    ) : (
+                      <span className={`rounded-xl p-1.5 transition ${active ? 'bg-secondary text-primary' : ''}`}>
+                        <Icon className="h-[1.15rem] w-[1.15rem]" strokeWidth={active ? 2.4 : 2} />
+                      </span>
+                    )}
+                    {tab.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
       </div>
     </MobileShellScrollProvider>
   );
 };
 
+export const MobileAppShell = ({ children }) => (
+  <MobileShellOverlayProvider>
+    <MobileAppShellInner>{children}</MobileAppShellInner>
+  </MobileShellOverlayProvider>
+);

@@ -1,18 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, ChevronRight, LogOut, Search, Settings, User, UserRound } from 'lucide-react';
+import { Bell, LogOut, Search, User } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet.jsx';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog.jsx';
 import { MobileCockpitSearchDialog } from '@/mobile/ui/MobileCockpitSearchDialog.jsx';
+import { MobileAccountQuickSheet } from '@/mobile/ui/MobileAccountQuickSheet.jsx';
+import { MobileLogoutConfirmDialog } from '@/mobile/ui/MobileLogoutConfirmDialog.jsx';
+import { useMobileShellOverlay } from '@/mobile/context/MobileShellOverlayContext.jsx';
 import { fetchMobileNotifications } from '@/api/mobile.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { cn } from '@/lib/utils.js';
@@ -20,6 +13,11 @@ import { cn } from '@/lib/utils.js';
 export const mobileHeaderIconButtonClass = cn(
   'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-border bg-white',
   'text-[#0a1220] transition hover:bg-muted active:scale-[0.97]',
+);
+
+export const mobileHeaderAvatarButtonClass = cn(
+  'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full',
+  'bg-primary/10 text-sm font-bold text-primary transition hover:bg-primary/20 active:scale-[0.97]',
 );
 
 export const mobileHeaderLogoutButtonClass = cn(
@@ -35,15 +33,21 @@ export const MobileCockpitHeaderActions = ({
 }) => {
   const navigate = useNavigate();
   const { isAuthenticated, currentUser, logout } = useAuth();
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
-  const [logoutOpen, setLogoutOpen] = useState(false);
+  const {
+    accountOpen,
+    setAccountOpen,
+    logoutOpen,
+    setLogoutOpen,
+    searchOpen,
+    setSearchOpen,
+  } = useMobileShellOverlay();
   const [internalNotifOpen, setInternalNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
 
   const notifOpen = notificationsOpen ?? internalNotifOpen;
   const setNotifOpen = onNotificationsOpenChange ?? setInternalNotifOpen;
   const unread = notifications.length;
+  const firstName = currentUser?.firstName || 'Greffio';
 
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -54,7 +58,7 @@ export const MobileCockpitHeaderActions = ({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  }, [setSearchOpen]);
 
   useEffect(() => {
     if (!showNotifications || !isAuthenticated) return undefined;
@@ -95,9 +99,9 @@ export const MobileCockpitHeaderActions = ({
             type="button"
             onClick={() => setAccountOpen(true)}
             aria-label="Mon compte"
-            className={mobileHeaderIconButtonClass}
+            className={mobileHeaderAvatarButtonClass}
           >
-            <User className="h-4 w-4" />
+            {firstName.charAt(0) || 'G'}
           </button>
         ) : (
           <Link to="/login" aria-label="Connexion" className={mobileHeaderIconButtonClass}>
@@ -135,72 +139,17 @@ export const MobileCockpitHeaderActions = ({
 
       <MobileCockpitSearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
 
-      <Sheet open={accountOpen} onOpenChange={setAccountOpen}>
-        <SheetContent side="right" className="w-[min(100vw,24rem)]">
-          <SheetHeader>
-            <SheetTitle>Mon compte</SheetTitle>
-          </SheetHeader>
-          <div className="mt-4 rounded-2xl border border-border/70 bg-muted/30 p-4">
-            <p className="text-sm font-bold">{currentUser?.firstName} {currentUser?.lastName}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{currentUser?.email}</p>
-            <p className="mt-2 text-xs text-muted-foreground">{currentUser?.company?.name || 'Projet à créer'}</p>
-          </div>
-          <ul className="mt-4 overflow-hidden rounded-2xl border border-border/70 bg-white">
-            {[
-              { to: '/mobile/account', icon: UserRound, label: 'Centre compte', hint: 'Profil et préférences' },
-              { to: '/settings', icon: Settings, label: 'Paramètres', hint: 'Sécurité et alertes' },
-            ].map((row) => (
-              <li key={row.to} className="border-b border-border/60 last:border-b-0">
-                <Link
-                  to={row.to}
-                  onClick={() => setAccountOpen(false)}
-                  className="flex min-h-[64px] items-center gap-3 px-4 py-3"
-                >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary">
-                    <row.icon className="h-4 w-4 text-primary" />
-                  </span>
-                  <span className="flex-1">
-                    <span className="block text-sm font-bold">{row.label}</span>
-                    <span className="block text-xs text-muted-foreground">{row.hint}</span>
-                  </span>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <button
-            type="button"
-            onClick={() => {
-              setAccountOpen(false);
-              setLogoutOpen(true);
-            }}
-            className="mt-4 flex w-full min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-border bg-white text-sm font-semibold text-red-600"
-          >
-            <LogOut className="h-4 w-4" />
-            Se déconnecter
-          </button>
-        </SheetContent>
-      </Sheet>
+      <MobileAccountQuickSheet
+        open={accountOpen}
+        onOpenChange={setAccountOpen}
+        onLogoutRequest={() => setLogoutOpen(true)}
+      />
 
-      <AlertDialog open={logoutOpen} onOpenChange={setLogoutOpen}>
-        <AlertDialogContent className="max-w-[min(100vw-2rem,24rem)] rounded-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Se déconnecter ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Vous quitterez votre espace client Greffio. Vos dossiers restent enregistrés.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
-            <AlertDialogCancel className="mt-0 h-11 w-full rounded-2xl">Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmLogout}
-              className="h-11 w-full rounded-2xl bg-red-600 hover:bg-red-700"
-            >
-              Se déconnecter
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <MobileLogoutConfirmDialog
+        open={logoutOpen}
+        onOpenChange={setLogoutOpen}
+        onConfirm={confirmLogout}
+      />
 
       {showNotifications ? (
         <Sheet open={notifOpen} onOpenChange={setNotifOpen}>

@@ -4,8 +4,9 @@ import { MobileWebHeader } from '@/mobile/MobileWebHeader.jsx';
 import { MobilePublicBottomNav } from '@/mobile/MobilePublicBottomNav.jsx';
 import { WebMobileBottomNav } from '@/components/WebMobileBottomNav.jsx';
 import { MobileSidebarDrawer } from '@/components/MobileSidebarDrawer.jsx';
-import { MobileConnectedStrip } from '@/mobile/ui/MobileConnectedStrip.jsx';
+import { MobileStickyHeaderGroup } from '@/mobile/ui/MobileStickyHeaderGroup.jsx';
 import { MobileShellScrollProvider } from '@/mobile/context/MobileShellScrollContext.jsx';
+import { MobileShellOverlayProvider } from '@/mobile/context/MobileShellOverlayContext.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 import { shouldUseMobileWebShell } from '@/utils/platform.js';
 
@@ -62,31 +63,32 @@ export const MobileWebShell = ({ children }) => {
 
   return (
     <MobileShellScrollProvider scrollRef={scrollRef}>
-      <div className="flex min-h-[100dvh] flex-col bg-background md:contents">
-        {showAuthenticatedNav ? (
-          <MobileSidebarDrawer open={navOpen} onClose={() => setNavOpen(false)} />
-        ) : null}
-        {!isLanding ? (
-          <>
-            <MobileWebHeader
-              title={title}
-              onMenuClick={showAuthenticatedNav ? () => setNavOpen(true) : undefined}
-            />
-            {showAuthenticatedNav ? <MobileConnectedStrip /> : null}
-          </>
-        ) : null}
-        <main
-          ref={scrollRef}
-          className={`flex-1 md:contents ${
-            isLanding
-              ? 'pb-[calc(4.75rem+env(safe-area-inset-bottom))]'
-              : 'overflow-y-auto pb-[calc(4.75rem+env(safe-area-inset-bottom))]'
-          }`}
-        >
-          {children}
-        </main>
-        {currentUser ? <WebMobileBottomNav /> : <MobilePublicBottomNav />}
-      </div>
+      <MobileShellOverlayProvider>
+        <div className="flex min-h-[100dvh] flex-col bg-background md:contents">
+          {showAuthenticatedNav ? (
+            <MobileSidebarDrawer open={navOpen} onClose={() => setNavOpen(false)} />
+          ) : null}
+          {!isLanding ? (
+            <MobileStickyHeaderGroup showConnectedStrip={showAuthenticatedNav}>
+              <MobileWebHeader
+                title={title}
+                onMenuClick={showAuthenticatedNav ? () => setNavOpen(true) : undefined}
+              />
+            </MobileStickyHeaderGroup>
+          ) : null}
+          <main
+            ref={scrollRef}
+            className={`flex-1 md:contents ${
+              isLanding
+                ? 'pb-[calc(4.75rem+env(safe-area-inset-bottom))]'
+                : 'overflow-y-auto pb-[calc(4.75rem+env(safe-area-inset-bottom))]'
+            }`}
+          >
+            {children}
+          </main>
+          {currentUser ? <WebMobileBottomNav /> : <MobilePublicBottomNav />}
+        </div>
+      </MobileShellOverlayProvider>
     </MobileShellScrollProvider>
   );
 };
