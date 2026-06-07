@@ -19,6 +19,7 @@ export const getNativePlatform = () => {
 export const isMobileApp = () => isCapacitorNative();
 
 export const MOBILE_BREAKPOINT = 768;
+export const TABLET_BREAKPOINT = 1024;
 
 export const isMobileBrowserViewport = () => {
   if (typeof window === 'undefined') return false;

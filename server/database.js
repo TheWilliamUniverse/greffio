@@ -211,6 +211,19 @@ CREATE TABLE IF NOT EXISTS ops_notes (
   FOREIGN KEY (dossier_id) REFERENCES dossiers(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS dossier_messages (
+  id TEXT PRIMARY KEY,
+  dossier_id TEXT NOT NULL,
+  author_type TEXT NOT NULL,
+  author_id TEXT,
+  author_name TEXT NOT NULL DEFAULT '',
+  body TEXT NOT NULL,
+  channel TEXT NOT NULL DEFAULT 'thread',
+  email_sent_at TEXT,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (dossier_id) REFERENCES dossiers(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS audit_logs (
   id TEXT PRIMARY KEY,
   actor_type TEXT NOT NULL,

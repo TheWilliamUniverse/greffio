@@ -234,7 +234,11 @@ export const registerNonConvictionSignatureRoutes = (app, {
       return res.json({ ok: true, status: 'signed', signerFullName: request.signerFullName });
     }
     if (new Date(request.expiresAt).getTime() < Date.now()) {
-      return res.status(410).json({ ok: false, error: 'SIGNATURE_TOKEN_EXPIRED' });
+      return res.status(410).json({
+        ok: false,
+        error: 'SIGNATURE_TOKEN_EXPIRED',
+        message: 'Ce lien de signature a expiré. Demandez un nouvel envoi.',
+      });
     }
     await appendSignatureAudit(request.id, { type: 'viewed', ipAddress: getClientIp(req) });
     const dossier = await getDossier(request.dossierId);
@@ -268,12 +272,23 @@ export const registerNonConvictionSignatureRoutes = (app, {
     if (!request) return res.status(404).json({ ok: false, error: 'SIGNATURE_TOKEN_NOT_FOUND' });
     if (request.status === 'signed') return res.status(409).json({ ok: false, error: 'ALREADY_SIGNED' });
     if (new Date(request.expiresAt).getTime() < Date.now()) {
-      return res.status(410).json({ ok: false, error: 'SIGNATURE_TOKEN_EXPIRED' });
+      return res.status(410).json({
+        ok: false,
+        error: 'SIGNATURE_TOKEN_EXPIRED',
+        message: 'Ce lien de signature a expiré. Demandez un nouvel envoi à l’équipe Greffio.',
+      });
     }
     const consent = Boolean(req.body?.consent);
+    const previewAcknowledged = Boolean(req.body?.previewAcknowledged);
     const signerFullName = String(req.body?.signerFullName || request.signerFullName || '').trim();
+    const signerEmail = String(req.body?.signerEmail || request.signerEmail || '').trim();
     const signatureImagePngBase64 = req.body?.signatureImagePngBase64 || null;
+    if (!previewAcknowledged) {
+      return res.status(400).json({ ok: false, error: 'SIGNATURE_PREVIEW_REQUIRED' });
+    }
     if (!consent) return res.status(400).json({ ok: false, error: 'SIGNATURE_CONSENT_REQUIRED' });
+    if (!signerEmail) return res.status(400).json({ ok: false, error: 'SIGNER_EMAIL_REQUIRED' });
+    if (!signerFullName) return res.status(400).json({ ok: false, error: 'SIGNER_NAME_REQUIRED' });
 
     try {
       const signedFilename = request.draftPdfPath.replace('.pdf', `_signed_${Date.now()}.pdf`);

@@ -1,13 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, FileText, FolderKanban, MessageSquareText } from 'lucide-react';
+import { Button } from '@/components/ui/button.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
 import { loadDossiersSnapshot, cacheDossiersSnapshot } from '@/utils/mobileOffline.js';
 import { MobileDocumentScanner } from '@/mobile/MobileDocumentScanner.jsx';
 import { MobilePageSkeleton } from '@/mobile/ui/MobilePageSkeleton.jsx';
 import { OfflineDataBanner } from '@/components/system/OfflineDataBanner.jsx';
-import { mapDossierClientAction, mapDossierStatusForBadge } from '@/utils/dossierClientStatus.js';
+import { mapDossierClientAction } from '@/utils/dossierClientStatus.js';
+import { resolveDossierContinueUrl } from '@/utils/dossierContinueUrl.js';
 
 export const MobileHomePage = () => {
   const { currentUser } = useAuth();
@@ -53,7 +55,7 @@ export const MobileHomePage = () => {
         </h2>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">{actionLabel}</p>
         <Button asChild className="mt-4 h-11 w-full text-base">
-          <Link to={primaryDossier ? `/dossier/${primaryDossier.id}` : '/simulateur'}>
+          <Link to={primaryDossier ? resolveDossierContinueUrl(primaryDossier) : '/simulateur'}>
             {primaryDossier ? 'Continuer mon dossier' : 'Commencer'}
             <ArrowRight className="h-4 w-4" />
           </Link>

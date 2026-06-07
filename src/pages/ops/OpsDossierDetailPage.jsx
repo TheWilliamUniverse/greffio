@@ -20,6 +20,12 @@ import {
   updateOpsAssignment,
   updateOpsDocumentStatus,
 } from '@/api/ops.js';
+import {
+  fetchOpsDossierMessages,
+  postOpsDossierMessage,
+  sendOpsDossierMessageEmail,
+} from '@/api/dossierMessages.js';
+import { DossierMessageThread } from '@/components/messaging/DossierMessageThread.jsx';
 import { OpsCompletionBadge, OpsPriorityBadge, OpsQueueBadge, OpsRiskBadge, OpsSlaBadge } from '@/components/ops/OpsBadges.jsx';
 import { formatDateTime } from '@/components/ops/opsLabels.js';
 import { GREFFIO_OPS_TEAM, OPS_PRIORITY_LABELS, OPS_QUEUE_LABELS } from '@/config/opsTeam.js';
@@ -45,6 +51,8 @@ export const OpsDossierDetailPage = () => {
   const [saving, setSaving] = useState(false);
   const [docUpdating, setDocUpdating] = useState('');
   const [docPreviewing, setDocPreviewing] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
 
   const loadDetail = async () => {
     setLoading(true);
@@ -63,11 +71,30 @@ export const OpsDossierDetailPage = () => {
     void loadDetail();
   }, [dossierId]);
 
+  useEffect(() => {
+    if (!dossierId) return;
+    let mounted = true;
+    const loadMessages = async () => {
+      setMessagesLoading(true);
+      try {
+        const items = await fetchOpsDossierMessages(dossierId);
+        if (mounted) setMessages(items);
+      } catch (_error) {
+        if (mounted) setMessages([]);
+      } finally {
+        if (mounted) setMessagesLoading(false);
+      }
+    };
+    void loadMessages();
+    return () => { mounted = false; };
+  }, [dossierId]);
+
   const dossier = payload?.dossier;
   const documents = payload?.documents || [];
   const notes = payload?.notes || [];
   const events = payload?.events || [];
   const checklist = payload?.checklist || [];
+  const ownerEmail = payload?.ownerEmail || '';
 
   const saveAssignment = async () => {
     if (!dossier) return;
@@ -341,6 +368,29 @@ export const OpsDossierDetailPage = () => {
               <Button type="button" onClick={() => void saveAssignment()} disabled={saving}>
                 {saving ? 'Enregistrement…' : 'Enregistrer'}
               </Button>
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-200 px-5 py-4">
+              <h3 className="text-lg font-extrabold text-slate-900">Messages client</h3>
+              <p className="text-sm text-slate-500">Fil partagé avec le client — envoi email direct possible.</p>
+            </div>
+            <div className="p-5">
+              <DossierMessageThread
+                messages={messages}
+                loading={messagesLoading}
+                viewerRole="ops"
+                clientEmail={ownerEmail}
+                onSend={async (body) => {
+                  const result = await postOpsDossierMessage(dossier.id, body);
+                  setMessages(result?.messages || []);
+                }}
+                onSendEmail={async ({ body, toEmail, subject }) => {
+                  const result = await sendOpsDossierMessageEmail(dossier.id, { body, toEmail, subject });
+                  setMessages(result?.messages || []);
+                }}
+              />
             </div>
           </section>
 

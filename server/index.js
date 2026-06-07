@@ -118,6 +118,7 @@ import {
 } from './services/statutesPdfService.js';
 import { resolveDossierAccess } from './utils/dossierAccess.js';
 import { registerNonConvictionSignatureRoutes } from './routes/nonConvictionSignatureRoutes.js';
+import { registerDossierMessageRoutes } from './routes/dossierMessageRoutes.js';
 import { registerEditableDocumentSignatureRoutes } from './routes/editableDocumentSignatureRoutes.js';
 import {
   getEditableDocumentConfig,
@@ -1632,12 +1633,14 @@ app.get('/api/ops/dossiers/:dossierId/detail', requireAuth, requireRole(['ADMIN'
   if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
   const documents = await listDossierDocuments(dossier.id);
   const enriched = enrichDossierForOps({ dossier, documents });
+  const owner = dossier.userId ? await getUserById(dossier.userId) : null;
   return res.json({
     ok: true,
     dossier,
     documents,
     events: await listDossierEvents(dossier.id),
     notes: await listOpsNotesByDossier(dossier.id),
+    ownerEmail: owner?.email || null,
     risk: enriched.risk,
     completionScore: enriched.completionScore,
     sla: enriched.sla,
@@ -3013,6 +3016,8 @@ registerNonConvictionSignatureRoutes(app, {
   createSignatureRecord,
   appUrl,
 });
+
+registerDossierMessageRoutes(app, { requireAuth, requireRole, appUrl });
 
 // Webhook CAWL : on accepte le corps brut (texte) pour permettre la
 // vérification HMAC à venir. Doit être enregistré AVANT le router générique

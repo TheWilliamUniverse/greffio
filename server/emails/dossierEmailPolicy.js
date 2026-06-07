@@ -9,6 +9,7 @@ const THROTTLE_HOURS = Object.freeze({
   statutes_generated: 12,
   editable_document_signature_request: 1,
   non_conviction_signature_request: 1,
+  ops_message: 4,
   default: 8,
 });
 

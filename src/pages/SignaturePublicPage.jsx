@@ -7,6 +7,8 @@ import {
   getPublicSignaturePdfUrl,
   submitPublicSignature,
 } from '@/api/nonConviction.js';
+import { mapSignaturePublicError } from '@/utils/signaturePublicErrors.js';
+import { PdfPreviewPanel } from '@/components/documents/PdfPreviewPanel.jsx';
 
 export const SignaturePublicPage = () => {
   const { token } = useParams();
@@ -15,6 +17,7 @@ export const SignaturePublicPage = () => {
   const [signing, setSigning] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
+  const [previewAcknowledged, setPreviewAcknowledged] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -23,7 +26,7 @@ export const SignaturePublicPage = () => {
         setSession(payload);
         if (payload.status === 'signed') setDone(true);
       } catch (err) {
-        setError(err?.payload?.error || 'Lien invalide ou expiré.');
+        setError(mapSignaturePublicError(err?.payload?.error || err?.code, err?.message));
       } finally {
         setLoading(false);
       }
@@ -32,12 +35,16 @@ export const SignaturePublicPage = () => {
   }, [token]);
 
   const onSign = async (payload) => {
+    if (!previewAcknowledged) {
+      setError(mapSignaturePublicError('SIGNATURE_PREVIEW_REQUIRED'));
+      return;
+    }
     setSigning(true);
     try {
-      await submitPublicSignature(token, payload);
+      await submitPublicSignature(token, { ...payload, previewAcknowledged: true });
       setDone(true);
     } catch (err) {
-      setError(err?.payload?.error || 'Signature impossible.');
+      setError(mapSignaturePublicError(err?.payload?.error || err?.code, err?.message));
     } finally {
       setSigning(false);
     }
@@ -68,7 +75,7 @@ export const SignaturePublicPage = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#0f172a]">
+    <div className="flex min-h-[100dvh] flex-col bg-[#0f172a]">
       <header className="border-b border-white/10 px-5 py-4 text-white">
         <p className="text-xs uppercase tracking-wide text-amber-300/90">Signature en attente</p>
         <h1 className="text-lg font-bold">{session?.documentTitle}</h1>
@@ -76,11 +83,21 @@ export const SignaturePublicPage = () => {
       </header>
       <div className="grid flex-1 lg:grid-cols-2">
         <div className="min-h-[50vh] lg:min-h-0">
-          <iframe
+          <PdfPreviewPanel
             title="Document à signer"
-            src={getPublicSignaturePdfUrl(token)}
-            className="h-full min-h-[50vh] w-full bg-[#334155]"
+            blobUrl={getPublicSignaturePdfUrl(token)}
+            filename="document-a-signer.pdf"
+            emptyMessage="Chargement du document…"
           />
+          <label className="mt-3 flex items-start gap-2 px-4 text-sm text-white/80">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={previewAcknowledged}
+              onChange={(event) => setPreviewAcknowledged(event.target.checked)}
+            />
+            J’ai consulté le document et je souhaite le signer.
+          </label>
         </div>
         <div className="flex items-center justify-center p-6">
           <div className="w-full max-w-md">

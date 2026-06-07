@@ -24,6 +24,7 @@ import { fetchUserProfile } from '@/api/profile.js';
 import { LoginAlertsPromptBanner } from '@/components/security/LoginAlertsPromptBanner.jsx';
 import { RememberMfaDeviceBanner } from '@/components/security/RememberMfaDeviceBanner.jsx';
 import { isEiLikeFormality } from '@/config/formalities.js';
+import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 import { mapDossierStatusForBadge, mapDossierClientAction } from '@/utils/dossierClientStatus.js';
 import { isLoginAlertsConfigured, getLoginAlertsSettings, rememberLoginAlertsChoice } from '@/utils/userProfile.js';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';

@@ -1527,6 +1527,98 @@ const updateDossierOpsFields = async ({
   return getDossier(dossierId);
 };
 
+const listDossierMessagesByDossier = async (dossierId) => {
+  if (hasPostgres) {
+    const result = await query(`
+      SELECT
+        id,
+        dossier_id AS "dossierId",
+        author_type AS "authorType",
+        author_id AS "authorId",
+        author_name AS "authorName",
+        body,
+        channel,
+        email_sent_at AS "emailSentAt",
+        created_at AS "createdAt"
+      FROM dossier_messages
+      WHERE dossier_id = $1
+      ORDER BY created_at ASC
+    `, [dossierId]);
+    return result.rows;
+  }
+  return sqlite.prepare(`
+    SELECT
+      id,
+      dossier_id AS dossierId,
+      author_type AS authorType,
+      author_id AS authorId,
+      author_name AS authorName,
+      body,
+      channel,
+      email_sent_at AS emailSentAt,
+      created_at AS createdAt
+    FROM dossier_messages
+    WHERE dossier_id = ?
+    ORDER BY created_at ASC
+  `).all(dossierId);
+};
+
+const addDossierMessage = async ({
+  dossierId,
+  authorType,
+  authorId = null,
+  authorName = '',
+  body,
+  channel = 'thread',
+  emailSentAt = null,
+}) => {
+  const record = {
+    id: randomUUID(),
+    dossierId,
+    authorType: String(authorType || 'client'),
+    authorId,
+    authorName: String(authorName || '').trim() || 'Greffio',
+    body: String(body || '').trim(),
+    channel: String(channel || 'thread'),
+    emailSentAt,
+    createdAt: nowIso(),
+  };
+  if (!record.body) return null;
+  if (hasPostgres) {
+    await query(`
+      INSERT INTO dossier_messages (
+        id, dossier_id, author_type, author_id, author_name, body, channel, email_sent_at, created_at
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+    `, [
+      record.id, record.dossierId, record.authorType, record.authorId, record.authorName,
+      record.body, record.channel, record.emailSentAt, record.createdAt,
+    ]);
+  } else {
+    sqlite.prepare(`
+      INSERT INTO dossier_messages (
+        id, dossier_id, author_type, author_id, author_name, body, channel, email_sent_at, created_at
+      ) VALUES (
+        @id, @dossierId, @authorType, @authorId, @authorName, @body, @channel, @emailSentAt, @createdAt
+      )
+    `).run(record);
+  }
+  return record;
+};
+
+const markDossierMessageEmailSent = async (messageId) => {
+  const sentAt = nowIso();
+  if (hasPostgres) {
+    await query(`
+      UPDATE dossier_messages SET email_sent_at = $1 WHERE id = $2
+    `, [sentAt, messageId]);
+  } else {
+    sqlite.prepare(`
+      UPDATE dossier_messages SET email_sent_at = ? WHERE id = ?
+    `).run(sentAt, messageId);
+  }
+  return sentAt;
+};
+
 const addOpsNote = async ({
   dossierId,
   authorId = null,
@@ -1813,5 +1905,8 @@ export {
   listGeneratedDocumentsByDossier,
   listOpsNotesByDossier,
   addOpsNote,
+  listDossierMessagesByDossier,
+  addDossierMessage,
+  markDossierMessageEmailSent,
   updateDossierOpsFields,
 };

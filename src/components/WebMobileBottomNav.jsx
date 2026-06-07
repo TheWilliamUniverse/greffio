@@ -57,7 +57,7 @@ export const WebMobileBottomNav = () => {
             <li key={item.to}>
               <Link
                 to={item.to}
-                className={`flex flex-col items-center justify-center gap-1 px-1 py-2.5 text-[10px] font-semibold transition ${
+                className={`flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-1 px-1 py-2.5 text-[10px] font-semibold transition ${
                   active ? 'text-[hsl(var(--greffio-blue))]' : 'text-muted-foreground'
                 }`}
               >

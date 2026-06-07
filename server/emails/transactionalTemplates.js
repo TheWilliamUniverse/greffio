@@ -308,6 +308,28 @@ const transactionalTemplates = Object.freeze({
     `,
   }),
 
+  ops_message: defineTemplate({
+    subject: '{{subject}}',
+    tags: ['dossier', 'ops', 'message'],
+    requiredVariables: ['messageBody', 'continueUrl'],
+    preheader: 'Un message de l’équipe Greffio.',
+    textLines: [
+      'Bonjour,',
+      '',
+      '{{opsAuthor}} vous écrit :',
+      '',
+      '{{messageBody}}',
+      '',
+      'Répondre ou consulter votre dossier : {{continueUrl}}',
+    ],
+    bodyHtml: `
+      <p style="margin:0 0 16px;">Bonjour,</p>
+      <p style="margin:0 0 8px;font-size:14px;color:#64748b;">Message de <strong>{{opsAuthor}}</strong></p>
+      <p style="margin:0 0 16px;padding:14px 16px;background:#f8fafc;border-radius:12px;line-height:1.6;">{{messageBody}}</p>
+      ${ctaButton('Ouvrir mon dossier', '{{continueUrl}}')}
+    `,
+  }),
+
   dossier_incomplete: defineTemplate({
     subject: 'Votre dossier nécessite encore quelques informations',
     tags: ['dossier', 'reminder'],

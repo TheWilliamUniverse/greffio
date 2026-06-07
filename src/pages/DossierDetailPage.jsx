@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, CalendarClock, CheckCircle2, Clock3, FileText, MessageSquareText, Send, Upload } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CalendarClock, CheckCircle2, Clock3, FileText, Upload } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
-import { Input } from '@/components/ui/input.jsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.jsx';
 import { fetchDossierDetail, trashDossier } from '@/api/dossiers.js';
+import { fetchDossierMessages, postDossierMessage } from '@/api/dossierMessages.js';
 import { fetchVerificationProfile, runDossierVerification } from '@/api/verification.js';
 import { VerificationStatusCard } from '@/components/verification/VerificationStatusCard.jsx';
 import { saveCurrentDossierId } from '@/utils/sessionStore.js';
@@ -17,6 +17,8 @@ import { isInternalUser } from '@/utils/roles.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { toast } from 'sonner';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
+import { mapDossierStatusForBadge, mapDossierClientAction } from '@/utils/dossierClientStatus.js';
+import { DossierMessageThread } from '@/components/messaging/DossierMessageThread.jsx';
 import {
   documentHasFile,
   getClientDocumentReviewHint,
@@ -35,7 +37,7 @@ const mapDossierFromApi = (d) => {
     name: d.companyName || d.denomination || 'Dossier',
     legalForm: d.legalForm || d.formeJuridique || 'SASU',
     owner: 'Client',
-    status: String(d.status || '').toUpperCase(),
+    status: mapDossierStatusForBadge(d.status),
     priority: 'Normale',
     phase: resolveFormalityPublicLabel({
       service: d.service,
@@ -43,7 +45,7 @@ const mapDossierFromApi = (d) => {
       formeJuridique: d.legalForm || d.formeJuridique || questionnaire.formeJuridique,
       legalForm: d.legalForm,
     }),
-    nextAction: 'Compléter les pièces demandées et valider les informations.',
+    nextAction: mapDossierClientAction(d.status, d.progressPercent),
     expert: d.assignedToUserId || 'Équipe Greffio',
     createdAt: d.createdAt,
     dueDate: d.updatedAt || d.createdAt,
@@ -101,8 +103,8 @@ export const DossierDetailPage = () => {
   const [dossier, setDossier] = useState(null);
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const messages = [];
-  const [comment, setComment] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
   const [verificationProfile, setVerificationProfile] = useState(null);
   const [verificationRunning, setVerificationRunning] = useState(false);
   const missingDocuments = useMemo(() => docs.filter((document) => ['ATTENTE_DOCS', 'URGENT', 'EN_ANALYSE', 'A_SIGNER', 'BROUILLON'].includes(document.status)), [docs]);
@@ -146,6 +148,24 @@ export const DossierDetailPage = () => {
       }
     };
     void load();
+  }, [id, internalView]);
+
+  useEffect(() => {
+    if (!id || internalView) return;
+    let mounted = true;
+    const loadMessages = async () => {
+      setMessagesLoading(true);
+      try {
+        const items = await fetchDossierMessages(id);
+        if (mounted) setMessages(items);
+      } catch (_error) {
+        if (mounted) setMessages([]);
+      } finally {
+        if (mounted) setMessagesLoading(false);
+      }
+    };
+    void loadMessages();
+    return () => { mounted = false; };
   }, [id, internalView]);
 
   const handleRunVerification = async () => {
@@ -412,31 +432,14 @@ export const DossierDetailPage = () => {
             </TabsContent>
 
             <TabsContent value="messages" className="mt-5">
-              <div className="rounded-md border border-border bg-white shadow-elevation-sm">
-                <div className="border-b border-border p-5">
-                  <div className="flex items-center gap-2">
-                    <MessageSquareText className="h-5 w-5 text-primary" />
-                    <h2 className="text-lg font-extrabold">Discussion rattachée au dossier</h2>
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">Fil partagé entre le client, l’équipe Greffio et les intervenants autorisés.</p>
-                </div>
-                <div className="space-y-3 p-5">
-                  {messages.length ? messages.map((message) => (
-                    <div key={message.id} className={`max-w-[82%] rounded-md p-4 text-sm ${message.from === 'client' ? 'ml-auto bg-[hsl(var(--greffio-blue))] text-white' : 'bg-muted text-foreground'}`}>
-                      {message.text}
-                    </div>
-                  )) : (
-                    <div className="rounded-md bg-muted p-4 text-sm text-muted-foreground">Aucun message pour le moment. Le fil s’alimentera avec vos échanges réels.</div>
-                  )}
-                </div>
-                <div className="flex gap-3 border-t border-border p-5">
-                  <Input value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Ajouter un message au dossier..." />
-                  <Button>
-                    <Send className="h-4 w-4" />
-                    Envoyer
-                  </Button>
-                </div>
-              </div>
+              <DossierMessageThread
+                messages={messages}
+                loading={messagesLoading}
+                onSend={async (body) => {
+                  const result = await postDossierMessage(id, body);
+                  setMessages(result?.messages || []);
+                }}
+              />
             </TabsContent>
           </Tabs>
         </div>
