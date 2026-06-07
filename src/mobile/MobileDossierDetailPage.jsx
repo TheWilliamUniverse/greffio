@@ -9,7 +9,12 @@ import { OfflineDataBanner } from '@/components/system/OfflineDataBanner.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { MobileDocumentUploadSheet } from '@/mobile/MobileDocumentUploadSheet.jsx';
+import { MobileOnlineDocumentsPanel } from '@/mobile/ui/MobileOnlineDocumentsPanel.jsx';
+import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
+import { IdentityVerificationCard } from '@/components/identity/IdentityVerificationCard.jsx';
 import { parseJsonField } from '@/utils/jsonField.js';
+import { isEiLikeFormality } from '@/config/formalities.js';
+import { documentHasFile } from '@/utils/documentWorkflow.js';
 import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 
@@ -19,6 +24,7 @@ const mapDocuments = (documents = []) => documents.map((doc) => ({
   name: getDocumentTypeLabel(doc.docKey, doc.label),
   status: String(doc.status || '').toUpperCase(),
   updatedAt: doc.updatedAt || doc.createdAt,
+  hasFile: documentHasFile(doc),
 }));
 
 export const MobileDossierDetailPage = () => {
@@ -56,6 +62,13 @@ export const MobileDossierDetailPage = () => {
   const questionnaire = parseJsonField(dossier.dataJson, {});
   const progress = Number(dossier.progressPercent || 0);
   const pendingDocs = docs.filter((doc) => ['ATTENTE_DOCS', 'BROUILLON', 'URGENT', 'A_SIGNER'].includes(doc.status));
+  const identityDocUploaded = docs.some((doc) => doc.docKey === 'identity_proof' && doc.hasFile);
+  const eiLike = isEiLikeFormality({
+    legalForm: dossier.legalForm,
+    formeJuridique: questionnaire.formeJuridique,
+    service: dossier.service,
+    typeFormalite: questionnaire.typeFormalite,
+  });
 
   return (
     <div className="space-y-5 px-4 py-5 pb-28">
@@ -113,6 +126,16 @@ export const MobileDossierDetailPage = () => {
           </Link>
         </Button>
       </section>
+
+      <MobileOnlineDocumentsPanel dossierId={id} eiLike={eiLike} delay={0.03} />
+
+      <MobileAnimatedSection delay={0.05}>
+        <IdentityVerificationCard
+          dossierId={id}
+          identityDocUploaded={identityDocUploaded}
+          onVerificationUpdated={() => { void refetch(); }}
+        />
+      </MobileAnimatedSection>
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">

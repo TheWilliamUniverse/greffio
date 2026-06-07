@@ -25,6 +25,10 @@ import { isInternalUser } from '@/utils/roles.js';
 import { getDocumentStatusLabel, getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 import { documentHasFile, resolveClientDocumentStatus } from '@/utils/documentWorkflow.js';
 import { isCapacitorNative } from '@/utils/platform.js';
+import { isEiLikeFormality } from '@/config/formalities.js';
+import { IdentityVerificationCard } from '@/components/identity/IdentityVerificationCard.jsx';
+import { MobileOnlineDocumentsPanel } from '@/mobile/ui/MobileOnlineDocumentsPanel.jsx';
+import { parseJsonField } from '@/utils/jsonField.js';
 
 const FILTERS = ['Tous', 'Validés', 'En attente', 'Brouillons'];
 
@@ -77,6 +81,24 @@ export const MobileDocumentsPage = () => {
       return matchQuery && matchFilter;
     });
   }, [documents, query, filter]);
+
+  const dossierMeta = useMemo(() => {
+    const questionnaire = parseJsonField(dossierPayload?.dossier?.dataJson, {});
+    return {
+      legalForm: dossierPayload?.dossier?.legalForm,
+      formeJuridique: questionnaire?.formeJuridique,
+      service: dossierPayload?.dossier?.service,
+      typeFormalite: questionnaire?.typeFormalite,
+    };
+  }, [dossierPayload]);
+
+  const eiLike = isEiLikeFormality({
+    legalForm: dossierMeta.legalForm,
+    formeJuridique: dossierMeta.formeJuridique,
+    service: dossierMeta.service,
+  });
+
+  const identityDocUploaded = documents.some((doc) => doc.docKey === 'identity_proof' && doc.hasFile);
 
   const handleUpload = async (event) => {
     const file = event.target.files?.[0];
@@ -193,6 +215,16 @@ export const MobileDocumentsPage = () => {
               </div>
             </MobileAnimatedSection>
           ) : null}
+
+          <MobileOnlineDocumentsPanel dossierId={dossierId} eiLike={eiLike} />
+
+          <MobileAnimatedSection delay={0.09}>
+            <IdentityVerificationCard
+              dossierId={dossierId}
+              identityDocUploaded={identityDocUploaded}
+              onVerificationUpdated={() => { void refetch(); }}
+            />
+          </MobileAnimatedSection>
 
           {uploadError ? <p className="text-sm text-red-600">{uploadError}</p> : null}
 

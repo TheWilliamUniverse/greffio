@@ -34,15 +34,15 @@ const parseChangelog = (value) => {
     .filter(Boolean);
 };
 
-const DEFAULT_LATEST_VERSION_CODE = 261510004;
+const DEFAULT_LATEST_VERSION_CODE = 261510005;
 const DEFAULT_MIN_VERSION_CODE = 261422041;
-const DEFAULT_LATEST_VERSION_NAME = '1.2.5';
+const DEFAULT_LATEST_VERSION_NAME = '1.2.6';
 
 const DEFAULT_CHANGELOG = [
-  'Messages dossier : réception quasi instantanée sans actualiser',
-  'Simulateur statuts : plus d’alerte d’erreur au démarrage',
-  'Mentions légales et assistant dossier : corrections récentes',
-  'Stabilité et performance générales',
+  'Didit et documents en ligne sur mobile (non-condamnation, souscripteurs, pouvoirs)',
+  'Header cockpit : recherche contextuelle, compte rapide, déconnexion confirmée',
+  'Pastille connectée et ombre au scroll sur le header mobile',
+  'Navigation mobile harmonisée et pages Documents/Messages dédiées',
 ];
 
 export const getAppVersionConfig = () => ({

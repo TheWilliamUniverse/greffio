@@ -154,7 +154,7 @@ export const MobileSidebarTrigger = ({ onClick, className }) => (
     onClick={onClick}
     aria-label="Ouvrir le menu de navigation"
     className={cn(
-      'inline-flex h-10 w-10 items-center justify-center rounded-md border border-border bg-white text-[#0a1220] transition hover:bg-muted',
+      'inline-flex h-11 w-11 items-center justify-center rounded-md border border-border bg-white text-[#0a1220] transition hover:bg-muted active:scale-[0.97]',
       className,
     )}
   >
