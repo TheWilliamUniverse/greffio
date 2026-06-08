@@ -25,7 +25,6 @@ import { AppBootSplash } from '@/components/system/AppBootSplash.jsx';
 
 export const AuthContext = createContext(null);
 
-const makeSessionToken = () => `greffio_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 const makeSession = (email, provider = 'email') => ({
   id: `sess_${Date.now()}`,
   provider,
@@ -114,12 +113,15 @@ export const AuthProvider = ({ children }) => {
         };
       }
       const user = apiPayload.user;
+      if (!apiPayload.accessToken || !apiPayload.refreshToken) {
+        return { success: false, error: 'Session serveur invalide. Réessayez ou contactez le support Greffio.' };
+      }
       setActiveSessionUserId(user?.id || null);
       initializeClientDataCache(user?.id || null);
       setCurrentUser(user);
       saveUser(user);
-      saveToken(apiPayload.accessToken || makeSessionToken());
-      saveRefreshToken(apiPayload.refreshToken || '');
+      saveToken(apiPayload.accessToken);
+      saveRefreshToken(apiPayload.refreshToken);
       saveSessions([makeSession(email, provider)]);
       try {
         const profilePayload = await fetchUserProfile();
@@ -151,12 +153,15 @@ export const AuthProvider = ({ children }) => {
     try {
       const apiPayload = await verifyMfaLogin({ mfaToken, code, recoveryCode, method });
       const user = apiPayload.user;
+      if (!apiPayload.accessToken || !apiPayload.refreshToken) {
+        return { success: false, error: 'Session serveur invalide. Réessayez ou contactez le support Greffio.' };
+      }
       setActiveSessionUserId(user?.id || null);
       initializeClientDataCache(user?.id || null);
       setCurrentUser(user);
       saveUser(user);
-      saveToken(apiPayload.accessToken || makeSessionToken());
-      saveRefreshToken(apiPayload.refreshToken || '');
+      saveToken(apiPayload.accessToken);
+      saveRefreshToken(apiPayload.refreshToken);
       saveSessions([makeSession(user.email)]);
       try {
         const profilePayload = await fetchUserProfile();
@@ -182,7 +187,8 @@ export const AuthProvider = ({ children }) => {
 
   const signup = async (userData) => {
     let effectiveUser = null;
-    let effectiveToken = makeSessionToken();
+    let effectiveAccessToken = null;
+    let effectiveRefreshToken = null;
     try {
       const apiSignup = await signupWithApi({
         email: userData.email,
@@ -202,15 +208,15 @@ export const AuthProvider = ({ children }) => {
         },
       });
       effectiveUser = apiSignup.user || null;
-      effectiveToken = apiSignup.accessToken || effectiveToken;
-      saveRefreshToken(apiSignup.refreshToken || '');
+      effectiveAccessToken = apiSignup.accessToken || null;
+      effectiveRefreshToken = apiSignup.refreshToken || null;
     } catch (error) {
       if (error?.message === 'EMAIL_ALREADY_EXISTS' || error?.payload?.error === 'EMAIL_ALREADY_EXISTS') {
         return { success: false, error: 'Un compte existe déjà avec cet email. Utilisez Connexion ou réinitialisez votre mot de passe.' };
       }
       return { success: false, error: 'Création du compte impossible. Réessayez ou contactez l’équipe Greffio.' };
     }
-    if (!effectiveUser) {
+    if (!effectiveUser || !effectiveAccessToken || !effectiveRefreshToken) {
       return { success: false, error: 'Création du compte impossible. Réessayez ou contactez l’équipe Greffio.' };
     }
 
@@ -219,7 +225,8 @@ export const AuthProvider = ({ children }) => {
     setCurrentUser(effectiveUser);
     saveUser(effectiveUser);
     rememberLoginAlertsChoice(effectiveUser);
-    saveToken(effectiveToken);
+    saveToken(effectiveAccessToken);
+    saveRefreshToken(effectiveRefreshToken);
     saveSessions([makeSession(userData.email)]);
     saveSecuritySettings({
       mfaEnabled: false,

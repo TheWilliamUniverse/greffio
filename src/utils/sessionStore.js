@@ -2,51 +2,60 @@ const LEGACY_CURRENT_DOSSIER_KEY = 'greffio_current_dossier_id';
 
 let activeUserId = null;
 
+const migrateLegacyDossierId = (userId) => {
+  if (!userId) return;
+  try {
+    const scoped = `greffio_current_dossier_${userId}`;
+    const legacy = window.localStorage.getItem(LEGACY_CURRENT_DOSSIER_KEY);
+    if (legacy && !window.localStorage.getItem(scoped)) {
+      window.localStorage.setItem(scoped, legacy);
+    }
+    window.localStorage.removeItem(LEGACY_CURRENT_DOSSIER_KEY);
+  } catch (_error) {
+    // ignore storage failure
+  }
+};
+
 export const setActiveSessionUserId = (userId) => {
-  activeUserId = userId ? String(userId) : null;
+  const next = userId ? String(userId) : null;
+  if (next) migrateLegacyDossierId(next);
+  activeUserId = next;
 };
 
 const scopedKey = (userId = activeUserId) => (
-  userId ? `greffio_current_dossier_${userId}` : LEGACY_CURRENT_DOSSIER_KEY
+  userId ? `greffio_current_dossier_${userId}` : null
 );
 
 export const saveCurrentDossierId = (dossierId, userId = activeUserId) => {
   const key = scopedKey(userId);
-  if (!dossierId) {
-    try {
-      window.localStorage.removeItem(key);
-      if (userId) window.localStorage.removeItem(LEGACY_CURRENT_DOSSIER_KEY);
-    } catch (_error) {
-      // ignore storage failure
-    }
-    return;
-  }
+  if (!key) return;
   try {
+    if (!dossierId) {
+      window.localStorage.removeItem(key);
+      return;
+    }
     window.localStorage.setItem(key, dossierId);
-    if (userId) window.localStorage.removeItem(LEGACY_CURRENT_DOSSIER_KEY);
+    window.localStorage.removeItem(LEGACY_CURRENT_DOSSIER_KEY);
   } catch (_error) {
     // ignore storage failure
   }
 };
 
 export const getCurrentDossierId = (userId = activeUserId) => {
+  const key = scopedKey(userId);
+  if (!key) return null;
   try {
-    const key = scopedKey(userId);
-    const scoped = window.localStorage.getItem(key);
-    if (scoped) return scoped;
-    if (userId) return null;
-    return window.localStorage.getItem(LEGACY_CURRENT_DOSSIER_KEY);
+    return window.localStorage.getItem(key);
   } catch (_error) {
     return null;
   }
 };
 
 export const clearCurrentDossierId = (userId = activeUserId) => {
+  const key = scopedKey(userId);
+  if (!key) return;
   try {
-    window.localStorage.removeItem(scopedKey(userId));
-    if (!userId || userId === activeUserId) {
-      window.localStorage.removeItem(LEGACY_CURRENT_DOSSIER_KEY);
-    }
+    window.localStorage.removeItem(key);
   } catch (_error) {
     // ignore storage failure
   }

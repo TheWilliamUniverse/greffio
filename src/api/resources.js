@@ -1,83 +1,22 @@
+import { apiGet, apiPost, parseApiResponse } from '@/api/client.js';
 import { runtimeConfig } from '@/config/runtime.js';
-import { getToken } from '@/utils/localStorage.js';
 
-const parseResponse = async (response) => {
-  if (response.ok) return response.json();
-  let payload = null;
-  try {
-    payload = await response.json();
-  } catch (_error) {
-    payload = null;
-  }
-  const error = new Error(payload?.error || 'API_ERROR');
-  error.payload = payload;
-  error.status = response.status;
-  throw error;
+const publicGet = async (path) => {
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}${path}`, { cache: 'no-store' });
+  return parseApiResponse(response);
 };
 
-export const fetchResourceServices = async () => {
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/resources/services`);
-  return parseResponse(response);
-};
+export const fetchResourceServices = async () => publicGet('/api/resources/services');
 
 export const searchResourceServices = async (query) => {
   const params = new URLSearchParams({ q: query });
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/resources/search?${params}`);
-  return parseResponse(response);
+  return publicGet(`/api/resources/search?${params}`);
 };
 
-export const fetchResourceConfig = async () => {
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/resources/config`);
-  return parseResponse(response);
-};
+export const fetchResourceConfig = async () => publicGet('/api/resources/config');
 
-export const getResourceOrder = async (orderId) => {
-  const token = getToken();
-  if (!token) {
-    const error = new Error('AUTH_TOKEN_MISSING');
-    error.status = 401;
-    throw error;
-  }
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/resources/orders/${orderId}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  return parseResponse(response);
-};
+export const getResourceOrder = async (orderId) => apiGet(`/api/resources/orders/${orderId}`);
 
-export const checkoutResourceOrder = async (orderId) => {
-  const token = getToken();
-  if (!token) {
-    const error = new Error('AUTH_TOKEN_MISSING');
-    error.status = 401;
-    throw error;
-  }
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/resources/orders/${orderId}/checkout`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  return parseResponse(response);
-};
+export const checkoutResourceOrder = async (orderId) => apiPost(`/api/resources/orders/${orderId}/checkout`);
 
-export const createResourceOrder = async (payload) => {
-  const token = getToken();
-  if (!token) {
-    const error = new Error('AUTH_TOKEN_MISSING');
-    error.status = 401;
-    throw error;
-  }
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/resources/orders`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(payload),
-  });
-  return parseResponse(response);
-};
+export const createResourceOrder = async (payload) => apiPost('/api/resources/orders', payload);

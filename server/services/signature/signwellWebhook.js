@@ -19,6 +19,11 @@ export const createSignwellWebhookHandler = (deps) => async (req, res) => {
     return res.status(503).json({ ok: false, error: 'SIGNWELL_NOT_CONFIGURED' });
   }
 
+  if (process.env.NODE_ENV === 'production' && !process.env.SIGNWELL_WEBHOOK_ID) {
+    console.error('[signwell] SIGNWELL_WEBHOOK_ID manquant en production');
+    return res.status(503).json({ ok: false, error: 'SIGNWELL_WEBHOOK_ID_REQUIRED' });
+  }
+
   const payload = req.body || {};
   const event = payload.event || {};
   const eventType = String(event.type || '').trim();

@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { PAYMENT_METHODS } from '@/config/businessCatalog.js';
-import { createPayment } from '@/api/payments.js';
+import { checkoutDossierPayment } from '@/api/payments.js';
 import { inferCustomerType, isB2B } from '@/utils/customerType.js';
 import { checkoutResourceOrder, getResourceOrder } from '@/api/resources.js';
 import { getCatalogItemById } from '@/config/resourceServices.js';
@@ -101,7 +101,7 @@ export const PaymentPage = () => {
         toast.error('Aucun dossier actif. Créez votre compte ou dossier avant le paiement.');
         return;
       }
-      const payload = await createPayment({
+      const payload = await checkoutDossierPayment({
         dossierId,
         offerCode: offerName,
         customerType,

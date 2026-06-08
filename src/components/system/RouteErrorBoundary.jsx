@@ -1,6 +1,7 @@
 import React from 'react';
 import { MobileErrorFallback } from '@/components/system/MobileErrorFallback.jsx';
 import { isChunkLoadError, reloadForChunkError } from '@/utils/chunkRecovery.js';
+import { reportClientError } from '@/utils/observability/errorReporting.js';
 
 export class RouteErrorBoundary extends React.Component {
   constructor(props) {
@@ -20,6 +21,7 @@ export class RouteErrorBoundary extends React.Component {
     if (import.meta.env.DEV) {
       console.error('[RouteErrorBoundary]', error, info);
     }
+    reportClientError(error, { source: 'RouteErrorBoundary', componentStack: info?.componentStack || null });
   }
 
   componentDidUpdate(prevProps) {

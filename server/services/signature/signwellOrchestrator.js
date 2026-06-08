@@ -127,105 +127,112 @@ export const completeSignwellDocument = async ({
     os.tmpdir(),
     `signwell_${signwellDocumentId}_${Date.now()}.pdf`,
   );
-  fs.writeFileSync(tmpPath, pdfBuffer);
-  const sha256Signed = createHash('sha256').update(pdfBuffer).digest('hex');
-  const fields = record.metadata?.fields || {};
-  const sha256Draft = record.metadata?.sha256Draft || null;
-  const editableConfig = getEditableDocumentConfig(record.docKey);
-
-  if (editableConfig) {
-    await persistSignedEditableDocumentPdf({
-      docKey: editableConfig.docKey,
-      schemaVersion: editableConfig.schemaVersion,
-      dossier,
-      signedLocalPath: tmpPath,
-      fields,
-      updateDossierDocument,
-      listDossierDocuments,
-      DOCUMENT_STATUSES,
-      metadataExtra: {
-        signedAt: signedAtIso,
-        sha256BeforeSignature: sha256Draft,
-        sha256AfterSignature: sha256Signed,
-        provider: SIGNWELL_PROVIDER,
-        signwellDocumentId,
-      },
-    });
-  } else if (record.docKey === NON_CONVICTION_DOC_KEY) {
-    await persistSignedNonConvictionPdf({
-      dossier,
-      signedLocalPath: tmpPath,
-      fields,
-      updateDossierDocument,
-      listDossierDocuments,
-      DOCUMENT_STATUSES,
-      metadataExtra: {
-        signedAt: signedAtIso,
-        sha256BeforeSignature: sha256Draft,
-        sha256AfterSignature: sha256Signed,
-        provider: SIGNWELL_PROVIDER,
-        signwellDocumentId,
-        signerEmail: record.signerEmail,
-        signerFullName: record.signerFullName,
-      },
-    });
-  } else {
-    fs.unlinkSync(tmpPath);
-    return { ok: false, error: 'UNSUPPORTED_DOC_KEY' };
-  }
-
-  if (record.signatureRequestId) {
-    await markSignatureRequestSigned({
-      id: record.signatureRequestId,
-      signedPdfPath: tmpPath,
-      sha256Signed,
-      ipAddress: null,
-      userAgent: 'signwell-webhook',
-      evidence: {
-        provider: SIGNWELL_PROVIDER,
-        signwellDocumentId,
-        sha256Draft,
-        sha256Signed,
-      },
-    });
-  }
-
   try {
-    await createSignatureRecord({
-      dossierId: record.dossierId,
-      evidence: {
-        provider: SIGNWELL_PROVIDER,
-        signwellDocumentId,
+    fs.writeFileSync(tmpPath, pdfBuffer);
+    const sha256Signed = createHash('sha256').update(pdfBuffer).digest('hex');
+    const fields = record.metadata?.fields || {};
+    const sha256Draft = record.metadata?.sha256Draft || null;
+    const editableConfig = getEditableDocumentConfig(record.docKey);
+
+    if (editableConfig) {
+      await persistSignedEditableDocumentPdf({
+        docKey: editableConfig.docKey,
+        schemaVersion: editableConfig.schemaVersion,
+        dossier,
+        signedLocalPath: tmpPath,
+        fields,
+        updateDossierDocument,
+        listDossierDocuments,
+        DOCUMENT_STATUSES,
+        metadataExtra: {
+          signedAt: signedAtIso,
+          sha256BeforeSignature: sha256Draft,
+          sha256AfterSignature: sha256Signed,
+          provider: SIGNWELL_PROVIDER,
+          signwellDocumentId,
+        },
+      });
+    } else if (record.docKey === NON_CONVICTION_DOC_KEY) {
+      await persistSignedNonConvictionPdf({
+        dossier,
+        signedLocalPath: tmpPath,
+        fields,
+        updateDossierDocument,
+        listDossierDocuments,
+        DOCUMENT_STATUSES,
+        metadataExtra: {
+          signedAt: signedAtIso,
+          sha256BeforeSignature: sha256Draft,
+          sha256AfterSignature: sha256Signed,
+          provider: SIGNWELL_PROVIDER,
+          signwellDocumentId,
+          signerEmail: record.signerEmail,
+          signerFullName: record.signerFullName,
+        },
+      });
+    } else {
+      return { ok: false, error: 'UNSUPPORTED_DOC_KEY' };
+    }
+
+    if (record.signatureRequestId) {
+      await markSignatureRequestSigned({
+        id: record.signatureRequestId,
+        signedPdfPath: tmpPath,
+        sha256Signed,
+        ipAddress: null,
+        userAgent: 'signwell-webhook',
+        evidence: {
+          provider: SIGNWELL_PROVIDER,
+          signwellDocumentId,
+          sha256Draft,
+          sha256Signed,
+        },
+      });
+    }
+
+    try {
+      await createSignatureRecord({
+        dossierId: record.dossierId,
+        evidence: {
+          provider: SIGNWELL_PROVIDER,
+          signwellDocumentId,
+          sha256Signed,
+        },
+        ipAddress: null,
+        userAgent: 'signwell-webhook',
+      });
+    } catch (auditError) {
+      console.error('SIGNWELL_SIGNATURE_AUDIT_FAILED', auditError);
+    }
+
+    await updateSignwellDocumentStatus(record.id, 'completed', {
+      metadata: {
+        ...record.metadata,
+        signedAt: signedAtIso,
         sha256Signed,
       },
-      ipAddress: null,
-      userAgent: 'signwell-webhook',
     });
-  } catch (auditError) {
-    console.error('SIGNWELL_SIGNATURE_AUDIT_FAILED', auditError);
+
+    void sendTransactionalEmail({
+      to: { email: record.signerEmail, name: record.signerFullName },
+      templateKey: record.docKey === NON_CONVICTION_DOC_KEY
+        ? 'non_conviction_signature_completed'
+        : 'non_conviction_signature_completed',
+      variables: {
+        companyName: dossier.companyName || dossier.denomination || 'Votre société',
+        signedDownloadLink: `${appUrl}/documents`,
+        firstName: record.signerFullName.split(' ')[0] || 'Client',
+      },
+      dossierId: record.dossierId,
+      tags: ['signature', 'signwell', record.docKey],
+    });
+
+    return { ok: true, status: 'completed', signwellDocumentId };
+  } finally {
+    try {
+      if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
+    } catch (_cleanupError) {
+      // ignore temp cleanup failure
+    }
   }
-
-  await updateSignwellDocumentStatus(record.id, 'completed', {
-    metadata: {
-      ...record.metadata,
-      signedAt: signedAtIso,
-      sha256Signed,
-    },
-  });
-
-  void sendTransactionalEmail({
-    to: { email: record.signerEmail, name: record.signerFullName },
-    templateKey: record.docKey === NON_CONVICTION_DOC_KEY
-      ? 'non_conviction_signature_completed'
-      : 'non_conviction_signature_completed',
-    variables: {
-      companyName: dossier.companyName || dossier.denomination || 'Votre société',
-      signedDownloadLink: `${appUrl}/documents`,
-      firstName: record.signerFullName.split(' ')[0] || 'Client',
-    },
-    dossierId: record.dossierId,
-    tags: ['signature', 'signwell', record.docKey],
-  });
-
-  return { ok: true, status: 'completed', signwellDocumentId };
 };

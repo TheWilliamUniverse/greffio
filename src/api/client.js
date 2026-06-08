@@ -101,3 +101,8 @@ export const apiPut = (path, body, options = {}) => apiFetch(path, {
   body: body instanceof FormData || typeof body === 'string' ? body : JSON.stringify(body ?? {}),
 });
 export const apiDelete = (path, options = {}) => apiFetch(path, { ...options, method: 'DELETE' });
+export const apiPatch = (path, body, options = {}) => apiFetch(path, {
+  ...options,
+  method: 'PATCH',
+  body: body instanceof FormData || typeof body === 'string' ? body : JSON.stringify(body ?? {}),
+});
