@@ -6,7 +6,8 @@ $checks = @(
   @{ Name = 'API ready'; Url = 'https://api.greffio.willentreprises.com/api/ready' },
   @{ Name = 'Front home'; Url = 'https://greffio.willentreprises.com/' },
   @{ Name = 'Front tarifs'; Url = 'https://greffio.willentreprises.com/tarifs' },
-  @{ Name = 'Front simulateur'; Url = 'https://greffio.willentreprises.com/simulateur?type=statuts' }
+  @{ Name = 'Front simulateur'; Url = 'https://greffio.willentreprises.com/simulateur?type=statuts' },
+  @{ Name = 'API app-version'; Url = 'https://api.greffio.willentreprises.com/api/app-version' }
 )
 
 $failed = 0

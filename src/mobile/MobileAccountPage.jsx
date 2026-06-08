@@ -21,6 +21,7 @@ import { useMobileShellOverlay } from '@/mobile/context/MobileShellOverlayContex
 import { useMobileMotion } from '@/mobile/ui/mobileMotion.js';
 import { isCapacitorNative } from '@/utils/platform.js';
 import { isBiometricUnlockEnabled, getBiometryLabel } from '@/utils/biometricAuth.js';
+import { GreffioVersionCard } from '@/components/system/GreffioVersionCard.jsx';
 
 const rows = [
   { to: '/profil', icon: UserRound, label: 'Profil', hint: 'Identité et coordonnées' },
@@ -154,6 +155,10 @@ export const MobileAccountPage = () => {
       </ul>
 
       <MobileAnimatedSection delay={0.08}>
+        <GreffioVersionCard compact />
+      </MobileAnimatedSection>
+
+      <MobileAnimatedSection delay={0.1}>
         <section className="rounded-3xl border border-border/70 bg-white p-4 text-xs leading-relaxed text-muted-foreground">
           <p>
             <Link to="/confidentialite" className="font-semibold text-primary">Confidentialité</Link>

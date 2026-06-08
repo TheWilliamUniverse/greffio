@@ -38,8 +38,8 @@ export const MobileDocumentScanner = ({
         file: pdfFile,
       });
       toast.success(`PDF envoyé : ${pdfFile.name}`);
-    } catch (_error) {
-      toast.error('Échec de l’envoi. Vérifiez votre connexion et réessayez.');
+    } catch (error) {
+      toast.error(error?.message || 'Échec de l’envoi. Vérifiez votre connexion et réessayez.');
     } finally {
       setUploading(false);
     }

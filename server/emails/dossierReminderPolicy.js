@@ -24,13 +24,18 @@ export const resolveUserEmailPreferences = (user) => {
   };
 };
 
+export const resolveMinReminderDays = () => {
+  const parsed = Number.parseInt(String(process.env.DOSSIER_REMINDER_MIN_DAYS ?? ''), 10);
+  return Number.isFinite(parsed) && parsed >= 1 ? parsed : 2;
+};
+
 export const shouldSendReminderForUser = async ({
   userId,
   templateId,
   dossierId = null,
   recipientEmail,
   daysSinceAction = 0,
-  minDays = 7,
+  minDays = resolveMinReminderDays(),
 }) => {
   if (!REMINDER_TEMPLATES.has(templateId) && templateId !== DIGEST_TEMPLATE) {
     return { ok: true };

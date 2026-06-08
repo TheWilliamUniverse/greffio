@@ -1,4 +1,5 @@
 import { buildOpsCockpitPayload, enrichDossierForOps } from '../services/opsCockpitService.js';
+import { isEphemeralPlaceholderDossier } from '../utils/placeholderDossier.js';
 import { computeDossierRisk, sortAntiRejectionQueue } from '../services/opsRisk.js';
 import { buildCanonicalDocumentFilename } from '../documentNaming.js';
 import { downloadDocumentBufferFromConfiguredStorage } from '../services/objectStorage.js';
@@ -17,6 +18,7 @@ export const registerOpsRoutes = (app, deps) => {
     getAllDossiers,
     listDossierDocuments,
     getAllPayments,
+    getStorageFailureSnapshot,
     getDossier,
     getUserById,
     getUserByEmail,
@@ -42,6 +44,11 @@ export const registerOpsRoutes = (app, deps) => {
       getAllDossiers,
       listDossierDocuments,
       getAllPayments,
+      getStorageFailures: getStorageFailureSnapshot || (() => ({ total: 0, recent: [] })),
+      countPlaceholderDossiers: async () => {
+        const all = await getAllDossiers();
+        return all.filter((entry) => isEphemeralPlaceholderDossier(entry)).length;
+      },
     });
     return res.json({ ok: true, ...payload });
   });

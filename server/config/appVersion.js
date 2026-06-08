@@ -39,11 +39,11 @@ const DEFAULT_MIN_VERSION_CODE = 261422041;
 const DEFAULT_LATEST_VERSION_NAME = '1.2.8';
 
 const DEFAULT_CHANGELOG = [
-  'Simulateur mobile : interface plus directe, cartes cliquables, moins de scroll',
-  'Nouveau dossier : démarrage propre sans reprise d’un ancien parcours',
-  'Suppression dossier : bouton en bas de l’onglet Actions (corbeille 72 h)',
-  'Emails : dossier créé uniquement après validation ; relance si démarche entamée',
-  'Corrections layout dashboard et upload documents',
+  'Simulateur mobile fluide, questionnaire sticky, reprise vs nouveau dossier clarifiés',
+  'Auth résiliente pendant les mises à jour serveur — plus de session invalide intempestive',
+  'Upload documents : erreurs lisibles, scanner PDF natif avec retour visuel',
+  'Validation questionnaire → statuts avec dossierId, purge auto des brouillons fantômes',
+  'Cockpit Ops enrichi, relances 2 j, version visible dans le profil',
 ];
 
 export const getAppVersionConfig = () => ({

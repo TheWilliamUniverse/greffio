@@ -1,7 +1,7 @@
 import { sendTransactionalEmail } from '../services/emailService.js';
 import { getDossier } from '../store.js';
 import { shouldSendDossierEmail } from './dossierEmailPolicy.js';
-import { shouldSendReminderForUser } from './dossierReminderPolicy.js';
+import { resolveMinReminderDays, shouldSendReminderForUser } from './dossierReminderPolicy.js';
 
 const defaultClientUrl = process.env.APP_URL || 'https://greffio.willentreprises.com';
 
@@ -35,6 +35,7 @@ const sendDossierEmail = async ({
     dossierId: dossier?.id || null,
     recipientEmail: toEmail,
     daysSinceAction,
+    minDays: resolveMinReminderDays(),
   });
   if (!reminderPolicy.ok) {
     return { ok: true, skipped: true, reason: reminderPolicy.reason, templateId };

@@ -67,7 +67,7 @@ export const computeSlaStatus = ({ dossier, documents = [] }) => {
   if (pendingReview > 0 && ageHours >= 12) {
     return { status: 'late', label: 'En retard', deadlineHours: 12, overdueHours: ageHours - 12 };
   }
-  if (ageHours >= 72) {
+  if (ageHours >= 48) {
     return { status: 'late', label: 'En retard', deadlineHours: 48, overdueHours: ageHours - 48 };
   }
   if (ageHours >= 24 || pendingReview > 0) {
@@ -193,7 +193,13 @@ export const enrichDossierForOps = ({ dossier, documents = [] }) => {
   };
 };
 
-export const buildOpsCockpitPayload = async ({ getAllDossiers, listDossierDocuments, getAllPayments }) => {
+export const buildOpsCockpitPayload = async ({
+  getAllDossiers,
+  listDossierDocuments,
+  getAllPayments,
+  getStorageFailures = () => ({ total: 0, recent: [] }),
+  countPlaceholderDossiers = () => 0,
+}) => {
   const dossiers = await getAllDossiers();
   const payments = await getAllPayments();
 
@@ -209,14 +215,21 @@ export const buildOpsCockpitPayload = async ({ getAllDossiers, listDossierDocume
     .filter((item) => item.sla.status === 'critical' || item.sla.status === 'late' || item.risk.riskScore >= 45 || item.pendingDocuments > 0)
     .slice(0, 12);
 
+  const storageFailures = getStorageFailures();
+  const blockedOver48h = enriched.filter((item) => (item.sla.overdueHours || 0) > 0 || (hoursSince(item.dossier.updatedAt || item.dossier.createdAt) ?? 0) >= 48).length;
+  const placeholderDossiers = await Promise.resolve(countPlaceholderDossiers());
+
   const kpis = {
     activeDossiers: dossiers.filter((d) => !['completed', 'abandoned', 'rejected'].includes(String(d.status || ''))).length,
     documentsToValidate: enriched.reduce((sum, item) => sum + item.pendingDocuments, 0),
     lateDossiers: enriched.filter((item) => item.sla.status === 'late' || item.sla.status === 'critical').length,
+    blockedOver48h,
     highRisk: enriched.filter((item) => item.risk.riskScore >= 70).length,
     readyForDeposit: enriched.filter((item) => item.readyForDeposit).length,
     paymentsPending: payments.filter((p) => String(p.status || '').toLowerCase() !== 'paid').length,
     remindersSuggested: enriched.filter((item) => item.nextBestAction.type === 'reminder' || item.nextBestAction.type === 'missing_docs').length,
+    storageUploadFailures: Number(storageFailures?.total || 0),
+    placeholderDossiers,
     averageCompletion: enriched.length
       ? Math.round(enriched.reduce((sum, item) => sum + item.completionScore, 0) / enriched.length)
       : 0,
@@ -224,6 +237,9 @@ export const buildOpsCockpitPayload = async ({ getAllDossiers, listDossierDocume
 
   const priorityCards = [
     { id: 'late', label: 'En retard', count: kpis.lateDossiers, filter: 'sla:late' },
+    { id: 'blocked48', label: 'Bloqués > 48 h', count: kpis.blockedOver48h, filter: 'sla:late' },
+    { id: 'storage', label: 'Uploads S3 échoués', count: kpis.storageUploadFailures, filter: 'storage:failed' },
+    { id: 'ghost', label: 'Brouillons fantômes', count: kpis.placeholderDossiers, filter: 'placeholder:ghost' },
     { id: 'remind', label: 'À relancer', count: kpis.remindersSuggested, filter: 'action:reminder' },
     { id: 'blocked_client', label: 'Bloqués client', count: enriched.filter((i) => i.dossier.opsQueue === 'waiting_client').length, filter: 'queue:waiting_client' },
     { id: 'blocked_ops', label: 'Bloqués ops', count: enriched.filter((i) => i.dossier.opsQueue === 'blocked').length, filter: 'queue:blocked' },

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, FileText, FolderKanban, MessageSquareText } from 'lucide-react';
+import { ArrowRight, FileText, FolderKanban, MessageSquareText, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
@@ -16,6 +16,7 @@ import { useMobileMotion } from '@/mobile/ui/mobileMotion.js';
 import { OfflineDataBanner } from '@/components/system/OfflineDataBanner.jsx';
 import { mapDossierClientAction } from '@/utils/dossierClientStatus.js';
 import { resolveDossierContinueUrl } from '@/utils/dossierContinueUrl.js';
+import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 
 export const MobileHomePage = () => {
   const { currentUser } = useAuth();
@@ -80,12 +81,22 @@ export const MobileHomePage = () => {
               {primaryDossier?.companyName || 'Aucun dossier actif'}
             </h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">{actionLabel}</p>
-            <Button asChild className="mt-4 h-11 w-full rounded-2xl text-base">
-              <Link to={primaryDossier ? resolveDossierContinueUrl(primaryDossier) : '/simulateur'}>
-                {primaryDossier ? 'Continuer' : 'Commencer'}
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
+            <div className="mt-4 flex flex-col gap-2">
+              <Button asChild className="h-11 w-full rounded-2xl text-base">
+                <Link to={primaryDossier ? resolveDossierContinueUrl(primaryDossier) : '/simulateur'}>
+                  {primaryDossier ? 'Reprendre mon dossier' : 'Commencer'}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+              {primaryDossier ? (
+                <Button asChild variant="outline" className="h-11 w-full rounded-2xl bg-white text-base">
+                  <Link to={QUESTIONNAIRE_NEW_PATH}>
+                    Nouveau dossier
+                    <Plus className="h-4 w-4" />
+                  </Link>
+                </Button>
+              ) : null}
+            </div>
           </motion.section>
         </MobileAnimatedSection>
 

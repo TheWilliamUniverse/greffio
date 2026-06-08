@@ -1,6 +1,8 @@
 import React from 'react';
 import { QuestionBackButton } from '@/components/questionnaire/QuestionBackButton.jsx';
 import { QuestionContinueButton } from '@/components/questionnaire/QuestionContinueButton.jsx';
+import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
+import { cn } from '@/lib/utils.js';
 
 export const StepLayout = ({
   title,
@@ -17,9 +19,22 @@ export const StepLayout = ({
   continueLabel = 'Continuer',
   onEnterNext,
   children,
-}) => (
+}) => {
+  const nativeApp = isCapacitorNative();
+  const mobileShell = nativeApp || isMobileBrowserViewport();
+  const bottomNavVar = nativeApp ? 'var(--bottom-nav-height)' : 'var(--bottom-nav-height-web,3.5rem)';
+  const actionBarClass = mobileShell
+    ? `sticky bottom-[calc(${bottomNavVar}+env(safe-area-inset-bottom))] z-20 border-t border-[#e2ebf8] bg-white/95 px-4 py-4 backdrop-blur-sm md:static md:bg-[#fafcff] md:px-6 md:py-5 md:backdrop-blur-none lg:px-8`
+    : 'flex flex-wrap items-center justify-between gap-3 border-t border-[#e2ebf8] bg-[#fafcff] px-6 py-5 md:px-8';
+
+  return (
   <section
-    className="overflow-hidden rounded-[1.35rem] border border-[#d4e2f5] bg-white shadow-[0_18px_48px_rgba(15,31,61,0.08)]"
+    className={cn(
+      'overflow-hidden bg-white',
+      mobileShell
+        ? 'rounded-none border-0 shadow-none'
+        : 'rounded-[1.35rem] border border-[#d4e2f5] shadow-[0_18px_48px_rgba(15,31,61,0.08)]',
+    )}
     onKeyDown={(event) => {
       if (event.key !== 'Enter' || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
       const tagName = String(event.target?.tagName || '').toUpperCase();
@@ -53,9 +68,10 @@ export const StepLayout = ({
       {securityNode}
     </div>
 
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e2ebf8] bg-[#fafcff] px-6 py-5 md:px-8">
+    <div className={cn(actionBarClass, 'flex flex-wrap items-center justify-between gap-3')}>
       <QuestionBackButton type="button" onClick={onBack} disabled={!canGoBack} />
       <QuestionContinueButton type="button" label={continueLabel} onClick={onNext} disabled={!canGoNext} />
     </div>
   </section>
-);
+  );
+};

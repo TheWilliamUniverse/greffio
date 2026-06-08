@@ -110,6 +110,7 @@ import { getCompanyLookupMetrics, lookupCompany } from './services/companyLookup
 import { buildIntelligentPrefill } from './services/intelligentIntake.js';
 import { computeDossierRisk, sortAntiRejectionQueue } from './services/opsRisk.js';
 import { buildOpsCockpitPayload, enrichDossierForOps } from './services/opsCockpitService.js';
+import { logStructured } from './utils/structuredLog.js';
 import { draftStatutesDocument } from './services/statutesDrafting.js';
 import { buildSimulatorStatutesPreview } from './services/simulatorStatutesPreviewService.js';
 import { buildDocumentPreviewBuffer } from './services/documentEditorPreviewService.js';
@@ -934,10 +935,21 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     return res.status(401).json({ ok: false, error: 'INVALID_CREDENTIALS' });
   }
   clearLoginFailures(email);
+  const runPostLoginMaintenance = async (userId) => {
+    try {
+      const result = await purgePlaceholderDossiersForUser({ userId, deletedBy: userId });
+      if (result.purged > 0) {
+        logStructured.info('LOGIN_PLACEHOLDER_PURGE', { userId, purged: result.purged, dossierIds: result.ids });
+      }
+    } catch (_error) {
+      logStructured.warn('LOGIN_PLACEHOLDER_PURGE_FAILED', { userId });
+    }
+  };
   const mfaDeviceToken = String(req.headers['x-greffio-mfa-device'] || '').trim();
   if (await isMfaEnabled(user.id)) {
     if (mfaDeviceToken && await hasValidTrustedDevice(user.id, mfaDeviceToken)) {
       void maybeSendLoginAlertEmail(req, user, ['trusted_device']);
+      void runPostLoginMaintenance(user.id);
       return res.json({
         ok: true,
         user,
@@ -960,6 +972,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     });
   }
   void maybeSendLoginAlertEmail(req, user);
+  void runPostLoginMaintenance(user.id);
   return res.json({
     ok: true,
     user,
@@ -1256,6 +1269,13 @@ app.post('/api/auth/mfa/verify-login', authLimiter, async (req, res) => {
   }
 
   await maybeSendLoginAlertEmail(req, user, ['mfa']);
+  void purgePlaceholderDossiersForUser({ userId: user.id, deletedBy: user.id }).then((result) => {
+    if (result.purged > 0) {
+      logStructured.info('LOGIN_PLACEHOLDER_PURGE', { userId: user.id, purged: result.purged, dossierIds: result.ids });
+    }
+  }).catch(() => {
+    logStructured.warn('LOGIN_PLACEHOLDER_PURGE_FAILED', { userId: user.id });
+  });
 
   return res.json({
     ok: true,
@@ -1673,6 +1693,7 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
   const analysis = await analyzeDocument({
     pdfBuffer: req.file.mimetype === 'application/pdf' ? req.file.buffer : undefined,
     docKey,
+    dossierId: dossier.id,
   });
   const analysisStatus = analysis.ok && analysis.requiresManualReview
     ? DOCUMENT_STATUSES.UNDER_REVIEW
@@ -2721,6 +2742,7 @@ registerOpsRoutes(app, {
   getAllDossiers,
   listDossierDocuments,
   getAllPayments,
+  getStorageFailureSnapshot,
   getDossier,
   getUserById,
   getUserByEmail,

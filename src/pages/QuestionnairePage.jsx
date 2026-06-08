@@ -600,10 +600,11 @@ export const QuestionnairePage = () => {
     }
 
     if (stepIndex >= QUESTIONNAIRE_FLOW.length - 1) {
-      toast.success('Questionnaire enregistré.');
+      const resolvedDossierId = dossierId || getCurrentDossierId();
+      toast.success('Questionnaire validé — vos données sont enregistrées.');
       const form = String(formData.formeJuridique || '').toUpperCase();
-      if (!eiLike && isStatutesSupportedForm(form)) {
-        navigate('/statuts');
+      if (!eiLike && isStatutesSupportedForm(form) && resolvedDossierId) {
+        navigate(`/statuts?dossierId=${encodeURIComponent(resolvedDossierId)}`);
       } else {
         navigate('/dashboard');
       }
@@ -923,7 +924,7 @@ export const QuestionnairePage = () => {
   };
 
   return (
-    <div ref={wizardTopRef} className="mx-auto max-w-4xl px-4 py-8 pb-6 sm:px-6 sm:py-10 lg:px-8">
+    <div ref={wizardTopRef} className="mx-auto max-w-4xl px-4 py-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-10 lg:px-8">
       <StepLayout
         title={step.title}
         description={step.description}

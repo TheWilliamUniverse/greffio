@@ -234,7 +234,15 @@ export const DashboardPage = () => {
           </section>
 
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {stats.map((stat) => (
+            {loadingApi ? Array.from({ length: 4 }).map((_, index) => (
+              <Card key={`sk-${index}`} className="border-border bg-white shadow-elevation-sm">
+                <CardContent className="animate-pulse p-5">
+                  <div className="mb-5 h-11 w-11 rounded-md bg-muted" />
+                  <div className="h-4 w-24 rounded bg-muted" />
+                  <div className="mt-3 h-8 w-16 rounded bg-muted" />
+                </CardContent>
+              </Card>
+            )) : stats.map((stat) => (
               <Card key={stat.label} className="border-border bg-white shadow-elevation-sm">
                 <CardContent className="p-5">
                   <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-md bg-secondary text-primary">
@@ -301,21 +309,31 @@ export const DashboardPage = () => {
                   </Button>
                 </div>
                 <div className="overflow-hidden rounded-md border border-border bg-white shadow-elevation-sm">
-                  <div className="grid grid-cols-[1fr_130px_120px_110px] gap-4 border-b border-border bg-muted px-5 py-3 text-xs font-bold uppercase text-muted-foreground max-lg:hidden">
+                  <div className="hidden gap-4 border-b border-border bg-muted px-5 py-3 text-xs font-bold uppercase text-muted-foreground xl:grid xl:grid-cols-[minmax(0,1fr)_130px_120px_110px]">
                     <span>Dossier</span>
                     <span>Statut</span>
                     <span>Échéance</span>
                     <span>Avancement</span>
                   </div>
                   {dossiers.slice(0, 4).map((dossier, index) => (
-                    <Link key={dossier.id} to={resolveDossierContinueUrl(dossiersRaw[index] || dossier)} className="grid gap-4 border-b border-border px-5 py-4 transition hover:bg-muted/60 lg:grid-cols-[1fr_130px_120px_110px] lg:items-center last:border-b-0">
+                    <Link
+                      key={dossier.id}
+                      to={resolveDossierContinueUrl(dossiersRaw[index] || dossier)}
+                      className="block border-b border-border px-5 py-4 transition hover:bg-muted/60 last:border-b-0 xl:grid xl:grid-cols-[minmax(0,1fr)_130px_120px_110px] xl:items-center xl:gap-4"
+                    >
                       <div>
                         <p className="font-bold text-foreground">{dossier.name}</p>
                         <p className="mt-1 text-sm text-muted-foreground">{dossier.nextAction} · Responsable : {dossier.expert}</p>
+                        <div className="mt-3 flex flex-wrap items-center gap-2 xl:hidden">
+                          <StatusBadge status={dossier.status} className="w-fit" />
+                          <span className="text-xs font-semibold text-muted-foreground">
+                            {new Date(dossier.dueDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                          </span>
+                        </div>
                       </div>
-                      <StatusBadge status={dossier.status} className="w-fit" />
-                      <span className="text-sm font-semibold text-foreground">{new Date(dossier.dueDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}</span>
-                      <div>
+                      <StatusBadge status={dossier.status} className="hidden w-fit xl:inline-flex" />
+                      <span className="hidden text-sm font-semibold text-foreground xl:inline">{new Date(dossier.dueDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}</span>
+                      <div className="mt-3 xl:mt-0">
                         <div className="h-2 rounded-full bg-muted">
                           <div className="h-2 rounded-full bg-primary" style={{ width: `${dossier.progress || 0}%` }} />
                         </div>

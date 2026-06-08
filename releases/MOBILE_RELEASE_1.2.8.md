@@ -8,23 +8,25 @@
 
 ```
 Parcours mobile et dossiers :
-• Simulateur / questionnaire : interface plus directe, cartes cliquables, moins de scroll
-• Nouveau dossier : démarrage propre sans reprise d’un ancien parcours
+• Simulateur / questionnaire : interface directe, barre d’action sticky, moins de scroll
+• Reprendre vs Nouveau dossier : parcours distincts et explicites
 • Suppression dossier : bouton en bas de l’onglet Actions (corbeille 72 h)
-• Emails : « dossier créé » uniquement après validation ; relance si démarche entamée
-• Corrections layout dashboard et upload documents
+• Auth stable pendant les mises à jour — plus de « session invalide » intempestif
+• Upload documents : messages d’erreur clairs, scanner PDF natif
+• Validation → statuts reliés au bon dossier ; purge auto des brouillons fantômes
+• Version et nouveautés visibles dans le profil / compte
 ```
 
 ## Notes ultra-courtes (≤ 500 car.)
 
 ```
-Simulateur mobile fluide, nouveau dossier fiable, suppression depuis Actions, emails et uploads corrigés.
+Simulateur fluide, auth stable, uploads clairs, reprise/nouveau dossier, statuts reliés, version visible.
 ```
 
 ## Artefact archivé (Git)
 
 - AAB : `releases/android/greffio-1.2.8-261510007.aab`
-- SHA256 : `74098A7E8523DAF382E9B5F8E1671FCA08D5447B0C375ACF1E67860303802BFF`
+- SHA256 : `210E32C4DBC4EF708230158FC4B55E306B2CA8B213BD9A37C912864016A4B655`
 - Taille : ~9,5 Mo
 - Manifest : `releases/android/manifest.json`
 

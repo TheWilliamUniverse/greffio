@@ -90,6 +90,7 @@ const analyzeDocument = async ({
   filePath,
   pdfBuffer,
   docKey,
+  dossierId = null,
 }) => {
   try {
     let buffer = pdfBuffer;
@@ -130,7 +131,13 @@ const analyzeDocument = async ({
       requiresManualReview: text.length <= 200,
     };
   } catch (error) {
-    console.error('[documentAnalysis] failed', { docKey, message: error?.message || error });
+    console.error(JSON.stringify({
+      ts: new Date().toISOString(),
+      event: 'PDF_ANALYSIS_FAILED',
+      dossierId,
+      docKey,
+      message: error?.message || String(error),
+    }));
     return {
       ok: false,
       error: error?.message || 'PDF_ANALYSIS_FAILED',

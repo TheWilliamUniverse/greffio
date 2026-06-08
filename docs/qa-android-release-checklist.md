@@ -2,7 +2,7 @@
 
 > Application : `com.greffio.app`  
 > Stack : React `dist` + Capacitor Android  
-> Version de référence : `1.2.7` / `versionCode=261510006`
+> Version de référence : `1.2.8` / `versionCode=261510007`
 
 Cette checklist couvre la préparation d’un AAB Play Store et la validation manuelle sur appareil réel ou Play Internal Testing.
 

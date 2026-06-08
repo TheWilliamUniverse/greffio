@@ -163,8 +163,8 @@ export const MobileDocumentsPage = () => {
         ownerLastName: currentUser?.lastName || '',
       });
       await refetch();
-    } catch (_error) {
-      setUploadError('Impossible d’envoyer ce fichier. Réessayez.');
+    } catch (error) {
+      setUploadError(error?.message || 'Impossible d’envoyer ce fichier. Réessayez.');
     } finally {
       setUploading(false);
       setUploadingDocKey(null);

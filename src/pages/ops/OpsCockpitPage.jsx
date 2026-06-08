@@ -35,9 +35,12 @@ export const OpsCockpitPage = () => {
         <OpsKpiCard title="Prêts au dépôt" value={kpis.readyForDeposit ?? '—'} icon={CheckCircle2} tone="success" onClick={() => goFilter('ready:deposit')} />
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <OpsKpiCard title="Risque élevé" value={kpis.highRisk ?? '—'} hint="Score ≥ 70/100" icon={ShieldAlert} tone="danger" onClick={() => goFilter('risk:high')} />
         <OpsKpiCard title="Relances suggérées" value={kpis.remindersSuggested ?? '—'} icon={AlertTriangle} tone="warning" onClick={() => goFilter('action:reminder')} />
+        <OpsKpiCard title="Bloqués > 48 h" value={kpis.blockedOver48h ?? '—'} icon={Clock3} tone="danger" onClick={() => goFilter('sla:late')} />
+        <OpsKpiCard title="Uploads S3 échoués" value={kpis.storageUploadFailures ?? '—'} icon={FileCheck2} tone="warning" onClick={() => goFilter('storage:failed')} />
+        <OpsKpiCard title="Brouillons fantômes" value={kpis.placeholderDossiers ?? '—'} icon={FolderKanban} tone="warning" onClick={() => goFilter('placeholder:ghost')} />
         <OpsKpiCard title="Complétude moyenne" value={`${kpis.averageCompletion ?? 0}%`} icon={CheckCircle2} tone="success" />
       </section>
 
