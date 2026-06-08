@@ -20,6 +20,11 @@ import { handleSignNowApiResponse } from '@/utils/signwellClient.js';
 import { DocumentEditorLoadGate } from '@/components/documents/DocumentEditorLoadGate.jsx';
 import { MobileStickyFormActions } from '@/mobile/ui/MobileStickyFormActions.jsx';
 import { MobileSignatureOverlay } from '@/mobile/ui/MobileSignatureOverlay.jsx';
+import { MobileSignableDocumentHeader } from '@/mobile/ui/MobileSignableDocumentShell.jsx';
+import { useMobileSignatureOverlay } from '@/mobile/hooks/useMobileSignatureOverlay.js';
+import { isCapacitorNative } from '@/utils/platform.js';
+import { triggerMobileHaptic } from '@/utils/mobileHaptics.js';
+import { cn } from '@/lib/utils.js';
 import { runtimeConfig } from '@/config/runtime.js';
 
 const DOC_KEY = 'formality_powers';
@@ -49,6 +54,9 @@ export const FormalityPowersPage = () => {
   const [previewKey, setPreviewKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [signMode, setSignMode] = useState(null);
+  const nativeApp = isCapacitorNative();
+
+  useMobileSignatureOverlay(Boolean(signMode), () => setSignMode(null));
 
   useEffect(() => {
     if (!dossierId) {
@@ -128,7 +136,8 @@ export const FormalityPowersPage = () => {
         return URL.createObjectURL(blob);
       });
       setPreviewKey((value) => value + 1);
-      toast.success('Pouvoirs pour formalités signés.');
+      toast.success('Signature enregistrée. Votre document est maintenant enregistré dans le dossier.');
+      void triggerMobileHaptic('success');
       setSignMode(null);
     } catch (error) {
       toast.error(mapError(error));
@@ -174,24 +183,34 @@ export const FormalityPowersPage = () => {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] overflow-hidden bg-[var(--we-bg)]">
-      <Sidebar />
-      <main className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--we-border)] bg-white px-5 py-4">
-          <div>
-            <p className="text-sm font-bold uppercase text-primary">Annexe distincte des statuts</p>
-            <h1 className="text-xl font-extrabold">Pouvoirs pour formalités</h1>
-          </div>
-          <Button variant="outline" className="bg-white" asChild>
-            <Link to="/documents">Retour documents</Link>
-          </Button>
-        </header>
+    <div className={cn(!nativeApp && 'flex min-h-[calc(100vh-4rem)] overflow-hidden bg-[var(--we-bg)]')}>
+      {!nativeApp && <Sidebar />}
+      <main className={cn(!nativeApp && 'flex flex-1 flex-col overflow-hidden', nativeApp && 'px-4 pb-2 pt-2')}>
+        {nativeApp ? (
+          <MobileSignableDocumentHeader
+            eyebrow="Annexe distincte des statuts"
+            title="Pouvoirs pour formalités"
+            intro="Document séparé des statuts — confère les pouvoirs au mandataire pour le dépôt guichet unique et les formalités d’immatriculation."
+          />
+        ) : (
+          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--we-border)] bg-white px-5 py-4">
+            <div>
+              <p className="text-sm font-bold uppercase text-primary">Annexe distincte des statuts</p>
+              <h1 className="text-xl font-extrabold">Pouvoirs pour formalités</h1>
+            </div>
+            <Button variant="outline" className="bg-white" asChild>
+              <Link to="/documents">Retour documents</Link>
+            </Button>
+          </header>
+        )}
 
-        <div className="grid flex-1 lg:grid-cols-2">
-          <section className="overflow-y-auto border-r border-[var(--we-border)] bg-white p-5">
-            <p className="text-sm text-muted-foreground">
-              Document séparé des statuts — confère les pouvoirs au mandataire pour le dépôt guichet unique et les formalités d’immatriculation.
-            </p>
+        <div className={cn('grid flex-1', !nativeApp && 'lg:grid-cols-2')}>
+          <section className={cn('overflow-y-auto bg-white p-5', !nativeApp && 'border-r border-[var(--we-border)]')}>
+            {!nativeApp ? (
+              <p className="text-sm text-muted-foreground">
+                Document séparé des statuts — confère les pouvoirs au mandataire pour le dépôt guichet unique et les formalités d’immatriculation.
+              </p>
+            ) : null}
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <Label>Société</Label>

@@ -81,3 +81,16 @@ export const shouldUseMobileShell = (pathname) => {
   const path = String(pathname || '');
   return MOBILE_SHELL_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 };
+
+/** Log dev : route × shell natif (Natif Android — dev uniquement). */
+export const logMobileShellRoute = (pathname) => {
+  if (!import.meta.env.DEV || !isCapacitorNative()) return;
+  const path = String(pathname || '');
+  const shell = shouldUseMobileShell(path);
+  // eslint-disable-next-line no-console
+  console.debug('[MobileGreffio:route]', {
+    route: path,
+    native: true,
+    shell,
+  });
+};

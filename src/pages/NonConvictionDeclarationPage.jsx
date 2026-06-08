@@ -21,6 +21,11 @@ import { handleSignNowApiResponse } from '@/utils/signwellClient.js';
 import { DocumentEditorLoadGate } from '@/components/documents/DocumentEditorLoadGate.jsx';
 import { MobileStickyFormActions } from '@/mobile/ui/MobileStickyFormActions.jsx';
 import { MobileSignatureOverlay } from '@/mobile/ui/MobileSignatureOverlay.jsx';
+import { MobileSignableDocumentShell } from '@/mobile/ui/MobileSignableDocumentShell.jsx';
+import { useMobileSignatureOverlay } from '@/mobile/hooks/useMobileSignatureOverlay.js';
+import { isCapacitorNative } from '@/utils/platform.js';
+import { triggerMobileHaptic } from '@/utils/mobileHaptics.js';
+import { cn } from '@/lib/utils.js';
 
 const OFFICIAL_SIMULATOR = 'https://www.service-public.gouv.fr/simulateur/calcul/DeclarationDeNonCondamnationEtDeFiliation';
 
@@ -51,6 +56,9 @@ export const NonConvictionDeclarationPage = () => {
   const [previewBlobUrl, setPreviewBlobUrl] = useState('');
   const [saving, setSaving] = useState(false);
   const [signMode, setSignMode] = useState(null);
+  const nativeApp = isCapacitorNative();
+
+  useMobileSignatureOverlay(Boolean(signMode), () => setSignMode(null));
 
   useEffect(() => {
     if (!dossierId) {
@@ -107,7 +115,10 @@ export const NonConvictionDeclarationPage = () => {
       setPreviewKey((k) => k + 1);
       toast.success('Aperçu PDF généré.');
     } catch (error) {
-      toast.error(mapError(error));
+      const offline = typeof navigator !== 'undefined' && !navigator.onLine;
+      toast.error(offline
+        ? 'Signature non enregistrée. Vérifiez votre connexion puis réessayez.'
+        : mapError(error));
     } finally {
       setSaving(false);
     }
@@ -141,7 +152,8 @@ export const NonConvictionDeclarationPage = () => {
         toast.info('Ouverture de la signature sécurisée SignWell…');
         return;
       }
-      toast.success('Déclaration signée et archivée.');
+      toast.success('Signature enregistrée. Votre document est maintenant enregistré dans le dossier.');
+      void triggerMobileHaptic('success');
       setSignMode(null);
       try {
         const { blob } = await downloadDossierDocument({
@@ -158,7 +170,10 @@ export const NonConvictionDeclarationPage = () => {
         toast.warning(mapError(downloadError));
       }
     } catch (error) {
-      toast.error(mapError(error));
+      const offline = typeof navigator !== 'undefined' && !navigator.onLine;
+      toast.error(offline
+        ? 'Signature non enregistrée. Vérifiez votre connexion puis réessayez.'
+        : mapError(error));
     } finally {
       setSaving(false);
     }
@@ -175,7 +190,10 @@ export const NonConvictionDeclarationPage = () => {
       toast.success('Email de signature envoyé.');
       setSignMode(null);
     } catch (error) {
-      toast.error(mapError(error));
+      const offline = typeof navigator !== 'undefined' && !navigator.onLine;
+      toast.error(offline
+        ? 'Signature non enregistrée. Vérifiez votre connexion puis réessayez.'
+        : mapError(error));
     } finally {
       setSaving(false);
     }
@@ -205,38 +223,43 @@ export const NonConvictionDeclarationPage = () => {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] overflow-hidden bg-[var(--we-bg)]">
-      <Sidebar />
-      <main className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--we-border)] bg-white px-5 py-4">
-          <div>
-            <p className="text-sm font-bold uppercase text-primary">Déclaration RCS / RNE</p>
-            <h1 className="text-xl font-extrabold">Non-condamnation et filiation</h1>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" className="bg-white" asChild>
-              <a href={OFFICIAL_SIMULATOR} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-4 w-4" />
-                Simulateur Service-Public
-              </a>
-            </Button>
-            <Button variant="outline" className="bg-white" asChild>
-              <Link to="/documents">Retour documents</Link>
-            </Button>
-          </div>
-        </header>
+    <div className={cn(!nativeApp && 'flex min-h-[calc(100vh-4rem)] overflow-hidden bg-[var(--we-bg)]')}>
+      {!nativeApp && <Sidebar />}
+      <main className={cn(!nativeApp && 'flex flex-1 flex-col overflow-hidden')}>
+        {!nativeApp ? (
+          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--we-border)] bg-white px-5 py-4">
+            <div>
+              <p className="text-sm font-bold uppercase text-primary">Déclaration RCS / RNE</p>
+              <h1 className="text-xl font-extrabold">Non-condamnation et filiation</h1>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" className="bg-white" asChild>
+                <a href={OFFICIAL_SIMULATOR} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-4 w-4" />
+                  Simulateur Service-Public
+                </a>
+              </Button>
+              <Button variant="outline" className="bg-white" asChild>
+                <Link to="/documents">Retour documents</Link>
+              </Button>
+            </div>
+          </header>
+        ) : null}
 
-        <div className="grid flex-1 lg:grid-cols-2">
-          <section className="overflow-y-auto border-r border-[var(--we-border)] bg-white p-5">
-            <p className="text-sm text-muted-foreground">
-              Complétez le formulaire conforme au modèle administratif. Vous pourrez vérifier le PDF avant signature.
-            </p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div>
-                <Label>Prénom(s)</Label>
-                <Input className="mt-1" value={fields.declarantFirstName || ''} onChange={(e) => updateField('declarantFirstName', e.target.value)} />
-              </div>
-              <div>
+        {nativeApp ? (
+          <MobileSignableDocumentShell
+            eyebrow="Déclaration RCS / RNE"
+            title="Non-condamnation et filiation"
+            intro="Complétez le formulaire conforme au modèle administratif. Vous pourrez vérifier le PDF avant signature."
+          >
+            <div className="space-y-4">
+              <section className="rounded-2xl border border-border/70 bg-white p-4 shadow-sm">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label>Prénom(s)</Label>
+                    <Input className="mt-1" value={fields.declarantFirstName || ''} onChange={(e) => updateField('declarantFirstName', e.target.value)} />
+                  </div>
+                  <div>
                 <Label>Nom de naissance</Label>
                 <Input
                   className="mt-1"
@@ -363,13 +386,160 @@ export const NonConvictionDeclarationPage = () => {
                 Envoyer pour signature
               </Button>
             </MobileStickyFormActions>
-          </section>
+              </section>
 
-          <PdfPreviewPanel
-            blobUrl={previewKey > 0 ? previewBlobUrl : ''}
-            filename="Declaration_non_condamnation.pdf"
-          />
-        </div>
+              <PdfPreviewPanel
+                blobUrl={previewKey > 0 ? previewBlobUrl : ''}
+                filename="Declaration_non_condamnation.pdf"
+              />
+            </div>
+          </MobileSignableDocumentShell>
+        ) : (
+          <div className="grid flex-1 lg:grid-cols-2">
+            <section className="overflow-y-auto border-r border-[var(--we-border)] bg-white p-5">
+              <p className="text-sm text-muted-foreground">
+                Complétez le formulaire conforme au modèle administratif. Vous pourrez vérifier le PDF avant signature.
+              </p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label>Prénom(s)</Label>
+                  <Input className="mt-1" value={fields.declarantFirstName || ''} onChange={(e) => updateField('declarantFirstName', e.target.value)} />
+                </div>
+                <div>
+                  <Label>Nom de naissance</Label>
+                  <Input
+                    className="mt-1"
+                    value={fields.declarantBirthName || fields.declarantLastName || ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFields((current) => ({
+                        ...current,
+                        declarantBirthName: value,
+                        declarantLastName: value,
+                      }));
+                    }}
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Nom d&apos;usage, le cas échéant</Label>
+                  <Input
+                    className="mt-1"
+                    value={fields.declarantUsageName || ''}
+                    onChange={(e) => updateField('declarantUsageName', e.target.value)}
+                    placeholder="Laisser vide si aucun nom d’usage"
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Le nom de naissance figure sur l&apos;acte de naissance. Le nom d&apos;usage est facultatif.
+                  </p>
+                </div>
+                <div>
+                  <Label>Date de naissance</Label>
+                  <Input type="date" className="mt-1" value={fields.declarantBirthDate || ''} onChange={(e) => updateField('declarantBirthDate', e.target.value)} />
+                </div>
+                <div>
+                  <Label>Lieu de naissance</Label>
+                  <Input className="mt-1" value={fields.declarantBirthCity || ''} onChange={(e) => updateField('declarantBirthCity', e.target.value)} />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Adresse</Label>
+                  <Input className="mt-1" value={fields.addressLine1 || ''} onChange={(e) => updateField('addressLine1', e.target.value)} />
+                </div>
+                <div>
+                  <Label>Code postal</Label>
+                  <Input className="mt-1" value={fields.postalCode || ''} onChange={(e) => updateField('postalCode', e.target.value)} />
+                </div>
+                <div>
+                  <Label>Ville</Label>
+                  <Input className="mt-1" value={fields.city || ''} onChange={(e) => updateField('city', e.target.value)} />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Père — nom et prénom(s)</Label>
+                  <Input className="mt-1" value={fields.parent1FullName || ''} onChange={(e) => updateField('parent1FullName', e.target.value)} />
+                </div>
+                <div>
+                  <Label>Parent 2 — prénom(s)</Label>
+                  <Input className="mt-1" value={fields.parent2FirstNames || ''} onChange={(e) => updateField('parent2FirstNames', e.target.value)} />
+                </div>
+                <div>
+                  <Label>Parent 2 — nom de naissance</Label>
+                  <Input className="mt-1" value={fields.parent2BirthName || ''} onChange={(e) => updateField('parent2BirthName', e.target.value)} />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Parent 2 — nom d&apos;usage, le cas échéant</Label>
+                  <Input
+                    className="mt-1"
+                    value={fields.parent2UsageName || ''}
+                    onChange={(e) => updateField('parent2UsageName', e.target.value)}
+                    placeholder="Laisser vide si aucun nom d’usage"
+                  />
+                </div>
+                <div>
+                  <Label>Fait à</Label>
+                  <Input className="mt-1" value={fields.statementCity || ''} onChange={(e) => updateField('statementCity', e.target.value)} />
+                </div>
+                <div>
+                  <Label>Le</Label>
+                  <Input type="date" className="mt-1" value={fields.statementDate || ''} onChange={(e) => updateField('statementDate', e.target.value)} />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Nom du signataire (tel qu&apos;il apparaîtra sur le PDF)</Label>
+                  <Input
+                    className="mt-1"
+                    value={fields.signatureFullName || ''}
+                    onChange={(e) => updateField('signatureFullName', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-5 space-y-3 rounded-xl border border-[var(--we-border)] bg-[#fafcff] p-4">
+                <p className="text-xs font-bold uppercase text-primary">Attestations obligatoires</p>
+                <label className="flex items-start gap-3 text-sm">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={Boolean(fields.declarationNonCondamnation)}
+                    onChange={(e) => updateField('declarationNonCondamnation', e.target.checked)}
+                  />
+                  <span>
+                    Je déclare sur l&apos;honneur ne pas faire l&apos;objet d&apos;une condamnation incompatible avec la gestion
+                    d&apos;une entreprise (article L. 123-5 du code de commerce).
+                  </span>
+                </label>
+                <label className="flex items-start gap-3 text-sm">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={Boolean(fields.declarationFiliation)}
+                    onChange={(e) => updateField('declarationFiliation', e.target.checked)}
+                  />
+                  <span>
+                    Je déclare sur l&apos;honneur l&apos;exactitude des renseignements relatifs à ma filiation (père et mère).
+                  </span>
+                </label>
+              </div>
+
+              <MobileStickyFormActions>
+                <Button className="h-11 flex-1 sm:flex-none" onClick={() => void onGeneratePreview()} disabled={saving}>
+                  <FileText className="h-4 w-4" />
+                  {saving ? 'Génération…' : 'Générer l’aperçu'}
+                </Button>
+                <Button variant="outline" className="h-11 flex-1 bg-white sm:flex-none" onClick={() => setSignMode('immediate')}>
+                  <PenLine className="h-4 w-4" />
+                  Signer maintenant
+                </Button>
+                <Button variant="outline" className="h-11 flex-1 bg-white sm:flex-none" onClick={() => setSignMode('email')}>
+                  <Mail className="h-4 w-4" />
+                  Envoyer pour signature
+                </Button>
+              </MobileStickyFormActions>
+            </section>
+
+            <PdfPreviewPanel
+              blobUrl={previewKey > 0 ? previewBlobUrl : ''}
+              filename="Declaration_non_condamnation.pdf"
+            />
+          </div>
+        )}
 
         <MobileSignatureOverlay
           open={Boolean(signMode)}

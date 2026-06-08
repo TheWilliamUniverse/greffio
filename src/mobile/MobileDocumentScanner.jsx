@@ -22,6 +22,7 @@ export const MobileDocumentScanner = ({
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [cameraPromptOpen, setCameraPromptOpen] = useState(false);
+  const [cameraDenied, setCameraDenied] = useState(false);
   const pendingCapture = useRef(null);
 
   const uploadPdfFile = async (pdfFile) => {
@@ -70,7 +71,14 @@ export const MobileDocumentScanner = ({
         return;
       }
       fileInputRef.current?.click();
-    } catch (_error) {
+    } catch (error) {
+      const message = String(error?.message || '').toLowerCase();
+      const denied = message.includes('permission') || message.includes('denied') || message.includes('authorized');
+      if (source === CameraSource.Camera && denied) {
+        setCameraDenied(true);
+        toast.info('Caméra désactivée. Vous pouvez importer un document manuellement.');
+        return;
+      }
       toast.error(source === CameraSource.Camera
         ? 'Impossible d’ouvrir l’appareil photo.'
         : 'Impossible d’ouvrir la galerie.');
@@ -141,6 +149,11 @@ export const MobileDocumentScanner = ({
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">Conversion automatique en PDF avant envoi au backend Greffio.</p>
+      {cameraDenied ? (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-950">
+          Caméra désactivée. Vous pouvez importer un document manuellement depuis votre téléphone.
+        </p>
+      ) : null}
     </div>
   );
 };

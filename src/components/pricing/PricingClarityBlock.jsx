@@ -46,23 +46,23 @@ export const PricingClarityBlock = ({ showCta = true, className = '' }) => {
             Ce que Greffio facture — et ce qu’il ne facture pas
           </motion.h2>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
+          <div className="mt-8 grid grid-cols-2 gap-3 md:gap-4">
             {clarityItems.map((item, index) => (
               <motion.div
                 key={item.title}
                 {...reveal(0.14 + index * 0.08)}
                 whileHover={hoverLift}
-                className="rounded-md border border-border bg-background/90 p-5 backdrop-blur-sm"
+                className="rounded-md border border-border bg-background/90 p-3 backdrop-blur-sm sm:p-5"
               >
                 <motion.div
                   animate={reduceMotion ? undefined : { scale: [1, 1.04, 1] }}
                   transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut', delay: index * 0.4 }}
-                  className={`mb-4 flex h-11 w-11 items-center justify-center rounded-md ${item.accent}`}
+                  className={`mb-3 flex h-9 w-9 items-center justify-center rounded-md sm:mb-4 sm:h-11 sm:w-11 ${item.accent}`}
                 >
-                  <item.icon className="h-5 w-5" />
+                  <item.icon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </motion.div>
-                <h3 className="text-lg font-extrabold">{item.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.text}</p>
+                <h3 className="text-sm font-extrabold leading-snug sm:text-lg">{item.title}</h3>
+                <p className="mt-1.5 text-xs leading-5 text-muted-foreground sm:mt-2 sm:text-sm sm:leading-6">{item.text}</p>
               </motion.div>
             ))}
           </div>

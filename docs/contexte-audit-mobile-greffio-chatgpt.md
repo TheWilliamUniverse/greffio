@@ -136,14 +136,15 @@ Après :
 - `MOBILE_SHELL_PREFIXES` étendu (`/paiement`, `/tarifs`)
 - Landing : sections tarifs/FAQ/footer lazy (`MobileLandingDeferredSections`)
 
-### 3.5 Session juin 2026 — documents en ligne & veille mobile
+### 3.6 Session juin 2026 — audit mobile complet (commit `4b9ab18`)
 
-- **Statuts documents en ligne** : `MobileOnlineDocumentsPanel` affiche badge + hint (À fournir → Validé) via `onlineDocumentStatus.js`
-- **Liste documents dossier** : `resolveClientDocumentStatus` sur fiche dossier mobile
-- **Accueil** : retrait bandeau « Menu ☰ drawer »
-- **Header mobile** : bouton veille icône Power (⏻) + dialog « Mettre en veille ? »
-- **Choix dossier** : overlay `DossierVaultPickerOverlay` sur `/documents` (web + mobile)
-- **Contexte audit ChatGPT landing** : `docs/contexte-landing-mobile-audit-chatgpt.md`
+- **Landing mobile** : trust chips, micro-copy CTA, aperçu produit SASU, services groupés, FAQ étendue, bandeau tarifs sticky
+- **Cockpit** : `MobilePageContainer`, carte état dossier, timeline, pills navigation, onboarding 3 cards, empty states premium
+- **Documents** : `MobileDocumentCard` (badge + hint + CTA unique), overlay choix dossier explicite
+- **Drawer** : groupes Mon activité / Pilotage / Créer / Compte + note Messages vs Compte natif
+- **App native** : back Android overlay priority, `MobileNativeOfflineBanner`, pre-permissions caméra/push, `@capacitor/haptics`
+- **Signature** : `MobileStickyFormActions` + clavier sur éditeurs documents et `SignatureAdoptPanel`
+- **Contexte audit app native ChatGPT** : `docs/contexte-audit-app-mobile-chatgpt.md`
 
 ---
 
@@ -336,7 +337,7 @@ Après :
 | Version | `android/release-version.properties`, `server/config/appVersion.js` |
 | Web embarqué app | `capacitor.config` → `webDir: dist` — **chaque fix web nécessite rebuild AAB** pour les utilisateurs app |
 
-Dernière version connue : **1.2.5** (build `261510004`).
+Dernière version connue : **1.2.6** (build `261510005`).
 
 ---
 
@@ -344,6 +345,8 @@ Dernière version connue : **1.2.5** (build `261510004`).
 
 | Document | Sujet |
 |----------|-------|
+| `docs/contexte-audit-app-mobile-chatgpt.md` | **Audit app native Capacitor Android** (prompt §8) |
+| `docs/contexte-landing-mobile-audit-chatgpt.md` | Audit landing + cockpit mobile web |
 | `docs/contexte-generation-greffio-chatgpt.md` | Statuts, formalités, pipeline PDF |
 | `.cursor/rules/preserve-brand-identity.mdc` | Interdictions refonte identité |
 | `src/config/mobileStore.js` | Métadonnées store & tabs native |
@@ -361,3 +364,5 @@ Dernière version connue : **1.2.5** (build `261510004`).
 ---
 
 *Document généré pour audit ChatGPT — Greffio mobile web & app native. Mettre à jour après chaque release mobile significative.*
+
+**Audit app native dédié** → `docs/contexte-audit-app-mobile-chatgpt.md` (prompt §8).

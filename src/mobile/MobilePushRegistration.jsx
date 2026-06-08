@@ -98,7 +98,9 @@ export const MobilePushRegistration = () => {
     const permission = await PushNotifications.requestPermissions();
     if (permission.receive === 'granted') {
       await PushNotifications.register();
+      return;
     }
+    toast.info('Notifications désactivées. Vous pourrez toujours consulter vos actions depuis l\'accueil Greffio.');
   };
 
   const dismissPush = () => {

@@ -12,7 +12,8 @@ import { MobileStickyHeaderGroup } from '@/mobile/ui/MobileStickyHeaderGroup.jsx
 import { MobileShellScrollProvider } from '@/mobile/context/MobileShellScrollContext.jsx';
 import { MobileShellOverlayProvider, useMobileShellOverlay } from '@/mobile/context/MobileShellOverlayContext.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
-import { isCapacitorNative } from '@/utils/platform.js';
+import { isCapacitorNative, logMobileShellRoute } from '@/utils/platform.js';
+import { mobileDevLog } from '@/utils/mobileDevLog.js';
 
 const tabIcons = {
   home: Home,
@@ -44,7 +45,13 @@ const MobileAppShellInner = ({ children }) => {
     notificationsOpen,
     setNotificationsOpen,
     closeTopOverlay,
+    getTopOverlayName,
   } = useMobileShellOverlay();
+
+  useEffect(() => {
+    setDrawerOpen(false);
+    logMobileShellRoute(location.pathname);
+  }, [location.pathname, setDrawerOpen]);
 
   useEffect(() => {
     if (!CapApp?.addListener) return undefined;
@@ -71,11 +78,29 @@ const MobileAppShellInner = ({ children }) => {
 
     let handle;
     CapApp.addListener('backButton', ({ canGoBack }) => {
-      if (closeTopOverlay()) return;
+      const topOverlay = getTopOverlayName();
+      if (closeTopOverlay()) {
+        mobileDevLog('backPressed', {
+          route: location.pathname,
+          topOverlay,
+          action: 'closeOverlay',
+        });
+        return;
+      }
       if (canGoBack) {
+        mobileDevLog('backPressed', {
+          route: location.pathname,
+          topOverlay: null,
+          action: 'navigateBack',
+        });
         navigate(-1);
         return;
       }
+      mobileDevLog('backPressed', {
+        route: location.pathname,
+        topOverlay: null,
+        action: 'minimizeApp',
+      });
       CapApp.minimizeApp?.();
     }).then((h) => {
       handle = h;
@@ -84,7 +109,7 @@ const MobileAppShellInner = ({ children }) => {
     return () => {
       void handle?.remove?.();
     };
-  }, [closeTopOverlay, navigate]);
+  }, [closeTopOverlay, getTopOverlayName, location.pathname, navigate]);
 
   return (
     <MobileShellScrollProvider scrollRef={scrollRef}>

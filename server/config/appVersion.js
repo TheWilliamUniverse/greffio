@@ -34,15 +34,16 @@ const parseChangelog = (value) => {
     .filter(Boolean);
 };
 
-const DEFAULT_LATEST_VERSION_CODE = 261510005;
+const DEFAULT_LATEST_VERSION_CODE = 261510006;
 const DEFAULT_MIN_VERSION_CODE = 261422041;
-const DEFAULT_LATEST_VERSION_NAME = '1.2.6';
+const DEFAULT_LATEST_VERSION_NAME = '1.2.7';
 
 const DEFAULT_CHANGELOG = [
-  'Didit et documents en ligne sur mobile (non-condamnation, souscripteurs, pouvoirs)',
-  'Header cockpit : recherche contextuelle, compte rapide, déconnexion confirmée',
-  'Pastille connectée et ombre au scroll sur le header mobile',
-  'Navigation mobile harmonisée et pages Documents/Messages dédiées',
+  'Navigation Android : back button fiable sur overlays (signature, drawer, notifications)',
+  'Documents signables : shell mobile natif, CTA sticky au-dessus du clavier',
+  'Hors connexion : bannière explicite et retour réseau avec feedback',
+  'Compte app enrichi : version, build, biométrie, notifications, mise en veille',
+  'Tarifs mobile : bloc « En clair » en deux colonnes pour une lecture plus rapide',
 ];
 
 export const getAppVersionConfig = () => ({

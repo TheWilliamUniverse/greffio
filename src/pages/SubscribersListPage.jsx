@@ -20,6 +20,11 @@ import { handleSignNowApiResponse } from '@/utils/signwellClient.js';
 import { DocumentEditorLoadGate } from '@/components/documents/DocumentEditorLoadGate.jsx';
 import { MobileStickyFormActions } from '@/mobile/ui/MobileStickyFormActions.jsx';
 import { MobileSignatureOverlay } from '@/mobile/ui/MobileSignatureOverlay.jsx';
+import { MobileSignableDocumentHeader } from '@/mobile/ui/MobileSignableDocumentShell.jsx';
+import { useMobileSignatureOverlay } from '@/mobile/hooks/useMobileSignatureOverlay.js';
+import { isCapacitorNative } from '@/utils/platform.js';
+import { triggerMobileHaptic } from '@/utils/mobileHaptics.js';
+import { cn } from '@/lib/utils.js';
 import { runtimeConfig } from '@/config/runtime.js';
 
 const DOC_KEY = 'subscribers_list';
@@ -54,6 +59,9 @@ export const SubscribersListPage = () => {
   const [previewKey, setPreviewKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [signMode, setSignMode] = useState(null);
+  const nativeApp = isCapacitorNative();
+
+  useMobileSignatureOverlay(Boolean(signMode), () => setSignMode(null));
 
   useEffect(() => {
     if (!dossierId) {
@@ -141,7 +149,8 @@ export const SubscribersListPage = () => {
         return URL.createObjectURL(blob);
       });
       setPreviewKey((value) => value + 1);
-      toast.success('Liste des souscripteurs signée.');
+      toast.success('Signature enregistrée. Votre document est maintenant enregistré dans le dossier.');
+      void triggerMobileHaptic('success');
       setSignMode(null);
     } catch (error) {
       toast.error(mapError(error));
@@ -187,24 +196,34 @@ export const SubscribersListPage = () => {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] overflow-hidden bg-[var(--we-bg)]">
-      <Sidebar />
-      <main className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--we-border)] bg-white px-5 py-4">
-          <div>
-            <p className="text-sm font-bold uppercase text-primary">Annexe statutaire</p>
-            <h1 className="text-xl font-extrabold">Liste des souscripteurs</h1>
-          </div>
-          <Button variant="outline" className="bg-white" asChild>
-            <Link to="/documents">Retour documents</Link>
-          </Button>
-        </header>
+    <div className={cn(!nativeApp && 'flex min-h-[calc(100vh-4rem)] overflow-hidden bg-[var(--we-bg)]')}>
+      {!nativeApp && <Sidebar />}
+      <main className={cn(!nativeApp && 'flex flex-1 flex-col overflow-hidden', nativeApp && 'px-4 pb-2 pt-2')}>
+        {nativeApp ? (
+          <MobileSignableDocumentHeader
+            eyebrow="Annexe statutaire"
+            title="Liste des souscripteurs"
+            intro="Modèle conforme au greffe — prérempli depuis votre dossier. Vérifiez chaque souscripteur avant signature par le Président."
+          />
+        ) : (
+          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--we-border)] bg-white px-5 py-4">
+            <div>
+              <p className="text-sm font-bold uppercase text-primary">Annexe statutaire</p>
+              <h1 className="text-xl font-extrabold">Liste des souscripteurs</h1>
+            </div>
+            <Button variant="outline" className="bg-white" asChild>
+              <Link to="/documents">Retour documents</Link>
+            </Button>
+          </header>
+        )}
 
-        <div className="grid flex-1 lg:grid-cols-2">
-          <section className="overflow-y-auto border-r border-[var(--we-border)] bg-white p-5">
-            <p className="text-sm text-muted-foreground">
-              Modèle conforme au greffe — prérempli depuis votre dossier. Vérifiez chaque souscripteur avant signature par le Président.
-            </p>
+        <div className={cn('grid flex-1', !nativeApp && 'lg:grid-cols-2')}>
+          <section className={cn('overflow-y-auto bg-white p-5', !nativeApp && 'border-r border-[var(--we-border)]')}>
+            {!nativeApp ? (
+              <p className="text-sm text-muted-foreground">
+                Modèle conforme au greffe — prérempli depuis votre dossier. Vérifiez chaque souscripteur avant signature par le Président.
+              </p>
+            ) : null}
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <Label>Dénomination</Label>
