@@ -61,13 +61,6 @@ export const MobileHomePage = () => {
 
       {cachedAt ? <OfflineDataBanner cachedAt={cachedAt} /> : null}
 
-      <MobileAnimatedSection delay={0.03}>
-        <div className="rounded-2xl border border-border/70 bg-white/80 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
-          <span className="font-bold text-foreground">Menu ☰</span>
-          {' '}— assistant, pilotage, statuts et paramètres avancés restent accessibles via le drawer latéral.
-        </div>
-      </MobileAnimatedSection>
-
       <MobileAnimatedSection delay={0.05}>
         <motion.section
           whileTap={{ scale: 0.995 }}

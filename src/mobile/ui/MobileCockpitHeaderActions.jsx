@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, LogOut, Search, User } from 'lucide-react';
+import { Bell, Power, Search, User } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet.jsx';
 import { MobileCockpitSearchDialog } from '@/mobile/ui/MobileCockpitSearchDialog.jsx';
 import { MobileAccountQuickSheet } from '@/mobile/ui/MobileAccountQuickSheet.jsx';
@@ -22,7 +22,7 @@ export const mobileHeaderAvatarButtonClass = cn(
 
 export const mobileHeaderLogoutButtonClass = cn(
   mobileHeaderIconButtonClass,
-  'text-muted-foreground hover:border-red-200 hover:bg-red-50 hover:text-red-600',
+  'text-[#0a1220] hover:border-[#0a1220]/30 hover:bg-muted',
 );
 
 export const MobileCockpitHeaderActions = ({
@@ -113,10 +113,10 @@ export const MobileCockpitHeaderActions = ({
           <button
             type="button"
             onClick={() => setLogoutOpen(true)}
-            aria-label="Se déconnecter"
+            aria-label="Mettre en veille / se déconnecter"
             className={mobileHeaderLogoutButtonClass}
           >
-            <LogOut className="h-4 w-4" />
+            <Power className="h-[18px] w-[18px] stroke-[2.5]" />
           </button>
         ) : null}
 

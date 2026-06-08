@@ -115,7 +115,7 @@ export const MobileDocumentsPage = () => {
       const matchQuery = !q || doc.name.toLowerCase().includes(q);
       const matchFilter = filter === 'Tous'
         || (filter === 'Validés' && ['VALID', 'VALIDATED', 'SIGNED'].includes(doc.status))
-        || (filter === 'En attente' && ['PENDING', 'UPLOADED', 'REVIEW'].includes(doc.status))
+        || (filter === 'En attente' && ['UPLOADED', 'PENDING_REVIEW', 'UNDER_REVIEW', 'GENERATED'].includes(doc.status))
         || (filter === 'Brouillons' && !doc.hasFile);
       return matchQuery && matchFilter;
     });
@@ -352,7 +352,7 @@ export const MobileDocumentsPage = () => {
             </MobileAnimatedSection>
           ) : null}
 
-          <MobileOnlineDocumentsPanel dossierId={dossierId} eiLike={eiLike} />
+          <MobileOnlineDocumentsPanel dossierId={dossierId} documents={dossierPayload?.documents || []} eiLike={eiLike} />
 
           <MobileAnimatedSection delay={0.09}>
             <IdentityVerificationCard

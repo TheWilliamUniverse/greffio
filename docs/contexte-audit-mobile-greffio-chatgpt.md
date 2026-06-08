@@ -136,6 +136,15 @@ Après :
 - `MOBILE_SHELL_PREFIXES` étendu (`/paiement`, `/tarifs`)
 - Landing : sections tarifs/FAQ/footer lazy (`MobileLandingDeferredSections`)
 
+### 3.5 Session juin 2026 — documents en ligne & veille mobile
+
+- **Statuts documents en ligne** : `MobileOnlineDocumentsPanel` affiche badge + hint (À fournir → Validé) via `onlineDocumentStatus.js`
+- **Liste documents dossier** : `resolveClientDocumentStatus` sur fiche dossier mobile
+- **Accueil** : retrait bandeau « Menu ☰ drawer »
+- **Header mobile** : bouton veille icône Power (⏻) + dialog « Mettre en veille ? »
+- **Choix dossier** : overlay `DossierVaultPickerOverlay` sur `/documents` (web + mobile)
+- **Contexte audit ChatGPT landing** : `docs/contexte-landing-mobile-audit-chatgpt.md`
+
 ---
 
 ## 4. Matrice d’audit — ce que ChatGPT doit vérifier

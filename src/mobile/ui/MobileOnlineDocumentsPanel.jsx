@@ -1,7 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FilePlus2, FileSignature, PenLine, Users } from 'lucide-react';
+import { CheckCircle2, FilePlus2, FileSignature, PenLine, Users } from 'lucide-react';
+import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
+import { resolveOnlineDocumentState } from '@/utils/onlineDocumentStatus.js';
 
 const ONLINE_DOCS = [
   {
@@ -27,7 +29,12 @@ const ONLINE_DOCS = [
   },
 ];
 
-export const MobileOnlineDocumentsPanel = ({ dossierId, eiLike = false, delay = 0.07 }) => {
+export const MobileOnlineDocumentsPanel = ({
+  dossierId,
+  documents = [],
+  eiLike = false,
+  delay = 0.07,
+}) => {
   if (!dossierId || eiLike) return null;
 
   return (
@@ -43,21 +50,27 @@ export const MobileOnlineDocumentsPanel = ({ dossierId, eiLike = false, delay = 
           </div>
         </div>
         <div className="mt-4 space-y-2">
-          {ONLINE_DOCS.map((item) => (
-            <Link
-              key={item.key}
-              to={item.to(dossierId)}
-              className="flex min-h-[56px] items-center gap-3 rounded-2xl border border-border/70 bg-background px-3 py-3 transition active:scale-[0.99]"
-            >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary">
-                <item.icon className="h-4 w-4 text-primary" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-bold text-foreground">{item.label}</span>
-                <span className="block text-xs text-muted-foreground">{item.hint}</span>
-              </span>
-            </Link>
-          ))}
+          {ONLINE_DOCS.map((item) => {
+            const state = resolveOnlineDocumentState(item.key, documents, item.hint);
+            return (
+              <Link
+                key={item.key}
+                to={item.to(dossierId)}
+                className="flex min-h-[56px] items-center gap-3 rounded-2xl border border-border/70 bg-background px-3 py-3 transition active:scale-[0.99]"
+              >
+                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${state.isComplete ? 'bg-green-100' : 'bg-secondary'}`}>
+                  {state.isComplete
+                    ? <CheckCircle2 className="h-4 w-4 text-green-700" />
+                    : <item.icon className="h-4 w-4 text-primary" />}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-foreground">{item.label}</span>
+                  <span className="block text-xs text-muted-foreground">{state.hint}</span>
+                </span>
+                <StatusBadge status={state.status} className="shrink-0 text-[10px]" showGlossary={false} />
+              </Link>
+            );
+          })}
         </div>
       </div>
     </MobileAnimatedSection>

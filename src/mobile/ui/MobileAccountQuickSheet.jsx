@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { LogOut, Settings, User } from 'lucide-react';
+import { Power, Settings, User } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 
@@ -60,8 +60,8 @@ export const MobileAccountQuickSheet = ({ open, onOpenChange, onLogoutRequest })
           }}
           className="mt-4 flex w-full min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-border bg-white text-sm font-semibold text-red-600"
         >
-          <LogOut className="h-4 w-4" />
-          Déconnexion
+          <Power className="h-4 w-4" />
+          Mettre en veille
         </button>
       </SheetContent>
     </Sheet>

@@ -14,18 +14,22 @@ import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
 import { IdentityVerificationCard } from '@/components/identity/IdentityVerificationCard.jsx';
 import { parseJsonField } from '@/utils/jsonField.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
-import { documentHasFile } from '@/utils/documentWorkflow.js';
+import { documentHasFile, resolveClientDocumentStatus } from '@/utils/documentWorkflow.js';
 import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 
-const mapDocuments = (documents = []) => documents.map((doc) => ({
-  id: doc.id,
-  docKey: doc.docKey,
-  name: getDocumentTypeLabel(doc.docKey, doc.label),
-  status: String(doc.status || '').toUpperCase(),
-  updatedAt: doc.updatedAt || doc.createdAt,
-  hasFile: documentHasFile(doc),
-}));
+const mapDocuments = (documents = []) => documents.map((doc) => {
+  const hasFile = documentHasFile(doc);
+  const status = resolveClientDocumentStatus({ ...doc, hasFile });
+  return {
+    id: doc.id,
+    docKey: doc.docKey,
+    name: getDocumentTypeLabel(doc.docKey, doc.label),
+    status,
+    updatedAt: doc.updatedAt || doc.createdAt,
+    hasFile,
+  };
+});
 
 export const MobileDossierDetailPage = () => {
   const { id } = useParams();
@@ -127,7 +131,7 @@ export const MobileDossierDetailPage = () => {
         </Button>
       </section>
 
-      <MobileOnlineDocumentsPanel dossierId={id} eiLike={eiLike} delay={0.03} />
+      <MobileOnlineDocumentsPanel dossierId={id} documents={data?.documents || []} eiLike={eiLike} delay={0.03} />
 
       <MobileAnimatedSection delay={0.05}>
         <IdentityVerificationCard
