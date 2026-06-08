@@ -3,6 +3,7 @@ import { App as CapApp } from '@capacitor/app';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth.js';
 import { refreshAccessToken } from '@/api/auth.js';
+import { isTransientApiError, withTransientRetry } from '@/api/networkResilience.js';
 import { saveRefreshToken, saveToken, saveUser } from '@/utils/localStorage.js';
 import {
   disableBiometricUnlock,
@@ -40,13 +41,20 @@ export const BiometricSessionProvider = ({ children }) => {
         return;
       }
       if (payload?.refreshToken) {
-        const renewed = await refreshAccessToken({ refreshToken: payload.refreshToken });
+        const renewed = await withTransientRetry(
+          () => refreshAccessToken({ refreshToken: payload.refreshToken }),
+          { retries: 2, delays: [500, 1500] },
+        );
         if (renewed?.accessToken) saveToken(renewed.accessToken);
         if (renewed?.refreshToken) saveRefreshToken(renewed.refreshToken);
         if (renewed?.user) saveUser(renewed.user);
       }
       setUnlocked(true);
-    } catch (_error) {
+    } catch (error) {
+      if (isTransientApiError(error)) {
+        setError('Mise à jour serveur en cours. Réessayez dans quelques instants.');
+        return;
+      }
       setError('Déverrouillage impossible. Connectez-vous avec votre mot de passe.');
       await disableBiometricUnlock();
       logout();

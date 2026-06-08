@@ -1,6 +1,13 @@
 import { runtimeConfig } from '@/config/runtime.js';
 import { getRefreshToken, getToken, saveRefreshToken, saveToken } from '@/utils/localStorage.js';
 import { refreshAccessToken } from '@/api/auth.js';
+import {
+  isAuthSessionInvalidError,
+  isTransientApiError,
+  isTransientFetchError,
+  isTransientHttpStatus,
+  withTransientRetry,
+} from '@/api/networkResilience.js';
 
 let refreshPromise = null;
 let onUnauthorized = null;
@@ -9,19 +16,41 @@ export const setApiUnauthorizedHandler = (handler) => {
   onUnauthorized = handler;
 };
 
+const buildApiError = (message, { status, payload = null } = {}) => {
+  const error = new Error(message);
+  error.payload = payload;
+  error.status = status;
+  error.code = message;
+  return error;
+};
+
 export const parseApiResponse = async (response) => {
+  const contentType = response.headers.get('content-type') || '';
+  const isJson = contentType.includes('application/json');
+
   if (response.ok) {
     if (response.status === 204) return null;
-    const contentType = response.headers.get('content-type') || '';
-    if (!contentType.includes('application/json')) return response;
+    if (!isJson) {
+      throw buildApiError('API_INVALID_RESPONSE', { status: response.status || 502 });
+    }
     return response.json();
   }
+
+  if (!isJson && isTransientHttpStatus(response.status)) {
+    throw buildApiError('API_TRANSIENT_UNAVAILABLE', { status: response.status });
+  }
+
   let payload = null;
   try {
-    payload = await response.json();
+    payload = isJson ? await response.json() : null;
   } catch (_error) {
     payload = null;
   }
+
+  if (!payload && isTransientHttpStatus(response.status)) {
+    throw buildApiError('API_TRANSIENT_UNAVAILABLE', { status: response.status });
+  }
+
   const error = new Error(payload?.error || 'API_ERROR');
   error.payload = payload;
   error.status = response.status;
@@ -33,8 +62,11 @@ const refreshAccessTokenOnce = async () => {
   if (refreshPromise) return refreshPromise;
   refreshPromise = (async () => {
     const refreshToken = getRefreshToken();
-    if (!refreshToken) throw new Error('AUTH_REFRESH_MISSING');
-    const payload = await refreshAccessToken({ refreshToken });
+    if (!refreshToken) throw buildApiError('AUTH_REFRESH_MISSING', { status: 401 });
+    const payload = await withTransientRetry(
+      () => refreshAccessToken({ refreshToken }),
+      { retries: 2, delays: [500, 1500] },
+    );
     if (payload?.accessToken) saveToken(payload.accessToken);
     if (payload?.refreshToken) saveRefreshToken(payload.refreshToken);
     return payload;
@@ -42,6 +74,20 @@ const refreshAccessTokenOnce = async () => {
     refreshPromise = null;
   });
   return refreshPromise;
+};
+
+const performFetch = async (path, fetchOptions) => {
+  try {
+    return await fetch(`${runtimeConfig.apiBaseUrl}${path}`, {
+      ...fetchOptions,
+      cache: 'no-store',
+    });
+  } catch (error) {
+    if (isTransientFetchError(error)) {
+      throw buildApiError('API_TRANSIENT_UNAVAILABLE', { status: 0 });
+    }
+    throw error;
+  }
 };
 
 export const apiFetch = async (path, options = {}) => {
@@ -68,20 +114,23 @@ export const apiFetch = async (path, options = {}) => {
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}${path}`, {
-    ...fetchOptions,
-    headers,
-    cache: 'no-store',
-  });
+  const response = await withTransientRetry(
+    () => performFetch(path, { ...fetchOptions, headers }),
+    { retries: 1, delays: [600] },
+  );
 
   if (response.status === 401 && auth && retryOnUnauthorized) {
     try {
       await refreshAccessTokenOnce();
       return apiFetch(path, { ...options, retryOnUnauthorized: false });
-    } catch (_error) {
-      onUnauthorized?.();
-      const error = new Error('AUTH_SESSION_EXPIRED');
-      error.status = 401;
+    } catch (error) {
+      if (isTransientApiError(error) || isTransientFetchError(error)) {
+        throw buildApiError('API_TRANSIENT_UNAVAILABLE', { status: error.status || 503 });
+      }
+      if (isAuthSessionInvalidError(error)) {
+        onUnauthorized?.();
+        throw buildApiError('AUTH_SESSION_EXPIRED', { status: 401 });
+      }
       throw error;
     }
   }

@@ -231,6 +231,13 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const authRefreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const paymentLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   max: 40,
@@ -961,7 +968,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
   });
 });
 
-app.post('/api/auth/refresh', authLimiter, (req, res) => {
+app.post('/api/auth/refresh', authRefreshLimiter, (req, res) => {
   const { refreshToken } = req.body || {};
   if (!refreshToken) {
     return res.status(400).json({ ok: false, error: 'REFRESH_TOKEN_REQUIRED' });

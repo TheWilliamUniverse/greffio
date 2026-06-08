@@ -11,6 +11,11 @@ import {
   saveUser,
 } from '@/utils/localStorage.js';
 import { loginWithApi, refreshAccessToken, signupWithApi } from '@/api/auth.js';
+import {
+  isTransientApiError,
+  mapLoginPayloadError,
+  withTransientRetry,
+} from '@/api/networkResilience.js';
 import { fetchUserProfile } from '@/api/profile.js';
 import { verifyMfaLogin } from '@/api/mfa.js';
 import { clearLoginAlertsConfiguredLocal } from '@/utils/loginAlertsStorage.js';
@@ -71,25 +76,47 @@ export const AuthProvider = ({ children }) => {
         return;
       }
       try {
-        const payload = await refreshAccessToken({ refreshToken });
+        const payload = await withTransientRetry(
+          () => refreshAccessToken({ refreshToken }),
+          { retries: 3, delays: [500, 1500, 3000] },
+        );
         if (payload?.accessToken) {
           saveToken(payload.accessToken);
         }
         if (payload?.refreshToken) {
           saveRefreshToken(payload.refreshToken);
         }
-        const profilePayload = await fetchUserProfile();
-        const user = profilePayload?.user || storedUser;
-        setActiveSessionUserId(user?.id || null);
-        initializeClientDataCache(user?.id || null);
-        setCurrentUser(user);
-        saveUser(user);
-      } catch (_error) {
-        clearAllData();
-        purgeEphemeralClientData({ keepConsent: true });
-        setActiveSessionUserId(null);
-        initializeClientDataCache(null);
-        setCurrentUser(null);
+        try {
+          const profilePayload = await withTransientRetry(
+            () => fetchUserProfile(),
+            { retries: 2, delays: [600, 1800] },
+          );
+          const user = profilePayload?.user || storedUser;
+          setActiveSessionUserId(user?.id || null);
+          initializeClientDataCache(user?.id || null);
+          setCurrentUser(user);
+          saveUser(user);
+        } catch (profileError) {
+          if (isTransientApiError(profileError) && storedUser) {
+            setActiveSessionUserId(storedUser?.id || null);
+            initializeClientDataCache(storedUser?.id || null);
+            setCurrentUser(storedUser);
+          } else {
+            throw profileError;
+          }
+        }
+      } catch (error) {
+        if (isTransientApiError(error) && storedUser) {
+          setActiveSessionUserId(storedUser?.id || null);
+          initializeClientDataCache(storedUser?.id || null);
+          setCurrentUser(storedUser);
+        } else {
+          clearAllData();
+          purgeEphemeralClientData({ keepConsent: true });
+          setActiveSessionUserId(null);
+          initializeClientDataCache(null);
+          setCurrentUser(null);
+        }
       } finally {
         setLoading(false);
       }
@@ -112,10 +139,11 @@ export const AuthProvider = ({ children }) => {
           user: apiPayload.user,
         };
       }
-      const user = apiPayload.user;
-      if (!apiPayload.accessToken || !apiPayload.refreshToken) {
-        return { success: false, error: 'Session serveur invalide. Réessayez ou contactez le support Greffio.' };
+      const payloadError = mapLoginPayloadError(apiPayload);
+      if (payloadError) {
+        return { success: false, error: payloadError };
       }
+      const user = apiPayload.user;
       setActiveSessionUserId(user?.id || null);
       initializeClientDataCache(user?.id || null);
       setCurrentUser(user);
@@ -141,9 +169,12 @@ export const AuthProvider = ({ children }) => {
       }
       return { success: true, user };
     } catch (error) {
-      const code = error?.payload?.error || error?.message;
+      const code = error?.payload?.error || error?.message || error?.code;
       if (code === 'TEMP_ACCOUNT_EXPIRED') {
         return { success: false, error: 'TEMP_ACCOUNT_EXPIRED' };
+      }
+      if (isTransientApiError(error)) {
+        return { success: false, error: 'Mise à jour serveur en cours. Réessayez dans quelques instants.' };
       }
       return { success: false, error: 'Connexion impossible. Vérifiez vos identifiants ou réessayez dans quelques instants.' };
     }
@@ -152,10 +183,11 @@ export const AuthProvider = ({ children }) => {
   const completeMfaLogin = async ({ mfaToken, code, recoveryCode, method = 'totp' }) => {
     try {
       const apiPayload = await verifyMfaLogin({ mfaToken, code, recoveryCode, method });
-      const user = apiPayload.user;
-      if (!apiPayload.accessToken || !apiPayload.refreshToken) {
-        return { success: false, error: 'Session serveur invalide. Réessayez ou contactez le support Greffio.' };
+      const payloadError = mapLoginPayloadError(apiPayload);
+      if (payloadError) {
+        return { success: false, error: payloadError };
       }
+      const user = apiPayload.user;
       setActiveSessionUserId(user?.id || null);
       initializeClientDataCache(user?.id || null);
       setCurrentUser(user);
@@ -180,7 +212,10 @@ export const AuthProvider = ({ children }) => {
         });
       }
       return { success: true, user };
-    } catch (_error) {
+    } catch (error) {
+      if (isTransientApiError(error)) {
+        return { success: false, error: 'Mise à jour serveur en cours. Réessayez dans quelques instants.' };
+      }
       return { success: false, error: 'Code MFA invalide ou expiré.' };
     }
   };

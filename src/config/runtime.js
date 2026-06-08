@@ -4,11 +4,22 @@ const toBool = (value, fallback = false) => {
   return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase());
 };
 
+const resolveApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
+  if (typeof window !== 'undefined') {
+    const { hostname, origin } = window.location;
+    if (hostname === 'greffio.willentreprises.com' || hostname === 'www.greffio.willentreprises.com') {
+      return 'https://api.greffio.willentreprises.com';
+    }
+    return origin;
+  }
+  return 'http://localhost:8787';
+};
+
 export const runtimeConfig = {
   appName: import.meta.env.VITE_APP_NAME || 'Greffio',
   appUrl: import.meta.env.VITE_APP_URL || 'https://greffio.willentreprises.com',
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL
-    || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8787'),
+  apiBaseUrl: resolveApiBaseUrl(),
   supportEmail: import.meta.env.VITE_SUPPORT_EMAIL || 'contact@willentreprises.com',
   supportPhone: import.meta.env.VITE_SUPPORT_PHONE || '04 11 81 86 70',
   salesEmail: import.meta.env.VITE_SALES_EMAIL || 'contact@willentreprises.com',
