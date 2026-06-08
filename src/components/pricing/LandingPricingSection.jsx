@@ -19,7 +19,7 @@ export const LandingPricingSection = ({ showHeader = true, className = '' }) => 
       {LANDING_PRICING_PLANS.map((plan) => (
         <div
           key={plan.name}
-          className={`rounded-md border p-6 text-left ${
+          className={`landing-pricing-card rounded-md border p-6 text-left ${
             plan.highlight
               ? 'border-primary bg-secondary shadow-elevation-md'
               : 'border-border bg-background'

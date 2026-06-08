@@ -18,6 +18,12 @@ import {
   LazyOpsDossierDetailPage,
   LazyOpsDossiersPage,
   LazyOpsEquipePage,
+  LazyOpsDocumentsPage,
+  LazyOpsRelancesPage,
+  LazyOpsDepotPage,
+  LazyOpsQualitePage,
+  LazyOpsAuditPage,
+  LazyOpsSettingsPage,
   LazyOpsLookupObservabilityPage,
   LazyOpsShell,
   withSuspense,
@@ -149,13 +155,13 @@ function AppRoutes() {
               <Route path="cockpit" element={withSuspense(LazyOpsCockpitPage, 'Chargement cockpit…')} />
               <Route path="dossiers" element={withSuspense(LazyOpsDossiersPage, 'Chargement dossiers ops…')} />
               <Route path="dossiers/:dossierId" element={withSuspense(LazyOpsDossierDetailPage, 'Chargement dossier ops…')} />
-              <Route path="documents" element={<OpsPlaceholderPage title="Documents" description="Revue side-by-side, validation groupée et annotations — prévu Lot 2." ctaTo="/ops/dossiers" ctaLabel="Aller aux dossiers" />} />
-              <Route path="relances" element={<OpsPlaceholderPage title="Relances" description="Suggestions de relance client, modèles d’email et suivi des retours — prévu Lot 2." />} />
-              <Route path="depot" element={<OpsPlaceholderPage title="Dépôt guichet unique" description="File des dossiers prêts au dépôt et checklist GU — prévu Lot 2." ctaTo="/ops/dossiers?filter=ready:deposit" ctaLabel="Dossiers prêts" />} />
-              <Route path="qualite" element={<OpsPlaceholderPage title="Qualité & anti-rejet" description="Contrôles qualité, scoring et revue des rejets — prévu Lot 2." ctaTo="/ops/cockpit" />} />
+              <Route path="documents" element={withSuspense(LazyOpsDocumentsPage, 'Chargement documents ops…')} />
+              <Route path="relances" element={withSuspense(LazyOpsRelancesPage, 'Chargement relances…')} />
+              <Route path="depot" element={withSuspense(LazyOpsDepotPage, 'Chargement dépôt…')} />
+              <Route path="qualite" element={withSuspense(LazyOpsQualitePage, 'Chargement qualité…')} />
               <Route path="equipe" element={withSuspense(LazyOpsEquipePage, 'Chargement équipe…')} />
-              <Route path="audit" element={<OpsPlaceholderPage title="Audit ops" description="Journal complet des actions formalistes — prévu Lot 3." />} />
-              <Route path="settings" element={<OpsPlaceholderPage title="Paramètres ops" description="Préférences cockpit, notifications et sandbox — prévu Lot 3." />} />
+              <Route path="audit" element={withSuspense(LazyOpsAuditPage, 'Chargement audit…')} />
+              <Route path="settings" element={withSuspense(LazyOpsSettingsPage, 'Chargement paramètres ops…')} />
             </Route>
             <Route path="/ops-legacy" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}>{withSuspense(LazyOpsDashboardPage, 'Chargement ops…')}</ProtectedRoute>} />
             <Route path="/ops-observability" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}>{withSuspense(LazyOpsLookupObservabilityPage, 'Chargement observabilité…')}</ProtectedRoute>} />

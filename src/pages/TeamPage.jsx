@@ -3,6 +3,7 @@ import { CalendarClock, CheckCircle2, Inbox, MessageSquareText, ShieldCheck, Use
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { DossierMessageThread } from '@/components/messaging/DossierMessageThread.jsx';
+import { useAuth } from '@/hooks/useAuth.js';
 import { listDossiers } from '@/api/dossiers.js';
 import { fetchDossierMessages, postDossierMessage } from '@/api/dossierMessages.js';
 import { useDossierMessagesRealtime, sendDossierMessageOptimistic } from '@/hooks/useDossierMessagesRealtime.js';
@@ -14,6 +15,7 @@ const workstreams = [
 ];
 
 export const TeamPage = () => {
+  const { currentUser } = useAuth();
   const [queue, setQueue] = useState([]);
   const [selectedDossierId, setSelectedDossierId] = useState(null);
 
@@ -49,6 +51,7 @@ export const TeamPage = () => {
   }, []);
 
   const currentDossier = queue.find((item) => item.id === selectedDossierId) || queue[0];
+  const clientDisplayName = [currentUser?.firstName, currentUser?.lastName].filter(Boolean).join(' ').trim() || 'Vous';
 
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background">
@@ -116,12 +119,12 @@ export const TeamPage = () => {
                     loading={messagesLoading}
                     onSend={async (body) => {
                       await sendDossierMessageOptimistic({
-                        dossierId: currentDossier.id,
+                        dossierId: selectedDossierId || currentDossier.id,
                         body,
                         setMessages,
                         postMessage: postDossierMessage,
                         authorType: 'client',
-                        authorName: 'Vous',
+                        authorName: clientDisplayName,
                       });
                     }}
                   />

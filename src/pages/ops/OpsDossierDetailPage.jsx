@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import {
   ArrowLeft,
   CalendarClock,
@@ -136,13 +137,19 @@ export const OpsDossierDetailPage = () => {
 
   const setDocumentStatus = async (docKey, status) => {
     setDocUpdating(docKey);
+    setError('');
     try {
       const result = await updateOpsDocumentStatus({ dossierId, docKey, status });
       setPayload((current) => ({ ...current, documents: result.documents || [] }));
       await loadDetail();
       refreshCockpit?.();
-    } catch (_err) {
-      setError('Impossible de mettre à jour le document.');
+      toast.success(status === 'valid' ? 'Document validé' : 'Document rejeté');
+    } catch (err) {
+      const code = err?.payload?.error || err?.message;
+      setError(code === 'AUTH_SESSION_EXPIRED'
+        ? 'Session expirée. Reconnectez-vous puis réessayez.'
+        : 'Impossible de mettre à jour le document.');
+      toast.error('Validation impossible pour le moment.');
     } finally {
       setDocUpdating('');
     }

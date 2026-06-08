@@ -92,7 +92,9 @@ export const getDiditSessionDecision = async (sessionId) => {
 
 export const verifyDiditWebhookSignature = (rawBody, signatureHeader) => {
   const secret = String(process.env.DIDIT_WEBHOOK_SECRET || '');
-  if (!secret) return true;
+  if (!secret) {
+    return process.env.NODE_ENV !== 'production';
+  }
   if (!signatureHeader) return false;
   const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
   return expected === signatureHeader || signatureHeader.includes(expected);

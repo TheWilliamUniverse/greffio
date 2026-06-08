@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { INPI_UPLOAD_RULES } from '@/config/legalFlow.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
-import { getCurrentDossierId } from '@/utils/sessionStore.js';
+import { getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.js';
+import { DossierVaultPickerOverlay } from '@/components/dossiers/DossierVaultPickerOverlay.jsx';
 import { syncCurrentDossierId } from '@/utils/documentEditorErrors.js';
 import {
   deleteDossierDocument,
@@ -49,6 +50,7 @@ export const DocumentsPage = () => {
   const rowUploadRef = useRef(null);
   const pendingUploadDocKey = useRef(null);
   const [resolvedDossierId, setResolvedDossierId] = useState(() => getCurrentDossierId());
+  const [pickerOpen, setPickerOpen] = useState(false);
   const {
     data: dossierPayload,
     isLoading: loadingDossier,
@@ -116,6 +118,26 @@ export const DocumentsPage = () => {
     setSelectedDocKey(uploadableDocKeys[0]?.[0] || 'identity_proof');
   }, [selectedDocKey, uploadableDocKeys]);
   const types = useMemo(() => ['Tous', ...new Set(normalizedDocuments.map((document) => document.type))], [normalizedDocuments]);
+
+  useEffect(() => {
+    if (loadingDossiers || internalView) return;
+    const items = Array.isArray(dossiersList) ? dossiersList : [];
+    if (items.length <= 1) {
+      if (items.length === 1) {
+        saveCurrentDossierId(items[0].id);
+        setResolvedDossierId(items[0].id);
+      }
+      setPickerOpen(false);
+      return;
+    }
+    setPickerOpen(true);
+  }, [loadingDossiers, dossiersList, internalView]);
+
+  const handlePickDossier = (dossier) => {
+    saveCurrentDossierId(dossier.id);
+    setResolvedDossierId(dossier.id);
+    setPickerOpen(false);
+  };
 
   const filteredDocuments = useMemo(() => normalizedDocuments.filter((document) => {
     const searchable = [
@@ -325,6 +347,12 @@ export const DocumentsPage = () => {
 
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background">
+      <DossierVaultPickerOverlay
+        open={pickerOpen}
+        dossiers={dossiersList}
+        onSelect={handlePickDossier}
+        onClose={() => setPickerOpen(false)}
+      />
       <Sidebar />
       <main className="flex-1 overflow-y-auto p-5 md:p-8">
         <div className="mx-auto max-w-7xl space-y-6">

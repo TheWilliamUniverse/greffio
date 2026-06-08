@@ -835,13 +835,13 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                           type="button"
                           key={journey.id}
                           onClick={() => update('journey', journey.id)}
-                          className={`we-card rounded-[22px] p-4 text-left sm:p-5 ${data.journey === journey.id ? 'border-primary ring-2 ring-primary/20' : ''}`}
+                          className={`we-card rounded-[22px] p-5 text-left sm:p-6 ${data.journey === journey.id ? 'border-primary ring-2 ring-primary/20' : ''}`}
                         >
-                          <span className={`mb-3 flex h-10 w-10 items-center justify-center rounded-md sm:mb-4 sm:h-11 sm:w-11 ${journey.color}`}>
+                          <span className={`mb-4 flex h-11 w-11 items-center justify-center rounded-md sm:h-12 sm:w-12 ${journey.color}`}>
                             <journey.icon className="h-5 w-5 text-primary" />
                           </span>
-                          <span className="block text-base font-extrabold sm:text-lg">{journey.title}</span>
-                          <span className="mt-2 block text-xs leading-5 text-muted-foreground sm:text-sm sm:leading-6">{journey.pitch}</span>
+                          <span className="block text-lg font-extrabold sm:text-xl">{journey.title}</span>
+                          <span className="mt-2 block text-sm leading-6 text-muted-foreground">{journey.pitch}</span>
                         </button>
                       ))}
                     </div>

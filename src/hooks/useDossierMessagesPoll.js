@@ -28,7 +28,9 @@ export const useDossierMessagesPoll = (
       setMessages((current) => (sameDossierMessageList(current, items) ? current : items));
       return items;
     } catch (_error) {
-      if (!silent) setMessages([]);
+      if (!silent) {
+        // Conserver l'historique affiché en cas d'échec réseau ou session expirée.
+      }
       return [];
     } finally {
       if (!silent) setLoading(false);

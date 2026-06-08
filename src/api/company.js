@@ -1,5 +1,5 @@
+import { apiGet } from '@/api/client.js';
 import { runtimeConfig } from '@/config/runtime.js';
-import { getToken } from '@/utils/localStorage.js';
 
 const normalizeDigits = (value = '') => String(value || '').replace(/\D/g, '');
 const isValidCompanyIdentifier = (identifier = '') => identifier.length === 9 || identifier.length === 14;
@@ -85,11 +85,10 @@ const lookupViaGreffioPublic = async (identifier) => {
 };
 
 const lookupViaGreffioLegacy = async (identifier) => {
-  const token = getToken();
   const param = identifier.length === 14 ? 'siret' : 'siren';
   const payload = await fetchJson(
     `${runtimeConfig.apiBaseUrl}/api/company-search?${param}=${encodeURIComponent(identifier)}`,
-    { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+    {},
   );
   return normalizeCompanyPayload(payload, identifier);
 };
@@ -132,22 +131,4 @@ const lookupPublicWithFallbackChain = async (value) => {
 export const lookupPublicCompanyBySiren = lookupPublicWithFallbackChain;
 export const lookupCompanyBySiren = lookupPublicWithFallbackChain;
 
-export const getCompanyLookupObservability = async () => {
-  const token = getToken();
-  if (!token) {
-    const error = new Error('AUTH_TOKEN_MISSING');
-    error.status = 401;
-    throw error;
-  }
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/observability/company-lookup`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  if (!response.ok) {
-    const payload = await response.json().catch(() => null);
-    throw new Error(payload?.error || 'COMPANY_LOOKUP_OBSERVABILITY_FAILED');
-  }
-  return response.json();
-};
+export const getCompanyLookupObservability = async () => apiGet('/api/observability/company-lookup');

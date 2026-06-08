@@ -132,13 +132,10 @@ export const downloadDossierDocument = async ({ dossierId, docKey, cacheBust = f
   if (cacheBust) params.set('t', String(Date.now()));
   if (inline) params.set('inline', '1');
   const query = params.toString() ? `?${params.toString()}` : '';
-  const response = await fetch(`${getDossierDocumentDownloadUrl({ dossierId, docKey })}${query}`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${authToken()}`,
-    },
-    cache: 'no-store',
-  });
+  const response = await apiFetch(
+    `/api/dossiers/${encodeURIComponent(dossierId)}/documents/${encodeURIComponent(docKey)}/download${query}`,
+    { parseJson: false },
+  );
   if (!response.ok) {
     let payload = null;
     try {
@@ -168,15 +165,14 @@ export const downloadDossierDocument = async ({ dossierId, docKey, cacheBust = f
 };
 
 export const previewDossierDocumentPdf = async ({ dossierId, docKey, fields = {} } = {}) => {
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}/documents/${encodeURIComponent(docKey)}/preview-pdf`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${authToken()}`,
+  const response = await apiFetch(
+    `/api/dossiers/${encodeURIComponent(dossierId)}/documents/${encodeURIComponent(docKey)}/preview-pdf`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ fields }),
+      parseJson: false,
     },
-    body: JSON.stringify({ fields }),
-    cache: 'no-store',
-  });
+  );
   if (!response.ok) {
     let payload = null;
     try {

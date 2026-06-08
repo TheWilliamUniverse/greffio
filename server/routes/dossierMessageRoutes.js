@@ -1,12 +1,12 @@
 import { getUserById } from '../authStore.js';
 import { sendDossierEmail } from '../emails/index.js';
-import {
-  addDossierMessage,
+import { addDossierMessage,
   getDossier,
   listDossierMessagesByDossier,
   markDossierMessageEmailSent,
 } from '../store.js';
 import { resolveDossierAccess } from '../utils/dossierAccess.js';
+import { isInternalRole } from '../authMiddleware.js';
 
 const resolveAuthorName = async (req, authorType) => {
   if (authorType === 'ops') {
@@ -41,9 +41,8 @@ export const registerDossierMessageRoutes = (app, { requireAuth, requireRole, ap
     if (!body) {
       return res.status(400).json({ ok: false, error: 'MESSAGE_BODY_REQUIRED' });
     }
-    const authorType = ['ADMIN', 'OPS', 'FORMALISTE'].includes(String(req.auth?.role || '').toUpperCase())
-      ? 'ops'
-      : 'client';
+    const isOwner = access.dossier.userId && access.dossier.userId === req.auth?.sub;
+    const authorType = isOwner ? 'client' : (isInternalRole(req.auth?.role) ? 'ops' : 'client');
     const authorName = await resolveAuthorName(req, authorType);
     const message = await addDossierMessage({
       dossierId: access.dossier.id,
