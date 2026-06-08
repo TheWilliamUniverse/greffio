@@ -21,7 +21,7 @@ foreach ($check in $checks) {
       $failed += 1
     }
   } catch {
-    Write-Host "[FAIL] $($check.Name) — $($_.Exception.Message)"
+    Write-Host "[FAIL] $($check.Name) - $($_.Exception.Message)"
     $failed += 1
   }
 }
