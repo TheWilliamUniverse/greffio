@@ -5,7 +5,7 @@ import { Sidebar } from '@/components/Sidebar.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.jsx';
-import { fetchDossierDetail, trashDossier } from '@/api/dossiers.js';
+import { fetchDossierDetail } from '@/api/dossiers.js';
 import { fetchDossierMessages, fetchOpsDossierMessages, postDossierMessage, postOpsDossierMessage } from '@/api/dossierMessages.js';
 import { useDossierMessagesRealtime, sendDossierMessageOptimistic } from '@/hooks/useDossierMessagesRealtime.js';
 import { fetchVerificationProfile, runDossierVerification } from '@/api/verification.js';
@@ -18,10 +18,10 @@ import { isInternalUser } from '@/utils/roles.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { toast } from 'sonner';
 import { DossierTrashActions } from '@/components/dossiers/DossierTrashActions.jsx';
+import { DossierDeleteAction } from '@/components/dossiers/DossierDeleteAction.jsx';
 import { DossierBreadcrumb } from '@/components/layout/DossierBreadcrumb.jsx';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 import { mapDossierStatusForBadge, mapDossierClientAction } from '@/utils/dossierClientStatus.js';
-import { isEphemeralPlaceholderDossier } from '@/utils/dossierBootstrap.js';
 import { DossierMessageThread } from '@/components/messaging/DossierMessageThread.jsx';
 import {
   documentHasFile,
@@ -381,29 +381,8 @@ export const DossierDetailPage = () => {
                   </div>
                 ))}
               </div>
-              {!internalView && !isEphemeralPlaceholderDossier(dossier) ? (
-                <div className="mt-5 rounded-md border border-red-200 bg-red-50/40 p-5">
-                  <p className="font-extrabold text-red-900">Supprimer ce dossier</p>
-                  <p className="mt-2 text-sm text-red-900/80">
-                    Le dossier sera placé en corbeille puis supprimé définitivement sous 72 h. Vous pourrez l’annuler depuis la corbeille pendant ce délai.
-                  </p>
-                  <Button
-                    variant="outline"
-                    className="mt-4 border-red-300 bg-white text-red-700 hover:bg-red-50"
-                    onClick={async () => {
-                      if (!window.confirm('Confirmer la mise en corbeille de ce dossier ? Suppression définitive sous 72 h sauf annulation de votre part.')) return;
-                      try {
-                        await trashDossier(id);
-                        toast.success('Dossier placé en corbeille.');
-                        navigate('/dossiers?trash=1');
-                      } catch (_error) {
-                        toast.error('Impossible de supprimer ce dossier pour le moment.');
-                      }
-                    }}
-                  >
-                    Mettre en corbeille
-                  </Button>
-                </div>
+              {!internalView ? (
+                <DossierDeleteAction dossier={dossier} className="mt-5" />
               ) : null}
             </TabsContent>
 

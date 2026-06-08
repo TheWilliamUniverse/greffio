@@ -21,6 +21,7 @@ import { documentHasFile, resolveClientDocumentStatus } from '@/utils/documentWo
 import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 import { DossierTrashActions } from '@/components/dossiers/DossierTrashActions.jsx';
+import { DossierDeleteAction } from '@/components/dossiers/DossierDeleteAction.jsx';
 import { cn } from '@/lib/utils.js';
 
 const SECTION_PILLS = [
@@ -103,7 +104,6 @@ export const MobileDossierDetailPage = () => {
 
       <div ref={(node) => { sectionRefs.current.resume = node; }}>
         <MobileDossierStatusCard dossier={dossier} documents={docs} />
-        <DossierTrashActions dossier={dossier} className="mt-4" compact />
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -155,25 +155,30 @@ export const MobileDossierDetailPage = () => {
         </div>
       </div>
 
-      <div ref={(node) => { sectionRefs.current.actions = node; }} className="grid grid-cols-2 gap-3">
-        <Button
-          type="button"
-          className="h-auto min-h-[88px] flex-col items-start gap-2 rounded-2xl px-4 py-4"
-          onClick={() => {
-            setSelectedDocKey(pendingDocs[0]?.docKey || 'identity_proof');
-            setUploadOpen(true);
-          }}
-        >
-          <Upload className="h-5 w-5" />
-          <span className="text-left text-sm font-bold">Envoyer une pièce</span>
-        </Button>
-        <Button asChild variant="outline" className="h-auto min-h-[88px] flex-col items-start gap-2 rounded-2xl bg-white px-4 py-4">
-          <Link to="/mobile/search" onClick={() => setActiveSection('messages')}>
-            <MessageSquareText className="h-5 w-5 text-primary" />
-            <span className="text-left text-sm font-bold">Assistant Greffio</span>
-          </Link>
-        </Button>
-      </div>
+      <section ref={(node) => { sectionRefs.current.actions = node; }} className="space-y-4">
+        <h2 className="text-sm font-extrabold uppercase tracking-wide text-muted-foreground">Actions</h2>
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            type="button"
+            className="h-auto min-h-[88px] flex-col items-start gap-2 rounded-2xl px-4 py-4"
+            onClick={() => {
+              setSelectedDocKey(pendingDocs[0]?.docKey || 'identity_proof');
+              setUploadOpen(true);
+            }}
+          >
+            <Upload className="h-5 w-5" />
+            <span className="text-left text-sm font-bold">Envoyer une pièce</span>
+          </Button>
+          <Button asChild variant="outline" className="h-auto min-h-[88px] flex-col items-start gap-2 rounded-2xl bg-white px-4 py-4">
+            <Link to="/mobile/search" onClick={() => setActiveSection('messages')}>
+              <MessageSquareText className="h-5 w-5 text-primary" />
+              <span className="text-left text-sm font-bold">Assistant Greffio</span>
+            </Link>
+          </Button>
+        </div>
+        <DossierTrashActions dossier={dossier} compact />
+        <DossierDeleteAction dossier={dossier} compact />
+      </section>
 
       <div ref={(node) => { sectionRefs.current.documents = node; }}>
         <MobileOnlineDocumentsPanel dossierId={id} documents={data?.documents || []} eiLike={eiLike} delay={0.03} />

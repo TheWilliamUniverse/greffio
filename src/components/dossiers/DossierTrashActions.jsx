@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { trashDossier, purgePlaceholderDossiers } from '@/api/dossiers.js';
+import { purgePlaceholderDossiers } from '@/api/dossiers.js';
 import { isEphemeralPlaceholderDossier } from '@/utils/dossierBootstrap.js';
 import { Button } from '@/components/ui/button.jsx';
 import { useQueryClient } from '@tanstack/react-query';
@@ -28,22 +28,6 @@ export const DossierTrashActions = ({
     }
   };
 
-  const handleTrash = async () => {
-    if (!window.confirm('Supprimer ce brouillon vide ? Il sera placé en corbeille (récupérable 72 h).')) return;
-    setBusy(true);
-    try {
-      await trashDossier(dossier.id);
-      toast.success('Brouillon placé en corbeille.');
-      await invalidate();
-      onTrashed?.();
-      navigate('/dossiers');
-    } catch (_error) {
-      toast.error('Impossible de supprimer ce brouillon pour le moment.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const handlePurgeAll = async () => {
     if (!window.confirm('Supprimer tous vos brouillons vides (ex. « Projet Greffio ») ?')) return;
     setBusy(true);
@@ -66,24 +50,15 @@ export const DossierTrashActions = ({
       <p className="mt-1 text-sm leading-relaxed text-red-900/80">
         Ce dossier n’a pas encore été complété. Vous pouvez le retirer de votre liste sans impact sur une formalité en cours.
       </p>
-      <div className={`mt-3 flex flex-col gap-2 ${compact ? '' : 'sm:flex-row'}`}>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={busy}
-          className="border-red-300 bg-white text-red-700 hover:bg-red-50"
-          onClick={() => { void handleTrash(); }}
-        >
-          <Trash2 className="h-4 w-4" />
-          Supprimer ce brouillon
-        </Button>
+      <div className={`mt-3 ${compact ? '' : 'sm:flex-row'}`}>
         <Button
           type="button"
           variant="ghost"
           disabled={busy}
-          className="text-red-700 hover:bg-red-100/60"
+          className={`text-red-700 hover:bg-red-100/60 ${compact ? 'h-11 w-full justify-start rounded-2xl' : ''}`}
           onClick={() => { void handlePurgeAll(); }}
         >
+          <Trash2 className="h-4 w-4" />
           Nettoyer tous les brouillons vides
         </Button>
       </div>

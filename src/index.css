@@ -279,6 +279,34 @@
     }
   }
 
+  .simulator-journey-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.625rem;
+  }
+
+  @media (min-width: 341px) {
+    .simulator-journey-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.625rem;
+    }
+  }
+
+  @media (min-width: 431px) {
+    .simulator-journey-grid {
+      gap: 0.75rem;
+    }
+  }
+
+  .simulator-stepper-mask {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
+  }
+
+  .simulator-mobile .we-card:hover {
+    transform: none;
+  }
+
   .landing-pricing-card {
     transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
   }

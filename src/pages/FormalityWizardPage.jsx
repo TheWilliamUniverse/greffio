@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { ProgressiveStepChips } from '@/components/ProgressiveStepChips.jsx';
+import { SimulatorJourneyCard } from '@/components/simulator/SimulatorJourneyCard.jsx';
 import { QuestionPanelSuccessOverlay } from '@/components/questionnaire/QuestionPanelSuccessOverlay.jsx';
 import { ProgressCircle } from '@/components/questionnaire/ProgressCircle.jsx';
 import { QuestionSectionHint } from '@/components/questionnaire/QuestionSectionHint.jsx';
@@ -53,6 +54,7 @@ import {
 import { resolveSimulatorFormFromQuery } from '@/utils/formalityMapping.js';
 import { isCapacitorNative } from '@/utils/platform.js';
 import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
+import { cn } from '@/lib/utils.js';
 
 const resolveOfferLink = ({ offer, journey, isAuthenticated }) => {
   if (offer.price === '0€') {
@@ -70,28 +72,28 @@ const journeys = [
     title: 'Générer mes statuts gratuitement',
     icon: FileSignature,
     color: 'bg-[hsl(var(--greffio-citron))]',
-    pitch: 'Offre d’appel : génération gratuite des statuts et résumé par email.',
+    pitch: 'Recevez vos statuts personnalisés et un résumé clair par email.',
   },
   {
     id: 'creation',
     title: 'Créer une entreprise',
     icon: Building2,
     color: 'bg-secondary',
-    pitch: 'Toutes formes classiques : SAS, SARL, SA, SCI, associations, libérales, coopératives et agricoles.',
+    pitch: 'SAS, SARL, SCI, association, activité libérale ou autre structure.',
   },
   {
     id: 'modification',
     title: 'Modifier une société',
     icon: PenLine,
-    color: 'bg-blue-100',
+    color: 'bg-secondary',
     pitch: 'Siège, dirigeant, activité, capital, dénomination ou transformation.',
   },
   {
     id: 'dissolution',
     title: 'Dissoudre ou fermer',
     icon: Trash2,
-    color: 'bg-rose-100',
-    pitch: 'Dissolution-liquidation, radiation, mise en sommeil ou clôture.',
+    color: 'bg-secondary',
+    pitch: 'Dissolution, liquidation, radiation, mise en sommeil ou clôture.',
   },
 ];
 
@@ -236,6 +238,8 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
   const skipJourneyPicker = DIRECT_JOURNEY_TYPES.has(requestedType) && !compareModules[requestedType];
   const initialSkipContact = hasCompleteUserContact(getUser());
   const [step, setStep] = useState(skipJourneyPicker ? 1 : 0);
+  const [journeyChosen, setJourneyChosen] = useState(() => skipJourneyPicker || Boolean(draft?.data?.journey));
+  const [journeyStepError, setJourneyStepError] = useState('');
   const [projectSubStep, setProjectSubStep] = useState(skipJourneyPicker && initialSkipContact ? 1 : 0);
   const [showOffers, setShowOffers] = useState(false);
   const [selectedFamily, setSelectedFamily] = useState('Formes les plus courantes');
@@ -467,6 +471,12 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     setData((current) => ({ ...current, [key]: value }));
   };
 
+  const selectJourney = (journeyId) => {
+    update('journey', journeyId);
+    setJourneyChosen(true);
+    setJourneyStepError('');
+  };
+
   const updateAnswer = (key, value) => {
     setAnswers((current) => ({ ...current, [key]: value }));
   };
@@ -511,6 +521,10 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
 
   const tryWizardContinue = () => {
     if (showOffers) return;
+    if (step === 0 && !journeyChosen) {
+      setJourneyStepError('Choisissez une démarche pour passer à l’étape suivante.');
+      return;
+    }
     if (step === 2 && step2Phase === 'profile') {
       if (!canContinueStep2Profile()) return;
       setStep2Phase('questionnaire');
@@ -765,27 +779,51 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     ];
   }, [williamStatutesPreview, selectedForm, requiresStatutes, data]);
 
+  const stepperVariant = isMobilePresentation ? 'compact' : 'default';
+  const mobileActionBarPosition = isCapacitorNative()
+    ? 'bottom-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom))]'
+    : 'bottom-[calc(var(--bottom-nav-height-web)+env(safe-area-inset-bottom))]';
+
   return (
-    <div className="min-h-screen bg-[var(--we-bg)]">
+    <div className={cn('min-h-screen', isMobilePresentation ? 'bg-[var(--we-bg)]' : 'bg-[var(--we-bg)]')}>
       {!isMobilePresentation ? <NavbarDropdown /> : null}
 
-      <main className={`mx-auto grid max-w-7xl gap-8 px-4 pb-10 sm:px-6 lg:px-8 ${
-        isMobilePresentation ? 'pt-4 lg:grid-cols-1' : 'pt-28 lg:grid-cols-[1fr_380px]'
-      }`}>
-        <section ref={wizardPanelRef} className="we-panel">
-          <div className="border-b border-[var(--we-border)] bg-white px-6 py-4">
-            <div className="mb-3 flex items-center justify-between text-xs font-bold uppercase text-muted-foreground">
-              <span>Simulation Greffio</span>
-              <span>{showOffers ? 'Offres' : `${step + 1}/${steps.length}`}</span>
+      <main className={cn(
+        'mx-auto grid max-w-7xl',
+        isMobilePresentation
+          ? 'gap-0 px-0 pb-[calc(5.5rem+var(--bottom-nav-height-web)+env(safe-area-inset-bottom))] pt-0 lg:grid-cols-1'
+          : 'gap-8 px-4 pb-10 pt-28 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8',
+      )}>
+        <section
+          ref={wizardPanelRef}
+          className={cn(isMobilePresentation ? 'simulator-mobile bg-[var(--we-bg)]' : 'we-panel')}
+        >
+          <div className={cn(
+            isMobilePresentation
+              ? 'border-b border-[#e2ebf8]/90 bg-[var(--we-bg)]/95 px-5 py-3 backdrop-blur-sm'
+              : 'border-b border-[var(--we-border)] bg-white px-6 py-4',
+          )}
+          >
+            <div className={cn(
+              'flex items-center justify-between font-bold uppercase text-muted-foreground',
+              isMobilePresentation ? 'mb-2 text-[10px] tracking-wide' : 'mb-3 text-xs',
+            )}
+            >
+              {!isMobilePresentation ? <span>Simulation Greffio</span> : <span className="text-primary/80">Étape</span>}
+              <span className={isMobilePresentation ? 'rounded-full bg-white px-2 py-0.5 text-[10px] ring-1 ring-[#d4e2f5]' : ''}>
+                {showOffers ? 'Offres' : `${step + 1}/${steps.length}`}
+              </span>
             </div>
-            <div className="h-2 rounded-full bg-white">
-              <div className="h-2 rounded-full bg-primary transition-all" style={{ width: showOffers ? '100%' : `${progress}%` }} />
+            <div className={cn('overflow-hidden rounded-full bg-[#e8f0fa]', isMobilePresentation ? 'h-1.5' : 'h-2')}>
+              <div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: showOffers ? '100%' : `${progress}%` }} />
             </div>
             {!showOffers ? (
-              <div className="mt-4 space-y-3">
-                <ProgressiveStepChips steps={PROGRESSIVE_WIZARD_STEPS} activeIndex={step} />
+              <div className={cn(isMobilePresentation ? 'mt-2.5' : 'mt-4 space-y-3')}>
+                <ProgressiveStepChips steps={PROGRESSIVE_WIZARD_STEPS} activeIndex={step} variant={stepperVariant} />
                 {step === 1 ? (
-                  <ProgressiveStepChips steps={visibleProjectSubSteps} activeIndex={activeProjectSubIndex} />
+                  <div className={isMobilePresentation ? 'mt-2' : ''}>
+                    <ProgressiveStepChips steps={visibleProjectSubSteps} activeIndex={activeProjectSubIndex} variant={stepperVariant} />
+                  </div>
                 ) : null}
               </div>
             ) : null}
@@ -799,11 +837,13 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -22 }}
                 transition={{ duration: 0.22 }}
-                className={`p-4 sm:p-6 md:p-10 ${isMobilePresentation ? 'max-w-full overflow-x-hidden' : ''}`}
+                className={cn(
+                  isMobilePresentation ? 'max-w-full overflow-x-hidden px-5 py-4' : 'p-4 sm:p-6 md:p-10',
+                )}
                 onKeyDown={handleWizardKeyDown}
               >
                 {step === 0 && (
-                  <div className="space-y-7">
+                  <div className={cn(isMobilePresentation ? 'space-y-4' : 'space-y-7')}>
                     {activeCompareModule ? (
                       <div className="rounded-md border border-primary/20 bg-secondary p-5">
                         <p className="text-sm font-bold uppercase text-primary">Module comparateur</p>
@@ -826,36 +866,71 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                       </div>
                     ) : null}
                     <div>
-                      <p className="text-sm font-bold uppercase text-primary">Démarche</p>
-                      <h1 className={`mt-2 font-extrabold ${isMobilePresentation ? 'text-2xl' : 'text-3xl'}`}>Que souhaitez-vous faire </h1>
-                      <p className="mt-2 text-muted-foreground">Le questionnaire adapte les pièces, les statuts, les relances et les offres proposées.</p>
+                      <p className={cn('font-bold uppercase text-primary', isMobilePresentation ? 'text-[11px] tracking-wide' : 'text-sm')}>Démarche</p>
+                      <h1 className={cn('mt-1.5 font-extrabold tracking-tight text-[hsl(var(--greffio-blue-900))]', isMobilePresentation ? 'text-xl' : 'mt-2 text-3xl')}>
+                        Que souhaitez-vous faire ?
+                      </h1>
+                      <p className={cn('text-muted-foreground', isMobilePresentation ? 'mt-1.5 text-sm leading-snug' : 'mt-2')}>
+                        Greffio adapte automatiquement les pièces, les statuts, les relances et les offres selon votre démarche.
+                      </p>
+                      <p className={cn('font-medium text-primary/90', isMobilePresentation ? 'mt-2 text-xs' : 'mt-3 text-sm')}>
+                        Sélectionnez une démarche pour continuer.
+                      </p>
                     </div>
-                    <div className="choice-grid-2">
+                    <div
+                      className={cn(isMobilePresentation ? 'simulator-journey-grid' : 'choice-grid-2')}
+                      role="radiogroup"
+                      aria-label="Type de démarche"
+                    >
                       {journeys.map((journey) => (
-                        <button
-                          type="button"
-                          key={journey.id}
-                          onClick={() => update('journey', journey.id)}
-                          className={`we-card rounded-[22px] p-5 text-left sm:p-6 ${data.journey === journey.id ? 'border-primary ring-2 ring-primary/20' : ''}`}
-                        >
-                          <span className={`mb-4 flex h-11 w-11 items-center justify-center rounded-md sm:h-12 sm:w-12 ${journey.color}`}>
-                            <journey.icon className="h-5 w-5 text-primary" />
-                          </span>
-                          <span className="block text-lg font-extrabold sm:text-xl">{journey.title}</span>
-                          <span className="mt-2 block text-sm leading-6 text-muted-foreground">{journey.pitch}</span>
-                        </button>
+                        isMobilePresentation ? (
+                          <SimulatorJourneyCard
+                            key={journey.id}
+                            title={journey.title}
+                            description={journey.pitch}
+                            icon={journey.icon}
+                            iconTone={journey.color}
+                            selected={journeyChosen && data.journey === journey.id}
+                            onSelect={() => selectJourney(journey.id)}
+                            compact
+                          />
+                        ) : (
+                          <button
+                            type="button"
+                            key={journey.id}
+                            role="radio"
+                            aria-checked={journeyChosen && data.journey === journey.id}
+                            onClick={() => selectJourney(journey.id)}
+                            className={cn(
+                              'we-card rounded-[22px] p-5 text-left sm:p-6',
+                              journeyChosen && data.journey === journey.id && 'border-primary ring-2 ring-primary/20',
+                            )}
+                          >
+                            <span className={`mb-4 flex h-11 w-11 items-center justify-center rounded-md sm:h-12 sm:w-12 ${journey.color}`}>
+                              <journey.icon className="h-5 w-5 text-primary" />
+                            </span>
+                            <span className="block text-lg font-extrabold sm:text-xl">{journey.title}</span>
+                            <span className="mt-2 block text-sm leading-6 text-muted-foreground">{journey.pitch}</span>
+                          </button>
+                        )
                       ))}
                     </div>
+                    <p className={cn('text-muted-foreground', isMobilePresentation ? 'text-xs' : 'text-sm')}>
+                      Simulation gratuite, sans engagement.
+                    </p>
+                    {journeyStepError ? (
+                      <p className="text-sm text-red-600" role="alert">{journeyStepError}</p>
+                    ) : null}
                   </div>
                 )}
 
                 {step === 1 && (
-                  <div className="space-y-7">
+                  <div className={cn(isMobilePresentation ? 'space-y-4' : 'space-y-7')}>
                     <div>
-                      <p className="text-sm font-bold uppercase text-primary">
+                      <p className={cn('font-bold uppercase text-primary', isMobilePresentation ? 'text-[11px] tracking-wide' : 'text-sm')}>
                         {isCompanyLookupStep ? 'Entreprise existante' : 'Projet'}
                       </p>
-                      <h1 className="mt-2 text-3xl font-extrabold">
+                      <h1 className={cn('font-extrabold', isMobilePresentation ? 'mt-1.5 text-xl' : 'mt-2 text-3xl')}>
                         {isCompanyLookupStep && 'Identifier votre société'}
                         {!isCompanyLookupStep && projectSubStep === 0 && 'Vos coordonnées'}
                         {!isCompanyLookupStep && projectSubStep === 1 && 'Qui effectue la démarche ?'}
@@ -1473,14 +1548,22 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
           {!showOffers ? (
             <div
               ref={wizardNavRef}
-              className="sticky bottom-0 z-10 border-t border-border bg-white/95 px-4 py-4 shadow-[0_-10px_28px_rgba(15,23,42,0.06)] backdrop-blur-sm sm:px-6 sm:py-5 supports-[padding:max(0px)]:pb-[max(1rem,env(safe-area-inset-bottom))]"
+              className={cn(
+                'z-30 border-t border-[#e2ebf8] bg-white/96 backdrop-blur-sm',
+                isMobilePresentation
+                  ? cn('fixed inset-x-0 px-5 py-3 shadow-[0_-4px_18px_rgba(15,23,42,0.05)]', mobileActionBarPosition)
+                  : 'sticky bottom-0 px-4 py-4 shadow-[0_-10px_28px_rgba(15,23,42,0.06)] sm:px-6 sm:py-5 supports-[padding:max(0px)]:pb-[max(1rem,env(safe-area-inset-bottom))]',
+              )}
             >
               <WizardNavButtons
+                variant={isMobilePresentation ? 'mobile' : 'default'}
+                hideBack={isMobilePresentation && step === 0}
                 onBack={previous}
                 onContinue={tryWizardContinue}
                 backDisabled={step === 0 || isProjectBackDisabled}
                 continueDisabled={
-                  (step === 1 && !canContinueProjectSubStep())
+                  (step === 0 && !journeyChosen)
+                  || (step === 1 && !canContinueProjectSubStep())
                   || (step === 2 && step2Phase === 'profile' && !canContinueStep2Profile())
                   || (step === 2 && step2Phase === 'questionnaire' && Boolean(questionExitPhase) && questionExitPhase !== 'done')
                   || (step === 2 && step2Phase === 'questionnaire' && !questionnaireFinished && !questionExitPhase && !canAdvanceActiveQuestion())
@@ -1510,9 +1593,19 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
           ) : (
             <div
               ref={wizardNavRef}
-              className="sticky bottom-0 z-10 border-t border-border bg-white/95 px-4 py-4 shadow-[0_-10px_28px_rgba(15,23,42,0.06)] backdrop-blur-sm sm:px-6 sm:py-5 supports-[padding:max(0px)]:pb-[max(1rem,env(safe-area-inset-bottom))]"
+              className={cn(
+                'z-30 border-t border-[#e2ebf8] bg-white/96 backdrop-blur-sm',
+                isMobilePresentation
+                  ? cn('fixed inset-x-0 px-5 py-3 shadow-[0_-4px_18px_rgba(15,23,42,0.05)]', mobileActionBarPosition)
+                  : 'sticky bottom-0 px-4 py-4 shadow-[0_-10px_28px_rgba(15,23,42,0.06)] sm:px-6 sm:py-5 supports-[padding:max(0px)]:pb-[max(1rem,env(safe-area-inset-bottom))]',
+              )}
             >
-              <WizardNavButtons onBack={previous} backLabel="Retour à la synthèse" showContinue={false} />
+              <WizardNavButtons
+                variant={isMobilePresentation ? 'mobile' : 'default'}
+                onBack={previous}
+                backLabel="Retour à la synthèse"
+                showContinue={false}
+              />
             </div>
           )}
         </section>
