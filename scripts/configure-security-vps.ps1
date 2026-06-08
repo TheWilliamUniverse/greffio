@@ -1,6 +1,9 @@
 # Configure security env vars on VPS Greffio API (/opt/greffio/.env).
 # Usage:
-#   $env:GREFFIO_TURNSTILE_SITE_KEY='...'; $env:GREFFIO_TURNSTILE_SECRET_KEY='...'; pwsh -File scripts/configure-security-vps.ps1
+#   pwsh -File scripts/configure-security-vps.ps1
+# Optional overrides:
+#   $env:GREFFIO_TURNSTILE_SITE_KEY / GREFFIO_TURNSTILE_SECRET_KEY
+#   $env:GREFFIO_RECAPTCHA_SITE_KEY / GREFFIO_RECAPTCHA_SECRET_KEY
 
 $ErrorActionPreference = 'Stop'
 
@@ -21,6 +24,9 @@ if (-not $VpsPassword) {
 
 $TurnstileSiteKey = $env:GREFFIO_TURNSTILE_SITE_KEY
 $TurnstileSecretKey = $env:GREFFIO_TURNSTILE_SECRET_KEY
+$RecaptchaSiteKey = $env:GREFFIO_RECAPTCHA_SITE_KEY
+$RecaptchaSecretKey = $env:GREFFIO_RECAPTCHA_SECRET_KEY
+
 $TurnstileKeysFile = Join-Path $env:USERPROFILE 'Desktop\SECRET\turnstile-greffio.json'
 if ((-not $TurnstileSiteKey -or -not $TurnstileSecretKey) -and (Test-Path $TurnstileKeysFile)) {
     $json = Get-Content $TurnstileKeysFile -Raw | ConvertFrom-Json
@@ -28,7 +34,20 @@ if ((-not $TurnstileSiteKey -or -not $TurnstileSecretKey) -and (Test-Path $Turns
     if (-not $TurnstileSecretKey) { $TurnstileSecretKey = $json.secret }
 }
 
+$CaptchaFile = Join-Path $env:USERPROFILE 'Desktop\RECAPTCHA GOOGLE & TURNSTILE.txt'
+if (Test-Path $CaptchaFile) {
+    $captchaContent = Get-Content $CaptchaFile -Raw
+    $captchaLines = Get-Content $CaptchaFile | ForEach-Object { $_.Trim() } | Where-Object { $_ -match '^6L' }
+    if (-not $RecaptchaSiteKey -and $captchaLines.Count -ge 1) {
+        $RecaptchaSiteKey = $captchaLines[0]
+    }
+    if (-not $RecaptchaSecretKey -and $captchaLines.Count -ge 2) {
+        $RecaptchaSecretKey = $captchaLines[1]
+    }
+}
+
 $TurnstileEnabled = if ($TurnstileSiteKey -and $TurnstileSecretKey) { 'true' } else { 'false' }
+$RecaptchaEnabled = if ($RecaptchaSiteKey -and $RecaptchaSecretKey) { 'true' } else { 'false' }
 
 $plink = 'C:\Program Files\PuTTY\plink.exe'
 $usePutty = (Test-Path $plink) -and $VpsPassword
@@ -55,6 +74,12 @@ Set-EnvValue 'SECURITY_STORE' 'postgres'
 Set-EnvValue 'CSP_REPORT_ONLY' 'true'
 Set-EnvValue 'GLOBAL_RATE_LIMIT_MAX' '300'
 Set-EnvValue 'STRICT_PUBLIC_RATE_LIMIT_MAX' '40'
+Set-EnvValue 'CAPTCHA_VERIFY_HOURLY_MAX' '400'
+Set-EnvValue 'CAPTCHA_VERIFY_DAILY_MAX' '3000'
+Set-EnvValue 'TURNSTILE_VERIFY_HOURLY_MAX' '350'
+Set-EnvValue 'RECAPTCHA_VERIFY_HOURLY_MAX' '120'
+Set-EnvValue 'ASSISTANT_HOURLY_MAX' '80'
+Set-EnvValue 'ASSISTANT_DAILY_MAX' '400'
 Set-EnvValue 'TURNSTILE_RISKY_LOGIN' 'true'
 Set-EnvValue 'TURNSTILE_LOGIN_RISKY_THRESHOLD' '2'
 Set-EnvValue 'TURNSTILE_ENFORCE_CONTACT' $(if ($TurnstileEnabled -eq 'true') { 'true' } else { 'false' })
@@ -63,10 +88,16 @@ Set-EnvValue 'TURNSTILE_ENFORCE_LOGIN' 'false'
 Set-EnvValue 'TURNSTILE_ENFORCE_FORGOT_PASSWORD' 'false'
 Set-EnvValue 'TURNSTILE_ENFORCE_RESET_PASSWORD' 'false'
 Set-EnvValue 'TURNSTILE_ENABLED' $TurnstileEnabled
+Set-EnvValue 'RECAPTCHA_FALLBACK_ENABLED' $RecaptchaEnabled
 
 if ($TurnstileEnabled -eq 'true') {
     Set-EnvValue 'TURNSTILE_SITE_KEY' $TurnstileSiteKey
     Set-EnvValue 'TURNSTILE_SECRET_KEY' $TurnstileSecretKey
+}
+
+if ($RecaptchaEnabled -eq 'true') {
+    Set-EnvValue 'RECAPTCHA_SITE_KEY' $RecaptchaSiteKey
+    Set-EnvValue 'RECAPTCHA_SECRET_KEY' $RecaptchaSecretKey
 }
 
 if ($env:GREFFIO_SECURITY_ALERT_WEBHOOK_URL) {
@@ -80,12 +111,17 @@ if ($env:GREFFIO_SENTRY_DSN) {
 Invoke-RemoteShell 'pm2 restart greffio-api --update-env'
 Start-Sleep -Seconds 4
 Invoke-RemoteShell 'curl -fsS http://127.0.0.1:8787/api/health && echo'
-Invoke-RemoteShell 'curl -fsS http://127.0.0.1:8787/api/public/security-config | head -c 240 && echo'
+Invoke-RemoteShell 'curl -fsS http://127.0.0.1:8787/api/public/security-config | head -c 320 && echo'
 
 if ($TurnstileEnabled -ne 'true') {
     Write-Host ''
     Write-Host 'Turnstile non activé: créez un widget Cloudflare Turnstile (mode Managed) pour greffio.willentreprises.com'
-    Write-Host 'Puis relancez avec GREFFIO_TURNSTILE_SITE_KEY et GREFFIO_TURNSTILE_SECRET_KEY.'
+}
+
+if ($RecaptchaEnabled -eq 'true') {
+    Write-Host 'reCAPTCHA fallback configuré (actif seulement si limites Turnstile atteintes).'
+} else {
+    Write-Host 'reCAPTCHA fallback non configuré.'
 }
 
 Write-Host '[security] Terminé.'

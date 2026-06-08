@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label.jsx';
 import { runtimeConfig } from '@/config/runtime.js';
 import { submitAppointmentRequest } from '@/api/contact.js';
 import { mapSecurityApiError } from '@/config/security.js';
-import { TurnstileWidget } from '@/components/security/TurnstileWidget.jsx';
+import { SecurityChallengeWidget } from '@/components/security/SecurityChallengeWidget.jsx';
 import { useSecurityConfig } from '@/hooks/useSecurityConfig.js';
 
 export const ContactPage = () => {
@@ -24,9 +24,10 @@ export const ContactPage = () => {
     preferredTime: '',
   });
   const [submitting, setSubmitting] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState('');
+  const [captcha, setCaptcha] = useState({ provider: 'turnstile', turnstileToken: '', recaptchaToken: '' });
   const security = useSecurityConfig();
-  const showContactTurnstile = security.turnstileEnabled && security.turnstileOnContact;
+  const hasCaptchaToken = Boolean(captcha.turnstileToken || captcha.recaptchaToken);
+  const showContactChallenge = security.turnstileOnContact && security.captchaProvider !== 'none';
 
   const onChange = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -39,13 +40,13 @@ export const ContactPage = () => {
       const response = await submitAppointmentRequest({
         ...form,
         source: 'greffio_contact_page',
-        ...(showContactTurnstile && turnstileToken ? { turnstileToken } : {}),
+        ...(showContactChallenge && hasCaptchaToken ? captcha : {}),
       });
       if (!response?.ok) {
         throw new Error(response?.error || 'APPOINTMENT_REQUEST_FAILED');
       }
       toast.success('Demande envoyée. Notre équipe revient vers vous rapidement.');
-      setTurnstileToken('');
+      setCaptcha({ provider: 'turnstile', turnstileToken: '', recaptchaToken: '' });
       setForm({
         fullName: '',
         company: '',
@@ -133,16 +134,16 @@ export const ContactPage = () => {
               <Label>Heure souhaitée</Label>
               <Input type="time" value={form.preferredTime} onChange={(event) => onChange('preferredTime', event.target.value)} />
             </div>
-            {showContactTurnstile ? (
+            {showContactChallenge ? (
               <div className="md:col-span-2">
-                <TurnstileWidget action="contact" onToken={setTurnstileToken} />
+                <SecurityChallengeWidget action="contact" onTokens={setCaptcha} />
               </div>
             ) : null}
             <div className="md:col-span-2">
               <Button
                 type="submit"
                 className="w-full justify-between sm:w-auto"
-                disabled={submitting || (showContactTurnstile && !turnstileToken)}
+                disabled={submitting || (showContactChallenge && !hasCaptchaToken)}
               >
                 {submitting ? 'Envoi...' : 'Envoyer ma demande'}
                 <Send className="h-4 w-4" />

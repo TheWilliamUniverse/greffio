@@ -42,7 +42,7 @@
     "ops:setup-vps-cron": "powershell -ExecutionPolicy Bypass -File scripts/setup-vps-cron.ps1",
     "test:assistant": "node server/scripts/test-assistant.js",
     "build:tribunal-catalog": "node scripts/build-tribunal-commerce-catalog.mjs",
-    "test:security": "node --test server/security/security.test.js server/security/idor.test.js server/security/webhook.test.js",
+    "test:security": "node --test server/security/security.test.js server/security/idor.test.js server/security/webhook.test.js server/security/captcha.test.js",
     "test:login-alerts": "node --test server/utils/loginAlerts.test.js",
     "test:mfa-email-code": "node --test server/mfaEmailCodeStore.test.js",
     "test:app-update": "node --test src/services/appUpdate/tests/appUpdateLogic.test.js",

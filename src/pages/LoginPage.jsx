@@ -14,7 +14,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 import { runtimeConfig } from '@/config/runtime.js';
 import { PUBLISHER_LEGAL_NAME } from '@/config/publisher.js';
 import { isMobileBrowserViewport } from '@/utils/platform.js';
-import { TurnstileWidget } from '@/components/security/TurnstileWidget.jsx';
+import { SecurityChallengeWidget } from '@/components/security/SecurityChallengeWidget.jsx';
 import { useSecurityConfig } from '@/hooks/useSecurityConfig.js';
 
 const MFA_MODES = {
@@ -36,12 +36,13 @@ export const LoginPage = () => {
   const [emailCodeSent, setEmailCodeSent] = useState(false);
   const [sendingEmailCode, setSendingEmailCode] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
-  const [turnstileToken, setTurnstileToken] = useState('');
+  const [captcha, setCaptcha] = useState({ provider: 'turnstile', turnstileToken: '', recaptchaToken: '' });
   const { login, completeMfaLogin } = useAuth();
   const security = useSecurityConfig();
-  const showLoginTurnstile = security.turnstileEnabled
-    && security.turnstileOnLoginRisky
-    && failedAttempts >= 2;
+  const hasCaptchaToken = Boolean(captcha.turnstileToken || captcha.recaptchaToken);
+  const showLoginChallenge = security.turnstileOnLoginRisky
+    && failedAttempts >= 2
+    && security.captchaProvider !== 'none';
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTarget = location.state?.from?.pathname || '/dashboard';
@@ -62,7 +63,7 @@ export const LoginPage = () => {
       sessionEmail,
       sessionPassword,
       provider,
-      showLoginTurnstile ? turnstileToken : '',
+      showLoginChallenge ? captcha : {},
     );
     setIsLoading(false);
 
@@ -76,7 +77,7 @@ export const LoginPage = () => {
 
     if (result.success) {
       setFailedAttempts(0);
-      setTurnstileToken('');
+      setCaptcha({ provider: 'turnstile', turnstileToken: '', recaptchaToken: '' });
       navigate(redirectTarget, { replace: true });
     } else if (result.error === 'TEMP_ACCOUNT_EXPIRED') {
       toast.error('Ce compte temporaire a expiré (validité jusqu’à 10 h ce matin).');
@@ -216,14 +217,14 @@ export const LoginPage = () => {
                   <Link to="/password-reset" className="font-semibold text-primary hover:underline">Mot de passe oublié</Link>
                 </div>
 
-                {showLoginTurnstile ? (
-                  <TurnstileWidget action="login" onToken={setTurnstileToken} />
+                {showLoginChallenge ? (
+                  <SecurityChallengeWidget action="login" onTokens={setCaptcha} />
                 ) : null}
 
                 <Button
                   type="submit"
                   className="h-11 w-full justify-between"
-                  disabled={isLoading || (showLoginTurnstile && !turnstileToken)}
+                  disabled={isLoading || (showLoginChallenge && !hasCaptchaToken)}
                 >
                   {isLoading ? 'Ouverture de l’espace...' : 'Continuer'}
                   <ArrowRight className="h-4 w-4" />

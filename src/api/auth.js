@@ -5,6 +5,7 @@ import {
   isTransientHttpStatus,
   withTransientRetry,
 } from '@/api/networkResilience.js';
+import { buildCaptchaPayload } from '@/utils/captchaPayload.js';
 
 const parseApi = async (response) => {
   const contentType = response.headers.get('content-type') || '';
@@ -62,9 +63,13 @@ const postAuth = async (path, body, options = {}) => withTransientRetry(async ()
   }
 }, { retries: 2, delays: [500, 1500] });
 
-export const loginWithApi = async ({ email, password, turnstileToken }) => postAuth(
+export const loginWithApi = async (payload) => postAuth(
   '/api/auth/login',
-  { email, password, ...(turnstileToken ? { turnstileToken } : {}) },
+  {
+    email: payload.email,
+    password: payload.password,
+    ...buildCaptchaPayload(payload),
+  },
   { headers: mfaDeviceAuthHeaders() },
 );
 
@@ -77,6 +82,8 @@ export const signupWithApi = async ({
   company,
   loginAlertsEnabled,
   turnstileToken,
+  recaptchaToken,
+  provider,
 }) => apiPost('/api/auth/signup', {
   email,
   password,
@@ -85,7 +92,7 @@ export const signupWithApi = async ({
   role,
   company,
   loginAlertsEnabled,
-  ...(turnstileToken ? { turnstileToken } : {}),
+  ...buildCaptchaPayload({ turnstileToken, recaptchaToken, provider }),
 }, { auth: false });
 
 export const refreshAccessToken = async ({ refreshToken }) => {
@@ -98,14 +105,18 @@ export const refreshAccessToken = async ({ refreshToken }) => {
   return parseApi(response);
 };
 
-export const requestPasswordReset = async ({ email, turnstileToken }) => apiPost(
+export const requestPasswordReset = async (payload) => apiPost(
   '/api/auth/forgot-password',
-  { email, ...(turnstileToken ? { turnstileToken } : {}) },
+  { email: payload.email, ...buildCaptchaPayload(payload) },
   { auth: false },
 );
 
-export const confirmPasswordReset = async ({ token, password, turnstileToken }) => apiPost(
+export const confirmPasswordReset = async (payload) => apiPost(
   '/api/auth/reset-password',
-  { token, password, ...(turnstileToken ? { turnstileToken } : {}) },
+  {
+    token: payload.token,
+    password: payload.password,
+    ...buildCaptchaPayload(payload),
+  },
   { auth: false },
 );

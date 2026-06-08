@@ -7,11 +7,11 @@ export const securityHeadersMiddleware = (_req, res, next) => {
     const reportUri = process.env.CSP_REPORT_URI || '';
     const directives = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
+      "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://www.google.com https://www.gstatic.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https:",
       "connect-src 'self' https:",
-      "frame-src https://challenges.cloudflare.com https://www.signwell.com",
+      "frame-src https://challenges.cloudflare.com https://www.google.com https://www.signwell.com",
       reportUri ? `report-uri ${reportUri}` : null,
     ].filter(Boolean).join('; ');
     res.setHeader('Content-Security-Policy-Report-Only', directives);

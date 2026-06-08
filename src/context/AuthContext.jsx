@@ -125,7 +125,7 @@ export const AuthProvider = ({ children }) => {
     void bootstrap();
   }, []);
 
-  const login = async (email, password, provider = 'email', turnstileToken = '') => {
+  const login = async (email, password, provider = 'email', captcha = {}) => {
     if (!email || !password || password.length < 8) {
       return { success: false, error: 'Renseignez un email et un mot de passe valides.' };
     }
@@ -134,7 +134,7 @@ export const AuthProvider = ({ children }) => {
       const apiPayload = await loginWithApi({
         email,
         password,
-        ...(turnstileToken ? { turnstileToken } : {}),
+        ...captcha,
       });
       if (apiPayload?.mfaRequired) {
         return {
@@ -244,6 +244,8 @@ export const AuthProvider = ({ children }) => {
         role: 'CLIENT',
         loginAlertsEnabled: userData.loginAlertsEnabled !== false,
         ...(userData.turnstileToken ? { turnstileToken: userData.turnstileToken } : {}),
+        ...(userData.recaptchaToken ? { recaptchaToken: userData.recaptchaToken } : {}),
+        ...(userData.provider ? { provider: userData.provider } : {}),
         company: {
           name: userData.companyName || userData.firstName || 'Mon espace Greffio',
           legalStructure: userData.legalStructure || userData.legalForm || 'SAS',

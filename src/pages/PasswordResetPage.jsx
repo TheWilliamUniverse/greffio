@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { confirmPasswordReset, requestPasswordReset } from '@/api/auth.js';
 import { mapSecurityApiError } from '@/config/security.js';
-import { TurnstileWidget } from '@/components/security/TurnstileWidget.jsx';
+import { SecurityChallengeWidget } from '@/components/security/SecurityChallengeWidget.jsx';
 import { useSecurityConfig } from '@/hooks/useSecurityConfig.js';
 
 export const PasswordResetPage = () => {
@@ -18,10 +18,11 @@ export const PasswordResetPage = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState('');
+  const [captcha, setCaptcha] = useState({ provider: 'turnstile', turnstileToken: '', recaptchaToken: '' });
   const resetToken = useMemo(() => searchParams.get('token') || '', [searchParams]);
   const security = useSecurityConfig();
-  const showPasswordResetTurnstile = security.turnstileEnabled && security.turnstileOnPasswordReset;
+  const hasCaptchaToken = Boolean(captcha.turnstileToken || captcha.recaptchaToken);
+  const showPasswordResetChallenge = security.turnstileOnPasswordReset && security.captchaProvider !== 'none';
 
   const handleRequestSubmit = async (event) => {
     event.preventDefault();
@@ -29,7 +30,7 @@ export const PasswordResetPage = () => {
     try {
       await requestPasswordReset({
         email,
-        ...(showPasswordResetTurnstile && turnstileToken ? { turnstileToken } : {}),
+        ...(showPasswordResetChallenge && hasCaptchaToken ? captcha : {}),
       });
       setSubmitted(true);
       toast.success('Si un compte correspond à cette adresse, un email vous sera envoyé.');
@@ -56,7 +57,7 @@ export const PasswordResetPage = () => {
       await confirmPasswordReset({
         token: resetToken,
         password: newPassword,
-        ...(showPasswordResetTurnstile && turnstileToken ? { turnstileToken } : {}),
+        ...(showPasswordResetChallenge && hasCaptchaToken ? captcha : {}),
       });
       toast.success('Votre mot de passe a été mis à jour.');
       setSubmitted(true);
@@ -122,13 +123,13 @@ export const PasswordResetPage = () => {
                 placeholder="Répétez le mot de passe"
               />
             </div>
-            {showPasswordResetTurnstile ? (
-              <TurnstileWidget action="reset_password" onToken={setTurnstileToken} />
+            {showPasswordResetChallenge ? (
+              <SecurityChallengeWidget action="reset_password" onTokens={setCaptcha} />
             ) : null}
             <Button
               type="submit"
               className="w-full"
-              disabled={saving || (showPasswordResetTurnstile && !turnstileToken)}
+              disabled={saving || (showPasswordResetChallenge && !hasCaptchaToken)}
             >
               {saving ? 'Mise à jour...' : 'Mettre à jour le mot de passe'}
             </Button>
@@ -152,13 +153,13 @@ export const PasswordResetPage = () => {
                 placeholder="vous@entreprise.fr"
               />
             </div>
-            {showPasswordResetTurnstile ? (
-              <TurnstileWidget action="forgot_password" onToken={setTurnstileToken} />
+            {showPasswordResetChallenge ? (
+              <SecurityChallengeWidget action="forgot_password" onTokens={setCaptcha} />
             ) : null}
             <Button
               type="submit"
               className="w-full"
-              disabled={saving || (showPasswordResetTurnstile && !turnstileToken)}
+              disabled={saving || (showPasswordResetChallenge && !hasCaptchaToken)}
             >
               {saving ? 'Envoi...' : 'Envoyer le lien'}
             </Button>

@@ -1,18 +1,31 @@
+import { resolveActiveCaptchaProvider } from './captchaVerify.js';
+import { getRecaptchaConfig } from './recaptchaConfig.js';
 import { getTurnstileConfig } from './turnstileConfig.js';
 
 export const buildPublicSecurityConfig = () => {
   const turnstile = getTurnstileConfig();
-  const siteKey = String(process.env.TURNSTILE_SITE_KEY || '').trim();
-  const enabled = turnstile.enabled && Boolean(siteKey);
+  const recaptcha = getRecaptchaConfig();
+  const turnstileSiteKey = String(process.env.TURNSTILE_SITE_KEY || '').trim();
+  const turnstileEnabled = turnstile.enabled && Boolean(turnstileSiteKey);
+  const captchaProvider = resolveActiveCaptchaProvider();
+  const recaptchaFallbackActive = captchaProvider === 'recaptcha';
+
+  const challengeRequiredOn = (enforceFlag, uiFlag) => (
+    (turnstileEnabled || recaptcha.enabled)
+    && (enforceFlag || process.env[uiFlag] !== 'false')
+  );
 
   return {
     ok: true,
-    turnstileEnabled: enabled,
-    turnstileSiteKey: enabled ? siteKey : '',
-    turnstileOnContact: enabled && (turnstile.enforceContact || process.env.TURNSTILE_UI_CONTACT !== 'false'),
-    turnstileOnSignup: enabled && (turnstile.enforceSignup || process.env.TURNSTILE_UI_SIGNUP !== 'false'),
-    turnstileOnLoginRisky: enabled && process.env.TURNSTILE_RISKY_LOGIN === 'true',
-    turnstileOnPasswordReset: enabled && (
+    captchaProvider,
+    turnstileEnabled: turnstileEnabled && captchaProvider === 'turnstile',
+    turnstileSiteKey: captchaProvider === 'turnstile' ? turnstileSiteKey : '',
+    recaptchaFallbackEnabled: recaptcha.enabled,
+    recaptchaSiteKey: recaptchaFallbackActive ? recaptcha.siteKey : '',
+    turnstileOnContact: challengeRequiredOn(turnstile.enforceContact, 'TURNSTILE_UI_CONTACT'),
+    turnstileOnSignup: challengeRequiredOn(turnstile.enforceSignup, 'TURNSTILE_UI_SIGNUP'),
+    turnstileOnLoginRisky: (turnstileEnabled || recaptcha.enabled) && process.env.TURNSTILE_RISKY_LOGIN === 'true',
+    turnstileOnPasswordReset: (turnstileEnabled || recaptcha.enabled) && (
       turnstile.enforceForgotPassword
       || turnstile.enforceResetPassword
       || process.env.TURNSTILE_UI_PASSWORD_RESET !== 'false'

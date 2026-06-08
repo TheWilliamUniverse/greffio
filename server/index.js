@@ -30,6 +30,7 @@ import {
 import { securityHeadersMiddleware } from './security/headers.js';
 import { buildPublicSecurityConfig } from './security/publicSecurityConfig.js';
 import { initSentry } from './security/sentry.js';
+import { isAssistantBudgetExhausted, spendAssistantBudget } from './security/verificationBudget.js';
 import { initSchema } from './dbClient.js';
 import { DOSSIER_STATUSES } from './stateMachine.js';
 import { requireAuth, requireRole, isInternalRole } from './authMiddleware.js';
@@ -589,7 +590,15 @@ app.post('/api/assistant', assistantLimiter, requireAuth, async (req, res) => {
   if (!message || !String(message).trim()) {
     return res.status(400).json({ ok: false, error: 'ASSISTANT_MESSAGE_REQUIRED' });
   }
+  if (isAssistantBudgetExhausted()) {
+    return res.status(429).json({
+      ok: false,
+      error: 'RATE_LIMITED',
+      message: 'Trop de demandes à l’assistant pour le moment. Réessayez plus tard.',
+    });
+  }
   try {
+    spendAssistantBudget();
     const result = await askGreffioAssistant({
       message: String(message).trim(),
       history: Array.isArray(history) ? history : [],
