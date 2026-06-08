@@ -8,6 +8,9 @@ import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { runtimeConfig } from '@/config/runtime.js';
 import { submitAppointmentRequest } from '@/api/contact.js';
+import { mapSecurityApiError } from '@/config/security.js';
+import { TurnstileWidget } from '@/components/security/TurnstileWidget.jsx';
+import { useSecurityConfig } from '@/hooks/useSecurityConfig.js';
 
 export const ContactPage = () => {
   const [form, setForm] = useState({
@@ -21,6 +24,9 @@ export const ContactPage = () => {
     preferredTime: '',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const security = useSecurityConfig();
+  const showContactTurnstile = security.turnstileEnabled && security.turnstileOnContact;
 
   const onChange = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -33,11 +39,13 @@ export const ContactPage = () => {
       const response = await submitAppointmentRequest({
         ...form,
         source: 'greffio_contact_page',
+        ...(showContactTurnstile && turnstileToken ? { turnstileToken } : {}),
       });
       if (!response?.ok) {
         throw new Error(response?.error || 'APPOINTMENT_REQUEST_FAILED');
       }
       toast.success('Demande envoyée. Notre équipe revient vers vous rapidement.');
+      setTurnstileToken('');
       setForm({
         fullName: '',
         company: '',
@@ -49,7 +57,10 @@ export const ContactPage = () => {
         preferredTime: '',
       });
     } catch (error) {
-      if (String(error?.message || '').includes('EMAIL_DELIVERY_FAILED')) {
+      const securityMessage = mapSecurityApiError(error);
+      if (securityMessage) {
+        toast.error(securityMessage);
+      } else if (String(error?.message || '').includes('EMAIL_DELIVERY_FAILED')) {
         toast.error("La demande est reçue mais l'envoi email a échoué. Réessayez dans un instant.");
       } else {
         toast.error("Impossible d'envoyer la demande pour le moment.");
@@ -122,8 +133,17 @@ export const ContactPage = () => {
               <Label>Heure souhaitée</Label>
               <Input type="time" value={form.preferredTime} onChange={(event) => onChange('preferredTime', event.target.value)} />
             </div>
+            {showContactTurnstile ? (
+              <div className="md:col-span-2">
+                <TurnstileWidget action="contact" onToken={setTurnstileToken} />
+              </div>
+            ) : null}
             <div className="md:col-span-2">
-              <Button type="submit" className="w-full justify-between sm:w-auto" disabled={submitting}>
+              <Button
+                type="submit"
+                className="w-full justify-between sm:w-auto"
+                disabled={submitting || (showContactTurnstile && !turnstileToken)}
+              >
                 {submitting ? 'Envoi...' : 'Envoyer ma demande'}
                 <Send className="h-4 w-4" />
               </Button>

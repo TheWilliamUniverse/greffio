@@ -134,10 +134,12 @@ const verifyGoCardlessWebhook = ({ rawBody, signatureHeader, secret }) => {
     .update(signedPayload)
     .digest('hex');
 
-  const valid = crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expected),
-  );
+  const signatureBuffer = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expected);
+  if (signatureBuffer.length !== expectedBuffer.length) {
+    return { ok: false, error: 'GOCARDLESS_SIGNATURE_MISMATCH' };
+  }
+  const valid = crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
   return valid ? { ok: true } : { ok: false, error: 'GOCARDLESS_SIGNATURE_MISMATCH' };
 };
 

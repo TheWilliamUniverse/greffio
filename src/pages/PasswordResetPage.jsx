@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { confirmPasswordReset, requestPasswordReset } from '@/api/auth.js';
+import { mapSecurityApiError } from '@/config/security.js';
+import { TurnstileWidget } from '@/components/security/TurnstileWidget.jsx';
+import { useSecurityConfig } from '@/hooks/useSecurityConfig.js';
 
 export const PasswordResetPage = () => {
   const [searchParams] = useSearchParams();
@@ -15,17 +18,24 @@ export const PasswordResetPage = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
   const resetToken = useMemo(() => searchParams.get('token') || '', [searchParams]);
+  const security = useSecurityConfig();
+  const showPasswordResetTurnstile = security.turnstileEnabled && security.turnstileOnPasswordReset;
 
   const handleRequestSubmit = async (event) => {
     event.preventDefault();
     setSaving(true);
     try {
-      await requestPasswordReset({ email });
+      await requestPasswordReset({
+        email,
+        ...(showPasswordResetTurnstile && turnstileToken ? { turnstileToken } : {}),
+      });
       setSubmitted(true);
-      toast.success('Lien de réinitialisation envoyé');
-    } catch (_error) {
-      toast.error("Impossible d'envoyer le lien pour le moment.");
+      toast.success('Si un compte correspond à cette adresse, un email vous sera envoyé.');
+    } catch (error) {
+      const securityMessage = mapSecurityApiError(error);
+      toast.error(securityMessage || "Impossible d'envoyer le lien pour le moment.");
     } finally {
       setSaving(false);
     }
@@ -46,11 +56,13 @@ export const PasswordResetPage = () => {
       await confirmPasswordReset({
         token: resetToken,
         password: newPassword,
+        ...(showPasswordResetTurnstile && turnstileToken ? { turnstileToken } : {}),
       });
       toast.success('Votre mot de passe a été mis à jour.');
       setSubmitted(true);
-    } catch (_error) {
-      toast.error('Lien invalide ou expiré. Redemandez un nouveau lien.');
+    } catch (error) {
+      const securityMessage = mapSecurityApiError(error);
+      toast.error(securityMessage || 'Lien invalide ou expiré. Redemandez un nouveau lien.');
     } finally {
       setSaving(false);
     }
@@ -110,7 +122,14 @@ export const PasswordResetPage = () => {
                 placeholder="Répétez le mot de passe"
               />
             </div>
-            <Button type="submit" className="w-full" disabled={saving}>
+            {showPasswordResetTurnstile ? (
+              <TurnstileWidget action="reset_password" onToken={setTurnstileToken} />
+            ) : null}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={saving || (showPasswordResetTurnstile && !turnstileToken)}
+            >
               {saving ? 'Mise à jour...' : 'Mettre à jour le mot de passe'}
             </Button>
           </form>
@@ -133,7 +152,14 @@ export const PasswordResetPage = () => {
                 placeholder="vous@entreprise.fr"
               />
             </div>
-            <Button type="submit" className="w-full" disabled={saving}>
+            {showPasswordResetTurnstile ? (
+              <TurnstileWidget action="forgot_password" onToken={setTurnstileToken} />
+            ) : null}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={saving || (showPasswordResetTurnstile && !turnstileToken)}
+            >
               {saving ? 'Envoi...' : 'Envoyer le lien'}
             </Button>
             <Button variant="ghost" asChild className="w-full">

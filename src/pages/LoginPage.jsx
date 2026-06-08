@@ -14,6 +14,8 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 import { runtimeConfig } from '@/config/runtime.js';
 import { PUBLISHER_LEGAL_NAME } from '@/config/publisher.js';
 import { isMobileBrowserViewport } from '@/utils/platform.js';
+import { TurnstileWidget } from '@/components/security/TurnstileWidget.jsx';
+import { useSecurityConfig } from '@/hooks/useSecurityConfig.js';
 
 const MFA_MODES = {
   totp: 'totp',
@@ -33,7 +35,13 @@ export const LoginPage = () => {
   const [emailMasked, setEmailMasked] = useState('');
   const [emailCodeSent, setEmailCodeSent] = useState(false);
   const [sendingEmailCode, setSendingEmailCode] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [turnstileToken, setTurnstileToken] = useState('');
   const { login, completeMfaLogin } = useAuth();
+  const security = useSecurityConfig();
+  const showLoginTurnstile = security.turnstileEnabled
+    && security.turnstileOnLoginRisky
+    && failedAttempts >= 2;
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTarget = location.state?.from?.pathname || '/dashboard';
@@ -50,7 +58,12 @@ export const LoginPage = () => {
 
   const openSession = async (sessionEmail, sessionPassword, provider = 'email') => {
     setIsLoading(true);
-    const result = await login(sessionEmail, sessionPassword, provider);
+    const result = await login(
+      sessionEmail,
+      sessionPassword,
+      provider,
+      showLoginTurnstile ? turnstileToken : '',
+    );
     setIsLoading(false);
 
     if (result.success && result.mfaRequired) {
@@ -62,11 +75,19 @@ export const LoginPage = () => {
     }
 
     if (result.success) {
+      setFailedAttempts(0);
+      setTurnstileToken('');
       navigate(redirectTarget, { replace: true });
     } else if (result.error === 'TEMP_ACCOUNT_EXPIRED') {
       toast.error('Ce compte temporaire a expiré (validité jusqu’à 10 h ce matin).');
+    } else if (result.error === 'SECURITY_CHECK_REQUIRED') {
+      setFailedAttempts((value) => Math.max(value + 1, 2));
+      toast.error(result.message || 'Nous n\'avons pas pu vérifier cette action. Merci de réessayer.');
+    } else if (result.error === 'RATE_LIMITED') {
+      toast.error(result.message || 'Trop de tentatives. Réessayez dans quelques minutes.');
     } else {
-      toast.error(result.error || 'Connexion impossible');
+      setFailedAttempts((value) => value + 1);
+      toast.error('Connexion impossible. Vérifiez vos identifiants ou réessayez dans quelques instants.');
     }
   };
 
@@ -195,7 +216,15 @@ export const LoginPage = () => {
                   <Link to="/password-reset" className="font-semibold text-primary hover:underline">Mot de passe oublié</Link>
                 </div>
 
-                <Button type="submit" className="h-11 w-full justify-between" disabled={isLoading}>
+                {showLoginTurnstile ? (
+                  <TurnstileWidget action="login" onToken={setTurnstileToken} />
+                ) : null}
+
+                <Button
+                  type="submit"
+                  className="h-11 w-full justify-between"
+                  disabled={isLoading || (showLoginTurnstile && !turnstileToken)}
+                >
                   {isLoading ? 'Ouverture de l’espace...' : 'Continuer'}
                   <ArrowRight className="h-4 w-4" />
                 </Button>

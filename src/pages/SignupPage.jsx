@@ -12,6 +12,8 @@ import { Label } from '@/components/ui/label.jsx';
 import { COMPANY_FORM_CATALOG, LEGAL_SERVICES } from '@/config/businessCatalog.js';
 import { PUBLISHER_LEGAL_NAME } from '@/config/publisher.js';
 import { LoginAlertsToggle } from '@/components/security/LoginAlertsToggle.jsx';
+import { TurnstileWidget } from '@/components/security/TurnstileWidget.jsx';
+import { useSecurityConfig } from '@/hooks/useSecurityConfig.js';
 import { getProjectDraft } from '@/utils/localStorage.js';
 import { createDossier } from '@/api/dossiers.js';
 import { saveCurrentDossierId } from '@/utils/sessionStore.js';
@@ -55,6 +57,9 @@ export const SignupPage = () => {
   const draft = getProjectDraft();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const security = useSecurityConfig();
+  const showSignupTurnstile = security.turnstileEnabled && security.turnstileOnSignup;
   const { register, watch, trigger, getValues, setValue, formState: { errors } } = useForm({
     shouldUnregister: false,
     defaultValues: {
@@ -117,9 +122,12 @@ export const SignupPage = () => {
 
     setSubmitting(true);
     try {
-      const result = await signup(data);
+      const result = await signup({
+        ...data,
+        ...(showSignupTurnstile && turnstileToken ? { turnstileToken } : {}),
+      });
       if (!result.success) {
-        toast.error(result.error || 'Création du compte impossible.');
+        toast.error(result.message || result.error || 'Création du compte impossible.');
         return;
       }
       try {
@@ -319,6 +327,9 @@ export const SignupPage = () => {
                   {errors.acceptedTerms ? (
                     <p className="text-sm text-destructive">L’acceptation des conditions est requise pour ouvrir votre espace.</p>
                   ) : null}
+                  {showSignupTurnstile ? (
+                    <TurnstileWidget action="signup" onToken={setTurnstileToken} />
+                  ) : null}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -336,7 +347,7 @@ export const SignupPage = () => {
               <Button
                 type="submit"
                 size="lg"
-                disabled={submitting || (step === 4 && !acceptedTerms)}
+                disabled={submitting || (step === 4 && !acceptedTerms) || (step === 4 && showSignupTurnstile && !turnstileToken)}
                 className="gap-2 shadow-[0_8px_20px_rgba(30,77,140,0.18)] hover:translate-y-0 hover:shadow-[0_10px_24px_rgba(30,77,140,0.2)]"
               >
                 {submitting ? 'Création en cours…' : step === 4 ? 'Ouvrir mon dashboard' : 'Continuer'}

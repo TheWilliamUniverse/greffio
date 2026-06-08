@@ -62,9 +62,9 @@ const postAuth = async (path, body, options = {}) => withTransientRetry(async ()
   }
 }, { retries: 2, delays: [500, 1500] });
 
-export const loginWithApi = async ({ email, password }) => postAuth(
+export const loginWithApi = async ({ email, password, turnstileToken }) => postAuth(
   '/api/auth/login',
-  { email, password },
+  { email, password, ...(turnstileToken ? { turnstileToken } : {}) },
   { headers: mfaDeviceAuthHeaders() },
 );
 
@@ -76,6 +76,7 @@ export const signupWithApi = async ({
   role,
   company,
   loginAlertsEnabled,
+  turnstileToken,
 }) => apiPost('/api/auth/signup', {
   email,
   password,
@@ -84,6 +85,7 @@ export const signupWithApi = async ({
   role,
   company,
   loginAlertsEnabled,
+  ...(turnstileToken ? { turnstileToken } : {}),
 }, { auth: false });
 
 export const refreshAccessToken = async ({ refreshToken }) => {
@@ -96,14 +98,14 @@ export const refreshAccessToken = async ({ refreshToken }) => {
   return parseApi(response);
 };
 
-export const requestPasswordReset = async ({ email }) => apiPost(
+export const requestPasswordReset = async ({ email, turnstileToken }) => apiPost(
   '/api/auth/forgot-password',
-  { email },
+  { email, ...(turnstileToken ? { turnstileToken } : {}) },
   { auth: false },
 );
 
-export const confirmPasswordReset = async ({ token, password }) => apiPost(
+export const confirmPasswordReset = async ({ token, password, turnstileToken }) => apiPost(
   '/api/auth/reset-password',
-  { token, password },
+  { token, password, ...(turnstileToken ? { turnstileToken } : {}) },
   { auth: false },
 );

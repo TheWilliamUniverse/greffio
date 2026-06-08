@@ -11,6 +11,7 @@ import {
   saveUser,
 } from '@/utils/localStorage.js';
 import { loginWithApi, refreshAccessToken, signupWithApi } from '@/api/auth.js';
+import { mapSecurityApiError } from '@/config/security.js';
 import {
   isTransientApiError,
   mapLoginPayloadError,
@@ -124,13 +125,17 @@ export const AuthProvider = ({ children }) => {
     void bootstrap();
   }, []);
 
-  const login = async (email, password, provider = 'email') => {
+  const login = async (email, password, provider = 'email', turnstileToken = '') => {
     if (!email || !password || password.length < 8) {
       return { success: false, error: 'Renseignez un email et un mot de passe valides.' };
     }
 
     try {
-      const apiPayload = await loginWithApi({ email, password });
+      const apiPayload = await loginWithApi({
+        email,
+        password,
+        ...(turnstileToken ? { turnstileToken } : {}),
+      });
       if (apiPayload?.mfaRequired) {
         return {
           success: true,
@@ -172,6 +177,12 @@ export const AuthProvider = ({ children }) => {
       const code = error?.payload?.error || error?.message || error?.code;
       if (code === 'TEMP_ACCOUNT_EXPIRED') {
         return { success: false, error: 'TEMP_ACCOUNT_EXPIRED' };
+      }
+      if (code === 'SECURITY_CHECK_REQUIRED') {
+        return { success: false, error: 'SECURITY_CHECK_REQUIRED', message: mapSecurityApiError(error) };
+      }
+      if (code === 'RATE_LIMITED') {
+        return { success: false, error: 'RATE_LIMITED', message: mapSecurityApiError(error) };
       }
       if (isTransientApiError(error)) {
         return { success: false, error: 'Mise à jour serveur en cours. Réessayez dans quelques instants.' };
@@ -232,6 +243,7 @@ export const AuthProvider = ({ children }) => {
         lastName: userData.lastName,
         role: 'CLIENT',
         loginAlertsEnabled: userData.loginAlertsEnabled !== false,
+        ...(userData.turnstileToken ? { turnstileToken: userData.turnstileToken } : {}),
         company: {
           name: userData.companyName || userData.firstName || 'Mon espace Greffio',
           legalStructure: userData.legalStructure || userData.legalForm || 'SAS',
@@ -246,6 +258,10 @@ export const AuthProvider = ({ children }) => {
       effectiveAccessToken = apiSignup.accessToken || null;
       effectiveRefreshToken = apiSignup.refreshToken || null;
     } catch (error) {
+      const securityMessage = mapSecurityApiError(error);
+      if (securityMessage) {
+        return { success: false, error: error?.payload?.error || error?.message, message: securityMessage };
+      }
       if (error?.message === 'EMAIL_ALREADY_EXISTS' || error?.payload?.error === 'EMAIL_ALREADY_EXISTS') {
         return { success: false, error: 'Un compte existe déjà avec cet email. Utilisez Connexion ou réinitialisez votre mot de passe.' };
       }

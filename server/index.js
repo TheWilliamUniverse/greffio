@@ -7,7 +7,29 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
-import rateLimit from 'express-rate-limit';
+import {
+  assistantLimiter,
+  authLimiter,
+  authRefreshLimiter,
+  companyLookupPublicLimiter,
+  contactLimiter,
+  credentialsUnlockLimiter,
+  createGlobalApiRateLimiter,
+  createStrictPublicRateLimiter,
+  healthRateLimiter,
+  paymentLimiter,
+  statutesPreviewDraftLimiter,
+  strictPublicRateLimitMiddleware,
+  uploadLimiter,
+} from './security/rateLimits.js';
+import { createTurnstileMiddleware } from './security/turnstile.js';
+import {
+  clearLoginFailures,
+  recordLoginFailure,
+} from './security/loginRisk.js';
+import { securityHeadersMiddleware } from './security/headers.js';
+import { buildPublicSecurityConfig } from './security/publicSecurityConfig.js';
+import { initSentry } from './security/sentry.js';
 import { initSchema } from './dbClient.js';
 import { DOSSIER_STATUSES } from './stateMachine.js';
 import { requireAuth, requireRole, isInternalRole } from './authMiddleware.js';
@@ -207,6 +229,7 @@ const corsOptions = process.env.NODE_ENV === 'production'
     };
 
 app.use(helmet());
+app.use(securityHeadersMiddleware);
 app.use('/assets/email', express.static(path.join(path.dirname(fileURLToPath(import.meta.url)), 'assets', 'email'), {
   maxAge: '7d',
   immutable: true,
@@ -225,64 +248,16 @@ app.use((req, res, next) => {
   return express.json()(req, res, next);
 });
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 30,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+const globalApiRateLimiter = createGlobalApiRateLimiter();
+const strictPublicRateLimiter = createStrictPublicRateLimiter();
+app.use('/api', globalApiRateLimiter);
+app.use('/api', strictPublicRateLimitMiddleware(strictPublicRateLimiter));
 
-const authRefreshLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 120,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-const paymentLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: 40,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-const uploadLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: 30,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-const companyLookupPublicLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  max: 40,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-const statutesPreviewDraftLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  max: 30,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-const assistantLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: 60,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-const contactLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-const credentialsUnlockLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 12,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+const turnstileLogin = createTurnstileMiddleware('login', { mode: 'risky-only' });
+const turnstileSignup = createTurnstileMiddleware('signup');
+const turnstileContact = createTurnstileMiddleware('contact');
+const turnstileForgotPassword = createTurnstileMiddleware('forgot_password');
+const turnstileResetPassword = createTurnstileMiddleware('reset_password');
 
 const appUrl = process.env.APP_URL || 'https://greffio.willentreprises.com';
 
@@ -352,8 +327,12 @@ const isSafeUploadPath = (filePath) => {
   return normalizedCandidate.startsWith(normalizedRoot);
 };
 
-app.get('/api/health', (_req, res) => {
+app.get('/api/health', healthRateLimiter, (_req, res) => {
   res.json({ ok: true, service: 'greffio-api', timestamp: new Date().toISOString() });
+});
+
+app.get('/api/public/security-config', healthRateLimiter, (_req, res) => {
+  res.json(buildPublicSecurityConfig());
 });
 
 app.post('/api/observability/client-error', express.json({ limit: '32kb' }), (req, res) => {
@@ -371,7 +350,7 @@ app.post('/api/observability/client-error', express.json({ limit: '32kb' }), (re
   return res.status(204).end();
 });
 
-app.get('/api/ready', async (_req, res) => {
+app.get('/api/ready', healthRateLimiter, async (_req, res) => {
   const checks = {
     storageDriver: objectStorageConfig.driver,
     requestedStorageDriver: objectStorageConfig.requestedDriver,
@@ -702,24 +681,6 @@ app.post('/api/mobile/push/unregister', requireAuth, async (req, res) => {
   }
 });
 
-const loginFailureTracker = new Map();
-const LOGIN_FAILURE_WINDOW_MS = 15 * 60 * 1000;
-const LOGIN_FAILURE_THRESHOLD = 3;
-
-const recordLoginFailure = (email) => {
-  const key = String(email || '').toLowerCase().trim();
-  const now = Date.now();
-  const existing = loginFailureTracker.get(key);
-  const reset = !existing || now - existing.firstAt > LOGIN_FAILURE_WINDOW_MS;
-  const next = reset ? { count: 1, firstAt: now } : { count: existing.count + 1, firstAt: existing.firstAt };
-  loginFailureTracker.set(key, next);
-  return next.count;
-};
-
-const clearLoginFailures = (email) => {
-  loginFailureTracker.delete(String(email || '').toLowerCase().trim());
-};
-
 const buildGoogleCalendarLink = ({
   title,
   details,
@@ -734,7 +695,7 @@ const buildGoogleCalendarLink = ({
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encode(title)}&details=${encode(details)}&add=${encode(email)}${dates ? `&dates=${dates}` : ''}`;
 };
 
-app.post('/api/contact/appointment-request', contactLimiter, async (req, res) => {
+app.post('/api/contact/appointment-request', contactLimiter, turnstileContact, async (req, res) => {
   const {
     fullName,
     company,
@@ -845,7 +806,7 @@ app.get('/api/dossiers/:dossierId/intelligent-prefill', requireAuth, async (req,
   });
 });
 
-app.post('/api/auth/signup', authLimiter, async (req, res) => {
+app.post('/api/auth/signup', authLimiter, turnstileSignup, async (req, res) => {
   const {
     email,
     password,
@@ -893,7 +854,7 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
   });
 });
 
-app.post('/api/auth/login', authLimiter, async (req, res) => {
+app.post('/api/auth/login', authLimiter, turnstileLogin, async (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) {
     return res.status(400).json({ ok: false, error: 'INVALID_LOGIN_PAYLOAD' });
@@ -911,8 +872,8 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
         // ignore malformed profile
       }
     }
-    const failures = recordLoginFailure(email);
-    if (failures >= LOGIN_FAILURE_THRESHOLD) {
+    const failures = await recordLoginFailure({ email, ip: getClientIp(req) });
+    if (failures.thresholdReached) {
       const normalizedEmail = String(email).toLowerCase().trim();
       const target = await getUserByEmail(normalizedEmail);
       if (target) {
@@ -934,7 +895,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     }
     return res.status(401).json({ ok: false, error: 'INVALID_CREDENTIALS' });
   }
-  clearLoginFailures(email);
+  await clearLoginFailures(email);
   const runPostLoginMaintenance = async (userId) => {
     try {
       const result = await purgePlaceholderDossiersForUser({ userId, deletedBy: userId });
@@ -1004,7 +965,7 @@ app.post('/api/auth/refresh', authRefreshLimiter, (req, res) => {
   }
 });
 
-app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
+app.post('/api/auth/forgot-password', authLimiter, turnstileForgotPassword, async (req, res) => {
   const { email } = req.body || {};
   if (!email || !String(email).trim()) {
     return res.status(400).json({ ok: false, error: 'EMAIL_REQUIRED' });
@@ -1038,7 +999,7 @@ app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
   return res.json({ ok: true, sent: true });
 });
 
-app.post('/api/auth/reset-password', authLimiter, async (req, res) => {
+app.post('/api/auth/reset-password', authLimiter, turnstileResetPassword, async (req, res) => {
   const { token, password } = req.body || {};
   if (!token || !password || String(password).length < 8) {
     return res.status(400).json({ ok: false, error: 'INVALID_RESET_PASSWORD_PAYLOAD' });
@@ -2783,6 +2744,7 @@ registerDossierMessageRoutes(app, {
 });
 
 const bootstrap = async () => {
+  await initSentry();
   await initSchema();
   if (process.env.NODE_ENV !== 'production') {
     await ensureSeedDossier();
