@@ -181,10 +181,10 @@ export const DashboardPage = () => {
   const declarantLabel = declarantProfile === 'personne_morale' ? 'Personne morale' : 'Personne physique';
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background">
+    <div className="flex min-h-[calc(100dvh-4rem)] bg-background">
       <Sidebar />
       <MobileSidebarDrawer open={isMobileNavOpen} onClose={() => setIsMobileNavOpen(false)} />
-      <main className="flex-1 overflow-y-auto p-5 pb-28 md:p-8">
+      <main className="min-h-0 flex-1 overflow-y-auto p-5 pb-8 md:p-8">
         <div className="mx-auto max-w-7xl space-y-7">
           <div className="flex items-center justify-between gap-3 md:hidden">
             <MobileSidebarTrigger onClick={() => setIsMobileNavOpen(true)} />
@@ -288,7 +288,7 @@ export const DashboardPage = () => {
               </Button>
             </section>
           ) : (
-            <div className="grid gap-7 xl:grid-cols-[1.28fr_0.72fr]">
+            <div className="space-y-7">
               <section className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-extrabold text-foreground">Formalités en cours</h2>
@@ -325,7 +325,7 @@ export const DashboardPage = () => {
                 </div>
               </section>
 
-              <aside className="space-y-7">
+              <div className="grid gap-7 lg:grid-cols-2">
                 <section className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
                   <div className="mb-4 flex items-center gap-2">
                     <Bell className="h-5 w-5 text-primary" />
@@ -369,7 +369,7 @@ export const DashboardPage = () => {
                     </Link>
                   </Button>
                 </section>
-              </aside>
+              </div>
             </div>
           )}
         </div>
