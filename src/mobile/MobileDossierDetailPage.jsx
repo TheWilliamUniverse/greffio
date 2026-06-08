@@ -21,7 +21,7 @@ import { documentHasFile, resolveClientDocumentStatus } from '@/utils/documentWo
 import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 import { DossierTrashActions } from '@/components/dossiers/DossierTrashActions.jsx';
-import { isEphemeralPlaceholderDossier } from '@/utils/dossierBootstrap.js';
+import { cn } from '@/lib/utils.js';
 
 const SECTION_PILLS = [
   { id: 'resume', label: 'Résumé' },
