@@ -66,6 +66,17 @@
       "gitCommit": "b591034",
       "notesFile": "../MOBILE_RELEASE_1.2.7.md",
       "archivedAt": "2026-05-29"
+    },
+    {
+      "versionName": "1.2.8",
+      "versionCode": 261510007,
+      "artifact": "greffio-1.2.8-261510007.aab",
+      "sha256": "74098A7E8523DAF382E9B5F8E1671FCA08D5447B0C375ACF1E67860303802BFF",
+      "sizeBytes": 9942994,
+      "builtAt": "2026-05-29",
+      "gitCommit": "96c8216",
+      "notesFile": "../MOBILE_RELEASE_1.2.8.md",
+      "archivedAt": "2026-05-29"
     }
   ],
   "package": "com.greffio.app"

@@ -34,16 +34,16 @@ const parseChangelog = (value) => {
     .filter(Boolean);
 };
 
-const DEFAULT_LATEST_VERSION_CODE = 261510006;
+const DEFAULT_LATEST_VERSION_CODE = 261510007;
 const DEFAULT_MIN_VERSION_CODE = 261422041;
-const DEFAULT_LATEST_VERSION_NAME = '1.2.7';
+const DEFAULT_LATEST_VERSION_NAME = '1.2.8';
 
 const DEFAULT_CHANGELOG = [
-  'Navigation Android : back button fiable sur overlays (signature, drawer, notifications)',
-  'Documents signables : shell mobile natif, CTA sticky au-dessus du clavier',
-  'Hors connexion : bannière explicite et retour réseau avec feedback',
-  'Compte app enrichi : version, build, biométrie, notifications, mise en veille',
-  'Tarifs mobile : bloc « En clair » en deux colonnes pour une lecture plus rapide',
+  'Simulateur mobile : interface plus directe, cartes cliquables, moins de scroll',
+  'Nouveau dossier : démarrage propre sans reprise d’un ancien parcours',
+  'Suppression dossier : bouton en bas de l’onglet Actions (corbeille 72 h)',
+  'Emails : dossier créé uniquement après validation ; relance si démarche entamée',
+  'Corrections layout dashboard et upload documents',
 ];
 
 export const getAppVersionConfig = () => ({
