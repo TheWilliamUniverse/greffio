@@ -3,6 +3,12 @@ import { computeDossierRisk, sortAntiRejectionQueue } from '../services/opsRisk.
 import { buildCanonicalDocumentFilename } from '../documentNaming.js';
 import { downloadDocumentBufferFromConfiguredStorage } from '../services/objectStorage.js';
 
+const OPS_TEAM_DIRECTORY = Object.freeze([
+  { id: 'william', email: 'william@willentreprises.com', name: 'William ABDOU', role: 'ADMIN', initials: 'WA', title: 'Direction & pilotage ops' },
+  { id: 'nobatene', email: 'nobatene@willentreprises.com', name: 'Nobatène ABDOU', role: 'OPS', initials: 'NA', title: 'Coordination formalités' },
+  { id: 'ibtissam', email: 'ibtissam@willentreprises.com', name: 'Ibtissam ABDOU', role: 'FORMALISTE', initials: 'IA', title: 'Revue documentaire' },
+]);
+
 export const registerOpsRoutes = (app, deps) => {
   const {
     requireAuth,
@@ -13,6 +19,7 @@ export const registerOpsRoutes = (app, deps) => {
     getAllPayments,
     getDossier,
     getUserById,
+    getUserByEmail,
     listDossierEvents,
     listOpsNotesByDossier,
     updateDossierOpsFields,
@@ -37,6 +44,38 @@ export const registerOpsRoutes = (app, deps) => {
       getAllPayments,
     });
     return res.json({ ok: true, ...payload });
+  });
+
+  app.get('/api/ops/team-workload', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (_req, res) => {
+    const dossiers = await getAllDossiers();
+    const members = await Promise.all(OPS_TEAM_DIRECTORY.map(async (member) => {
+      const user = getUserByEmail ? await getUserByEmail(member.email) : null;
+      const assigned = dossiers.filter((dossier) => dossier.assignedToUserId && user?.id && dossier.assignedToUserId === user.id);
+      const pendingReview = assigned.filter((dossier) => {
+        const queue = String(dossier.opsQueue || '').toLowerCase();
+        return queue !== 'ready_to_file';
+      }).length;
+      return {
+        ...member,
+        userId: user?.id || null,
+        assignedCount: assigned.length,
+        pendingReview,
+        readyToFile: assigned.filter((dossier) => String(dossier.opsQueue || '').toLowerCase() === 'ready_to_file').length,
+        recentDossiers: assigned.slice(0, 5).map((dossier) => ({
+          id: dossier.id,
+          companyName: dossier.companyName || dossier.denomination,
+          reference: dossier.reference,
+          opsQueue: dossier.opsQueue,
+        })),
+      };
+    }));
+    const unassignedCount = dossiers.filter((dossier) => !dossier.assignedToUserId).length;
+    return res.json({
+      ok: true,
+      members,
+      unassignedCount,
+      totalDossiers: dossiers.length,
+    });
   });
 
   app.get('/api/ops/dossiers', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (_req, res) => {

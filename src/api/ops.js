@@ -2,6 +2,8 @@ import { apiFetch, apiGet, apiPatch, apiPost } from '@/api/client.js';
 
 export const getOpsCockpit = async () => apiGet('/api/ops/cockpit');
 
+export const getOpsTeamWorkload = async () => apiGet('/api/ops/team-workload');
+
 export const getOpsDossiers = async () => apiGet('/api/ops/dossiers');
 
 export const getOpsDossiersRisk = async () => apiGet('/api/ops/dossiers-risk');

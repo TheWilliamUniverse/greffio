@@ -13,6 +13,11 @@ const matchesFilter = (item, filter) => {
       || item.riskScore >= 45
       || item.pendingDocuments > 0;
   }
+  if (filter.startsWith('assignee:')) {
+    const assignee = filter.split(':')[1];
+    if (assignee === 'unassigned') return !item.assignedToUserId;
+    return item.assignedToUserId === assignee;
+  }
   if (filter.startsWith('sla:')) return item.slaStatus === filter.split(':')[1];
   if (filter.startsWith('queue:')) return item.opsQueue === filter.split(':')[1];
   if (filter === 'ready:deposit') return item.readyForDeposit;

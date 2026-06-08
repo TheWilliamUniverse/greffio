@@ -35,7 +35,7 @@ const pageMeta = {
   },
   '/ops/equipe': {
     title: 'Équipe Greffio',
-    subtitle: `William, Nobatène, Ibtissam — ${PUBLISHER_LEGAL_NAME}.`,
+    subtitle: 'Charge de travail et assignations formalistes (Lot 4).',
   },
   '/ops/audit': {
     title: 'Audit',

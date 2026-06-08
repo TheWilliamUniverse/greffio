@@ -1,17 +1,15 @@
-import { apiGet, apiPost } from '@/api/client.js';
-import { getToken } from '@/utils/localStorage.js';
-import { runtimeConfig } from '@/config/runtime.js';
+import { apiFetch, apiGet, apiPost } from '@/api/client.js';
 
 export const fetchStatutesPreviewDraft = async ({ data = {}, answers = {} } = {}) => (
   apiPost('/api/statutes/preview-draft', { data, answers }, { auth: false })
 );
 
 export const downloadStatutesPreviewDraftPdf = async ({ data = {}, answers = {} } = {}) => {
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/statutes/preview-draft/pdf`, {
+  const response = await apiFetch('/api/statutes/preview-draft/pdf', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ data, answers }),
-    cache: 'no-store',
+    auth: false,
+    parseJson: false,
   });
   if (!response.ok) {
     let payload = null;
@@ -35,14 +33,11 @@ export const generateStatutes = async (dossierId) => apiPost(`/api/dossiers/${do
 export const listStatutes = async (dossierId) => apiGet(`/api/dossiers/${dossierId}/statutes`);
 
 export const downloadStatutesPdf = async (dossierId, { cacheBust = false } = {}) => {
-  const token = getToken();
-  if (!token) throw new Error('AUTH_TOKEN_MISSING');
   const query = cacheBust ? `?t=${Date.now()}` : '';
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/dossiers/${dossierId}/statutes/pdf${query}`, {
-    method: 'GET',
-    headers: { Authorization: `Bearer ${token}` },
-    cache: 'no-store',
-  });
+  const response = await apiFetch(
+    `/api/dossiers/${encodeURIComponent(dossierId)}/statutes/pdf${query}`,
+    { parseJson: false },
+  );
   if (!response.ok) {
     throw new Error('STATUTES_PDF_NOT_FOUND');
   }
