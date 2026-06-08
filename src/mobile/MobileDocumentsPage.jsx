@@ -27,7 +27,8 @@ import {
   downloadDossierDocument,
   uploadDossierDocument,
 } from '@/api/documents.js';
-import { getCurrentDossierId } from '@/utils/sessionStore.js';
+import { getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.js';
+import { DossierVaultPickerOverlay } from '@/components/dossiers/DossierVaultPickerOverlay.jsx';
 import { isInternalUser } from '@/utils/roles.js';
 import { getDocumentStatusLabel, getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 import { documentHasFile, resolveClientDocumentStatus } from '@/utils/documentWorkflow.js';
@@ -64,13 +65,29 @@ export const MobileDocumentsPage = () => {
   const [deletingDocKey, setDeletingDocKey] = useState(null);
   const [uploadError, setUploadError] = useState('');
   const [dossierId, setDossierId] = useState(() => getCurrentDossierId());
+  const [pickerOpen, setPickerOpen] = useState(false);
   const { data: dossiersList = [], isLoading: loadingDossiers } = useDossiersQuery(currentUser?.id);
   const { data: dossierPayload, isLoading: loadingDossier, isError, refetch } = useDossierQuery(dossierId);
 
   useEffect(() => {
-    if (dossierId || !dossiersList.length) return;
-    setDossierId(dossiersList[0]?.id || null);
-  }, [dossierId, dossiersList]);
+    if (loadingDossiers || internalView) return;
+    const items = Array.isArray(dossiersList) ? dossiersList : [];
+    if (items.length <= 1) {
+      if (items.length === 1) {
+        saveCurrentDossierId(items[0].id);
+        setDossierId(items[0].id);
+      }
+      setPickerOpen(false);
+      return;
+    }
+    setPickerOpen(true);
+  }, [loadingDossiers, dossiersList, internalView]);
+
+  const handlePickDossier = (dossier) => {
+    saveCurrentDossierId(dossier.id);
+    setDossierId(dossier.id);
+    setPickerOpen(false);
+  };
 
   const documents = useMemo(() => {
     const apiDocuments = dossierPayload?.documents || [];
@@ -223,7 +240,14 @@ export const MobileDocumentsPage = () => {
   if (loadingDossiers || (loadingDossier && dossierId)) return <MobilePageSkeleton />;
 
   return (
-    <div className={`space-y-5 px-4 py-5 ${bottomPad}`}>
+    <>
+      <DossierVaultPickerOverlay
+        open={pickerOpen && !internalView}
+        dossiers={dossiersList}
+        onSelect={handlePickDossier}
+        onClose={() => setPickerOpen(false)}
+      />
+      <div className={`space-y-5 px-4 py-5 ${bottomPad}`}>
       <MobileAnimatedSection delay={0}>
         <p className="text-xs font-bold uppercase tracking-wide text-primary">Espace documentaire</p>
         <div className="mt-1 flex items-start justify-between gap-3">
@@ -440,6 +464,7 @@ export const MobileDocumentsPage = () => {
           ) : null}
         </>
       )}
-    </div>
+      </div>
+    </>
   );
 };

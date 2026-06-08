@@ -1321,6 +1321,7 @@ app.get('/api/geo/address-search', requireAuth, async (req, res) => {
 });
 
 app.post('/api/webhooks/resend', express.text({ type: 'application/json' }), async (req, res) => {
+  if (rejectIfWebhookSecretMissing(res, process.env.RESEND_WEBHOOK_SIGNING_SECRET, 'RESEND_WEBHOOK')) return;
   const signature = req.headers['resend-signature'];
   if (!signature) {
     return res.status(401).json({ ok: false, error: 'RESEND_SIGNATURE_MISSING' });
@@ -2751,6 +2752,7 @@ app.post('/api/mollie/webhook', handleMollieWebhook);
 app.post('/api/webhooks/mollie', handleMollieWebhook);
 
 const handleGoCardlessWebhook = async (req, res) => {
+  if (rejectIfWebhookSecretMissing(res, process.env.GOCARDLESS_WEBHOOK_SECRET, 'GOCARDLESS_WEBHOOK')) return;
   const rawBody = req.body;
   const signatureHeader = req.headers['webhook-signature'];
   const secret = process.env.GOCARDLESS_WEBHOOK_SECRET || '';

@@ -6,6 +6,7 @@ import {
   PAYMENT_STATUSES,
   PaymentError,
 } from '../payments/types.js';
+import { rejectIfWebhookSecretMissing } from '../utils/webhookSecurity.js';
 
 const handlePaymentError = (res, error, fallbackCode = 'PAYMENT_ERROR') => {
   if (error instanceof PaymentError) {
@@ -197,6 +198,7 @@ export const registerPaymentsRoutes = (app, deps) => {
    * de signature ; on monte donc un parser texte dédié sur cette route.
    */
   app.post('/api/webhooks/cawl', async (req, res) => {
+    if (rejectIfWebhookSecretMissing(res, process.env.CAWL_WEBHOOK_SECRET, 'CAWL_WEBHOOK')) return;
     try {
       const adapter = service.providers[PAYMENT_PROVIDERS.CAWL];
       if (!adapter) {

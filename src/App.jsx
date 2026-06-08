@@ -52,7 +52,6 @@ import { AppInstallPage } from '@/pages/AppInstallPage.jsx';
 import { ContactPage } from '@/pages/ContactPage.jsx';
 import { GuidePage } from '@/pages/GuidePage.jsx';
 import { MandatePage } from '@/pages/MandatePage.jsx';
-import { OpsPlaceholderPage } from '@/pages/ops/OpsPlaceholderPage.jsx';
 import { PaymentVerificationPage } from '@/pages/PaymentVerificationPage.jsx';
 import { SubscribersListPage } from '@/pages/SubscribersListPage.jsx';
 import { FormalityPowersPage } from '@/pages/FormalityPowersPage.jsx';
