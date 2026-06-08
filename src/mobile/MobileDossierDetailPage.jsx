@@ -20,7 +20,8 @@ import { isEiLikeFormality } from '@/config/formalities.js';
 import { documentHasFile, resolveClientDocumentStatus } from '@/utils/documentWorkflow.js';
 import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
-import { cn } from '@/lib/utils.js';
+import { DossierTrashActions } from '@/components/dossiers/DossierTrashActions.jsx';
+import { isEphemeralPlaceholderDossier } from '@/utils/dossierBootstrap.js';
 
 const SECTION_PILLS = [
   { id: 'resume', label: 'Résumé' },
@@ -102,6 +103,7 @@ export const MobileDossierDetailPage = () => {
 
       <div ref={(node) => { sectionRefs.current.resume = node; }}>
         <MobileDossierStatusCard dossier={dossier} documents={docs} />
+        <DossierTrashActions dossier={dossier} className="mt-4" compact />
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

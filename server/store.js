@@ -5,6 +5,8 @@ import { getFormalityRule } from './domain/formalities.js';
 import { resolveLegalFormFromQuestionnaire, resolveServiceFromFormality } from './utils/formalityMapping.js';
 import { getMinorDocumentRequirements } from './utils/minorAssociateRules.js';
 
+import { isEphemeralPlaceholderDossier, resolveCreateCompanyName } from './utils/placeholderDossier.js';
+
 const nowIso = () => new Date().toISOString();
 const parseJsonMetadata = (value, fallback = {}) => {
   if (!value) return fallback;
@@ -201,10 +203,17 @@ const createDossier = async ({
   legalForm = 'SASU',
   service = 'creation-sasu',
   status = DOSSIER_STATUSES.QUOTE_GENERATED,
+  forceNew = false,
 }) => {
+  if (userId && !forceNew) {
+    const existingDrafts = await listDossiersForUser({ userId });
+    const reusable = existingDrafts.find((entry) => isEphemeralPlaceholderDossier(entry));
+    if (reusable) return reusable;
+  }
+
   const createdAt = nowIso();
   const reference = makeShortReference();
-  const resolvedCompanyName = String(companyName || '').trim() || `Brouillon · ${reference}`;
+  const resolvedCompanyName = resolveCreateCompanyName(companyName, reference);
   const dossier = {
     id: `dos_${randomUUID()}`,
     reference,
@@ -1847,6 +1856,18 @@ const restoreDossier = async ({ dossierId, userId }) => {
   return row.changes > 0 ? { id: dossierId } : null;
 };
 
+const purgePlaceholderDossiersForUser = async ({ userId, deletedBy }) => {
+  if (!userId) return { purged: 0, ids: [] };
+  const dossiers = await listDossiersForUser({ userId });
+  const targets = dossiers.filter((entry) => isEphemeralPlaceholderDossier(entry));
+  const ids = [];
+  for (const entry of targets) {
+    const scheduled = await scheduleDossierDeletion({ dossierId: entry.id, userId: deletedBy || userId });
+    if (scheduled?.id) ids.push(scheduled.id);
+  }
+  return { purged: ids.length, ids };
+};
+
 const listTrashedDossiers = async ({ userId }) => {
   if (hasPostgres) {
     const result = await query(`
@@ -1897,6 +1918,7 @@ export {
   listDossiersForUser,
   scheduleDossierDeletion,
   restoreDossier,
+  purgePlaceholderDossiersForUser,
   listTrashedDossiers,
   getAllPayments,
   updateDossierQuestionnaire,

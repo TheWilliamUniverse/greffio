@@ -203,18 +203,21 @@ export const QuestionnairePage = () => {
       const existing = dossierId || getCurrentDossierId();
       if (existing) return existing;
     }
-    const created = await createDossier(buildDossierBootstrap(
-      {
-        ...formData,
-        legalForm: resolveLegalFormFromContext({
-          formeJuridique: formData.formeJuridique,
-          typeFormalite: formData.typeFormalite,
-        }) || 'SASU',
-        service: normalizeFormalityToService(formData.typeFormalite, formData.formeJuridique),
-      },
-      isAuthenticated ? user?.id || null : null,
-      reference,
-    ));
+    const created = await createDossier({
+      ...buildDossierBootstrap(
+        {
+          ...formData,
+          legalForm: resolveLegalFormFromContext({
+            formeJuridique: formData.formeJuridique,
+            typeFormalite: formData.typeFormalite,
+          }) || 'SASU',
+          service: normalizeFormalityToService(formData.typeFormalite, formData.formeJuridique),
+        },
+        isAuthenticated ? user?.id || null : null,
+        reference,
+      ),
+      forceNew: Boolean(forceNew),
+    });
     const id = created?.dossier?.id || null;
     if (id) {
       saveCurrentDossierId(id);
@@ -381,23 +384,7 @@ export const QuestionnairePage = () => {
             }
           }
           if (!currentDossierId) {
-            const created = await createDossier(buildDossierBootstrap(
-              {
-                ...mergedData,
-                legalForm: resolveLegalFormFromContext({
-                  formeJuridique: mergedData.formeJuridique,
-                  typeFormalite: mergedData.typeFormalite,
-                }) || 'SASU',
-                service: normalizeFormalityToService(mergedData.typeFormalite, mergedData.formeJuridique),
-              },
-              isAuthenticated ? user?.id || null : null,
-              reference,
-            ));
-            currentDossierId = created?.dossier?.id || null;
-            if (currentDossierId) {
-              saveCurrentDossierId(currentDossierId);
-              setDossierId(currentDossierId);
-            }
+            // Ne pas créer de dossier fantôme au simple chargement : création au premier enregistrement via ensureDossier().
           }
           if (currentDossierId && state) {
             const fromApi = state.reference || state?.dossier?.reference || '';

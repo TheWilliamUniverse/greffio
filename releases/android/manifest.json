@@ -1,0 +1,15 @@
+{
+  "package": "com.greffio.app",
+  "releases": [
+    {
+      "versionName": "1.2.7",
+      "versionCode": 261510006,
+      "artifact": "greffio-1.2.7-261510006.aab",
+      "sha256": "EF08ACDB39FEF3CDB07014DF27AB85D3BF19C38F6741A819919144B2EA6694B4",
+      "sizeBytes": 9940051,
+      "builtAt": "2026-05-08",
+      "gitCommit": "b591034",
+      "notesFile": "../MOBILE_RELEASE_1.2.7.md"
+    }
+  ]
+}

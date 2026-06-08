@@ -17,9 +17,11 @@ import { parseJsonField } from '@/utils/jsonField.js';
 import { isInternalUser } from '@/utils/roles.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { toast } from 'sonner';
+import { DossierTrashActions } from '@/components/dossiers/DossierTrashActions.jsx';
 import { DossierBreadcrumb } from '@/components/layout/DossierBreadcrumb.jsx';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 import { mapDossierStatusForBadge, mapDossierClientAction } from '@/utils/dossierClientStatus.js';
+import { isEphemeralPlaceholderDossier } from '@/utils/dossierBootstrap.js';
 import { DossierMessageThread } from '@/components/messaging/DossierMessageThread.jsx';
 import {
   documentHasFile,
@@ -369,6 +371,7 @@ export const DossierDetailPage = () => {
             </TabsContent>
 
             <TabsContent value="tasks" className="mt-5">
+              <DossierTrashActions dossier={dossier} className="mb-5" />
               <div className="grid gap-4 md:grid-cols-2">
                 {[dossier.nextAction, ...missingDocuments.map((document) => `Compléter ${document.name}`)].map((task) => (
                   <div key={task} className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
@@ -378,7 +381,7 @@ export const DossierDetailPage = () => {
                   </div>
                 ))}
               </div>
-              {!internalView ? (
+              {!internalView && !isEphemeralPlaceholderDossier(dossier) ? (
                 <div className="mt-5 rounded-md border border-red-200 bg-red-50/40 p-5">
                   <p className="font-extrabold text-red-900">Supprimer ce dossier</p>
                   <p className="mt-2 text-sm text-red-900/80">

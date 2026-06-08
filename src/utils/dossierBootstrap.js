@@ -3,6 +3,8 @@ const PLACEHOLDER_DOSSIER_NAMES = new Set([
   'greffio demo company',
   'nouveau dossier',
   'brouillon',
+  'brouillon en cours',
+  'mon espace greffio',
 ]);
 
 const IN_PROGRESS_STATUSES = new Set([
@@ -11,13 +13,24 @@ const IN_PROGRESS_STATUSES = new Set([
   'contact_completed',
   'legal_form_selected',
   'questionnaire_in_progress',
+  'questionnaire_started',
   'quote_generated',
 ]);
 
 export const isPlaceholderDossierName = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
   if (!normalized) return true;
-  return PLACEHOLDER_DOSSIER_NAMES.has(normalized);
+  if (PLACEHOLDER_DOSSIER_NAMES.has(normalized)) return true;
+  if (normalized.startsWith('brouillon ·') || normalized.startsWith('brouillon ')) return true;
+  return false;
+};
+
+export const isEphemeralPlaceholderDossier = (dossier = {}) => {
+  const progress = Number(dossier.progressPercent || 0);
+  if (progress > 5) return false;
+  const status = String(dossier.status || '').toLowerCase();
+  if (!IN_PROGRESS_STATUSES.has(status)) return false;
+  return isPlaceholderDossierName(dossier.companyName || dossier.denomination);
 };
 
 export const resolveBootstrapCompanyName = (formData = {}) => {

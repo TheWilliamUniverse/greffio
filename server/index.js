@@ -27,6 +27,7 @@ import {
   getAllDossiers,
   listDossiersForUser,
   scheduleDossierDeletion,
+  purgePlaceholderDossiersForUser,
   restoreDossier,
   listTrashedDossiers,
   getAllPayments,
@@ -1332,13 +1333,28 @@ app.get('/api/dossiers', requireAuth, async (req, res) => {
   });
 });
 
+app.post('/api/dossiers/purge-placeholders', requireAuth, async (req, res) => {
+  const result = await purgePlaceholderDossiersForUser({
+    userId: req.auth?.sub,
+    deletedBy: req.auth?.sub,
+  });
+  return res.json({
+    ok: true,
+    purged: result.purged,
+    dossierIds: result.ids,
+    message: result.purged
+      ? `${result.purged} brouillon(s) vide(s) placé(s) en corbeille.`
+      : 'Aucun brouillon vide à supprimer.',
+  });
+});
+
 app.get('/api/dossiers/trash', requireAuth, async (req, res) => {
   const items = await listTrashedDossiers({ userId: req.auth?.sub });
   return res.json({ ok: true, dossiers: items });
 });
 
 app.post('/api/dossiers/:dossierId/trash', requireAuth, async (req, res) => {
-  const access = await resolveDossierAccess(req, req.params.dossierId);
+  const access = await resolveDossierAccess(req, req.params.dossierId, { allowClaim: true });
   if (!access.ok) {
     return res.status(access.status).json({ ok: false, error: access.error });
   }
@@ -1386,15 +1402,20 @@ app.post('/api/dossiers', requireAuth, async (req, res) => {
     companyName,
     legalForm = 'SASU',
     service = 'creation-sasu',
+    forceNew = false,
   } = req.body || {};
   if (!companyName || !String(companyName).trim()) {
     return res.status(400).json({ ok: false, error: 'COMPANY_NAME_REQUIRED' });
+  }
+  if (forceNew) {
+    await purgePlaceholderDossiersForUser({ userId: req.auth.sub, deletedBy: req.auth.sub });
   }
   const dossier = await createDossier({
     userId: req.auth.sub,
     companyName: String(companyName).trim(),
     legalForm: String(legalForm || 'SASU'),
     service: String(service || 'creation-sasu'),
+    forceNew: Boolean(forceNew),
   });
   const owner = await getUserById(req.auth.sub);
   if (owner?.email) {

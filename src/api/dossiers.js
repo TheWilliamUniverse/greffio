@@ -1,10 +1,18 @@
 import { apiGet, apiPost } from '@/api/client.js';
+import { clearCurrentDossierId } from '@/utils/sessionStore.js';
 
-export const createDossier = async ({ userId, companyName, legalForm, service }) => apiPost('/api/dossiers', {
+export const createDossier = async ({
+  userId,
+  companyName,
+  legalForm,
+  service,
+  forceNew = false,
+}) => apiPost('/api/dossiers', {
   userId: userId || null,
   companyName,
   legalForm,
   service,
+  forceNew,
 });
 
 export const listDossiers = async () => {
@@ -28,6 +36,12 @@ export const fetchDossierDetail = async (dossierId, { allowOpsFallback = false }
 
 export const listTrashedDossiers = async () => apiGet('/api/dossiers/trash');
 
-export const trashDossier = async (dossierId) => apiPost(`/api/dossiers/${dossierId}/trash`);
+export const purgePlaceholderDossiers = async () => apiPost('/api/dossiers/purge-placeholders');
+
+export const trashDossier = async (dossierId) => {
+  const payload = await apiPost(`/api/dossiers/${dossierId}/trash`);
+  clearCurrentDossierId();
+  return payload;
+};
 
 export const restoreDossier = async (dossierId) => apiPost(`/api/dossiers/${dossierId}/restore`);

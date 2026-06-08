@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, FolderKanban, Plus, Search } from 'lucide-react';
+import { toast } from 'sonner';
+import { purgePlaceholderDossiers } from '@/api/dossiers.js';
+import { isEphemeralPlaceholderDossier } from '@/utils/dossierBootstrap.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
 import { loadDossiersSnapshot, cacheDossiersSnapshot } from '@/utils/mobileOffline.js';
@@ -49,6 +52,11 @@ export const MobileDossiersPage = () => {
     ));
   }, [dossiers, search]);
 
+  const placeholderCount = useMemo(
+    () => dossiers.filter((item) => isEphemeralPlaceholderDossier(item)).length,
+    [dossiers],
+  );
+
   if (isLoading && !offlineSnapshot?.dossiers?.length) return <MobilePageSkeleton />;
 
   return (
@@ -66,6 +74,30 @@ export const MobileDossiersPage = () => {
       </MobileAnimatedSection>
 
       {cachedAt ? <OfflineDataBanner cachedAt={cachedAt} /> : null}
+
+      {placeholderCount > 0 ? (
+        <MobileAnimatedSection delay={0.03}>
+          <div className="rounded-2xl border border-red-200 bg-red-50/60 p-4 text-sm text-red-900">
+            <p className="font-bold">{placeholderCount} brouillon{placeholderCount > 1 ? 's' : ''} vide{placeholderCount > 1 ? 's' : ''} (ex. « Projet Greffio »)</p>
+            <p className="mt-1 leading-relaxed text-red-900/85">Ces dossiers non entamés peuvent être retirés sans impact sur vos formalités en cours.</p>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-3 h-11 w-full rounded-2xl border-red-300 bg-white text-red-700"
+              onClick={() => {
+                void purgePlaceholderDossiers()
+                  .then((result) => {
+                    toast.success(result?.message || 'Brouillons supprimés.');
+                    void refetch();
+                  })
+                  .catch(() => toast.error('Impossible de nettoyer les brouillons.'));
+              }}
+            >
+              Nettoyer les brouillons vides
+            </Button>
+          </div>
+        </MobileAnimatedSection>
+      ) : null}
 
       <MobileAnimatedSection delay={0.04}>
         <div className="relative">
