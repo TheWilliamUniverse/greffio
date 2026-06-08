@@ -52,6 +52,17 @@ const presignedTtlSeconds = () => Number(process.env.AWS_S3_PRESIGNED_URL_TTL_SE
 
 const sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
 
+/** Métadonnées S3 : valeurs ASCII uniquement (sinon SignatureDoesNotMatch côté AWS). */
+const sanitizeS3MetadataValue = (value, fallback = '') => {
+  const ascii = String(value ?? fallback)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\x20-\x7E]/g, '_')
+    .trim()
+    .slice(0, 1024);
+  return ascii || fallback;
+};
+
 const sanitizeSegment = (value) => String(value || '')
   .trim()
   .replace(/[^a-zA-Z0-9-_]/g, '-')
@@ -108,11 +119,14 @@ export async function uploadDocumentToS3({
     ContentType: mimeType,
     ServerSideEncryption: 'AES256',
     Metadata: {
-      dossierId: String(dossierId),
-      docKey: String(docKey),
-      originalFilename: String(originalFilename || 'document'),
+      dossierId: sanitizeS3MetadataValue(dossierId, 'unknown'),
+      docKey: sanitizeS3MetadataValue(docKey, 'document'),
+      originalFilename: sanitizeS3MetadataValue(originalFilename, 'document.pdf'),
       ...Object.fromEntries(
-        Object.entries(metadata || {}).map(([entryKey, value]) => [entryKey, String(value ?? '')]),
+        Object.entries(metadata || {}).map(([entryKey, value]) => [
+          sanitizeS3MetadataValue(entryKey, 'meta'),
+          sanitizeS3MetadataValue(value, ''),
+        ]),
       ),
     },
   });
