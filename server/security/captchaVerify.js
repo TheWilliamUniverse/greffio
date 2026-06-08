@@ -27,11 +27,17 @@ export const resolveActiveCaptchaProvider = () => {
   const turnstile = getTurnstileConfig();
   const recaptcha = getRecaptchaConfig();
   const turnstileReady = turnstile.enabled && Boolean(process.env.TURNSTILE_SITE_KEY);
-  if (!turnstileReady) return 'none';
+  const recaptchaReady = recaptcha.enabled && Boolean(recaptcha.siteKey);
+
+  if (!turnstileReady) {
+    if (recaptchaReady && isRecaptchaFallbackAvailable()) {
+      return 'recaptcha';
+    }
+    return 'none';
+  }
 
   const turnstileBudgetOk = canSpendVerificationBudget('turnstile');
-  const recaptchaFallbackTriggered = recaptcha.enabled
-    && Boolean(recaptcha.siteKey)
+  const recaptchaFallbackTriggered = recaptchaReady
     && (isTurnstileDegraded() || !turnstileBudgetOk || isVerificationBudgetExhausted('turnstile'));
 
   if (recaptchaFallbackTriggered && isRecaptchaFallbackAvailable()) {

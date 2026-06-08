@@ -46,8 +46,9 @@ if (Test-Path $CaptchaFile) {
     }
 }
 
-$TurnstileEnabled = if ($TurnstileSiteKey -and $TurnstileSecretKey) { 'true' } else { 'false' }
 $RecaptchaEnabled = if ($RecaptchaSiteKey -and $RecaptchaSecretKey) { 'true' } else { 'false' }
+# Table rase Cloudflare/Turnstile : reCAPTCHA Google seul en production.
+$TurnstileEnabled = 'false'
 
 $plink = 'C:\Program Files\PuTTY\plink.exe'
 $usePutty = (Test-Path $plink) -and $VpsPassword
@@ -82,7 +83,7 @@ Set-EnvValue 'ASSISTANT_HOURLY_MAX' '80'
 Set-EnvValue 'ASSISTANT_DAILY_MAX' '400'
 Set-EnvValue 'TURNSTILE_RISKY_LOGIN' 'true'
 Set-EnvValue 'TURNSTILE_LOGIN_RISKY_THRESHOLD' '2'
-Set-EnvValue 'TURNSTILE_ENFORCE_CONTACT' $(if ($TurnstileEnabled -eq 'true') { 'true' } else { 'false' })
+Set-EnvValue 'TURNSTILE_ENFORCE_CONTACT' $(if ($RecaptchaEnabled -eq 'true') { 'true' } else { 'false' })
 Set-EnvValue 'TURNSTILE_ENFORCE_SIGNUP' 'false'
 Set-EnvValue 'TURNSTILE_ENFORCE_LOGIN' 'false'
 Set-EnvValue 'TURNSTILE_ENFORCE_FORGOT_PASSWORD' 'false'
@@ -113,15 +114,10 @@ Start-Sleep -Seconds 4
 Invoke-RemoteShell 'curl -fsS http://127.0.0.1:8787/api/health && echo'
 Invoke-RemoteShell 'curl -fsS http://127.0.0.1:8787/api/public/security-config | head -c 320 && echo'
 
-if ($TurnstileEnabled -ne 'true') {
-    Write-Host ''
-    Write-Host 'Turnstile non activé: créez un widget Cloudflare Turnstile (mode Managed) pour greffio.willentreprises.com'
-}
-
 if ($RecaptchaEnabled -eq 'true') {
-    Write-Host 'reCAPTCHA fallback configuré (actif seulement si limites Turnstile atteintes).'
+    Write-Host 'reCAPTCHA Google configuré comme captcha principal (Turnstile désactivé).'
 } else {
-    Write-Host 'reCAPTCHA fallback non configuré.'
+    Write-Host 'reCAPTCHA non configuré — ajoutez les clés Google reCAPTCHA v2 dans le fichier local.'
 }
 
 Write-Host '[security] Terminé.'

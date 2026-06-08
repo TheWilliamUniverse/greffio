@@ -23,7 +23,7 @@ test('budget bloque les appels externes quand le plafond horaire est atteint', (
   __testOnlyResetVerificationBudget();
 });
 
-test('sans turnstile actif le provider reste none (pas de recaptcha primaire)', () => {
+test('recaptcha primaire quand turnstile desactive', () => {
   const previous = { ...process.env };
   delete process.env.TURNSTILE_ENABLED;
   delete process.env.TURNSTILE_SECRET_KEY;
@@ -31,8 +31,10 @@ test('sans turnstile actif le provider reste none (pas de recaptcha primaire)', 
   process.env.RECAPTCHA_FALLBACK_ENABLED = 'true';
   process.env.RECAPTCHA_SECRET_KEY = 'recaptcha-secret';
   process.env.RECAPTCHA_SITE_KEY = 'recaptcha-site';
-  assert.equal(resolveActiveCaptchaProvider(), 'none');
+  __testOnlyResetVerificationBudget();
+  assert.equal(resolveActiveCaptchaProvider(), 'recaptcha');
   process.env = previous;
+  __testOnlyResetVerificationBudget();
 });
 
 test('fallback recaptcha actif quand turnstile degrade', () => {

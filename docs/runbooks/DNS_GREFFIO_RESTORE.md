@@ -1,72 +1,82 @@
-# Runbook — Restaurer greffio.willentreprises.com (NXDOMAIN)
+# Runbook — Restaurer greffio.willentreprises.com (Hostinger DNS)
 
 ## Symptôme
 
 Chrome affiche `DNS_PROBE_FINISHED_NXDOMAIN` sur `greffio.willentreprises.com`.
 
-Ce n'est **pas** un bug applicatif React/Express : le nom de domaine n'existe plus dans le DNS public.
+Ce n'est **pas** un bug React/Express : le sous-domaine `greffio` n'a **aucun enregistrement DNS**.
 
-## Diagnostic rapide
+## État actuel (juin 2026)
+
+- Cloudflare retiré — DNS géré chez **Hostinger**
+- Nameservers : `ns1.dns-parking.com` / `ns2.dns-parking.com` (normal après reset Hostinger)
+- `willentreprises.com` (racine) résout → OK
+- `greffio.willentreprises.com` → **NXDOMAIN** (enregistrement manquant)
+- `api.greffio.willentreprises.com` → **NXDOMAIN** (enregistrement manquant)
+- API VPS locale OK : `curl http://127.0.0.1:8787/api/health` sur `187.127.232.210`
+
+## Action corrective — Hostinger hPanel
+
+Connexion : [hPanel Hostinger](https://hpanel.hostinger.com) → **Noms de domaine** → `willentreprises.com` → **DNS / Serveurs de noms** → onglet **Enregistrements DNS**.
+
+### 1. Frontend Greffio (obligatoire)
+
+Dans **Sites web** → application Node Greffio → **Domaines**, vérifiez que `greffio.willentreprises.com` est bien connecté. Hostinger indique souvent la cible exacte.
+
+Sinon, ajoutez manuellement :
+
+| Type | Nom | Pointe vers | TTL |
+|---|---|---|---|
+| **A** | `greffio` | `147.79.116.56` | 14400 |
+
+> Si Hostinger affiche une autre IP ou un CNAME (`xxxx.hostingersite.com`), utilisez **leur** valeur.
+
+### 2. API backend (obligatoire)
+
+| Type | Nom | Pointe vers | TTL |
+|---|---|---|---|
+| **A** | `api.greffio` | `187.127.232.210` | 14400 |
+
+### 3. SSL
+
+- Frontend : certificat Hostinger (auto après propagation DNS)
+- API : certificat Let's Encrypt sur le VPS (Nginx) — vérifier après propagation :
 
 ```bash
-nslookup greffio.willentreprises.com 8.8.8.8
-nslookup api.greffio.willentreprises.com 8.8.8.8
-```
-
-Si les deux renvoient **Non-existent domain** → enregistrements DNS manquants chez Cloudflare.
-
-Le domaine racine `willentreprises.com` utilise les nameservers Cloudflare (`mimi.ns.cloudflare.com`, `tate.ns.cloudflare.com`).
-
-## État backend (VPS)
-
-- API locale OK : `curl http://127.0.0.1:8787/api/health` sur `187.127.232.210`
-- Nginx : vérifier `nginx -t` (ne pas réappliquer le script nginx cassé sans backup)
-
-## Action corrective — Cloudflare DNS
-
-Connexion : [Cloudflare Dashboard](https://dash.cloudflare.com) → zone `willentreprises.com` → **DNS** → **Records**.
-
-### 1. API (obligatoire)
-
-| Type | Nom | Contenu | Proxy |
-|---|---|---|---|
-| **A** | `api.greffio` | `187.127.232.210` | DNS only (gris) recommandé pour webhooks |
-
-### 2. Frontend (obligatoire)
-
-Récupérer la cible dans **Hostinger** → Sites → Greffio → Domaines / DNS :
-
-- soit **CNAME** `greffio` → hostname Hostinger (ex. `xxxx.hostingersite.com`)
-- soit **A** `greffio` → IP fournie par Hostinger pour l'hébergement Node
-
-| Type | Nom | Contenu | Proxy |
-|---|---|---|---|
-| **CNAME** ou **A** | `greffio` | *(valeur Hostinger)* | Proxied (orange) possible |
-
-Optionnel : même enregistrement pour `www.greffio` si utilisé.
-
-## Vérification après propagation (5–30 min)
-
-```bash
-nslookup greffio.willentreprises.com 8.8.8.8
-nslookup api.greffio.willentreprises.com 8.8.8.8
 curl -I https://api.greffio.willentreprises.com/api/health
 ```
 
-Puis ouvrir `https://greffio.willentreprises.com` en navigation privée.
+## Captcha — reCAPTCHA Google (plus de Cloudflare Turnstile)
 
-## Ce qui a cassé Nginx (corrigé)
+Production configurée avec **reCAPTCHA v2** comme captcha principal :
 
-Le script `configure-nginx-vps.ps1` avait injecté des lignes `limit_req_zone` **sans** `$binary_remote_addr`. Correction appliquée sur le VPS le 2026-06-08.
+- Clés dans `/opt/greffio/.env` sur le VPS (`RECAPTCHA_SITE_KEY`, `RECAPTCHA_SECRET_KEY`)
+- `TURNSTILE_ENABLED=false`
+- Script : `pwsh -File scripts/configure-security-vps.ps1`
 
-Avant tout durcissement Nginx futur :
+Dans [Google reCAPTCHA Admin](https://www.google.com/recaptcha/admin), domaines autorisés :
 
-```bash
-cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.bak
-nginx -t && systemctl reload nginx
+- `greffio.willentreprises.com`
+- `willentreprises.com`
+
+## Vérification après propagation (5–30 min)
+
+```powershell
+nslookup greffio.willentreprises.com 8.8.8.8
+nslookup api.greffio.willentreprises.com 8.8.8.8
 ```
 
-## Rollback si besoin
+Puis :
 
-1. Restaurer les enregistrements DNS depuis l'historique Cloudflare (Audit log) si suppression récente.
-2. Ne pas toucher au code Greffio pour ce type d'incident.
+- `https://api.greffio.willentreprises.com/api/health`
+- `https://greffio.willentreprises.com` (navigation privée)
+
+## Ce qui n'est PAS la cause
+
+- Le déploiement sécurité backend (rate limits, reCAPTCHA)
+- Nginx VPS (corrigé le 2026-06-08, `nginx -t` OK)
+
+## Rollback
+
+1. Restaurer les enregistrements depuis l'historique Hostinger si suppression accidentelle.
+2. Ne pas toucher au code applicatif pour un incident DNS pur.

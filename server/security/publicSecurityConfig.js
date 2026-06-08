@@ -8,7 +8,7 @@ export const buildPublicSecurityConfig = () => {
   const turnstileSiteKey = String(process.env.TURNSTILE_SITE_KEY || '').trim();
   const turnstileEnabled = turnstile.enabled && Boolean(turnstileSiteKey);
   const captchaProvider = resolveActiveCaptchaProvider();
-  const recaptchaFallbackActive = captchaProvider === 'recaptcha';
+  const recaptchaActive = captchaProvider === 'recaptcha';
 
   const captchaLive = captchaProvider !== 'none';
   const challengeRequiredOn = (enforceFlag, uiFlag) => (
@@ -20,8 +20,9 @@ export const buildPublicSecurityConfig = () => {
     captchaProvider,
     turnstileEnabled: turnstileEnabled && captchaProvider === 'turnstile',
     turnstileSiteKey: captchaProvider === 'turnstile' ? turnstileSiteKey : '',
+    recaptchaEnabled: recaptcha.enabled && Boolean(recaptcha.siteKey),
     recaptchaFallbackEnabled: recaptcha.enabled,
-    recaptchaSiteKey: recaptchaFallbackActive ? recaptcha.siteKey : '',
+    recaptchaSiteKey: recaptchaActive ? recaptcha.siteKey : '',
     turnstileOnContact: challengeRequiredOn(turnstile.enforceContact, 'TURNSTILE_UI_CONTACT'),
     turnstileOnSignup: challengeRequiredOn(turnstile.enforceSignup, 'TURNSTILE_UI_SIGNUP'),
     turnstileOnLoginRisky: captchaLive && process.env.TURNSTILE_RISKY_LOGIN === 'true',

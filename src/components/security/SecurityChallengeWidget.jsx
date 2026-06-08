@@ -42,8 +42,10 @@ export const SecurityChallengeWidget = ({
     ? 'recaptcha'
     : 'turnstile';
 
+  const recaptchaPrimary = security.captchaProvider === 'recaptcha' && security.recaptchaSiteKey;
   const challengeEnabled = security.loaded && (
     (security.turnstileEnabled && security.turnstileSiteKey)
+    || recaptchaPrimary
     || (security.recaptchaFallbackEnabled && security.recaptchaSiteKey)
   );
 
@@ -147,7 +149,7 @@ export const SecurityChallengeWidget = ({
     <div className={`rounded-md border border-border/80 bg-muted/30 px-3 py-2 ${className}`.trim()}>
       <p className="mb-2 text-xs text-muted-foreground">
         {provider === 'recaptcha'
-          ? 'Vérification alternative Greffio'
+          ? 'Vérification discrète Greffio'
           : 'Vérification discrète Greffio'}
       </p>
       {provider === 'recaptcha' ? (
