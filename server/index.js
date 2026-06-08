@@ -145,10 +145,15 @@ import {
   downloadDocumentBufferFromConfiguredStorage,
   objectStorageConfig,
   probeS3StorageConnectivity,
+  probeSupabaseStorageBucket,
   uploadDocumentToConfiguredStorage,
 } from './services/objectStorage.js';
 import {
-  getStorageRetryQueueSnapshot,
+  countDocumentsWithLocalStorage,
+  migrateAllLocalDocumentsToS3,
+} from './services/storageMigrationService.js';
+import {
+  getStorageFailureSnapshot,
   registerStorageFailureForOps,
 } from './services/storageRetryQueue.js';
 import { listEmailEvents, updateEmailEventByProviderMessageId } from './emailStore.js';
@@ -360,14 +365,16 @@ app.get('/api/ready', async (_req, res) => {
     storageDriver: objectStorageConfig.driver,
     requestedStorageDriver: objectStorageConfig.requestedDriver,
     s3Configured: objectStorageConfig.s3Configured,
-    supabaseConfigured: objectStorageConfig.supabaseConfigured,
+    supabaseCredentialsPresent: objectStorageConfig.supabaseCredentialsPresent,
+    supabaseStorageActive: objectStorageConfig.supabaseStorageActive,
     assistantConfigured: isAssistantConfigured(),
+    localStorageBacklog: await countDocumentsWithLocalStorage(),
     timestamp: new Date().toISOString(),
   };
   if (checks.requestedStorageDriver === 's3' && !checks.s3Configured) {
     return res.status(503).json({ ok: false, error: 'S3_STORAGE_NOT_CONFIGURED', checks });
   }
-  if (checks.storageDriver === 'supabase' && !checks.supabaseConfigured) {
+  if (checks.storageDriver === 'supabase' && !checks.supabaseCredentialsPresent) {
     return res.status(503).json({ ok: false, error: 'STORAGE_NOT_CONFIGURED', checks });
   }
   if (checks.storageDriver === 's3') {
@@ -381,6 +388,9 @@ app.get('/api/ready', async (_req, res) => {
         checks,
       });
     }
+  }
+  if (checks.supabaseCredentialsPresent) {
+    checks.supabaseStorageProbe = await probeSupabaseStorageBucket();
   }
   return res.json({ ok: true, checks });
 });
@@ -561,13 +571,27 @@ app.get('/api/observability/company-lookup', requireAuth, requireRole(['ADMIN', 
   });
 });
 
-app.get('/api/observability/storage', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), (_req, res) => {
+app.get('/api/observability/storage', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (_req, res) => {
+  const localStorageBacklog = await countDocumentsWithLocalStorage();
   return res.json({
     ok: true,
     storage: objectStorageConfig,
-    retryQueue: getStorageRetryQueueSnapshot(),
+    failures: getStorageFailureSnapshot(),
+    localStorageBacklog,
     timestamp: new Date().toISOString(),
   });
+});
+
+app.post('/api/ops/storage/migrate-local', requireAuth, requireRole(['ADMIN', 'OPS']), async (req, res) => {
+  const dryRun = Boolean(req.body?.dryRun);
+  const limit = Number(req.body?.limit || 200);
+  try {
+    const summary = await migrateAllLocalDocumentsToS3({ dryRun, limit });
+    return res.json({ ok: true, summary });
+  } catch (error) {
+    console.error('OPS_STORAGE_MIGRATION_FAILED', error);
+    return res.status(500).json({ ok: false, error: 'STORAGE_MIGRATION_FAILED' });
+  }
 });
 
 app.post('/api/assistant', assistantLimiter, requireAuth, async (req, res) => {
@@ -3081,6 +3105,17 @@ const bootstrap = async () => {
     const probe = await probeS3StorageConnectivity();
     // eslint-disable-next-line no-console
     console.log(`[greffio-api] S3 storage probe OK (${probe.bucket}, ${probe.region})`);
+    const backlog = await countDocumentsWithLocalStorage();
+    if (backlog > 0) {
+      const migration = await migrateAllLocalDocumentsToS3({ limit: 100 });
+      // eslint-disable-next-line no-console
+      console.log('[greffio-api] local→S3 migration', {
+        scanned: migration.scanned,
+        migrated: migration.migrated,
+        failed: migration.failed,
+        missingFile: migration.missingFile,
+      });
+    }
   }
   const server = http.createServer(app);
   const messageHub = createDossierMessageHub(server);

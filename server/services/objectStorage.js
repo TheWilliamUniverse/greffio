@@ -33,11 +33,47 @@ export const objectStorageConfig = {
   driver: activeDriver,
   requestedDriver: STORAGE_DRIVER,
   s3Configured: isS3Configured(),
+  /** Clés Supabase présentes (Postgres / API admin). */
+  supabaseCredentialsPresent: hasSupabaseCredentials,
+  /** Storage Supabase actif uniquement si DOCUMENT_STORAGE_DRIVER=supabase. */
+  supabaseStorageActive: activeDriver === 'supabase',
+  /** @deprecated Utiliser supabaseCredentialsPresent — ne signifie pas que le bucket Storage existe. */
   supabaseConfigured: hasSupabaseCredentials,
   bucket: activeDriver === 's3'
     ? process.env.AWS_S3_BUCKET
     : SUPABASE_STORAGE_BUCKET,
   presignedTtlSeconds: Number(process.env.AWS_S3_PRESIGNED_URL_TTL_SECONDS || 900),
+};
+
+export const probeSupabaseStorageBucket = async () => {
+  if (!hasSupabaseCredentials) {
+    return { ok: false, reason: 'SUPABASE_CREDENTIALS_MISSING', bucket: SUPABASE_STORAGE_BUCKET };
+  }
+  const response = await fetch(
+    `${SUPABASE_URL}/storage/v1/bucket/${encodeURIComponent(SUPABASE_STORAGE_BUCKET)}`,
+    { headers: supabaseHeaders() },
+  );
+  if (response.ok) {
+    return { ok: true, bucket: SUPABASE_STORAGE_BUCKET, mode: 'bucket_get' };
+  }
+  const listResponse = await fetch(`${SUPABASE_URL}/storage/v1/bucket`, { headers: supabaseHeaders() });
+  if (!listResponse.ok) {
+    return {
+      ok: false,
+      reason: 'SUPABASE_STORAGE_API_FAILED',
+      bucket: SUPABASE_STORAGE_BUCKET,
+      status: listResponse.status,
+    };
+  }
+  const buckets = await listResponse.json().catch(() => []);
+  const exists = Array.isArray(buckets)
+    && buckets.some((entry) => entry?.name === SUPABASE_STORAGE_BUCKET || entry?.id === SUPABASE_STORAGE_BUCKET);
+  return {
+    ok: exists,
+    reason: exists ? null : 'SUPABASE_STORAGE_BUCKET_MISSING',
+    bucket: SUPABASE_STORAGE_BUCKET,
+    mode: 'bucket_list',
+  };
 };
 
 const supabaseHeaders = (extra = {}) => ({

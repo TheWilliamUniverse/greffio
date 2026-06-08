@@ -2,7 +2,6 @@ const MAX_RECENT_FAILURES = 200;
 const FAILURE_ALERT_THRESHOLD = 5;
 const WINDOW_MS = 5 * 60 * 1000;
 
-const queue = [];
 const recentFailures = [];
 
 const now = () => Date.now();
@@ -19,45 +18,17 @@ const computeRecentFailureCount = () => {
   return recentFailures.filter((item) => item.timestamp >= minTimestamp).length;
 };
 
-export const enqueueStorageRetry = ({
-  dossierId,
-  docKey,
-  localFilePath,
-  filename,
-  reason = 'storage_upload_failed',
-}) => {
-  const item = {
-    id: `${dossierId || 'unknown'}:${docKey || 'unknown'}:${Date.now()}`,
-    dossierId: dossierId || null,
-    docKey: docKey || null,
-    localFilePath: localFilePath || null,
-    filename: filename || null,
-    reason,
-    createdAt: new Date().toISOString(),
-    attempts: 0,
-    lastAttemptAt: null,
-    status: 'queued',
+export const getStorageFailureSnapshot = () => {
+  const failureCount = computeRecentFailureCount();
+  return {
+    failureCountWindow5m: failureCount,
+    threshold: FAILURE_ALERT_THRESHOLD,
+    recent: recentFailures.slice(-25),
   };
-  queue.push(item);
-  return item;
 };
 
-export const markStorageRetryAttempt = (itemId, status, error = null) => {
-  const item = queue.find((entry) => entry.id === itemId);
-  if (!item) return null;
-  item.attempts += 1;
-  item.lastAttemptAt = new Date().toISOString();
-  item.status = status;
-  if (error) item.lastError = String(error);
-  return item;
-};
-
-export const getStorageRetryQueueSnapshot = () => ({
-  queuedCount: queue.filter((item) => item.status === 'queued').length,
-  processingCount: queue.filter((item) => item.status === 'processing').length,
-  failedCount: queue.filter((item) => item.status === 'failed').length,
-  items: queue.slice(-25),
-});
+/** @deprecated La file mémoire n'était jamais traitée — conservé pour compat observabilité. */
+export const getStorageRetryQueueSnapshot = () => getStorageFailureSnapshot();
 
 export const registerStorageFailureForOps = (payload = {}) => {
   const entry = {
@@ -69,6 +40,13 @@ export const registerStorageFailureForOps = (payload = {}) => {
   pushFailure(entry);
   const failureCount = computeRecentFailureCount();
   const shouldAlert = failureCount >= FAILURE_ALERT_THRESHOLD;
+  if (shouldAlert) {
+    console.error('OPS_STORAGE_ALERT', {
+      message: 'Repeated storage failures in 5 minute window',
+      failureCount,
+      ...entry,
+    });
+  }
   return {
     shouldAlert,
     failureCountWindow5m: failureCount,
