@@ -2,9 +2,16 @@
 
 Ce dossier contient les **AAB signés** archivés dans Git pour traçabilité release.
 
-| Fichier | versionName | versionCode | Commit |
-|---------|-------------|-------------|--------|
-| `greffio-1.2.7-261510006.aab` | 1.2.7 | 261510006 | `b591034`+ |
+| Fichier | versionName | versionCode |
+|---------|-------------|-------------|
+| `greffio-1.2.0-26145200.aab` | 1.2.0 | 26145200 |
+| `greffio-1.2.1-261510000.aab` | 1.2.1 | 261510000 |
+| `greffio-1.2.2-261510001.aab` | 1.2.2 | 261510001 |
+| `greffio-1.2.3-261510002.aab` | 1.2.3 | 261510002 |
+| `greffio-1.2.4-261510003.aab` | 1.2.4 | 261510003 |
+| `greffio-1.2.5-261510004.aab` | 1.2.5 | 261510004 |
+| `greffio-1.2.6-261510005.aab` | 1.2.6 | 261510005 |
+| `greffio-1.2.7-261510006.aab` | 1.2.7 | 261510006 |
 
 Voir `manifest.json` pour SHA256 et notes. Les fiches release Markdown sont dans `releases/MOBILE_RELEASE_*.md`.
 

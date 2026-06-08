@@ -202,7 +202,7 @@ const createDossier = async ({
   companyName = null,
   legalForm = 'SASU',
   service = 'creation-sasu',
-  status = DOSSIER_STATUSES.QUOTE_GENERATED,
+  status = DOSSIER_STATUSES.DRAFT,
   forceNew = false,
 }) => {
   if (userId && !forceNew) {

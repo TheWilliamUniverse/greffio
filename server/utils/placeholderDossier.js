@@ -7,13 +7,14 @@ const PLACEHOLDER_NAMES = new Set([
   'mon espace greffio',
 ]);
 
-const DRAFT_STATUSES = new Set([
+const EPHEMERAL_STATUSES = new Set([
   'draft',
   'contact_started',
   'contact_completed',
   'legal_form_selected',
   'questionnaire_in_progress',
   'questionnaire_started',
+  'questionnaire_completed',
   'quote_generated',
 ]);
 
@@ -27,17 +28,21 @@ export const isPlaceholderDossierName = (value) => {
   return false;
 };
 
-export const isEphemeralPlaceholderDossier = (dossier = {}) => {
-  const status = normalizePlaceholderKey(dossier.status);
-  const progress = Number(dossier.progressPercent || 0);
+export const hasRealDossierName = (dossier = {}) => {
   const companyName = dossier.companyName || dossier.company_name;
   const denomination = dossier.denomination;
-  const named = !isPlaceholderDossierName(companyName) || !isPlaceholderDossierName(denomination);
-  if (named && denomination && !isPlaceholderDossierName(denomination)) return false;
-  if (named && companyName && !isPlaceholderDossierName(companyName)) return false;
-  if (progress > 5) return false;
-  if (!DRAFT_STATUSES.has(status)) return false;
-  return isPlaceholderDossierName(companyName) && isPlaceholderDossierName(denomination);
+  return [companyName, denomination].some(
+    (value) => value && !isPlaceholderDossierName(value),
+  );
+};
+
+/** Brouillon fantôme supprimable (ex. « Projet Greffio » auto-rempli, parcours non finalisé). */
+export const isEphemeralPlaceholderDossier = (dossier = {}) => {
+  if (hasRealDossierName(dossier)) return false;
+  const status = normalizePlaceholderKey(dossier.status);
+  if (!EPHEMERAL_STATUSES.has(status)) return false;
+  const progress = Number(dossier.progressPercent || 0);
+  return progress < 90;
 };
 
 export const resolveCreateCompanyName = (companyName, reference) => {

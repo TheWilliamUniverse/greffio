@@ -14,6 +14,7 @@ const IN_PROGRESS_STATUSES = new Set([
   'legal_form_selected',
   'questionnaire_in_progress',
   'questionnaire_started',
+  'questionnaire_completed',
   'quote_generated',
 ]);
 
@@ -25,12 +26,20 @@ export const isPlaceholderDossierName = (value) => {
   return false;
 };
 
+export const hasRealDossierName = (dossier = {}) => {
+  const companyName = dossier.companyName || dossier.company_name;
+  const denomination = dossier.denomination;
+  return [companyName, denomination].some(
+    (value) => value && !isPlaceholderDossierName(value),
+  );
+};
+
 export const isEphemeralPlaceholderDossier = (dossier = {}) => {
-  const progress = Number(dossier.progressPercent || 0);
-  if (progress > 5) return false;
+  if (hasRealDossierName(dossier)) return false;
   const status = String(dossier.status || '').toLowerCase();
   if (!IN_PROGRESS_STATUSES.has(status)) return false;
-  return isPlaceholderDossierName(dossier.companyName || dossier.denomination);
+  const progress = Number(dossier.progressPercent || 0);
+  return progress < 90;
 };
 
 export const resolveBootstrapCompanyName = (formData = {}) => {
@@ -71,12 +80,10 @@ export const pickResumableDraftDossier = (dossiers = []) => {
       - new Date(left.updatedAt || left.createdAt || 0).getTime(),
   );
 
-  const hasNamedDossier = sorted.some((entry) => (
-    !isPlaceholderDossierName(entry.companyName || entry.denomination)
-  ));
+  const hasNamedDossier = sorted.some((entry) => hasRealDossierName(entry));
 
   const namedInProgress = sorted.find((entry) => (
-    !isPlaceholderDossierName(entry.companyName || entry.denomination)
+    hasRealDossierName(entry)
     && IN_PROGRESS_STATUSES.has(String(entry.status || '').toLowerCase())
     && Number(entry.progressPercent || 0) < 90
   ));
@@ -85,9 +92,7 @@ export const pickResumableDraftDossier = (dossiers = []) => {
   if (hasNamedDossier) return null;
 
   return sorted.find((entry) => (
-    isPlaceholderDossierName(entry.companyName || entry.denomination)
-    && IN_PROGRESS_STATUSES.has(String(entry.status || '').toLowerCase())
-    && Number(entry.progressPercent || 0) < 90
+    isEphemeralPlaceholderDossier(entry)
   )) || null;
 };
 

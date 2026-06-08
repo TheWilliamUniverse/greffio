@@ -1,6 +1,61 @@
 {
-  "package": "com.greffio.app",
   "releases": [
+    {
+      "versionName": "1.2.0",
+      "versionCode": 26145200,
+      "artifact": "greffio-1.2.0-26145200.aab",
+      "sha256": "6D8765E12C6A7AC8A92354F36AD359AA4EDAA00BA35DDF528CDBD68A9A3F7E56",
+      "sizeBytes": 8438088,
+      "archivedAt": "2026-05-29"
+    },
+    {
+      "versionName": "1.2.1",
+      "versionCode": 261510000,
+      "artifact": "greffio-1.2.1-261510000.aab",
+      "sha256": "4D006DE6FDD226267FC039B0A988FE2306105BEBBDF2F375E8F5B6325DA57AF4",
+      "sizeBytes": 8445361,
+      "archivedAt": "2026-05-29"
+    },
+    {
+      "versionName": "1.2.2",
+      "versionCode": 261510001,
+      "artifact": "greffio-1.2.2-261510001.aab",
+      "sha256": "2F0A3F9DA15E5D3DB2233AC19A1AD6B4B1E9F8A7BB380415D6598473C37163A0",
+      "sizeBytes": 8445375,
+      "archivedAt": "2026-05-29"
+    },
+    {
+      "versionName": "1.2.3",
+      "versionCode": 261510002,
+      "artifact": "greffio-1.2.3-261510002.aab",
+      "sha256": "310B6CBDF2C15E9FA7EF961B46B6BE3E729197BB53AC5EBDA54DFF435A9C937A",
+      "sizeBytes": 8445760,
+      "archivedAt": "2026-05-29"
+    },
+    {
+      "versionName": "1.2.4",
+      "versionCode": 261510003,
+      "artifact": "greffio-1.2.4-261510003.aab",
+      "sha256": "CE82813EC9E9A7BD368F773020085451DB1C27950081EC1F41982D6815A0CC82",
+      "sizeBytes": 9895679,
+      "archivedAt": "2026-05-29"
+    },
+    {
+      "versionName": "1.2.5",
+      "versionCode": 261510004,
+      "artifact": "greffio-1.2.5-261510004.aab",
+      "sha256": "409BEC6771D39224463F31FC9524652210C002A37049C34F5F1F4D43D1563664",
+      "sizeBytes": 9901407,
+      "archivedAt": "2026-05-29"
+    },
+    {
+      "versionName": "1.2.6",
+      "versionCode": 261510005,
+      "artifact": "greffio-1.2.6-261510005.aab",
+      "sha256": "30195995514AEAA6A72D670C49BB4ABD3C0A0A1E379A5E44A54DF75B88135F76",
+      "sizeBytes": 9907742,
+      "archivedAt": "2026-05-29"
+    },
     {
       "versionName": "1.2.7",
       "versionCode": 261510006,
@@ -9,7 +64,9 @@
       "sizeBytes": 9940051,
       "builtAt": "2026-05-08",
       "gitCommit": "b591034",
-      "notesFile": "../MOBILE_RELEASE_1.2.7.md"
+      "notesFile": "../MOBILE_RELEASE_1.2.7.md",
+      "archivedAt": "2026-05-29"
     }
-  ]
+  ],
+  "package": "com.greffio.app"
 }

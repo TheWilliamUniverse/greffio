@@ -227,3 +227,36 @@ Améliorations de stabilité et d’expérience mobile :
 - [ ] `server/config/appVersion.js` aligné
 - [ ] Play Internal Testing validé
 - [ ] Aucune régression drawer / bottom nav / FAB
+- [ ] AAB copié dans `releases/android/` + entrée `manifest.json`
+
+---
+
+## 15. Brouillons fantômes (« Projet Greffio »)
+
+| Test | Attendu | OK |
+|------|---------|-----|
+| Compte avec brouillon placeholder (nom « Projet Greffio », parcours non finalisé) | Bandeau « Brouillon non entamé » + bouton supprimer | ☐ |
+| Suppression unitaire | Dossier en corbeille 72 h, disparaît de la liste | ☐ |
+| « Nettoyer les brouillons vides » (mobile + desktop) | Tous les placeholders supprimés | ☐ |
+| Ouverture `/questionnaire` sans action | Aucun nouveau dossier créé automatiquement | ☐ |
+| Dossier réel (ex. dénomination « TRUE POWER ») | Pas de bouton suppression placeholder | ☐ |
+| Après suppression, reconnexion | Le brouillon fantôme ne revient pas | ☐ |
+
+**Backend** : `POST /api/dossiers/purge-placeholders`, statuts early pipeline (`questionnaire_completed` inclus).
+
+---
+
+## 16. Archivage Git des AAB
+
+| Étape | Action | OK |
+|-------|--------|-----|
+| Nommage | `releases/android/greffio-{versionName}-{versionCode}.aab` | ☐ |
+| Manifest | `releases/android/manifest.json` (SHA256, taille, commit) | ☐ |
+| Notes | `releases/MOBILE_RELEASE_{version}.md` | ☐ |
+| `.gitignore` | `!releases/android/**` actif (AAB versionnés) | ☐ |
+
+```powershell
+Copy-Item android\app\build\outputs\bundle\release\app-release.aab releases\android\greffio-X.Y.Z-CODE.aab
+Get-FileHash releases\android\greffio-X.Y.Z-CODE.aab -Algorithm SHA256
+```
+
