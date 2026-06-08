@@ -3,6 +3,7 @@ import { Camera, ImagePlus, Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Button } from '@/components/ui/button.jsx';
+import { MobilePermissionPrompt } from '@/mobile/ui/MobilePermissionPrompt.jsx';
 import { uploadDossierDocument } from '@/api/documents.js';
 import { normalizeUploadToPdfWithMessage, ensurePdfFilename } from '@/utils/documentPdf.js';
 import { isCapacitorNative } from '@/utils/platform.js';
@@ -20,6 +21,8 @@ export const MobileDocumentScanner = ({
 }) => {
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
+  const [cameraPromptOpen, setCameraPromptOpen] = useState(false);
+  const pendingCapture = useRef(null);
 
   const uploadPdfFile = async (pdfFile) => {
     if (!dossierId) {
@@ -52,14 +55,14 @@ export const MobileDocumentScanner = ({
     await uploadPdfFile(conversion.file);
   };
 
-  const capturePhoto = async () => {
+  const capturePhoto = async (source = CameraSource.Camera) => {
     try {
       if (isCapacitorNative()) {
         const photo = await CapCamera.getPhoto({
           quality: 86,
           allowEditing: false,
           resultType: CameraResultType.DataUrl,
-          source: CameraSource.Camera,
+          source,
         });
         if (!photo?.dataUrl) return;
         const raw = await dataUrlToFile(photo.dataUrl, `${docKey}.jpg`);
@@ -68,28 +71,30 @@ export const MobileDocumentScanner = ({
       }
       fileInputRef.current?.click();
     } catch (_error) {
-      toast.error('Impossible d’ouvrir l’appareil photo.');
+      toast.error(source === CameraSource.Camera
+        ? 'Impossible d’ouvrir l’appareil photo.'
+        : 'Impossible d’ouvrir la galerie.');
     }
   };
 
-  const pickFromGallery = async () => {
-    try {
-      if (isCapacitorNative()) {
-        const photo = await CapCamera.getPhoto({
-          quality: 86,
-          allowEditing: false,
-          resultType: CameraResultType.DataUrl,
-          source: CameraSource.Photos,
-        });
-        if (!photo?.dataUrl) return;
-        const raw = await dataUrlToFile(photo.dataUrl, `${docKey}.jpg`);
-        await processRawFile(raw, `${docKey}.pdf`);
-        return;
-      }
-      fileInputRef.current?.click();
-    } catch (_error) {
-      toast.error('Impossible d’ouvrir la galerie.');
+  const requestCameraAccess = (source) => {
+    if (isCapacitorNative() && source === CameraSource.Camera) {
+      pendingCapture.current = source;
+      setCameraPromptOpen(true);
+      return;
     }
+    void capturePhoto(source);
+  };
+
+  const confirmCameraAccess = () => {
+    const source = pendingCapture.current || CameraSource.Camera;
+    pendingCapture.current = null;
+    setCameraPromptOpen(false);
+    void capturePhoto(source);
+  };
+
+  const pickFromGallery = async () => {
+    void capturePhoto(CameraSource.Photos);
   };
 
   const onFileChange = async (event) => {
@@ -101,6 +106,19 @@ export const MobileDocumentScanner = ({
 
   return (
     <div className="space-y-2">
+      <MobilePermissionPrompt
+        open={cameraPromptOpen}
+        icon={Camera}
+        title="Photographier vos pièces"
+        description="Greffio utilise l’appareil photo pour numériser vos justificatifs et les convertir en PDF."
+        benefit="Vos photos restent dans votre dossier Greffio — elles ne sont pas partagées en dehors du service."
+        confirmLabel="Autoriser la caméra"
+        onConfirm={confirmCameraAccess}
+        onCancel={() => {
+          pendingCapture.current = null;
+          setCameraPromptOpen(false);
+        }}
+      />
       <input
         ref={fileInputRef}
         type="file"
@@ -109,7 +127,7 @@ export const MobileDocumentScanner = ({
         onChange={(event) => void onFileChange(event)}
       />
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <Button type="button" disabled={uploading} onClick={() => void capturePhoto()} className="rounded-xl">
+        <Button type="button" disabled={uploading} onClick={() => requestCameraAccess(CameraSource.Camera)} className="rounded-xl">
           {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
           {label}
         </Button>

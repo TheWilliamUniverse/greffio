@@ -4,11 +4,10 @@ import { BarChart3, Clock, FileCheck2, FolderKanban, TrendingUp } from 'lucide-r
 import { Button } from '@/components/ui/button.jsx';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
 import { MobilePageSkeleton } from '@/mobile/ui/MobilePageSkeleton.jsx';
-import { useMobileSafeBottomPadding } from '@/hooks/useMobileSafeBottomPadding.js';
+import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
 import { listDossiers, getDossierById } from '@/api/dossiers.js';
 
 export const MobileAnalyticsPage = () => {
-  const bottomPad = useMobileSafeBottomPadding();
   const [dossiers, setDossiers] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +57,7 @@ export const MobileAnalyticsPage = () => {
   ];
 
   return (
-    <div className={`space-y-5 px-4 py-5 ${bottomPad}`}>
+    <MobilePageContainer>
       <MobileAnimatedSection delay={0}>
         <p className="text-xs font-bold uppercase tracking-wide text-primary/80">Pilotage</p>
         <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[hsl(var(--greffio-blue-900))]">
@@ -108,6 +107,6 @@ export const MobileAnalyticsPage = () => {
           ))}
         </ul>
       )}
-    </div>
+    </MobilePageContainer>
   );
 };

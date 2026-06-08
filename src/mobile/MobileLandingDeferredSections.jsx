@@ -1,8 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MonitorSmartphone } from 'lucide-react';
-import { GreffioLogo } from '@/components/GreffioLogo.jsx';
+import { CreditCard, MonitorSmartphone, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { LandingPricingSection } from '@/components/pricing/LandingPricingSection.jsx';
 import { GooglePlayStoreLink } from '@/components/store/GooglePlayStoreLink.jsx';
@@ -20,6 +19,14 @@ const faq = [
     a: 'Non. Greffio organise le flux, les documents et les relances. Les validations réglementées restent du ressort des professionnels habilités.',
   },
   {
+    q: 'Greffio remplace-t-il un avocat ?',
+    a: 'Non. Greffio structure vos formalités, prépare les documents et coordonne le dépôt. Les avis juridiques spécifiques restent du ressort de professionnels habilités.',
+  },
+  {
+    q: 'Que se passe-t-il après la génération des statuts ?',
+    a: 'Vous relisez les documents, complétez les pièces demandées, signez le mandat Greffio puis validez le paiement avant le dépôt.',
+  },
+  {
     q: 'Quels sont les délais habituels ?',
     a: 'Ils varient selon la formalité et la complétude du dossier. Greffio vous indique la prochaine action à chaque étape.',
   },
@@ -31,7 +38,22 @@ export const MobileLandingDeferredSections = () => {
   return (
     <>
       <MobileAnimatedSection id="pricing" className="px-4 py-10" delay={0.04}>
-        <LandingPricingSection />
+        <div className="sticky top-[calc(4.75rem+env(safe-area-inset-top))] z-20 -mx-4 mb-4 border-y border-primary/15 bg-secondary/80 px-4 py-3 backdrop-blur md:static md:mx-0 md:mb-0 md:border-0 md:bg-transparent md:p-0">
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-semibold text-[hsl(var(--greffio-blue-900))]">
+            <span>À partir de 0€</span>
+            <span className="text-muted-foreground">·</span>
+            <span className="inline-flex items-center gap-1">
+              <ShieldCheck className="h-4 w-4 text-primary" />
+              Accompagnement inclus
+            </span>
+            <span className="text-muted-foreground">·</span>
+            <span className="inline-flex items-center gap-1">
+              <CreditCard className="h-4 w-4 text-primary" />
+              Paiement sécurisé
+            </span>
+          </p>
+        </div>
+        <LandingPricingSection showHeader />
       </MobileAnimatedSection>
 
       <MobileAnimatedSection id="app-mobile" className="border-y border-border bg-white px-4 py-10" delay={0.02}>

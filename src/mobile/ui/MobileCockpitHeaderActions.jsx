@@ -40,12 +40,14 @@ export const MobileCockpitHeaderActions = ({
     setLogoutOpen,
     searchOpen,
     setSearchOpen,
+    notificationsOpen: ctxNotificationsOpen,
+    setNotificationsOpen: setCtxNotificationsOpen,
   } = useMobileShellOverlay();
   const [internalNotifOpen, setInternalNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
 
-  const notifOpen = notificationsOpen ?? internalNotifOpen;
-  const setNotifOpen = onNotificationsOpenChange ?? setInternalNotifOpen;
+  const notifOpen = notificationsOpen ?? ctxNotificationsOpen ?? internalNotifOpen;
+  const setNotifOpen = onNotificationsOpenChange ?? setCtxNotificationsOpen ?? setInternalNotifOpen;
   const unread = notifications.length;
   const firstName = currentUser?.firstName || 'Greffio';
 

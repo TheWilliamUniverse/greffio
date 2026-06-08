@@ -65,40 +65,58 @@ const platformFeatures = [
 ];
 
 const heroHighlights = ['0€ pour démarrer', 'Équipe Greffio assignée', 'Dossier centralisé'];
+const heroTrustChips = ['Service privé indépendant', 'Documents guidés', 'Dossier centralisé'];
 const featuredServices = LEGAL_SERVICES.slice(0, 6);
+
+const SERVICE_GROUP_LABELS = {
+  Création: 'Création',
+  Modification: 'Modification',
+  Patrimoine: 'Documents & patrimoine',
+  'Vie sociale': 'Vie sociale',
+};
+
+const SERVICE_GROUP_HINTS = {
+  Création: 'Immatriculez une nouvelle société avec un parcours guidé.',
+  Modification: 'Mettez à jour votre entreprise existante en toute clarté.',
+  Patrimoine: 'Formalités patrimoniales et documents associés.',
+  'Vie sociale': 'Assemblées, cessions et évolutions de gouvernance.',
+};
 
 const MobileLandingHeroMockup = ({ revealMount }) => (
   <motion.div
     {...revealMount(0.24)}
-    className="relative mx-auto mt-8 max-w-[280px]"
+    className="relative mx-auto mt-8 max-w-[300px]"
     aria-hidden="true"
   >
     <div className="rounded-[2rem] border-[6px] border-[hsl(var(--greffio-blue-900))] bg-[hsl(var(--greffio-blue-900))] p-2 shadow-elevation-lg">
       <div className="overflow-hidden rounded-[1.4rem] bg-[#f6f8fc]">
         <div className="border-b border-border/70 bg-white px-3 py-2.5">
           <div className="mx-auto h-1 w-10 rounded-full bg-muted" />
-          <p className="mt-2 text-center text-[10px] font-bold text-[hsl(var(--greffio-blue-900))]">Greffio · Espace client</p>
+          <p className="mt-2 text-center text-[10px] font-bold text-[hsl(var(--greffio-blue-900))]">Aperçu dossier Greffio</p>
         </div>
         <div className="space-y-2 p-3">
-          <div className="rounded-xl bg-emerald-50 px-2 py-1.5 text-[9px] font-semibold text-emerald-800">
-            Connecté à l&apos;équipe Greffio
+          <div className="rounded-xl border border-primary/20 bg-white p-2.5">
+            <p className="text-[10px] font-bold text-primary">SASU en création</p>
+            <p className="mt-1 text-[9px] text-muted-foreground">Étape actuelle : Documents à signer</p>
+            <div className="mt-2 flex items-center justify-between text-[9px] font-semibold">
+              <span className="text-muted-foreground">Progression</span>
+              <span className="text-primary">60 %</span>
+            </div>
+            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+              <div className="h-full w-[60%] rounded-full bg-primary" />
+            </div>
           </div>
           <div className="rounded-xl border border-border bg-white p-2.5">
             <p className="text-[10px] font-bold uppercase text-primary">Documents</p>
-            <p className="mt-0.5 text-[9px] text-muted-foreground">Pièces liées à vos formalités</p>
-            <div className="mt-2 flex items-center gap-2 rounded-lg border border-border/70 bg-background p-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-secondary">
-                <FileText className="h-3.5 w-3.5 text-primary" />
-              </span>
-              <span className="text-[9px] font-semibold">Non-condamnation</span>
+            <p className="mt-0.5 text-[9px] text-muted-foreground">3 documents à signer</p>
+            <div className="mt-2 space-y-1">
+              {['Statuts.pdf', 'Non-condamnation', 'Pouvoir formalités'].map((label) => (
+                <div key={label} className="flex items-center gap-2 rounded-lg border border-border/70 bg-background p-1.5">
+                  <FileText className="h-3 w-3 text-primary" />
+                  <span className="text-[8px] font-semibold">{label}</span>
+                </div>
+              ))}
             </div>
-          </div>
-          <div className="grid grid-cols-4 gap-1 rounded-xl border border-border bg-white p-1.5">
-            {['Accueil', 'Dossiers', 'Docs', 'Messages'].map((label) => (
-              <div key={label} className="rounded-lg py-1 text-center text-[8px] font-semibold text-muted-foreground">
-                {label}
-              </div>
-            ))}
           </div>
         </div>
       </div>
@@ -185,6 +203,23 @@ export const MobileLandingPage = () => {
               <Link to={dashboardTarget}>Accéder au dashboard</Link>
             </Button>
           </motion.div>
+          <motion.p
+            {...revealMount(0.17)}
+            className="mt-3 text-center text-sm leading-6 text-muted-foreground"
+          >
+            Simulation guidée, sans engagement. Documents générés selon vos réponses.
+          </motion.p>
+          <motion.div {...revealMount(0.19)} className="mt-4 flex flex-wrap gap-2">
+            {heroTrustChips.map((item, index) => (
+              <motion.span
+                key={item}
+                {...staggerItem(index)}
+                className="rounded-full border border-primary/15 bg-white px-3 py-1.5 text-xs font-semibold text-[hsl(var(--greffio-blue-900))] shadow-sm"
+              >
+                {item}
+              </motion.span>
+            ))}
+          </motion.div>
           <motion.ul {...revealMount(0.2)} className="mt-6 grid gap-2">
             {heroHighlights.map((item, index) => (
               <motion.li
@@ -209,26 +244,44 @@ export const MobileLandingPage = () => {
           <Link to="/services" className="text-sm font-semibold text-primary">Tout voir</Link>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">6 formalités phares — 27 démarches disponibles.</p>
-        <div className="mt-5 space-y-3">
-          {featuredServices.map((service, index) => (
-            <motion.div key={service.id} {...staggerItem(index)}>
-              <Link
-                to={getServiceRoute(service.id)}
-                className="block rounded-3xl border border-border bg-background p-4 shadow-elevation-sm transition active:scale-[0.99]"
-              >
-                <div className="flex items-start gap-3">
-                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${service.accent}`}>
-                    <Building2 className="h-5 w-5 text-[hsl(var(--greffio-blue-900))]" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold uppercase text-muted-foreground">{service.category}</p>
-                    <h3 className="font-extrabold">{service.title}</h3>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{service.description}</p>
-                    <p className="mt-2 text-sm font-bold text-primary">Dès {service.price}</p>
-                  </div>
-                </div>
-              </Link>
-            </motion.div>
+        <div className="mt-5 space-y-5">
+          {Object.entries(
+            featuredServices.reduce((groups, service) => {
+              const key = SERVICE_GROUP_LABELS[service.category] ? service.category : 'Création';
+              if (!groups[key]) groups[key] = [];
+              groups[key].push(service);
+              return groups;
+            }, {}),
+          ).map(([groupKey, services]) => (
+            <div key={groupKey}>
+              <p className="text-xs font-bold uppercase text-muted-foreground">
+                {SERVICE_GROUP_LABELS[groupKey] || groupKey}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {SERVICE_GROUP_HINTS[groupKey] || 'Formalité accompagnée par Greffio.'}
+              </p>
+              <div className="mt-3 space-y-3">
+                {services.map((service, index) => (
+                  <motion.div key={service.id} {...staggerItem(index)}>
+                    <Link
+                      to={getServiceRoute(service.id)}
+                      className="block rounded-3xl border border-border bg-background p-4 shadow-elevation-sm transition active:scale-[0.99]"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${service.accent}`}>
+                          <Building2 className="h-5 w-5 text-[hsl(var(--greffio-blue-900))]" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-extrabold">{service.title}</h3>
+                          <p className="mt-1 text-sm leading-6 text-muted-foreground">{service.description}</p>
+                          <p className="mt-2 text-sm font-bold text-primary">Dès {service.price}</p>
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
         <Button asChild variant="outline" className="mt-5 h-11 w-full rounded-2xl bg-white">
@@ -288,7 +341,7 @@ export const MobileLandingPage = () => {
         <p className="text-sm font-bold uppercase text-primary">Informations entreprise</p>
         <h2 className="mt-1 text-2xl font-extrabold">Recherche SIREN / SIRET</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Préremplissez une modification ou une cessation avec les données publiques.
+          Retrouvez une société existante ou vérifiez vos informations avant une modification ou une cessation.
         </p>
         <div className="mt-4 flex flex-col gap-3">
           <Input

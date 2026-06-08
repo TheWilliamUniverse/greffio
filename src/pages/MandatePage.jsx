@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label.jsx';
 import { GREFFIO_CONTACT, INPI_UPLOAD_RULES } from '@/config/legalFlow.js';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
 import { downloadMandatePdf, getMandateState, signMandate } from '@/api/mandate.js';
+import { MobileStickyFormActions } from '@/mobile/ui/MobileStickyFormActions.jsx';
+import { triggerMobileHaptic } from '@/utils/mobileHaptics.js';
 
 const longMandateSummary = [
   'Le mandataire est autorise a preparer, deposer, suivre et regulariser la formalite dans la limite de la mission confiee.',
@@ -195,6 +197,7 @@ export const MandatePage = () => {
       });
       setSignedAt(payload?.signature?.signedAt || new Date().toISOString());
       setSignatureEvidence(payload?.signature || null);
+      void triggerMobileHaptic('success');
       toast.success('Procuration signée avec succès.');
     } catch (_error) {
       toast.error('La signature a échoué.');
@@ -314,7 +317,7 @@ export const MandatePage = () => {
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label>Signature electronique (nom complet)</Label>
-              <Input required value={form.signature} onChange={(event) => setForm((c) => ({ ...c, signature: event.target.value }))} placeholder="Nom Prenom" />
+              <Input required value={form.signature} onChange={(event) => setForm((c) => ({ ...c, signature: event.target.value }))} placeholder="Nom Prenom" className="text-base" />
             </div>
             <label className="md:col-span-2 flex items-start gap-3 rounded-md border border-border bg-white p-4">
               <input
@@ -327,12 +330,14 @@ export const MandatePage = () => {
                 En signant ce document, je reconnais avoir lu integralement la procuration, compris sa portee, et autorise {GREFFIO_CONTACT.company} / {GREFFIO_CONTACT.brand} a accomplir pour mon compte les demarches necessaires au depot, suivi et regularisation de ma formalite.
               </span>
             </label>
-            <div className="md:col-span-2 flex flex-wrap gap-2">
-              <Button type="submit" disabled={signing}>{signing ? 'Signature...' : 'Signer la procuration'}</Button>
-              <Button type="button" variant="outline" className="bg-white" onClick={onDownloadSignedPdf} disabled={!signedAt}>
-                <Download className="h-4 w-4" />
-                Télécharger le PDF signé
-              </Button>
+            <div className="md:col-span-2">
+              <MobileStickyFormActions className="md:static md:border-0 md:bg-transparent md:p-0 md:shadow-none">
+                <Button type="submit" className="h-11 flex-1 sm:flex-none" disabled={signing}>{signing ? 'Signature...' : 'Signer la procuration'}</Button>
+                <Button type="button" variant="outline" className="h-11 flex-1 bg-white sm:flex-none" onClick={onDownloadSignedPdf} disabled={!signedAt}>
+                  <Download className="h-4 w-4" />
+                  Télécharger le PDF signé
+                </Button>
+              </MobileStickyFormActions>
             </div>
           </form>
         </section>

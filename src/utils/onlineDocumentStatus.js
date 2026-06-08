@@ -11,12 +11,16 @@ export const resolveOnlineDocumentState = (docKey, documents = [], fallbackHint 
   const apiKey = ONLINE_DOCUMENT_KEYS[docKey] || docKey;
   const doc = documents.find((item) => item.docKey === apiKey);
   if (!doc) {
+    const userAction = resolveDocumentUserAction('REQUESTED', false);
     return {
       docKey: apiKey,
       status: 'REQUESTED',
       statusLabel: getDocumentStatusLabel('REQUESTED'),
-      hint: fallbackHint,
+      hint: userAction.hint || fallbackHint,
+      cta: userAction.cta,
+      action: userAction.action,
       isComplete: false,
+      hasFile: false,
     };
   }
   const hasFile = documentHasFile(doc);
@@ -30,12 +34,67 @@ export const resolveOnlineDocumentState = (docKey, documents = [], fallbackHint 
   else if (['INVALID', 'REJECTED'].includes(normalized)) hint = 'À corriger puis renvoyer';
   else if (hasFile) hint = 'Déposé — compléter ou signer si besoin';
 
+  const userAction = resolveDocumentUserAction(status, hasFile);
+
   return {
     docKey: apiKey,
     status,
     statusLabel: getDocumentStatusLabel(status),
-    hint,
+    hint: userAction.hint || hint,
+    cta: userAction.cta,
+    action: userAction.action,
     isComplete,
     hasFile,
+  };
+};
+
+/** Traduction statut document → hint actionnable + CTA unique (audit mobile). */
+export const resolveDocumentUserAction = (status, hasFile = false) => {
+  const normalized = String(status || '').toUpperCase();
+
+  if (['VALID', 'VALIDATED', 'SIGNED'].includes(normalized)) {
+    return {
+      hint: 'Document enregistré dans votre dossier.',
+      cta: 'Télécharger',
+      action: 'download',
+    };
+  }
+
+  if (['UPLOADED', 'PENDING_REVIEW', 'UNDER_REVIEW', 'GENERATED'].includes(normalized)) {
+    return {
+      hint: 'Envoyé à Greffio. Nous vérifions sa conformité.',
+      cta: 'Voir',
+      action: 'view',
+    };
+  }
+
+  if (['INVALID', 'REJECTED'].includes(normalized)) {
+    return {
+      hint: 'Une correction est nécessaire avant dépôt.',
+      cta: 'Corriger',
+      action: 'correct',
+    };
+  }
+
+  if (['A_SIGNER'].includes(normalized)) {
+    return {
+      hint: 'Ce document attend votre signature.',
+      cta: 'Signer',
+      action: 'sign',
+    };
+  }
+
+  if (!hasFile || ['REQUESTED', 'ATTENTE_DOCS', 'BROUILLON', 'URGENT'].includes(normalized)) {
+    return {
+      hint: 'Ce document doit être complété puis signé.',
+      cta: 'Remplir',
+      action: 'fill',
+    };
+  }
+
+  return {
+    hint: 'Déposé — compléter ou signer si besoin.',
+    cta: 'Voir',
+    action: 'view',
   };
 };

@@ -2,18 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Bot, Inbox, MessageSquareText } from 'lucide-react';
-import { Button } from '@/components/ui/button.jsx';
 import { DossierMessageThread } from '@/components/messaging/DossierMessageThread.jsx';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
 import { MobilePageSkeleton } from '@/mobile/ui/MobilePageSkeleton.jsx';
+import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
+import { MobileEmptyState } from '@/mobile/ui/MobileEmptyState.jsx';
 import { useMobileMotion } from '@/mobile/ui/mobileMotion.js';
-import { useMobileSafeBottomPadding } from '@/hooks/useMobileSafeBottomPadding.js';
 import { listDossiers } from '@/api/dossiers.js';
 import { fetchDossierMessages } from '@/api/dossierMessages.js';
 import { useDossierMessagesRealtime, sendDossierMessageOptimistic } from '@/hooks/useDossierMessagesRealtime.js';
 
 export const MobileTeamPage = () => {
-  const bottomPad = useMobileSafeBottomPadding();
   const { staggerItem } = useMobileMotion();
   const [queue, setQueue] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -61,7 +60,7 @@ export const MobileTeamPage = () => {
   if (loading) return <MobilePageSkeleton />;
 
   return (
-    <div className={`space-y-5 px-4 py-5 ${bottomPad}`}>
+    <MobilePageContainer>
       <MobileAnimatedSection>
         <p className="text-xs font-bold uppercase tracking-wide text-primary">Relation équipe-client</p>
         <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[hsl(var(--greffio-blue-900))]">Messages</h1>
@@ -76,22 +75,15 @@ export const MobileTeamPage = () => {
 
       {!queue.length && !loadError ? (
         <MobileAnimatedSection delay={0.05}>
-          <div className="rounded-3xl border border-dashed border-border bg-muted/30 p-8 text-center">
-            <Inbox className="mx-auto h-8 w-8 text-primary" />
-            <h2 className="mt-3 text-base font-extrabold">Aucun message pour le moment</h2>
-            <p className="mt-2 text-sm text-muted-foreground">Lancez une formalité ou contactez Greffio.</p>
-            <div className="mt-5 flex flex-col gap-2">
-              <Button asChild className="h-11 rounded-2xl">
-                <Link to="/questionnaire">Nouvelle formalité</Link>
-              </Button>
-              <Button asChild variant="outline" className="h-11 rounded-2xl bg-white">
-                <Link to="/mobile/search">
-                  <Bot className="h-4 w-4" />
-                  Ouvrir l’assistant
-                </Link>
-              </Button>
-            </div>
-          </div>
+          <MobileEmptyState
+            icon={Inbox}
+            title="Aucun message pour le moment"
+            description="Vos échanges avec l’équipe Greffio apparaîtront ici dès qu’un dossier sera actif."
+            actionLabel="Nouvelle formalité"
+            actionTo="/questionnaire"
+            secondaryLabel="Ouvrir l’assistant"
+            secondaryTo="/mobile/search"
+          />
         </MobileAnimatedSection>
       ) : (
         <>
@@ -165,6 +157,6 @@ export const MobileTeamPage = () => {
           </MobileAnimatedSection>
         </>
       )}
-    </div>
+    </MobilePageContainer>
   );
 };

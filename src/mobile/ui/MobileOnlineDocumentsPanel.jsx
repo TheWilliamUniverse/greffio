@@ -1,8 +1,7 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { CheckCircle2, FilePlus2, FileSignature, PenLine, Users } from 'lucide-react';
-import { StatusBadge } from '@/components/StatusBadge.jsx';
+import { FilePlus2, PenLine, Users, FileSignature } from 'lucide-react';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
+import { MobileDocumentCard } from '@/mobile/ui/MobileDocumentCard.jsx';
 import { resolveOnlineDocumentState } from '@/utils/onlineDocumentStatus.js';
 
 const ONLINE_DOCS = [
@@ -49,26 +48,23 @@ export const MobileOnlineDocumentsPanel = ({
             </p>
           </div>
         </div>
-        <div className="mt-4 space-y-2">
+        <div className="mt-4 space-y-3">
           {ONLINE_DOCS.map((item) => {
             const state = resolveOnlineDocumentState(item.key, documents, item.hint);
             return (
-              <Link
+              <MobileDocumentCard
                 key={item.key}
+                name={item.label}
+                status={state.status}
+                statusLabel={state.statusLabel}
+                hint={state.hint}
+                cta={state.cta}
+                hasFile={state.hasFile}
+                icon={item.icon}
                 to={item.to(dossierId)}
-                className="flex min-h-[56px] items-center gap-3 rounded-2xl border border-border/70 bg-background px-3 py-3 transition active:scale-[0.99]"
-              >
-                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${state.isComplete ? 'bg-green-100' : 'bg-secondary'}`}>
-                  {state.isComplete
-                    ? <CheckCircle2 className="h-4 w-4 text-green-700" />
-                    : <item.icon className="h-4 w-4 text-primary" />}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-bold text-foreground">{item.label}</span>
-                  <span className="block text-xs text-muted-foreground">{state.hint}</span>
-                </span>
-                <StatusBadge status={state.status} className="shrink-0 text-[10px]" showGlossary={false} />
-              </Link>
+                minHeight={false}
+                className="rounded-2xl shadow-none"
+              />
             );
           })}
         </div>

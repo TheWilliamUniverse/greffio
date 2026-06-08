@@ -2,30 +2,27 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Eye,
   FilePlus2,
   FileText,
-  FolderKanban,
-  PenLine,
   Search,
-  Trash2,
   Upload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
-import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { MobileDocumentScanner } from '@/mobile/MobileDocumentScanner.jsx';
 import { MobilePageSkeleton } from '@/mobile/ui/MobilePageSkeleton.jsx';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
+import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
+import { MobileEmptyState } from '@/mobile/ui/MobileEmptyState.jsx';
+import { MobileDocumentCard } from '@/mobile/ui/MobileDocumentCard.jsx';
 import { useMobileMotion } from '@/mobile/ui/mobileMotion.js';
-import { useMobileSafeBottomPadding } from '@/hooks/useMobileSafeBottomPadding.js';
+import { useMobileShellOverlay } from '@/mobile/context/MobileShellOverlayContext.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 import { useDossierQuery } from '@/hooks/queries/useDossierQuery.js';
 import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
 import {
-  deleteDossierDocument,
-  downloadDossierDocument,
   uploadDossierDocument,
+  downloadDossierDocument,
 } from '@/api/documents.js';
 import { getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.js';
 import { DossierVaultPickerOverlay } from '@/components/dossiers/DossierVaultPickerOverlay.jsx';
@@ -37,6 +34,8 @@ import { isEiLikeFormality } from '@/config/formalities.js';
 import { IdentityVerificationCard } from '@/components/identity/IdentityVerificationCard.jsx';
 import { MobileOnlineDocumentsPanel } from '@/mobile/ui/MobileOnlineDocumentsPanel.jsx';
 import { parseJsonField } from '@/utils/jsonField.js';
+import { resolveDocumentUserAction } from '@/utils/onlineDocumentStatus.js';
+import { triggerMobileHaptic } from '@/utils/mobileHaptics.js';
 
 const FILTERS = ['Tous', 'Validés', 'En attente', 'Brouillons'];
 
@@ -46,13 +45,11 @@ const ONLINE_DOC_EDITOR_PATHS = {
   formality_powers: (dossierId) => `/dossier/${dossierId}/pouvoirs-formalites`,
 };
 
-const mobileDocActionButtonClass = 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-white text-[#0a1220] transition hover:bg-muted active:scale-[0.97] disabled:opacity-40';
-
 export const MobileDocumentsPage = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const internalView = isInternalUser(currentUser);
-  const bottomPad = useMobileSafeBottomPadding();
+  const { setVaultPickerOpen } = useMobileShellOverlay();
   const { staggerItem } = useMobileMotion();
   const uploadRef = useRef(null);
   const rowUploadRef = useRef(null);
@@ -61,8 +58,6 @@ export const MobileDocumentsPage = () => {
   const [filter, setFilter] = useState('Tous');
   const [uploading, setUploading] = useState(false);
   const [uploadingDocKey, setUploadingDocKey] = useState(null);
-  const [previewLoadingDocKey, setPreviewLoadingDocKey] = useState(null);
-  const [deletingDocKey, setDeletingDocKey] = useState(null);
   const [uploadError, setUploadError] = useState('');
   const [dossierId, setDossierId] = useState(() => getCurrentDossierId());
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -82,6 +77,12 @@ export const MobileDocumentsPage = () => {
     }
     setPickerOpen(true);
   }, [loadingDossiers, dossiersList, internalView]);
+
+  useEffect(() => {
+    const open = pickerOpen && !internalView;
+    setVaultPickerOpen(open);
+    return () => setVaultPickerOpen(false);
+  }, [pickerOpen, internalView, setVaultPickerOpen]);
 
   const handlePickDossier = (dossier) => {
     saveCurrentDossierId(dossier.id);
@@ -191,7 +192,6 @@ export const MobileDocumentsPage = () => {
 
   const openDocumentPreview = async (docKey) => {
     if (!dossierId || !docKey) return;
-    setPreviewLoadingDocKey(docKey);
     setUploadError('');
     try {
       const { filename, blob } = await downloadDossierDocument({
@@ -211,30 +211,29 @@ export const MobileDocumentsPage = () => {
       window.setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
     } catch (_error) {
       setUploadError('Impossible d’afficher l’aperçu de ce document pour le moment.');
-    } finally {
-      setPreviewLoadingDocKey(null);
     }
   };
 
-  const removeAttachment = async (docKey, label) => {
-    if (!dossierId || !docKey) return;
-    const confirmed = window.confirm(`Supprimer la pièce jointe « ${label} » ?`);
-    if (!confirmed) return;
-    setUploadError('');
-    setDeletingDocKey(docKey);
-    try {
-      await deleteDossierDocument({ dossierId, docKey });
-      await refetch();
-    } catch (_error) {
-      setUploadError('La suppression a échoué.');
-    } finally {
-      setDeletingDocKey(null);
-    }
-  };
+  const handleDocumentAction = (doc) => {
+    void triggerMobileHaptic('light');
+    const userAction = resolveDocumentUserAction(doc.status, doc.hasFile);
+    const editorPath = ONLINE_DOC_EDITOR_PATHS[doc.docKey]?.(dossierId);
 
-  const openOnlineEditor = (docKey) => {
-    const path = ONLINE_DOC_EDITOR_PATHS[docKey]?.(dossierId);
-    if (path) navigate(path);
+    if (userAction.action === 'download' || userAction.action === 'view') {
+      if (doc.hasFile) {
+        void openDocumentPreview(doc.docKey);
+        return;
+      }
+    }
+
+    if (['correct', 'fill', 'sign'].includes(userAction.action) && editorPath && !eiLike) {
+      navigate(editorPath);
+      return;
+    }
+
+    if (doc.canUpload) {
+      triggerRowUpload(doc.docKey);
+    }
   };
 
   if (loadingDossiers || (loadingDossier && dossierId)) return <MobilePageSkeleton />;
@@ -247,7 +246,7 @@ export const MobileDocumentsPage = () => {
         onSelect={handlePickDossier}
         onClose={() => setPickerOpen(false)}
       />
-      <div className={`space-y-5 px-4 py-5 ${bottomPad}`}>
+      <MobilePageContainer>
       <MobileAnimatedSection delay={0}>
         <p className="text-xs font-bold uppercase tracking-wide text-primary">Espace documentaire</p>
         <div className="mt-1 flex items-start justify-between gap-3">
@@ -279,14 +278,13 @@ export const MobileDocumentsPage = () => {
 
       {!dossierId ? (
         <MobileAnimatedSection delay={0.05}>
-          <div className="rounded-3xl border border-dashed border-border bg-muted/30 p-8 text-center">
-            <FileText className="mx-auto h-8 w-8 text-primary" />
-            <h2 className="mt-3 text-base font-extrabold">Aucun dossier actif</h2>
-            <p className="mt-2 text-sm text-muted-foreground">Lancez une formalité pour déposer vos pièces.</p>
-            <Button asChild className="mt-5 h-11 w-full rounded-2xl">
-              <Link to="/questionnaire">Nouvelle formalité</Link>
-            </Button>
-          </div>
+          <MobileEmptyState
+            icon={FileText}
+            title="Aucun dossier actif"
+            description="Vos documents apparaîtront ici dès que votre dossier sera initialisé. Commencez une formalité ou revenez à votre dossier actif."
+            actionLabel="Créer une formalité"
+            actionTo="/questionnaire"
+          />
         </MobileAnimatedSection>
       ) : (
         <>
@@ -375,96 +373,35 @@ export const MobileDocumentsPage = () => {
 
           <div className="space-y-3">
             {filtered.map((doc, index) => (
-              <motion.article
-                key={doc.id || doc.docKey}
-                {...staggerItem(index)}
-                className="rounded-3xl border border-border/70 bg-white p-4 shadow-sm"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-start gap-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-secondary">
-                      <FileText className="h-5 w-5 text-primary" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="font-extrabold leading-snug">{doc.name}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{doc.statusLabel}</p>
-                    </div>
-                  </div>
-                  <StatusBadge status={doc.status} />
-                </div>
-                {doc.date ? (
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    Mis à jour le {new Date(doc.date).toLocaleDateString('fr-FR')}
-                  </p>
-                ) : null}
-                <div className="mt-3 flex flex-wrap gap-2 border-t border-border/60 pt-3">
-                  <button
-                    type="button"
-                    aria-label="Aperçu"
-                    className={mobileDocActionButtonClass}
-                    disabled={!dossierId || !doc.hasFile || previewLoadingDocKey === doc.docKey}
-                    onClick={() => void openDocumentPreview(doc.docKey)}
-                  >
-                    {previewLoadingDocKey === doc.docKey ? <span className="text-xs">…</span> : <Eye className="h-4 w-4" />}
-                  </button>
-                  {ONLINE_DOC_EDITOR_PATHS[doc.docKey] && !eiLike ? (
-                    <button
-                      type="button"
-                      aria-label="Modifier en ligne"
-                      className={mobileDocActionButtonClass}
-                      disabled={!dossierId}
-                      onClick={() => openOnlineEditor(doc.docKey)}
-                    >
-                      <PenLine className="h-4 w-4 text-primary" />
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    aria-label="Déposer un PDF"
-                    className={mobileDocActionButtonClass}
-                    disabled={!dossierId || !doc.canUpload || uploadingDocKey === doc.docKey}
-                    onClick={() => triggerRowUpload(doc.docKey)}
-                  >
-                    {uploadingDocKey === doc.docKey
-                      ? <span className="text-xs">…</span>
-                      : <Upload className="h-4 w-4" />}
-                  </button>
-                  {doc.hasFile ? (
-                    <button
-                      type="button"
-                      aria-label="Supprimer la pièce jointe"
-                      className={`${mobileDocActionButtonClass} text-red-700 hover:border-red-200 hover:bg-red-50`}
-                      disabled={!dossierId || deletingDocKey === doc.docKey}
-                      onClick={() => void removeAttachment(doc.docKey, doc.name)}
-                    >
-                      {deletingDocKey === doc.docKey
-                        ? <span className="text-xs">…</span>
-                        : <Trash2 className="h-4 w-4" />}
-                    </button>
-                  ) : null}
-                </div>
-              </motion.article>
+              <motion.div key={doc.id || doc.docKey} {...staggerItem(index)}>
+                <MobileDocumentCard
+                  name={doc.name}
+                  status={doc.status}
+                  statusLabel={doc.statusLabel}
+                  hasFile={doc.hasFile}
+                  date={doc.date}
+                  onAction={() => handleDocumentAction(doc)}
+                />
+              </motion.div>
             ))}
           </div>
 
           {!filtered.length && !isError ? (
             <MobileAnimatedSection delay={0.12}>
-              <div className="rounded-3xl border border-dashed border-border bg-muted/30 p-8 text-center">
-                <FilePlus2 className="mx-auto h-8 w-8 text-primary" />
-                <h2 className="mt-3 text-base font-extrabold">Aucun document</h2>
-                <p className="mt-2 text-sm text-muted-foreground">Vos pièces apparaîtront ici dès qu’une formalité sera lancée.</p>
-                <Button asChild className="mt-5 h-11 w-full rounded-2xl">
-                  <Link to={`/dossier/${dossierId}`}>
-                    <FolderKanban className="h-4 w-4" />
-                    Ouvrir le dossier
-                  </Link>
-                </Button>
-              </div>
+              <MobileEmptyState
+                icon={FilePlus2}
+                title="Aucun document pour l’instant"
+                description="Vos documents apparaîtront ici dès que votre dossier sera initialisé. Vous pouvez commencer une formalité ou revenir à votre dossier actif."
+                actionLabel="Ouvrir le dossier"
+                actionTo={`/dossier/${dossierId}`}
+                secondaryLabel="Créer une formalité"
+                secondaryTo="/questionnaire"
+              />
             </MobileAnimatedSection>
           ) : null}
         </>
       )}
-      </div>
+      </MobilePageContainer>
     </>
   );
 };

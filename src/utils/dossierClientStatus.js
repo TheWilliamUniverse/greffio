@@ -68,3 +68,102 @@ export const mapDossierClientAction = (status, progressPercent = 0) => {
   if (progress > 0 && progress < 100) return `Progression ${progress} % — poursuivez votre dossier.`;
   return 'Poursuivez votre dossier Greffio.';
 };
+
+const TIMELINE_STEP_ORDER = ['info', 'statuts', 'documents', 'depot', 'kbis'];
+
+const TIMELINE_LABELS = {
+  info: 'Informations société',
+  statuts: 'Statuts',
+  documents: 'Documents',
+  depot: 'Dépôt greffe',
+  kbis: 'Kbis / retour',
+};
+
+const resolveActiveTimelineStep = (status, progressPercent = 0) => {
+  const key = String(status || '').toLowerCase();
+  const progress = Number(progressPercent || 0);
+
+  if (['accepted', 'official_documents_available', 'completed'].includes(key)) return 'kbis';
+  if ([
+    'ready_for_filing',
+    'filed_to_guichet_unique',
+    'under_administration_review',
+    'regularization_requested',
+    'regularization_submitted',
+    'dossier_preparation',
+    'client_validation_required',
+    'client_validated',
+  ].includes(key)) return 'depot';
+  if ([
+    'documents_requested',
+    'documents_uploaded',
+    'documents_validated',
+    'documents_under_review',
+    'documents_missing_or_invalid',
+    'mandate_pending_signature',
+    'mandate_required',
+    'mandate_signed',
+    'statutes_generated',
+    'statutes_under_review',
+    'statutes_signed',
+    'payment_pending',
+    'payment_confirmed',
+  ].includes(key)) return 'documents';
+  if (['statutes_generated', 'statutes_under_review', 'statutes_signed'].includes(key)) return 'statuts';
+  if (progress >= 50) return 'documents';
+  if (progress >= 25) return 'statuts';
+  return 'info';
+};
+
+/** Timeline verticale compacte pour détail dossier mobile. */
+export const buildDossierTimelineSteps = (dossier = {}) => {
+  const activeStep = resolveActiveTimelineStep(dossier.status, dossier.progressPercent);
+  const activeIndex = TIMELINE_STEP_ORDER.indexOf(activeStep);
+
+  return TIMELINE_STEP_ORDER.map((id, index) => {
+    let state = 'upcoming';
+    if (index < activeIndex) state = 'done';
+    else if (index === activeIndex) state = 'active';
+    return { id, label: TIMELINE_LABELS[id], state };
+  });
+};
+
+/** Résumé cockpit — étape, action, prochaine étape. */
+export const resolveDossierStatusSummary = (dossier = {}, documents = []) => {
+  const status = String(dossier.status || '').toLowerCase();
+  const progress = Number(dossier.progressPercent || 0);
+  const timeline = buildDossierTimelineSteps(dossier);
+  const activeStep = timeline.find((step) => step.state === 'active') || timeline[0];
+  const nextStep = timeline.find((step) => step.state === 'upcoming');
+
+  const pendingDocs = (documents || []).filter((doc) => {
+    const normalized = String(doc.status || '').toUpperCase();
+    return ['ATTENTE_DOCS', 'BROUILLON', 'URGENT', 'A_SIGNER', 'REQUESTED', 'INVALID', 'REJECTED'].includes(normalized);
+  });
+
+  let actionRequired = mapDossierClientAction(status, progress);
+  let blocking = 'Aucun blocage';
+
+  if (pendingDocs.length) {
+    blocking = `${pendingDocs.length} document${pendingDocs.length > 1 ? 's' : ''} en attente`;
+  } else if (['under_administration_review', 'filed_to_guichet_unique'].includes(status)) {
+    blocking = 'Aucun blocage — instruction en cours';
+  } else if (['rejected', 'regularization_requested', 'documents_missing_or_invalid'].includes(status)) {
+    blocking = 'Action requise de votre part';
+  }
+
+  const estimatedDelay = ['under_administration_review', 'filed_to_guichet_unique'].includes(status)
+    ? 'Délai variable selon le greffe'
+    : progress >= 80
+      ? 'Prochaine étape sous 48 h ouvrées'
+      : 'Selon complétude de votre dossier';
+
+  return {
+    currentStep: activeStep?.label || 'Informations société',
+    actionRequired,
+    nextStep: nextStep?.label || 'Dépôt greffe',
+    blocking,
+    estimatedDelay,
+    lastUpdate: dossier.updatedAt || dossier.createdAt,
+  };
+};

@@ -30,9 +30,9 @@ export const DossierVaultPickerOverlay = ({
           >
             <FolderKanban className="h-8 w-8" />
           </motion.div>
-          <h2 className="text-center text-2xl font-extrabold">Choisir un dossier</h2>
+          <h2 className="text-center text-2xl font-extrabold">Choisir le dossier à gérer</h2>
           <p className="mt-3 text-center text-sm leading-6 text-white/80">
-            Sélectionnez le dossier dont vous souhaitez ouvrir le coffre documentaire.
+            Vos documents dépendent du dossier sélectionné. Choisissez celui que vous souhaitez consulter ou compléter.
           </p>
           <div className="mt-6 max-h-[320px] space-y-2 overflow-y-auto">
             {dossiers.map((dossier) => (

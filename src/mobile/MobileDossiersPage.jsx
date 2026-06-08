@@ -7,8 +7,9 @@ import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
 import { loadDossiersSnapshot, cacheDossiersSnapshot } from '@/utils/mobileOffline.js';
 import { MobilePageSkeleton } from '@/mobile/ui/MobilePageSkeleton.jsx';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
+import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
+import { MobileEmptyState } from '@/mobile/ui/MobileEmptyState.jsx';
 import { useMobileMotion } from '@/mobile/ui/mobileMotion.js';
-import { useMobileSafeBottomPadding } from '@/hooks/useMobileSafeBottomPadding.js';
 import { OfflineDataBanner } from '@/components/system/OfflineDataBanner.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
@@ -20,7 +21,6 @@ const toVisualStatus = (status) => mapDossierStatusForBadge(status);
 
 export const MobileDossiersPage = () => {
   const { currentUser } = useAuth();
-  const bottomPad = useMobileSafeBottomPadding();
   const { staggerItem } = useMobileMotion();
   const [search, setSearch] = useState('');
   const [offlineSnapshot, setOfflineSnapshot] = useState(null);
@@ -52,7 +52,7 @@ export const MobileDossiersPage = () => {
   if (isLoading && !offlineSnapshot?.dossiers?.length) return <MobilePageSkeleton />;
 
   return (
-    <div className={`space-y-4 px-4 py-5 ${bottomPad}`}>
+    <MobilePageContainer spacing="compact">
       <MobileAnimatedSection>
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -133,15 +133,15 @@ export const MobileDossiersPage = () => {
 
       {!filtered.length && !isError ? (
         <MobileAnimatedSection delay={0.08}>
-          <div className="rounded-3xl border border-dashed border-border bg-muted/30 p-8 text-center">
-            <FolderKanban className="mx-auto h-8 w-8 text-primary" />
-            <p className="mt-3 text-sm font-semibold">Aucun dossier pour le moment</p>
-            <Button asChild className="mt-4 h-11 w-full rounded-2xl">
-              <Link to="/simulateur">Commencer une simulation</Link>
-            </Button>
-          </div>
+          <MobileEmptyState
+            icon={FolderKanban}
+            title="Aucun dossier pour le moment"
+            description="Vos formalités apparaîtront ici dès la création de votre première démarche."
+            actionLabel="Commencer une simulation"
+            actionTo="/simulateur"
+          />
         </MobileAnimatedSection>
       ) : null}
-    </div>
+    </MobilePageContainer>
   );
 };

@@ -12,6 +12,7 @@ import { getCurrentDossierId } from '@/utils/sessionStore.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
 import { MobilePageSkeleton } from '@/mobile/ui/MobilePageSkeleton.jsx';
+import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
 import { OfflineDataBanner } from '@/components/system/OfflineDataBanner.jsx';
 
 const offers = {
@@ -115,7 +116,7 @@ export const MobilePaymentPage = () => {
     : null;
 
   return (
-    <div className="space-y-5 px-4 py-5 pb-28">
+    <MobilePageContainer>
       {pspStatus === 'paid' ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
           <CheckCircle2 className="mb-2 h-5 w-5" />
@@ -187,6 +188,6 @@ export const MobilePaymentPage = () => {
       <Button asChild variant="ghost" className="h-11 w-full">
         <Link to={resourceOrder ? '/ressources' : '/tarifs'}>Retour</Link>
       </Button>
-    </div>
+    </MobilePageContainer>
   );
 };

@@ -5,8 +5,8 @@ import { ChevronRight, HelpCircle, LogOut, ShieldCheck, UserRound } from 'lucide
 import { useAuth } from '@/hooks/useAuth.js';
 import { MOBILE_STORE } from '@/config/mobileStore.js';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
+import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
 import { useMobileMotion } from '@/mobile/ui/mobileMotion.js';
-import { useMobileSafeBottomPadding } from '@/hooks/useMobileSafeBottomPadding.js';
 
 const rows = [
   { to: '/contact', icon: HelpCircle, label: 'Aide & contact', hint: MOBILE_STORE.legal.supportEmail },
@@ -16,11 +16,10 @@ const rows = [
 
 export const MobileAccountPage = () => {
   const { currentUser, logout } = useAuth();
-  const bottomPad = useMobileSafeBottomPadding();
   const { staggerItem } = useMobileMotion();
 
   return (
-    <div className={`space-y-5 px-4 py-5 ${bottomPad}`}>
+    <MobilePageContainer>
       <MobileAnimatedSection>
         <section className="rounded-3xl border border-border/70 bg-white p-5 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-wide text-primary/80">Compte</p>
@@ -68,6 +67,6 @@ export const MobileAccountPage = () => {
         <LogOut className="h-4 w-4" />
         Se déconnecter
       </motion.button>
-    </div>
+    </MobilePageContainer>
   );
 };

@@ -1,15 +1,18 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, FileText, MessageSquareText, Upload } from 'lucide-react';
 import { useDossierQuery } from '@/hooks/queries/useDossierQuery.js';
 import { saveCurrentDossierId } from '@/utils/sessionStore.js';
 import { DossierBreadcrumb } from '@/components/layout/DossierBreadcrumb.jsx';
 import { MobilePageSkeleton } from '@/mobile/ui/MobilePageSkeleton.jsx';
+import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
 import { OfflineDataBanner } from '@/components/system/OfflineDataBanner.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { MobileDocumentUploadSheet } from '@/mobile/MobileDocumentUploadSheet.jsx';
 import { MobileOnlineDocumentsPanel } from '@/mobile/ui/MobileOnlineDocumentsPanel.jsx';
+import { MobileDossierStatusCard } from '@/mobile/ui/MobileDossierStatusCard.jsx';
+import { MobileDossierTimeline } from '@/mobile/ui/MobileDossierTimeline.jsx';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
 import { IdentityVerificationCard } from '@/components/identity/IdentityVerificationCard.jsx';
 import { parseJsonField } from '@/utils/jsonField.js';
@@ -17,6 +20,14 @@ import { isEiLikeFormality } from '@/config/formalities.js';
 import { documentHasFile, resolveClientDocumentStatus } from '@/utils/documentWorkflow.js';
 import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
+import { cn } from '@/lib/utils.js';
+
+const SECTION_PILLS = [
+  { id: 'resume', label: 'Résumé' },
+  { id: 'documents', label: 'Documents' },
+  { id: 'actions', label: 'Actions' },
+  { id: 'messages', label: 'Messages' },
+];
 
 const mapDocuments = (documents = []) => documents.map((doc) => {
   const hasFile = documentHasFile(doc);
@@ -36,7 +47,9 @@ export const MobileDossierDetailPage = () => {
   const navigate = useNavigate();
   const [uploadOpen, setUploadOpen] = useState(false);
   const [selectedDocKey, setSelectedDocKey] = useState('identity_proof');
+  const [activeSection, setActiveSection] = useState('resume');
   const { data, isLoading, isError, refetch, isFetching, dataUpdatedAt } = useDossierQuery(id);
+  const sectionRefs = useRef({});
 
   const dossier = data?.dossier;
   const docs = useMemo(() => mapDocuments(data?.documents || []), [data?.documents]);
@@ -45,11 +58,16 @@ export const MobileDossierDetailPage = () => {
     if (id) saveCurrentDossierId(id);
   }, [id]);
 
+  const scrollToSection = (sectionId) => {
+    setActiveSection(sectionId);
+    sectionRefs.current[sectionId]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   if (isLoading) return <MobilePageSkeleton />;
 
   if (isError || !dossier) {
     return (
-      <div className="space-y-4 px-4 py-5">
+      <MobilePageContainer spacing="compact">
         <Button type="button" variant="ghost" className="h-10 px-0" onClick={() => navigate('/dossiers')}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Retour
         </Button>
@@ -59,7 +77,7 @@ export const MobileDossierDetailPage = () => {
             Réessayer
           </Button>
         </div>
-      </div>
+      </MobilePageContainer>
     );
   }
 
@@ -75,12 +93,36 @@ export const MobileDossierDetailPage = () => {
   });
 
   return (
-    <div className="space-y-5 px-4 py-5 pb-28">
+    <MobilePageContainer>
       <DossierBreadcrumb
         dossierId={id}
         dossierName={dossier.companyName || dossier.denomination || 'Formalité'}
       />
       {isError ? <OfflineDataBanner cachedAt={dataUpdatedAt ? new Date(dataUpdatedAt).toISOString() : null} /> : null}
+
+      <div ref={(node) => { sectionRefs.current.resume = node; }}>
+        <MobileDossierStatusCard dossier={dossier} documents={docs} />
+      </div>
+
+      <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {SECTION_PILLS.map((pill) => (
+          <button
+            key={pill.id}
+            type="button"
+            onClick={() => scrollToSection(pill.id)}
+            className={cn(
+              'shrink-0 rounded-full px-4 py-2 text-xs font-bold transition',
+              activeSection === pill.id
+                ? 'bg-[hsl(var(--greffio-blue))] text-white'
+                : 'bg-white text-muted-foreground ring-1 ring-border',
+            )}
+          >
+            {pill.label}
+          </button>
+        ))}
+      </div>
+
+      <MobileDossierTimeline dossier={dossier} />
 
       <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-white via-secondary/20 to-white p-5 shadow-sm">
         <div className="flex items-start justify-between gap-3">
@@ -111,7 +153,7 @@ export const MobileDossierDetailPage = () => {
         </div>
       </div>
 
-      <section className="grid grid-cols-2 gap-3">
+      <div ref={(node) => { sectionRefs.current.actions = node; }} className="grid grid-cols-2 gap-3">
         <Button
           type="button"
           className="h-auto min-h-[88px] flex-col items-start gap-2 rounded-2xl px-4 py-4"
@@ -124,14 +166,16 @@ export const MobileDossierDetailPage = () => {
           <span className="text-left text-sm font-bold">Envoyer une pièce</span>
         </Button>
         <Button asChild variant="outline" className="h-auto min-h-[88px] flex-col items-start gap-2 rounded-2xl bg-white px-4 py-4">
-          <Link to="/mobile/search">
+          <Link to="/mobile/search" onClick={() => setActiveSection('messages')}>
             <MessageSquareText className="h-5 w-5 text-primary" />
             <span className="text-left text-sm font-bold">Assistant Greffio</span>
           </Link>
         </Button>
-      </section>
+      </div>
 
-      <MobileOnlineDocumentsPanel dossierId={id} documents={data?.documents || []} eiLike={eiLike} delay={0.03} />
+      <div ref={(node) => { sectionRefs.current.documents = node; }}>
+        <MobileOnlineDocumentsPanel dossierId={id} documents={data?.documents || []} eiLike={eiLike} delay={0.03} />
+      </div>
 
       <MobileAnimatedSection delay={0.05}>
         <IdentityVerificationCard
@@ -164,6 +208,14 @@ export const MobileDossierDetailPage = () => {
         )}
       </section>
 
+      <div ref={(node) => { sectionRefs.current.messages = node; }} className="rounded-2xl border border-border/70 bg-white p-4">
+        <h2 className="text-sm font-extrabold">Messages Greffio</h2>
+        <p className="mt-2 text-sm text-muted-foreground">Échanges liés à ce dossier avec l’équipe.</p>
+        <Button asChild variant="outline" className="mt-4 h-11 w-full rounded-2xl bg-white">
+          <Link to="/team">Ouvrir la messagerie</Link>
+        </Button>
+      </div>
+
       <MobileDocumentUploadSheet
         open={uploadOpen}
         onOpenChange={setUploadOpen}
@@ -171,6 +223,6 @@ export const MobileDossierDetailPage = () => {
         docKey={selectedDocKey}
         onUploaded={() => refetch()}
       />
-    </div>
+    </MobilePageContainer>
   );
 };

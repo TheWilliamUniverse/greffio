@@ -61,6 +61,41 @@ export const MOBILE_DRAWER_NAV_ITEMS = [
   { to: '/contact', icon: HelpCircle, label: 'Aide / support' },
 ];
 
+/** Groupes drawer mobile — navigation structurée (audit UX). */
+export const MOBILE_DRAWER_NAV_GROUPS = [
+  {
+    label: 'Mon activité',
+    items: [
+      { to: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
+      { to: '/dossiers', icon: FolderKanban, label: 'Dossiers' },
+      { to: '/documents', icon: FileText, label: 'Documents' },
+      { to: '/team', icon: MessageSquareText, label: 'Messages' },
+    ],
+  },
+  {
+    label: 'Pilotage',
+    items: [
+      { to: '/chat', icon: Bot, label: 'Assistant Greffio' },
+      { to: '/analytics', icon: BarChart3, label: 'Pilotage' },
+      { to: '/statuts', icon: FileSignature, label: 'Statuts' },
+    ],
+  },
+  {
+    label: 'Créer',
+    items: [
+      { to: '/simulateur', icon: Plus, label: 'Nouvelle démarche' },
+    ],
+  },
+  {
+    label: 'Compte',
+    items: [
+      { to: '/profil', icon: UserRound, label: 'Mon profil' },
+      { to: '/settings', icon: Settings, label: 'Paramètres' },
+      { to: '/contact', icon: HelpCircle, label: 'Aide / support' },
+    ],
+  },
+];
+
 export const MOBILE_DRAWER_INTERNAL_ITEM = {
   to: '/interfaces',
   icon: Building2,
@@ -129,4 +164,15 @@ export const buildMobileDrawerNavItems = (internalView = false) => {
     MOBILE_DRAWER_INTERNAL_ITEM,
     ...MOBILE_DRAWER_NAV_ITEMS.slice(5),
   ];
+};
+
+export const buildMobileDrawerNavGroups = (internalView = false) => {
+  if (!internalView) return MOBILE_DRAWER_NAV_GROUPS;
+  return MOBILE_DRAWER_NAV_GROUPS.map((group) => {
+    if (group.label !== 'Pilotage') return group;
+    return {
+      ...group,
+      items: [...group.items, MOBILE_DRAWER_INTERNAL_ITEM],
+    };
+  });
 };

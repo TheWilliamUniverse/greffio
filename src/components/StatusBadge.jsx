@@ -36,7 +36,7 @@ export const StatusBadge = ({ status, className, showGlossary = true }) => {
     switch (s) {
       case 'EN_COURS':
       case 'EN_ANALYSE':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-blue-100 text-blue-900 border-blue-300';
       case 'TERMINE':
       case 'VALIDE':
       case 'VALID':
@@ -45,19 +45,19 @@ export const StatusBadge = ({ status, className, showGlossary = true }) => {
         return 'bg-green-100 text-green-800 border-green-200';
       case 'UPLOADED':
       case 'GENERATED':
-        return 'bg-sky-100 text-sky-800 border-sky-200';
+        return 'bg-sky-100 text-sky-900 border-sky-300';
       case 'UNDER_REVIEW':
       case 'PENDING_REVIEW':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-blue-100 text-blue-900 border-blue-300';
       case 'INVALID':
       case 'REJECTED':
         return 'bg-red-100 text-red-800 border-red-200';
       case 'REQUESTED':
-        return 'bg-gray-100 text-gray-700 border-gray-200';
+        return 'bg-slate-100 text-slate-800 border-slate-300';
       case 'ATTENTE_DOCS':
       case 'URGENT':
       case 'A_SIGNER':
-        return 'bg-amber-100 text-amber-800 border-amber-200';
+        return 'bg-amber-100 text-amber-900 border-amber-300';
       case 'PLANIFIE':
       case 'MODELE':
       case 'BROUILLON':

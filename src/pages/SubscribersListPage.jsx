@@ -18,6 +18,8 @@ import {
 import { getDocumentEditorLoadErrorMessage } from '@/utils/documentEditorErrors.js';
 import { handleSignNowApiResponse } from '@/utils/signwellClient.js';
 import { DocumentEditorLoadGate } from '@/components/documents/DocumentEditorLoadGate.jsx';
+import { MobileStickyFormActions } from '@/mobile/ui/MobileStickyFormActions.jsx';
+import { MobileSignatureOverlay } from '@/mobile/ui/MobileSignatureOverlay.jsx';
 import { runtimeConfig } from '@/config/runtime.js';
 
 const DOC_KEY = 'subscribers_list';
@@ -291,20 +293,20 @@ export const SubscribersListPage = () => {
               </div>
             </div>
 
-            <div className="sticky bottom-0 mt-6 flex flex-wrap gap-2 border-t border-[var(--we-border)] bg-white pt-4">
-              <Button onClick={() => void onGeneratePreview()} disabled={saving}>
+            <MobileStickyFormActions>
+              <Button className="h-11 flex-1 sm:flex-none" onClick={() => void onGeneratePreview()} disabled={saving}>
                 <FileText className="h-4 w-4" />
                 {saving ? 'Génération…' : 'Générer l’aperçu'}
               </Button>
-              <Button variant="outline" className="bg-white" onClick={() => setSignMode('immediate')}>
+              <Button variant="outline" className="h-11 flex-1 bg-white sm:flex-none" onClick={() => setSignMode('immediate')}>
                 <PenLine className="h-4 w-4" />
                 Signer maintenant
               </Button>
-              <Button variant="outline" className="bg-white" onClick={() => setSignMode('email')}>
+              <Button variant="outline" className="h-11 flex-1 bg-white sm:flex-none" onClick={() => setSignMode('email')}>
                 <Mail className="h-4 w-4" />
                 Envoyer pour signature
               </Button>
-            </div>
+            </MobileStickyFormActions>
           </section>
 
           <PdfPreviewPanel
@@ -313,27 +315,21 @@ export const SubscribersListPage = () => {
           />
         </div>
 
-        {signMode ? (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-            <div className="w-full max-w-lg">
-              <SignatureAdoptPanel
-                defaultName={fields.signatureFullName || fields.presidentName || ''}
-                defaultEmail={fields.signerEmail || ''}
-                loading={saving}
-                onCancel={() => setSignMode(null)}
-                onConfirm={(payload) => {
-                  if (signMode === 'email') void onSendEmail(payload);
-                  else void onSignNow(payload);
-                }}
-              />
-              {signMode === 'email' ? (
-                <p className="mt-2 text-center text-xs text-white/80">
-                  Lien sécurisé via {runtimeConfig.appUrl || 'Greffio'}.
-                </p>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
+        <MobileSignatureOverlay
+          open={Boolean(signMode)}
+          footerHint={signMode === 'email' ? `Lien sécurisé via ${runtimeConfig.appUrl || 'Greffio'}.` : ''}
+        >
+          <SignatureAdoptPanel
+            defaultName={fields.signatureFullName || fields.presidentName || ''}
+            defaultEmail={fields.signerEmail || ''}
+            loading={saving}
+            onCancel={() => setSignMode(null)}
+            onConfirm={(payload) => {
+              if (signMode === 'email') void onSendEmail(payload);
+              else void onSignNow(payload);
+            }}
+          />
+        </MobileSignatureOverlay>
       </main>
     </div>
   );

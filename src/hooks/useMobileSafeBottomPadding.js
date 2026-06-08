@@ -7,11 +7,11 @@ export function useMobileSafeBottomPadding({ hasBottomNav = true } = {}) {
   if (!hasBottomNav) return '';
 
   if (isCapacitorNative()) {
-    return 'pb-[calc(5.25rem+env(safe-area-inset-bottom))]';
+    return 'pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom)+var(--mobile-page-bottom-extra))]';
   }
 
   if (isMobileBrowserViewport()) {
-    return 'pb-[calc(4.75rem+env(safe-area-inset-bottom))]';
+    return 'pb-[calc(var(--bottom-nav-height-web)+env(safe-area-inset-bottom)+var(--mobile-page-bottom-extra))]';
   }
 
   return '';

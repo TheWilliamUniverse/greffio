@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, FileText, FolderKanban, Search, Sparkles, X, Zap } from 'lucide-react';
 import { Input } from '@/components/ui/input.jsx';
 import { searchSiteIndex } from '@/config/siteSearchIndex.js';
@@ -26,7 +26,17 @@ const COCKPIT_DOCUMENT_KEYS = [
   'capital_certificate',
 ];
 
+const resolveSearchPlaceholder = (pathname) => {
+  const path = String(pathname || '');
+  if (path === '/dossiers' || path.startsWith('/dossier/')) return 'Rechercher un dossier, SIREN…';
+  if (path === '/documents' || path.startsWith('/documents/')) return 'Rechercher un document, type de pièce…';
+  if (path === '/team') return 'Rechercher un dossier ou un message…';
+  if (path === '/dashboard') return 'Rechercher un dossier, document, SIREN…';
+  return 'Rechercher un dossier, document, page…';
+};
+
 export const MobileCockpitSearchDialog = ({ open, onClose }) => {
+  const location = useLocation();
   const navigate = useNavigate();
   const { currentUser, isAuthenticated } = useAuth();
   const [query, setQuery] = useState('');
@@ -130,6 +140,7 @@ export const MobileCockpitSearchDialog = ({ open, onClose }) => {
   }, [apiPayload, isAuthenticated, query]);
 
   const siteResults = useMemo(() => searchSiteIndex(query, 8), [query]);
+  const searchPlaceholder = resolveSearchPlaceholder(location.pathname);
 
   if (!open) return null;
 
@@ -155,7 +166,7 @@ export const MobileCockpitSearchDialog = ({ open, onClose }) => {
             ref={inputRef}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Dossiers, documents, pages…"
+            placeholder={searchPlaceholder}
             className="border-0 bg-transparent px-0 text-base shadow-none focus-visible:ring-0"
           />
           <button type="button" onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:bg-muted" aria-label="Fermer">

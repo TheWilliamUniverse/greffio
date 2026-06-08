@@ -3,15 +3,14 @@ import { Link } from 'react-router-dom';
 import { Bot, Search } from 'lucide-react';
 import IntegratedAiChat from '@/components/integrated-ai-chat.jsx';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
-import { useMobileSafeBottomPadding } from '@/hooks/useMobileSafeBottomPadding.js';
+import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 
 export const MobileChatPage = () => {
   const { currentUser } = useAuth();
-  const bottomPad = useMobileSafeBottomPadding();
 
   return (
-    <div className={`flex min-h-[50dvh] flex-col px-4 py-5 ${bottomPad}`}>
+    <MobilePageContainer className="flex min-h-[50dvh] flex-col">
       <MobileAnimatedSection delay={0}>
         <p className="text-xs font-bold uppercase tracking-wide text-primary/80">Assistant Greffio</p>
         <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[hsl(var(--greffio-blue-900))]">
@@ -38,6 +37,6 @@ export const MobileChatPage = () => {
           <IntegratedAiChat />
         </div>
       </div>
-    </div>
+    </MobilePageContainer>
   );
 };

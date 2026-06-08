@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { MobileWebHeader } from '@/mobile/MobileWebHeader.jsx';
 import { MobilePublicBottomNav } from '@/mobile/MobilePublicBottomNav.jsx';
@@ -6,7 +6,7 @@ import { WebMobileBottomNav } from '@/components/WebMobileBottomNav.jsx';
 import { MobileSidebarDrawer } from '@/components/MobileSidebarDrawer.jsx';
 import { MobileStickyHeaderGroup } from '@/mobile/ui/MobileStickyHeaderGroup.jsx';
 import { MobileShellScrollProvider } from '@/mobile/context/MobileShellScrollContext.jsx';
-import { MobileShellOverlayProvider } from '@/mobile/context/MobileShellOverlayContext.jsx';
+import { MobileShellOverlayProvider, useMobileShellOverlay } from '@/mobile/context/MobileShellOverlayContext.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 import { shouldUseMobileWebShell } from '@/utils/platform.js';
 
@@ -52,7 +52,6 @@ export const MobileWebShell = ({ children }) => {
   const location = useLocation();
   const scrollRef = useRef(null);
   const { currentUser } = useAuth();
-  const [navOpen, setNavOpen] = useState(false);
   const isLanding = location.pathname === '/';
   const title = isLanding ? '' : resolveTitle(location.pathname);
   const showAuthenticatedNav = Boolean(currentUser) && !isLanding;
@@ -64,31 +63,52 @@ export const MobileWebShell = ({ children }) => {
   return (
     <MobileShellScrollProvider scrollRef={scrollRef}>
       <MobileShellOverlayProvider>
-        <div className="flex min-h-[100dvh] flex-col bg-background md:contents">
-          {showAuthenticatedNav ? (
-            <MobileSidebarDrawer open={navOpen} onClose={() => setNavOpen(false)} />
-          ) : null}
-          {!isLanding ? (
-            <MobileStickyHeaderGroup showConnectedStrip={showAuthenticatedNav}>
-              <MobileWebHeader
-                title={title}
-                onMenuClick={showAuthenticatedNav ? () => setNavOpen(true) : undefined}
-              />
-            </MobileStickyHeaderGroup>
-          ) : null}
-          <main
-            ref={scrollRef}
-            className={`flex-1 md:contents ${
-              isLanding
-                ? 'pb-[calc(4.75rem+env(safe-area-inset-bottom))]'
-                : 'overflow-y-auto pb-[calc(4.75rem+env(safe-area-inset-bottom))]'
-            }`}
-          >
-            {children}
-          </main>
-          {currentUser ? <WebMobileBottomNav /> : <MobilePublicBottomNav />}
-        </div>
+        <MobileWebShellInner
+          scrollRef={scrollRef}
+          isLanding={isLanding}
+          title={title}
+          showAuthenticatedNav={showAuthenticatedNav}
+        >
+          {children}
+        </MobileWebShellInner>
       </MobileShellOverlayProvider>
     </MobileShellScrollProvider>
+  );
+};
+
+const MobileWebShellInner = ({
+  children,
+  scrollRef,
+  isLanding,
+  title,
+  showAuthenticatedNav,
+}) => {
+  const { drawerOpen, setDrawerOpen } = useMobileShellOverlay();
+
+  return (
+    <div className="flex min-h-[100dvh] flex-col bg-background md:contents">
+      {showAuthenticatedNav ? (
+        <MobileSidebarDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      ) : null}
+      {!isLanding ? (
+        <MobileStickyHeaderGroup showConnectedStrip={showAuthenticatedNav}>
+          <MobileWebHeader
+            title={title}
+            onMenuClick={showAuthenticatedNav ? () => setDrawerOpen(true) : undefined}
+          />
+        </MobileStickyHeaderGroup>
+      ) : null}
+      <main
+        ref={scrollRef}
+        className={`flex-1 md:contents ${
+          isLanding
+            ? 'pb-[calc(var(--bottom-nav-height-web)+env(safe-area-inset-bottom))]'
+            : 'overflow-y-auto pb-[calc(var(--bottom-nav-height-web)+env(safe-area-inset-bottom)+var(--mobile-page-bottom-extra))]'
+        }`}
+      >
+        {children}
+      </main>
+      {showAuthenticatedNav ? <WebMobileBottomNav /> : <MobilePublicBottomNav />}
+    </div>
   );
 };

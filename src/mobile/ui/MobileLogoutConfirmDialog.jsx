@@ -22,7 +22,7 @@ export const MobileLogoutConfirmDialog = ({ open, onOpenChange, onConfirm }) => 
           Mettre en veille ?
         </AlertDialogTitle>
         <AlertDialogDescription>
-          Vous quitterez votre session Greffio. Vos dossiers restent enregistrés — reconnectez-vous pour reprendre.
+          Votre session sera mise en veille de façon sécurisée. Vos dossiers restent enregistrés — reconnectez-vous pour reprendre.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter className="flex-col gap-2 sm:flex-col">

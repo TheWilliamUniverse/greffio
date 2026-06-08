@@ -3,10 +3,11 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Building2, Menu, ShieldCheck, X } from 'lucide-react';
 import { cn } from '@/lib/utils.js';
 import {
-  buildMobileDrawerNavItems,
+  buildMobileDrawerNavGroups,
   isMobileDrawerNavActive,
 } from '@/config/mobileNavigation.js';
 import { useAuth } from '@/hooks/useAuth.js';
+import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 import { isInternalUser } from '@/utils/roles.js';
 
 /**
@@ -18,7 +19,8 @@ export const MobileSidebarDrawer = ({ open, onClose, className }) => {
   const navigate = useNavigate();
   const company = currentUser?.company || {};
   const internalView = isInternalUser(currentUser);
-  const items = buildMobileDrawerNavItems(internalView);
+  const groups = buildMobileDrawerNavGroups(internalView);
+  const showNavHint = isCapacitorNative() || isMobileBrowserViewport();
 
   const handleNavigate = useCallback((to) => {
     onClose?.();
@@ -77,33 +79,46 @@ export const MobileSidebarDrawer = ({ open, onClose, className }) => {
           </button>
         </div>
 
+        {showNavHint ? (
+          <p className="border-b border-border/70 bg-secondary/30 px-5 py-2.5 text-xs leading-5 text-muted-foreground">
+            Messages, pilotage et statuts sont accessibles via ce menu ☰
+            {isCapacitorNative() ? ' — l’onglet Compte remplace Messages sur l’app.' : '.'}
+          </p>
+        ) : null}
+
         <nav className="flex-1 overflow-y-auto px-4 py-4">
-          <p className="mb-2 px-3 text-xs font-semibold uppercase text-muted-foreground">Espace opérationnel</p>
-          <div className="space-y-1">
-            {items.map((item) => {
-              const active = isMobileDrawerNavActive(location.pathname, item.to);
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    handleNavigate(item.to);
-                  }}
-                  aria-current={active ? 'page' : undefined}
-                  className={cn(
-                    'flex items-center rounded-md px-3 py-2.5 text-sm font-semibold transition-colors',
-                    active
-                      ? 'bg-[hsl(var(--greffio-blue))] text-white shadow-elevation-sm'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                  )}
-                >
-                  <item.icon className="mr-3 h-5 w-5 shrink-0" aria-hidden="true" />
-                  <span className="flex-1">{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
+          {groups.map((group) => (
+            <div key={group.label} className="mb-5 last:mb-0">
+              <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {group.label}
+              </p>
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const active = isMobileDrawerNavActive(location.pathname, item.to);
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        handleNavigate(item.to);
+                      }}
+                      aria-current={active ? 'page' : undefined}
+                      className={cn(
+                        'flex items-center rounded-md px-3 py-2.5 text-sm font-semibold transition-colors',
+                        active
+                          ? 'bg-[hsl(var(--greffio-blue))] text-white shadow-elevation-sm'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                      )}
+                    >
+                      <item.icon className="mr-3 h-5 w-5 shrink-0" aria-hidden="true" />
+                      <span className="flex-1">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         <div className="border-t border-border p-4">

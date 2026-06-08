@@ -1,11 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { App as CapApp } from '@capacitor/app';
 import { Files, FolderKanban, Home, Plus, UserRound } from 'lucide-react';
 import { MOBILE_AUTH_TABS_NATIVE } from '@/config/mobileNavigation.js';
 import { MobileTopBar } from '@/mobile/MobileTopBar.jsx';
 import { MobilePushRegistration } from '@/mobile/MobilePushRegistration.jsx';
+import { MobileNativeOfflineBanner } from '@/mobile/MobileNativeOfflineBanner.jsx';
 import { MobileSidebarDrawer } from '@/components/MobileSidebarDrawer.jsx';
+import { triggerMobileHaptic } from '@/utils/mobileHaptics.js';
 import { MobileStickyHeaderGroup } from '@/mobile/ui/MobileStickyHeaderGroup.jsx';
 import { MobileShellScrollProvider } from '@/mobile/context/MobileShellScrollContext.jsx';
 import { MobileShellOverlayProvider, useMobileShellOverlay } from '@/mobile/context/MobileShellOverlayContext.jsx';
@@ -36,15 +38,12 @@ const MobileAppShellInner = ({ children }) => {
   const navigate = useNavigate();
   const scrollRef = useRef(null);
   const { isAuthenticated } = useAuth();
-  const [navOpen, setNavOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const {
-    accountOpen,
-    setAccountOpen,
-    logoutOpen,
-    setLogoutOpen,
-    searchOpen,
-    setSearchOpen,
+    drawerOpen,
+    setDrawerOpen,
+    notificationsOpen,
+    setNotificationsOpen,
+    closeTopOverlay,
   } = useMobileShellOverlay();
 
   useEffect(() => {
@@ -72,26 +71,7 @@ const MobileAppShellInner = ({ children }) => {
 
     let handle;
     CapApp.addListener('backButton', ({ canGoBack }) => {
-      if (navOpen) {
-        setNavOpen(false);
-        return;
-      }
-      if (searchOpen) {
-        setSearchOpen(false);
-        return;
-      }
-      if (accountOpen) {
-        setAccountOpen(false);
-        return;
-      }
-      if (logoutOpen) {
-        setLogoutOpen(false);
-        return;
-      }
-      if (notificationsOpen) {
-        setNotificationsOpen(false);
-        return;
-      }
+      if (closeTopOverlay()) return;
       if (canGoBack) {
         navigate(-1);
         return;
@@ -104,33 +84,27 @@ const MobileAppShellInner = ({ children }) => {
     return () => {
       void handle?.remove?.();
     };
-  }, [
-    navOpen,
-    searchOpen,
-    accountOpen,
-    logoutOpen,
-    notificationsOpen,
-    navigate,
-    setAccountOpen,
-    setLogoutOpen,
-    setSearchOpen,
-  ]);
+  }, [closeTopOverlay, navigate]);
 
   return (
     <MobileShellScrollProvider scrollRef={scrollRef}>
       <div className="flex min-h-[100dvh] flex-col bg-[#f6f8fc]">
         <MobilePushRegistration />
+        <MobileNativeOfflineBanner />
         {isAuthenticated ? (
-          <MobileSidebarDrawer open={navOpen} onClose={() => setNavOpen(false)} />
+          <MobileSidebarDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
         ) : null}
         <MobileStickyHeaderGroup showConnectedStrip={isAuthenticated}>
           <MobileTopBar
-            onMenuClick={isAuthenticated ? () => setNavOpen(true) : undefined}
+            onMenuClick={isAuthenticated ? () => setDrawerOpen(true) : undefined}
             notificationsOpen={notificationsOpen}
             onNotificationsOpenChange={setNotificationsOpen}
           />
         </MobileStickyHeaderGroup>
-        <main ref={scrollRef} className="flex-1 overflow-y-auto pb-[calc(5.25rem+env(safe-area-inset-bottom))]">
+        <main
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom)+var(--mobile-page-bottom-extra))]"
+        >
           {children}
         </main>
         <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md">
@@ -143,6 +117,9 @@ const MobileAppShellInner = ({ children }) => {
                 <li key={tab.id}>
                   <Link
                     to={tab.path}
+                    onClick={() => {
+                      if (isPrimary) void triggerMobileHaptic('medium');
+                    }}
                     className={`flex min-h-[48px] flex-col items-center justify-center gap-1 px-1 py-2.5 text-[10px] font-semibold transition ${
                       active ? 'text-primary' : 'text-muted-foreground'
                     }`}
