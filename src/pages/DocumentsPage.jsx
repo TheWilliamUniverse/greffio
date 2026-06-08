@@ -164,12 +164,10 @@ export const DocumentsPage = () => {
         ownerLastName: currentUser?.lastName || '',
       });
       await invalidateDossierDocuments();
-      if (payload.warning) {
-        setUploadSuccess(payload.warning);
-      } else if (payload.analysis?.requiresManualReview) {
+      if (payload.analysis?.requiresManualReview) {
         setUploadSuccess('Pièce reçue. Contrôle manuel Greffio requis avant validation finale.');
       } else {
-        setUploadSuccess('Pièce déposée et analysée automatiquement.');
+        setUploadSuccess('Pièce déposée et enregistrée.');
       }
     } catch (error) {
       setUploadError(error?.message || "L'upload a échoué.");

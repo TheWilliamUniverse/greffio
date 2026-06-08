@@ -7,7 +7,8 @@ import {
   getSignedDownloadUrlFromStorageUrl,
   isS3Configured,
   parseS3StorageUrl,
-  uploadDocumentToS3,
+  probeS3StorageConnectivity,
+  uploadDocumentToS3WithRetry,
 } from './s3StorageService.js';
 
 const STORAGE_DRIVER = String(process.env.DOCUMENT_STORAGE_DRIVER || 'local').toLowerCase();
@@ -132,7 +133,7 @@ export const uploadDocumentToConfiguredStorage = async ({
   }
 
   if (objectStorageConfig.driver === 's3') {
-    const uploaded = await uploadDocumentToS3({
+    const uploaded = await uploadDocumentToS3WithRetry({
       buffer: fileBuffer,
       dossierId,
       docKey,
@@ -251,4 +252,4 @@ export const downloadDocumentBufferFromConfiguredStorage = async (storageUrl) =>
   return fs.readFile(source);
 };
 
-export { parseS3StorageUrl, buildS3StorageUrl };
+export { parseS3StorageUrl, buildS3StorageUrl, probeS3StorageConnectivity };

@@ -144,10 +144,10 @@ import {
   deleteDocumentFromConfiguredStorage,
   downloadDocumentBufferFromConfiguredStorage,
   objectStorageConfig,
+  probeS3StorageConnectivity,
   uploadDocumentToConfiguredStorage,
 } from './services/objectStorage.js';
 import {
-  enqueueStorageRetry,
   getStorageRetryQueueSnapshot,
   registerStorageFailureForOps,
 } from './services/storageRetryQueue.js';
@@ -169,7 +169,7 @@ import {
 } from './mfaEmailCodeStore.js';
 import { buildTotpSetup, encryptSecret, verifyTotpCode } from './services/mfaService.js';
 
-dotenv.config();
+dotenv.config({ override: process.env.NODE_ENV === 'production' });
 
 const app = express();
 if (process.env.NODE_ENV === 'production') {
@@ -369,6 +369,18 @@ app.get('/api/ready', async (_req, res) => {
   }
   if (checks.storageDriver === 'supabase' && !checks.supabaseConfigured) {
     return res.status(503).json({ ok: false, error: 'STORAGE_NOT_CONFIGURED', checks });
+  }
+  if (checks.storageDriver === 's3') {
+    try {
+      checks.s3Probe = await probeS3StorageConnectivity();
+    } catch (error) {
+      return res.status(503).json({
+        ok: false,
+        error: 'S3_STORAGE_UNAVAILABLE',
+        message: error?.message || 'S3_STORAGE_UNAVAILABLE',
+        checks,
+      });
+    }
   }
   return res.json({ ok: true, checks });
 });
@@ -1817,8 +1829,6 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
   let storageUrl = null;
   let fileUrl = null;
   let storageProvider = objectStorageConfig.driver;
-  let storageUploadWarning = null;
-  let localFallbackPath = null;
 
   try {
     const uploadResult = await uploadDocumentToConfiguredStorage({
@@ -1833,52 +1843,28 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
       storageUrl = uploadResult.storageUrl;
       fileUrl = uploadResult.storageUrl;
       storageProvider = uploadResult.storageProvider || objectStorageConfig.driver;
-      localFallbackPath = uploadResult.localFilePath || null;
     }
   } catch (storageError) {
-    if (objectStorageConfig.driver === 'local') {
-      throw storageError;
-    }
-    storageProvider = 'local_fallback';
     console.error('DOCUMENT_STORAGE_UPLOAD_FAILED', {
       dossierId: dossier.id,
       docKey,
       driver: objectStorageConfig.driver,
       message: storageError?.message || storageError,
     });
-    const dossierUploadDir = path.join(uploadsRoot, String(dossier.id));
-    if (!fs.existsSync(dossierUploadDir)) {
-      fs.mkdirSync(dossierUploadDir, { recursive: true });
-    }
-    const desiredPath = path.join(dossierUploadDir, targetFilename);
-    localFallbackPath = ensureUniqueFilePath(desiredPath);
-    fs.writeFileSync(localFallbackPath, req.file.buffer);
-    storageUrl = localFallbackPath;
-    fileUrl = localFallbackPath;
-    enqueueStorageRetry({
-      dossierId: dossier.id,
-      docKey,
-      localFilePath: localFallbackPath,
-      filename: path.basename(localFallbackPath),
-      reason: `${objectStorageConfig.driver}_upload_failed`,
-    });
-    const alert = registerStorageFailureForOps({
+    registerStorageFailureForOps({
       dossierId: dossier.id,
       docKey,
       reason: `${objectStorageConfig.driver}_upload_failed`,
     });
-    if (alert.shouldAlert) {
-      console.error('OPS_STORAGE_ALERT', {
-        message: 'Repeated storage failures in 5 minute window',
-        ...alert,
-      });
-    }
-    storageUploadWarning = 'Stockage cloud temporairement indisponible, votre document est conservé et sera repris automatiquement.';
+    return res.status(503).json({
+      ok: false,
+      error: 'STORAGE_UPLOAD_FAILED',
+      message: 'Le document n’a pas pu être enregistré. Réessayez dans quelques instants.',
+    });
   }
 
   const analysis = await analyzeDocument({
     pdfBuffer: req.file.mimetype === 'application/pdf' ? req.file.buffer : undefined,
-    filePath: req.file.mimetype === 'application/pdf' ? localFallbackPath : undefined,
     docKey,
   });
   const analysisStatus = analysis.ok && analysis.requiresManualReview
@@ -1901,7 +1887,6 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
     metadata: {
       analysis,
       storageProvider,
-      storageUploadWarning,
       uploadedByRole: req.auth?.role || 'client',
       uploadedAt: new Date().toISOString(),
     },
@@ -1975,7 +1960,6 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
       sha256,
     },
     analysis,
-    warning: storageUploadWarning,
     identityVerification,
     documents: await listDossierDocuments(dossier.id),
   });
@@ -3093,6 +3077,11 @@ const bootstrap = async () => {
     await ensureSeedDossier();
   }
   await ensureSignwellWebhookRegistered();
+  if (objectStorageConfig.driver === 's3') {
+    const probe = await probeS3StorageConnectivity();
+    // eslint-disable-next-line no-console
+    console.log(`[greffio-api] S3 storage probe OK (${probe.bucket}, ${probe.region})`);
+  }
   const server = http.createServer(app);
   const messageHub = createDossierMessageHub(server);
   dossierMessageEvents.notify = messageHub.notifyDossierMessagesUpdated;

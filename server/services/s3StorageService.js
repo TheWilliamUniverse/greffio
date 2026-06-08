@@ -30,7 +30,7 @@ const getS3Client = () => {
   if (!s3Client) {
     assertS3Config();
     s3Client = new S3Client({
-      region: process.env.AWS_REGION,
+      region: resolveAwsRegion(),
       credentials: {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID,
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -42,7 +42,15 @@ const getS3Client = () => {
 
 const bucketName = () => process.env.AWS_S3_BUCKET;
 
+const resolveAwsRegion = () => (
+  process.env.AWS_REGION
+  || process.env.AWS_DEFAULT_REGION
+  || 'eu-west-3'
+);
+
 const presignedTtlSeconds = () => Number(process.env.AWS_S3_PRESIGNED_URL_TTL_SECONDS || 900);
+
+const sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
 
 const sanitizeSegment = (value) => String(value || '')
   .trim()
@@ -115,6 +123,39 @@ export async function uploadDocumentToS3({
     key,
     storageUrl: buildS3StorageUrl(bucket, key),
   };
+}
+
+export async function uploadDocumentToS3WithRetry(params, { attempts = 3 } = {}) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await uploadDocumentToS3(params);
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) {
+        await sleep(250 * attempt);
+      }
+    }
+  }
+  throw lastError;
+}
+
+export async function probeS3StorageConnectivity() {
+  assertS3Config();
+  const probeKey = `test/greffio-storage-probe-${Date.now()}.txt`;
+  const bucket = bucketName();
+  const payload = Buffer.from(`greffio-probe ${new Date().toISOString()}`);
+  await getS3Client().send(new PutObjectCommand({
+    Bucket: bucket,
+    Key: probeKey,
+    Body: payload,
+    ContentType: 'text/plain',
+  }));
+  await getS3Client().send(new DeleteObjectCommand({
+    Bucket: bucket,
+    Key: probeKey,
+  }));
+  return { ok: true, bucket, region: resolveAwsRegion() };
 }
 
 export async function getSignedDownloadUrl(s3Key, bucket = bucketName()) {

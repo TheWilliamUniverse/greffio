@@ -69,6 +69,9 @@ const mapDocumentUploadError = (error) => {
   if (code === 'DOSSIER_FORBIDDEN') {
     return 'Acces refuse a ce dossier.';
   }
+  if (code === 'STORAGE_UPLOAD_FAILED') {
+    return 'Le document n’a pas pu être enregistré. Réessayez dans quelques instants.';
+  }
   return code || "L upload a echoue.";
 };
 
