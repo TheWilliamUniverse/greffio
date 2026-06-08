@@ -3,16 +3,21 @@ import { getAllDossiers } from '../store.js';
 import { getUserById } from '../authStore.js';
 import { sendDossierEmail } from '../emails/index.js';
 import { resolveUserEmailPreferences } from '../emails/dossierReminderPolicy.js';
+import { resolveFormalityPublicLabel } from '../domain/formalityLabels.js';
 
 dotenv.config({ quiet: true });
 
 const APP_URL = process.env.APP_URL || 'https://greffio.willentreprises.com';
-const REMINDER_STATUSES = new Set([
+const QUESTIONNAIRE_PHASE_STATUSES = new Set([
   'draft',
   'contact_started',
   'contact_completed',
   'legal_form_selected',
   'questionnaire_in_progress',
+]);
+
+const REMINDER_STATUSES = new Set([
+  ...QUESTIONNAIRE_PHASE_STATUSES,
   'documents_requested',
   'documents_missing_or_invalid',
   'mandate_required',
@@ -53,6 +58,17 @@ const summarizeDossier = (dossier) => {
   return `• ${label} (${dossier.reference || dossier.id}) — ${String(dossier.status || 'draft').replace(/_/g, ' ')}`;
 };
 
+const isQuestionnaireValidated = (dossier) => {
+  const status = String(dossier.status || '').toLowerCase();
+  if (status === 'questionnaire_completed') return true;
+  try {
+    const data = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+    return data.validationConfirmed === true;
+  } catch (_error) {
+    return false;
+  }
+};
+
 const runReminders = async () => {
   const dossiers = await getAllDossiers();
   let sent = 0;
@@ -68,6 +84,10 @@ const runReminders = async () => {
       skipped += 1;
       continue;
     }
+    if (QUESTIONNAIRE_PHASE_STATUSES.has(status) && isQuestionnaireValidated(dossier)) {
+      skipped += 1;
+      continue;
+    }
 
     const user = await getUserById(dossier.userId);
     if (!user?.email) {
@@ -76,14 +96,19 @@ const runReminders = async () => {
     }
 
     const result = await sendDossierEmail({
-      templateId: 'dossier_incomplete',
+      templateId: 'dossier_resume_reminder',
       dossier,
       userId: dossier.userId,
       toEmail: user.email,
       daysSinceAction: daysSince(dossier.updatedAt),
       variables: {
         firstName: user.firstName || 'Client',
-        missingItems: 'Reprenez la prochaine étape depuis votre espace sécurisé Greffio.',
+        formalityType: resolveFormalityPublicLabel({
+          service: dossier.service,
+          typeFormalite: dossier.typeFormalite,
+          formeJuridique: dossier.formeJuridique || dossier.legalForm,
+          legalForm: dossier.legalForm,
+        }),
         continueUrl: buildContinueUrl(dossier),
       },
     });

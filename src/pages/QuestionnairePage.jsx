@@ -36,7 +36,8 @@ import { lookupCompanyBySiren } from '@/api/company.js';
 import { createDossier, listDossiers } from '@/api/dossiers.js';
 import { QuestionnaireRecapPanel } from '@/components/questionnaire/QuestionnaireRecapPanel.jsx';
 import { clearCurrentDossierId, getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.js';
-import { buildDossierBootstrap, pickResumableDraftDossier } from '@/utils/dossierBootstrap.js';
+import { buildDossierBootstrap, isDossierQuestionnaireResumable, pickResumableDraftDossier } from '@/utils/dossierBootstrap.js';
+import { isQuestionnaireExplicitResume, isQuestionnaireNewIntent } from '@/utils/questionnaireNavigation.js';
 import { getProjectDraft } from '@/utils/localStorage.js';
 import { runtimeConfig } from '@/config/runtime.js';
 import { isEiLikeFormality, isStatutesSupportedForm } from '@/config/formalities.js';
@@ -197,9 +198,11 @@ export const QuestionnairePage = () => {
   const [foundCompanyFieldKey, setFoundCompanyFieldKey] = useState('companySiren');
   const lastAutoLookup = useRef('');
   const autosaveRequestId = useRef(0);
+  const newQuestionnaireRef = useRef(isQuestionnaireNewIntent(searchParams));
 
   const ensureDossier = async ({ forceNew = false } = {}) => {
-    if (!forceNew) {
+    const wantNew = forceNew || newQuestionnaireRef.current;
+    if (!wantNew) {
       const existing = dossierId || getCurrentDossierId();
       if (existing) return existing;
     }
@@ -216,12 +219,13 @@ export const QuestionnairePage = () => {
         isAuthenticated ? user?.id || null : null,
         reference,
       ),
-      forceNew: Boolean(forceNew),
+      forceNew: Boolean(wantNew),
     });
     const id = created?.dossier?.id || null;
     if (id) {
       saveCurrentDossierId(id);
       setDossierId(id);
+      newQuestionnaireRef.current = false;
     }
     return id;
   };
@@ -343,11 +347,12 @@ export const QuestionnairePage = () => {
           }
         }
 
-        const queryDossierId = searchParams.get('dossierId');
-        if (queryDossierId) {
-          saveCurrentDossierId(queryDossierId);
-          setDossierId(queryDossierId);
-        }
+        const startNewQuestionnaire = isQuestionnaireNewIntent(searchParams);
+        const queryDossierId = isQuestionnaireExplicitResume(searchParams)
+          ? String(searchParams.get('dossierId') || '').trim()
+          : '';
+
+        newQuestionnaireRef.current = startNewQuestionnaire;
 
         let mergedData = { ...defaultData };
         if (searchParams.get('fromSimulator') === '1') {
@@ -355,18 +360,45 @@ export const QuestionnairePage = () => {
           mergedData = { ...mergedData, ...mapSimulatorDraftToQuestionnaire(simulatorDraft) };
         }
 
-        let currentDossierId = queryDossierId || dossierId || getCurrentDossierId();
-        if (!currentDossierId && isAuthenticated) {
-          try {
-            const payload = await listDossiers();
-            const resumable = pickResumableDraftDossier(payload?.dossiers || []);
-            if (resumable?.id) {
-              currentDossierId = resumable.id;
-              saveCurrentDossierId(currentDossierId);
-              setDossierId(currentDossierId);
+        let currentDossierId = null;
+
+        if (startNewQuestionnaire) {
+          clearCurrentDossierId();
+          setDossierId(null);
+          setReference(makeUiReference());
+        } else if (queryDossierId) {
+          currentDossierId = queryDossierId;
+          saveCurrentDossierId(queryDossierId);
+          setDossierId(queryDossierId);
+        } else {
+          const storedId = getCurrentDossierId();
+          if (storedId && isAuthenticated) {
+            try {
+              const payload = await listDossiers();
+              const storedEntry = (payload?.dossiers || []).find((entry) => entry.id === storedId);
+              if (storedEntry && isDossierQuestionnaireResumable(storedEntry)) {
+                currentDossierId = storedId;
+              } else {
+                clearCurrentDossierId();
+              }
+            } catch (_storedError) {
+              clearCurrentDossierId();
             }
-          } catch (_listError) {
-            // Pas bloquant : le dossier sera créé au premier enregistrement.
+          }
+          if (!currentDossierId && isAuthenticated) {
+            try {
+              const payload = await listDossiers();
+              const resumable = pickResumableDraftDossier(payload?.dossiers || []);
+              if (resumable?.id) {
+                currentDossierId = resumable.id;
+              }
+            } catch (_listError) {
+              // Pas bloquant : le dossier sera créé au premier enregistrement.
+            }
+          }
+          if (currentDossierId) {
+            saveCurrentDossierId(currentDossierId);
+            setDossierId(currentDossierId);
           }
         }
 
@@ -417,13 +449,15 @@ export const QuestionnairePage = () => {
         }
 
         const resume = mergedData._resume || {};
-        const { stepIndex: resumeStep, fieldIndex: resumeField, demarcheCategory: resumeCategory, categoryConfirmed } = resolveResumePosition(mergedData, resume);
+        const { stepIndex: resumeStep, fieldIndex: resumeField, demarcheCategory: resumeCategory, categoryConfirmed } = startNewQuestionnaire
+          ? { stepIndex: 0, fieldIndex: 0, demarcheCategory: inferDemarcheCategory(mergedData.typeFormalite), categoryConfirmed: false }
+          : resolveResumePosition(mergedData, resume);
 
         setFormData(mergedData);
         setStepIndex(resumeStep);
         setFieldIndex(resumeField);
         setDemarcheCategory(resumeCategory || inferDemarcheCategory(mergedData.typeFormalite));
-        setDemarcheCategoryConfirmed(categoryConfirmed);
+        setDemarcheCategoryConfirmed(startNewQuestionnaire ? false : categoryConfirmed);
       } catch (_error) {
         // Keep graceful UI fallback.
       } finally {
@@ -889,7 +923,7 @@ export const QuestionnairePage = () => {
   };
 
   return (
-    <div ref={wizardTopRef} className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+    <div ref={wizardTopRef} className="mx-auto max-w-4xl px-4 py-8 pb-6 sm:px-6 sm:py-10 lg:px-8">
       <StepLayout
         title={step.title}
         description={step.description}

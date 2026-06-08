@@ -37,7 +37,7 @@ export const buildMobileSearchResponse = async ({ userId, role, query }) => {
     actions.push({ label: 'Mes documents', path: '/documents' });
   }
   if (/cr[eé]er|sasu|sarl|sas|micro|nouvelle/.test(q)) {
-    actions.push({ label: 'Nouvelle démarche', path: '/questionnaire' });
+    actions.push({ label: 'Nouvelle démarche', path: '/questionnaire?new=1' });
   }
   if (/assistant|aide|question/.test(q)) {
     actions.push({ label: 'Assistant Greffio', path: '/chat' });

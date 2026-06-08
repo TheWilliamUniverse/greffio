@@ -9,6 +9,7 @@ import {
 import { useAuth } from '@/hooks/useAuth.js';
 import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 import { isInternalUser } from '@/utils/roles.js';
+import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 
 /**
  * Drawer mobile/tablette pour le cockpit Greffio.
@@ -123,10 +124,10 @@ export const MobileSidebarDrawer = ({ open, onClose, className }) => {
 
         <div className="border-t border-border p-4">
           <Link
-            to="/questionnaire"
+            to={QUESTIONNAIRE_NEW_PATH}
             onClick={(event) => {
               event.preventDefault();
-              handleNavigate('/questionnaire');
+              handleNavigate(QUESTIONNAIRE_NEW_PATH);
             }}
             className="block rounded-md bg-secondary p-3 text-sm font-semibold text-foreground"
           >

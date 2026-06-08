@@ -20,6 +20,7 @@ import { useMobileShellOverlay } from '@/mobile/context/MobileShellOverlayContex
 import { useAuth } from '@/hooks/useAuth.js';
 import { useDossierQuery } from '@/hooks/queries/useDossierQuery.js';
 import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
+import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 import {
   uploadDossierDocument,
   downloadDossierDocument,
@@ -283,7 +284,7 @@ export const MobileDocumentsPage = () => {
             title="Aucun dossier actif"
             description="Vos documents apparaîtront ici dès que votre dossier sera initialisé. Commencez une formalité ou revenez à votre dossier actif."
             actionLabel="Créer une formalité"
-            actionTo="/questionnaire"
+            actionTo={QUESTIONNAIRE_NEW_PATH}
           />
         </MobileAnimatedSection>
       ) : (
@@ -395,7 +396,7 @@ export const MobileDocumentsPage = () => {
                 actionLabel="Ouvrir le dossier"
                 actionTo={`/dossier/${dossierId}`}
                 secondaryLabel="Créer une formalité"
-                secondaryTo="/questionnaire"
+                secondaryTo={QUESTIONNAIRE_NEW_PATH}
               />
             </MobileAnimatedSection>
           ) : null}

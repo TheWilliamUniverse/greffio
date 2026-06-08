@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 import { resolveDossierDisplayName } from '@/utils/dossierBootstrap.js';
+import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 import { resolveDossierContinueUrl } from '@/utils/dossierContinueUrl.js';
 
 const STATUS_LABELS = {
@@ -254,7 +255,7 @@ export const DossiersPage = () => {
               </p>
             </div>
             <Button asChild>
-              <Link to="/questionnaire">
+              <Link to={QUESTIONNAIRE_NEW_PATH}>
                 <Plus className="h-4 w-4" />
                 Nouveau dossier
               </Link>
@@ -304,7 +305,7 @@ export const DossiersPage = () => {
                 Les dossiers apparaîtront ici uniquement après création d’un projet ou ouverture effective par l’équipe Greffio.
               </p>
               <Button asChild className="mt-6">
-                <Link to="/questionnaire">
+                <Link to={QUESTIONNAIRE_NEW_PATH}>
                   Créer mon premier dossier
                   <Plus className="h-4 w-4" />
                 </Link>

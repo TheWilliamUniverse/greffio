@@ -3,7 +3,7 @@ import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js'
 import { useMobileSafeBottomPadding } from '@/hooks/useMobileSafeBottomPadding.js';
 
 const MobileQuestionnaireShell = ({ children }) => {
-  const bottomPad = useMobileSafeBottomPadding({ hasBottomNav: false });
+  const bottomPad = useMobileSafeBottomPadding({ hasBottomNav: true });
   return <div className={bottomPad || 'pb-[env(safe-area-inset-bottom)]'}>{children}</div>;
 };
 

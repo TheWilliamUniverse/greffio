@@ -13,6 +13,9 @@ const ITEMS = MOBILE_AUTH_TABS_WEB;
 
 const isActive = (pathname, to) => {
   if (to === '/dashboard') return pathname === '/dashboard';
+  if (to.startsWith('/questionnaire')) {
+    return pathname === '/questionnaire' || pathname.startsWith('/questionnaire');
+  }
   return pathname === to || pathname.startsWith(`${to}/`);
 };
 

@@ -438,7 +438,7 @@ export const LandingPage = () => {
               <CompanyLookupCard
                 company={lookupCompany}
                 onUse={() => {
-                  navigate(`/questionnaire?prefillSiren=${encodeURIComponent(lookupCompany.siren || '')}`);
+                  navigate(`/questionnaire?new=1&prefillSiren=${encodeURIComponent(lookupCompany.siren || '')}`);
                 }}
               />
             </motion.div>

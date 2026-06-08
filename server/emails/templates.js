@@ -370,7 +370,7 @@ const TEMPLATE_ALIASES = Object.freeze({
   support_received: 'support_request_received',
   statutes_ready: 'statutes_generated',
   accepted: 'dossier_approved',
-  inactive_reminder: 'dossier_incomplete',
+  inactive_reminder: 'dossier_resume_reminder',
 });
 
 const templates = Object.freeze({

@@ -27,7 +27,7 @@ export const buildMobileNotifications = async ({ userId, role }) => {
       title: 'Bienvenue sur Greffio mobile',
       body: 'Lancez une formalité ou consultez l’assistant pour démarrer.',
       tone: 'info',
-      path: '/questionnaire',
+      path: '/questionnaire?new=1',
       createdAt: new Date().toISOString(),
     });
   }

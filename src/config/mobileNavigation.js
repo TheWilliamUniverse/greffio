@@ -1,3 +1,4 @@
+import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 import {
   BarChart3,
   Bot,
@@ -22,7 +23,7 @@ import {
 export const MOBILE_AUTH_TABS_WEB = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Accueil' },
   { to: '/dossiers', icon: FolderKanban, label: 'Dossiers' },
-  { to: '/questionnaire', icon: Plus, label: 'Nouveau', primary: true },
+  { to: QUESTIONNAIRE_NEW_PATH, icon: Plus, label: 'Nouveau', primary: true },
   { to: '/documents', icon: FileText, label: 'Documents' },
   { to: '/team', icon: MessageSquareText, label: 'Messages' },
 ];
@@ -34,7 +35,7 @@ export const MOBILE_AUTH_TABS_WEB = [
 export const MOBILE_AUTH_TABS_NATIVE = [
   { id: 'home', label: 'Accueil', path: '/dashboard', icon: 'home' },
   { id: 'dossiers', label: 'Dossiers', path: '/dossiers', icon: 'folders' },
-  { id: 'new', label: 'Nouveau', path: '/questionnaire', icon: 'plus' },
+  { id: 'new', label: 'Nouveau', path: QUESTIONNAIRE_NEW_PATH, icon: 'plus' },
   { id: 'documents', label: 'Documents', path: '/documents', icon: 'files' },
   { id: 'account', label: 'Compte', path: '/mobile/account', icon: 'user' },
 ];

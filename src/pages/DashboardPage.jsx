@@ -32,6 +32,7 @@ import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 import { countActionableDocuments, resolveClientDocumentStatus, documentHasFile } from '@/utils/documentWorkflow.js';
 import { useDossierQuery } from '@/hooks/queries/useDossierQuery.js';
 import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
+import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 
 export const DashboardPage = () => {
   const { currentUser, updateProfile } = useAuth();
@@ -223,7 +224,7 @@ export const DashboardPage = () => {
                   </Link>
                 </Button>
                 <Button asChild>
-                  <Link to="/questionnaire">
+                  <Link to={QUESTIONNAIRE_NEW_PATH}>
                     <Plus className="h-4 w-4" />
                     Nouveau projet
                   </Link>
@@ -281,7 +282,7 @@ export const DashboardPage = () => {
                 C’est normal si aucun projet n’a encore été déposé. Lancez le simulateur, renseignez votre formalité, puis Greffio ouvrira le dossier correspondant dans cet espace.
               </p>
               <Button asChild className="mt-6">
-                <Link to="/questionnaire">
+                <Link to={QUESTIONNAIRE_NEW_PATH}>
                   Démarrer une démarche
                   <ArrowRight className="h-4 w-4" />
                 </Link>

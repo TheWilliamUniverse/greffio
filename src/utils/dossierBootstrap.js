@@ -42,6 +42,15 @@ export const isEphemeralPlaceholderDossier = (dossier = {}) => {
   return progress < 90;
 };
 
+/** Dossier nommé encore éditable dans le questionnaire (évite reprise à la validation finale). */
+export const isDossierQuestionnaireResumable = (dossier = {}) => {
+  if (isEphemeralPlaceholderDossier(dossier)) return true;
+  if (!hasRealDossierName(dossier)) return false;
+  const status = String(dossier.status || '').toLowerCase();
+  if (!IN_PROGRESS_STATUSES.has(status)) return false;
+  return Number(dossier.progressPercent || 0) < 40;
+};
+
 export const resolveBootstrapCompanyName = (formData = {}) => {
   const candidates = [
     formData.denomination,
@@ -82,11 +91,7 @@ export const pickResumableDraftDossier = (dossiers = []) => {
 
   const hasNamedDossier = sorted.some((entry) => hasRealDossierName(entry));
 
-  const namedInProgress = sorted.find((entry) => (
-    hasRealDossierName(entry)
-    && IN_PROGRESS_STATUSES.has(String(entry.status || '').toLowerCase())
-    && Number(entry.progressPercent || 0) < 90
-  ));
+  const namedInProgress = sorted.find((entry) => isDossierQuestionnaireResumable(entry));
   if (namedInProgress) return namedInProgress;
 
   if (hasNamedDossier) return null;

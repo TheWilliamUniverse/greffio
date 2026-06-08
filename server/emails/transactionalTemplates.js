@@ -284,27 +284,51 @@ const transactionalTemplates = Object.freeze({
     `,
   }),
 
+  dossier_resume_reminder: defineTemplate({
+    subject: 'Reprenez votre démarche de création',
+    tags: ['dossier', 'reminder', 'onboarding'],
+    requiredVariables: ['firstName', 'dossierNumber', 'formalityType', 'continueUrl'],
+    preheader: 'Votre démarche Greffio est enregistrée — reprenez quand vous le souhaitez.',
+    textLines: [
+      'Bonjour {{firstName}},',
+      '',
+      'Vous avez commencé une démarche sur Greffio. Votre avancement est enregistré.',
+      'Référence : {{dossierNumber}}',
+      'Formalité : {{formalityType}}',
+      '',
+      'Reprenez votre questionnaire à tout moment : {{continueUrl}}',
+    ],
+    bodyHtml: `
+      <p style="margin:0 0 16px;">Bonjour <strong>{{firstName}}</strong>,</p>
+      <p style="margin:0 0 16px;">Vous avez entamé une démarche sur Greffio. Votre progression est sauvegardée : vous pouvez la reprendre quand vous le souhaitez.</p>
+      <p style="margin:0 0 8px;"><strong>Référence :</strong> {{dossierNumber}}</p>
+      <p style="margin:0 0 16px;"><strong>Formalité :</strong> {{formalityType}}</p>
+      <p style="margin:0 0 16px;">Il reste quelques informations à compléter pour finaliser votre dossier.</p>
+      ${ctaButton('Reprendre ma démarche', '{{continueUrl}}')}
+    `,
+  }),
+
   dossier_created: defineTemplate({
     subject: 'Votre dossier Greffio a été créé',
     tags: ['dossier', 'onboarding'],
     requiredVariables: ['firstName', 'dossierNumber', 'formalityType', 'dashboardUrl'],
-    preheader: 'Votre dossier Greffio est ouvert.',
+    preheader: 'Votre dossier Greffio est validé.',
     textLines: [
       'Bonjour {{firstName}},',
       '',
-      'Votre dossier Greffio a bien été créé.',
+      'Votre dossier Greffio a bien été validé et enregistré.',
       'Numéro de dossier : {{dossierNumber}}',
       'Formalité : {{formalityType}}',
       '',
-      'Continuer mon dossier : {{dashboardUrl}}',
+      'Accéder à mon dossier : {{dashboardUrl}}',
     ],
     bodyHtml: `
       <p style="margin:0 0 16px;">Bonjour <strong>{{firstName}}</strong>,</p>
-      <p style="margin:0 0 16px;">Votre dossier Greffio est ouvert et prêt à être complété.</p>
+      <p style="margin:0 0 16px;">Votre dossier Greffio a été validé. Nous pouvons maintenant préparer vos documents et la suite de votre formalité.</p>
       <p style="margin:0 0 8px;"><strong>Référence :</strong> {{dossierNumber}}</p>
       <p style="margin:0 0 16px;"><strong>Formalité :</strong> {{formalityType}}</p>
-      <p style="margin:0 0 16px;">Prochaine étape : compléter les informations demandées et déposer vos pièces.</p>
-      ${ctaButton('Continuer mon dossier', '{{dashboardUrl}}')}
+      <p style="margin:0 0 16px;">Prochaine étape : génération de vos documents et dépôt de vos pièces depuis votre espace.</p>
+      ${ctaButton('Accéder à mon dossier', '{{dashboardUrl}}')}
     `,
   }),
 
@@ -331,23 +355,23 @@ const transactionalTemplates = Object.freeze({
   }),
 
   dossier_incomplete: defineTemplate({
-    subject: 'Votre dossier nécessite encore quelques informations',
+    subject: 'Reprenez votre démarche de création',
     tags: ['dossier', 'reminder'],
     requiredVariables: ['firstName', 'dossierNumber', 'continueUrl'],
-    preheader: 'Quelques informations manquent pour avancer.',
+    preheader: 'Votre dossier Greffio attend la suite de votre démarche.',
     textLines: [
       'Bonjour {{firstName}},',
       '',
-      'Votre dossier {{dossierNumber}} avance bien, mais certaines informations sont encore nécessaires :',
+      'Votre dossier {{dossierNumber}} est en cours. Reprenez votre démarche pour avancer :',
       '{{missingItems}}',
       '',
-      'Compléter mon dossier : {{continueUrl}}',
+      'Reprendre ma démarche : {{continueUrl}}',
     ],
     bodyHtml: `
       <p style="margin:0 0 16px;">Bonjour <strong>{{firstName}}</strong>,</p>
-      <p style="margin:0 0 16px;">Votre dossier <strong>{{dossierNumber}}</strong> progresse. Il nous manque encore quelques éléments pour poursuivre :</p>
+      <p style="margin:0 0 16px;">Votre dossier <strong>{{dossierNumber}}</strong> est enregistré sur Greffio. Reprenez votre démarche de création pour finaliser les informations restantes :</p>
       <p style="margin:0 0 16px;">{{missingItems}}</p>
-      ${ctaButton('Compléter mon dossier', '{{continueUrl}}')}
+      ${ctaButton('Reprendre ma démarche', '{{continueUrl}}')}
       <p style="margin:16px 0 0;font-size:14px;color:#64748b;">L’équipe Greffio reste disponible si vous avez une question.</p>
     `,
   }),

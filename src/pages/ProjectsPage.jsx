@@ -1,4 +1,5 @@
 import React from 'react';
+import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { listDossiers } from '@/api/dossiers.js';
@@ -35,7 +36,7 @@ const ProjectsPage = () => {
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold">Projets</h1>
-        <Link to="/questionnaire" className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white">
+        <Link to={QUESTIONNAIRE_NEW_PATH} className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white">
           <Plus className="h-4 w-4" />
           Nouveau projet
         </Link>

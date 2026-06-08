@@ -5,6 +5,7 @@ const THROTTLE_HOURS = Object.freeze({
   account_welcome: 24,
   contact_confirmed: 24,
   dossier_created: 12,
+  dossier_resume_reminder: 12,
   documents_received: 6,
   statutes_generated: 12,
   editable_document_signature_request: 1,

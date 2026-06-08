@@ -11,6 +11,7 @@ import { useMobileMotion } from '@/mobile/ui/mobileMotion.js';
 import { listDossiers } from '@/api/dossiers.js';
 import { fetchDossierMessages } from '@/api/dossierMessages.js';
 import { useDossierMessagesRealtime, sendDossierMessageOptimistic } from '@/hooks/useDossierMessagesRealtime.js';
+import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 
 export const MobileTeamPage = () => {
   const { staggerItem } = useMobileMotion();
@@ -80,7 +81,7 @@ export const MobileTeamPage = () => {
             title="Aucun message pour le moment"
             description="Vos échanges avec l’équipe Greffio apparaîtront ici dès qu’un dossier sera actif."
             actionLabel="Nouvelle formalité"
-            actionTo="/questionnaire"
+            actionTo={QUESTIONNAIRE_NEW_PATH}
             secondaryLabel="Ouvrir l’assistant"
             secondaryTo="/mobile/search"
           />

@@ -5,6 +5,7 @@ import { ArrowRight, FolderKanban, Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { purgePlaceholderDossiers } from '@/api/dossiers.js';
 import { isEphemeralPlaceholderDossier } from '@/utils/dossierBootstrap.js';
+import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
 import { loadDossiersSnapshot, cacheDossiersSnapshot } from '@/utils/mobileOffline.js';
@@ -68,7 +69,7 @@ export const MobileDossiersPage = () => {
             <p className="mt-1 text-sm text-muted-foreground">{dossiers.length} formalité{dossiers.length > 1 ? 's' : ''} suivie{dossiers.length > 1 ? 's' : ''}</p>
           </div>
           <Button asChild size="sm" className="h-11 shrink-0 rounded-2xl">
-            <Link to="/questionnaire"><Plus className="h-4 w-4" />Nouveau</Link>
+            <Link to={QUESTIONNAIRE_NEW_PATH}><Plus className="h-4 w-4" />Nouveau</Link>
           </Button>
         </div>
       </MobileAnimatedSection>

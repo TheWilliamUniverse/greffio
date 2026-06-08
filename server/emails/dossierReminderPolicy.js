@@ -1,7 +1,7 @@
 import { getUserById } from '../authStore.js';
 import { hasRecentSuccessfulEmail } from './dossierEmailPolicy.js';
 
-const REMINDER_TEMPLATES = new Set(['dossier_incomplete', 'inactive_reminder']);
+const REMINDER_TEMPLATES = new Set(['dossier_incomplete', 'dossier_resume_reminder', 'inactive_reminder']);
 const DIGEST_TEMPLATE = 'weekly_digest';
 
 const parseProfileNotifications = (user) => {

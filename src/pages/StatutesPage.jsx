@@ -23,6 +23,7 @@ import { useAuth } from '@/hooks/useAuth.js';
 import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 import { useMobileSafeBottomPadding } from '@/hooks/useMobileSafeBottomPadding.js';
 import { cn } from '@/lib/utils.js';
+import { QUESTIONNAIRE_NEW_PATH, questionnaireResumePath } from '@/utils/questionnaireNavigation.js';
 
 const parseQuestionnaire = (dataJson) => {
   if (!dataJson) return {};
@@ -362,7 +363,7 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
                     </p>
                   </div>
                   <Button asChild variant="outline" className="bg-white">
-                    <Link to="/questionnaire">Compléter le questionnaire</Link>
+                    <Link to={dossierId ? questionnaireResumePath(dossierId) : QUESTIONNAIRE_NEW_PATH}>Compléter le questionnaire</Link>
                   </Button>
                 </div>
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">

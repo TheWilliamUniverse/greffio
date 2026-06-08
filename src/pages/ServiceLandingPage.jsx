@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button.jsx';
 import { SERVICE_LANDING_PAGES, SERVICE_LANDING_ROUTES } from '@/config/serviceLandingPages.js';
+import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 
 export const ServiceLandingPage = () => {
   const location = useLocation();
@@ -80,7 +81,7 @@ export const ServiceLandingPage = () => {
 
         <div className="flex gap-3">
           <Button asChild>
-            <Link to="/questionnaire">Créer mon dossier</Link>
+            <Link to={QUESTIONNAIRE_NEW_PATH}>Créer mon dossier</Link>
           </Button>
           <Button asChild variant="outline" className="bg-white">
             <Link to="/contact">Parler à l'équipe</Link>

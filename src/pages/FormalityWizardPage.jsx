@@ -52,6 +52,7 @@ import {
 } from '@/utils/userProfile.js';
 import { resolveSimulatorFormFromQuery } from '@/utils/formalityMapping.js';
 import { isCapacitorNative } from '@/utils/platform.js';
+import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 
 const resolveOfferLink = ({ offer, journey, isAuthenticated }) => {
   if (offer.price === '0€') {
@@ -181,7 +182,7 @@ const compareModules = Object.freeze({
       'TNS (SARL/EURL) : charges souvent plus basses, couverture différente.',
       'Micro-entreprise : calcul simplifié, plafonds spécifiques.',
     ],
-    cta: '/questionnaire',
+    cta: QUESTIONNAIRE_NEW_PATH,
     ctaLabel: 'Passer au dossier réel',
   },
   acre: {
@@ -192,7 +193,7 @@ const compareModules = Object.freeze({
       "Historique d'aides déjà perçues.",
       "Calendrier conseillé pour déposer la demande.",
     ],
-    cta: '/questionnaire',
+    cta: QUESTIONNAIRE_NEW_PATH,
     ctaLabel: 'Démarrer mon questionnaire',
   },
   nom: {
@@ -203,7 +204,7 @@ const compareModules = Object.freeze({
       'Vérifier la marque et la disponibilité de domaine.',
       'Préparer 2 à 3 variantes de dénomination.',
     ],
-    cta: '/questionnaire',
+    cta: QUESTIONNAIRE_NEW_PATH,
     ctaLabel: 'Créer le dossier avec ce nom',
   },
   mentions: {

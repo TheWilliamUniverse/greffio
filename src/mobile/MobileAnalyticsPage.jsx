@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 import { BarChart3, Clock, FileCheck2, FolderKanban, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
@@ -86,7 +87,7 @@ export const MobileAnalyticsPage = () => {
             Les indicateurs apparaîtront lorsqu’un dossier sera ouvert.
           </p>
           <Button asChild className="mt-4 rounded-2xl">
-            <Link to="/questionnaire">Nouvelle démarche</Link>
+            <Link to={QUESTIONNAIRE_NEW_PATH}>Nouvelle démarche</Link>
           </Button>
         </section>
       ) : (

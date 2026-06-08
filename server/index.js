@@ -1410,37 +1410,13 @@ app.post('/api/dossiers', requireAuth, async (req, res) => {
   if (forceNew) {
     await purgePlaceholderDossiersForUser({ userId: req.auth.sub, deletedBy: req.auth.sub });
   }
-  const dossier = await createDossier({
+  const { dossier } = await createDossier({
     userId: req.auth.sub,
     companyName: String(companyName).trim(),
     legalForm: String(legalForm || 'SASU'),
     service: String(service || 'creation-sasu'),
     forceNew: Boolean(forceNew),
   });
-  const owner = await getUserById(req.auth.sub);
-  if (owner?.email) {
-    void sendTransactionalEmail({
-      to: { email: owner.email, name: `${owner.firstName || ''} ${owner.lastName || ''}`.trim() },
-      templateKey: 'dossier_created',
-      variables: {
-        firstName: owner.firstName || 'Client',
-        dossierNumber: dossier.reference || dossier.id,
-        service: dossier.service || service,
-        typeFormalite: dossier.typeFormalite,
-        legalForm: dossier.legalForm || dossier.formeJuridique || legalForm,
-        formalityType: resolveFormalityPublicLabel({
-          service: dossier.service || service,
-          typeFormalite: dossier.typeFormalite,
-          formeJuridique: dossier.formeJuridique || dossier.legalForm || legalForm,
-          legalForm: dossier.legalForm || legalForm,
-        }),
-        dashboardUrl: `${appUrl}/dossier/${dossier.id}`,
-      },
-      userId: owner.id,
-      dossierId: dossier.id,
-      tags: ['dossier'],
-    });
-  }
   return res.status(201).json({ ok: true, dossier });
 });
 
@@ -1549,6 +1525,32 @@ app.post('/api/dossiers/:dossierId/complete-step', requireAuth, async (req, res)
   }
 
   const mergedData = updated?.dataJson ? JSON.parse(updated.dataJson) : {};
+  if (stepId === 'validation') {
+    const owner = await getUserById(req.auth.sub);
+    const recipientEmail = String(mergedData.email || owner?.email || req.auth.email || '').trim();
+    if (recipientEmail) {
+      try {
+        await sendDossierEmailById({
+          templateId: 'dossier_created',
+          dossierId: updated.id,
+          userId: req.auth.sub,
+          toEmail: recipientEmail,
+          variables: {
+            firstName: mergedData.firstName || owner?.firstName || 'Client',
+            formalityType: resolveFormalityPublicLabel({
+              service: updated.service,
+              typeFormalite: updated.typeFormalite || mergedData.typeFormalite,
+              formeJuridique: updated.formeJuridique || mergedData.formeJuridique,
+              legalForm: updated.legalForm || mergedData.formeJuridique,
+            }),
+            dashboardUrl: `${appUrl}/dossier/${updated.id}`,
+          },
+        });
+      } catch (emailError) {
+        console.error('[complete-step] validation dossier_created email failed:', emailError?.message || emailError);
+      }
+    }
+  }
   if (stepId === 'contact' && mergedData.email) {
     const baseVars = {
       prenom: mergedData.firstName || 'Client',

@@ -208,7 +208,7 @@ const createDossier = async ({
   if (userId && !forceNew) {
     const existingDrafts = await listDossiersForUser({ userId });
     const reusable = existingDrafts.find((entry) => isEphemeralPlaceholderDossier(entry));
-    if (reusable) return reusable;
+    if (reusable) return { dossier: reusable, isNewCreation: false };
   }
 
   const createdAt = nowIso();
@@ -280,7 +280,7 @@ const createDossier = async ({
     reason: 'dossier_created',
   });
   await ensureDossierDocuments(dossier.id);
-  return dossier;
+  return { dossier, isNewCreation: true };
 };
 
 const ensureDossierDocuments = async (dossierId) => {
