@@ -72,7 +72,10 @@ const mapDocumentUploadError = (error) => {
   if (code === 'STORAGE_UPLOAD_FAILED') {
     return 'Le document n’a pas pu être enregistré. Réessayez dans quelques instants.';
   }
-  return code || "L upload a echoue.";
+  if (code === 'API_ERROR' || code === 'PDF_ANALYSIS_FAILED' || code === 'PDF_PARSE_FAILED') {
+    return 'Le document n’a pas pu être enregistré. Réessayez dans quelques instants.';
+  }
+  return code || "L'upload a échoué.";
 };
 
 const mapDocumentDeleteError = (error) => {

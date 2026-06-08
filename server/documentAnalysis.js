@@ -48,6 +48,20 @@ const extractIdentitySignals = (text) => {
   };
 };
 
+const safeDecodePdfRun = (value) => {
+  const raw = String(value || '');
+  if (!raw) return '';
+  try {
+    return decodeURIComponent(raw);
+  } catch (_error) {
+    try {
+      return decodeURIComponent(raw.replace(/%(?![0-9A-Fa-f]{2})/g, '%25'));
+    } catch (_fallbackError) {
+      return raw;
+    }
+  }
+};
+
 const extractPdfText = async (pdfBuffer) => new Promise((resolve, reject) => {
   const parser = new PDFParser(null, 1);
   parser.on('pdfParser_dataError', (errorData) => {
@@ -59,7 +73,7 @@ const extractPdfText = async (pdfBuffer) => new Promise((resolve, reject) => {
       const text = pages
         .flatMap((page) => (Array.isArray(page.Texts) ? page.Texts : []))
         .flatMap((item) => (Array.isArray(item.R) ? item.R : []))
-        .map((run) => decodeURIComponent(run.T || ''))
+        .map((run) => safeDecodePdfRun(run.T))
         .join(' ');
       resolve({
         text,
@@ -77,42 +91,53 @@ const analyzeDocument = async ({
   pdfBuffer,
   docKey,
 }) => {
-  let buffer = pdfBuffer;
-  if (!buffer) {
-    if (!filePath || !fs.existsSync(filePath)) {
+  try {
+    let buffer = pdfBuffer;
+    if (!buffer) {
+      if (!filePath || !fs.existsSync(filePath)) {
+        return {
+          ok: false,
+          error: 'FILE_NOT_FOUND_FOR_ANALYSIS',
+          requiresManualReview: true,
+        };
+      }
+      buffer = fs.readFileSync(filePath);
+    }
+    const parsed = await extractPdfText(buffer);
+    const text = String(parsed?.text || '').slice(0, 40000);
+    const base = {
+      charsAnalyzed: text.length,
+      pages: Number(parsed?.numpages || 0),
+    };
+    if (docKey === 'identity_proof') {
+      const signals = extractIdentitySignals(text);
       return {
-        ok: false,
-        error: 'FILE_NOT_FOUND_FOR_ANALYSIS',
+        ok: true,
+        analysisType: 'identity_check',
+        ...base,
+        extractedText: text.slice(0, 3500),
+        extractedIdentity: extractIdentityFields(text),
+        ...signals,
       };
     }
-    buffer = fs.readFileSync(filePath);
-  }
-  const parsed = await extractPdfText(buffer);
-  const text = String(parsed?.text || '').slice(0, 40000);
-  const base = {
-    charsAnalyzed: text.length,
-    pages: Number(parsed?.numpages || 0),
-  };
-  if (docKey === 'identity_proof') {
-    const signals = extractIdentitySignals(text);
     return {
       ok: true,
-      analysisType: 'identity_check',
+      analysisType: 'generic_readability',
       ...base,
       extractedText: text.slice(0, 3500),
-      extractedIdentity: extractIdentityFields(text),
-      ...signals,
+      docCategory: 'general_document',
+      confidence: text.length > 200 ? 70 : 40,
+      requiresManualReview: text.length <= 200,
+    };
+  } catch (error) {
+    console.error('[documentAnalysis] failed', { docKey, message: error?.message || error });
+    return {
+      ok: false,
+      error: error?.message || 'PDF_ANALYSIS_FAILED',
+      analysisType: 'generic_readability',
+      requiresManualReview: true,
     };
   }
-  return {
-    ok: true,
-    analysisType: 'generic_readability',
-    ...base,
-    extractedText: text.slice(0, 3500),
-    docCategory: 'general_document',
-    confidence: text.length > 200 ? 70 : 40,
-    requiresManualReview: text.length <= 200,
-  };
 };
 
 export {
