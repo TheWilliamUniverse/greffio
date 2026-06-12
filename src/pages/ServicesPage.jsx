@@ -11,8 +11,8 @@ import {
   Wallet,
 } from 'lucide-react';
 import { NavbarDropdown } from '@/components/NavbarDropdown.jsx';
-import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
+import { LegalFormComparatorPromoCard } from '@/components/comparator/LegalFormComparatorPromoCard.jsx';
 import { LEGAL_SERVICES } from '@/config/businessCatalog.js';
 import { SERVICE_LANDING_PAGES, getServiceRoute } from '@/config/serviceLandingPages.js';
 
@@ -166,22 +166,6 @@ export const ServicesPage = () => (
       );
     })}
 
-    <section className="border-t border-border bg-white px-4 py-16 sm:px-6 lg:px-8">
-      <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 rounded-2xl bg-[hsl(var(--greffio-blue))] p-8 text-white md:flex-row md:items-center">
-        <div>
-          <GreffioLogo variant="full" className="brightness-0 invert" to="/" />
-          <p className="mt-4 max-w-xl text-sm font-medium leading-7 text-white/92">
-            Vous hésitez entre plusieurs formes ? Le simulateur vous guide étape par étape, sans afficher
-            plusieurs écrans en même temps.
-          </p>
-        </div>
-        <Button asChild size="lg" variant="secondary" className="h-12 rounded-full px-7">
-          <Link to="/simulateur">
-            Lancer le simulateur
-            <ArrowRight className="h-5 w-5" />
-          </Link>
-        </Button>
-      </div>
-    </section>
+    <LegalFormComparatorPromoCard variant="section" />
   </div>
 );

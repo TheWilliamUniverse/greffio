@@ -13,10 +13,12 @@ import { LegalFormResultPanel } from '@/components/comparator/LegalFormResultPan
 import { LegalFormComparisonTable } from '@/components/comparator/LegalFormComparisonTable.jsx';
 import { LegalFormGlossary } from '@/components/comparator/LegalFormGlossary.jsx';
 import { LegalFormFaq } from '@/components/comparator/LegalFormFaq.jsx';
+import { LegalFormComparatorSidebar } from '@/components/comparator/LegalFormComparatorSidebar.jsx';
 import { LEGAL_FORM_COMPARATOR_QUESTIONS, LEGAL_FORM_FAQ } from '@/config/legalFormComparator.js';
 import { computeRecommendations } from '@/utils/legalFormComparatorEngine.js';
 import { isMobileBrowserViewport } from '@/utils/platform.js';
 import { runtimeConfig } from '@/config/runtime.js';
+import { cn } from '@/lib/utils';
 
 const PAGE_PATH = '/ressources/comparateur-forme-juridique';
 
@@ -36,6 +38,7 @@ export const LegalFormComparatorPage = () => {
 
   const currentQuestion = questions[currentStep];
   const canContinue = Boolean(currentQuestion && answers[currentQuestion.id]);
+  const showReferenceSections = phase === 'intro' || phase === 'result';
 
   const faqJsonLd = useMemo(
     () => buildFaqJsonLd(
@@ -93,7 +96,11 @@ export const LegalFormComparatorPage = () => {
   }, []);
 
   return (
-    <div className={`min-h-screen bg-[hsl(var(--we-bg))] ${isMobile ? 'simulator-mobile overflow-x-hidden' : 'bg-background'}`}>
+    <div className={cn(
+      'min-h-screen bg-[hsl(var(--we-bg))]',
+      isMobile ? 'simulator-mobile overflow-x-hidden' : 'bg-background',
+    )}
+    >
       <SeoHead
         title="Comparateur de forme juridique — SAS, SARL, EI, SCI | Greffio"
         description="Comparez SASU, SAS, SARL, EURL, micro-entreprise, EI et SCI selon votre projet. Questionnaire guidé, recommandation indicative et parcours Greffio adapté."
@@ -104,7 +111,7 @@ export const LegalFormComparatorPage = () => {
 
       {!isMobile ? (
         <header className="border-b border-border bg-white px-6 py-4">
-          <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
             <GreffioLogo variant="full" to="/" />
             <div className="flex items-center gap-2">
               <Button asChild variant="ghost" size="sm" className="rounded-full font-bold">
@@ -124,59 +131,77 @@ export const LegalFormComparatorPage = () => {
         </header>
       ) : null}
 
-      <main className="mx-auto min-w-0 max-w-3xl px-4 py-6 pb-28 md:max-w-5xl md:py-10 md:pb-10">
-        {phase === 'intro' ? (
-          <LegalFormComparatorIntro
-            onStart={handleStart}
-            onScrollToTable={handleScrollToTable}
-            isMobile={isMobile}
-          />
-        ) : null}
-
-        {phase === 'questions' && currentQuestion ? (
-          <div className="min-w-0">
-            <LegalFormProgressHeader
-              currentStep={currentStep}
-              totalSteps={questions.length}
-              stepLabels={stepLabels}
-              isMobile={isMobile}
-            />
-            {!isMobile ? <LegalFormDisclaimer className="mb-4" compact /> : null}
-            <LegalFormQuestionStep
-              question={currentQuestion}
-              value={answers[currentQuestion.id]}
-              onChange={handleAnswer}
-              isMobile={isMobile}
-            />
-            <div
-              className={
-                isMobile
-                  ? 'fixed inset-x-0 bottom-[var(--bottom-nav-height-web,4.75rem)] z-30 border-t border-border bg-white/95 px-4 py-3 backdrop-blur-sm'
-                  : 'mt-6'
-              }
-            >
-              <WizardNavButtons
-                variant={isMobile ? 'mobile' : 'default'}
-                onBack={handleBack}
-                onContinue={handleContinue}
-                continueDisabled={!canContinue}
-                continueLabel={currentStep >= questions.length - 1 ? 'Voir mon résultat' : 'Continuer'}
-                backLabel={currentStep === 0 ? 'Introduction' : 'Retour'}
+      <main className={cn(
+        'mx-auto min-w-0 px-4 py-6',
+        isMobile ? 'max-w-3xl pb-28' : 'max-w-7xl px-6 py-10 pb-12',
+      )}
+      >
+        <div className={cn(
+          'grid min-w-0 gap-8',
+          !isMobile && (phase === 'intro' || phase === 'questions') && 'lg:grid-cols-[minmax(0,1fr)_320px]',
+        )}
+        >
+          <div className={cn('min-w-0', !isMobile && phase === 'questions' && 'lg:max-w-3xl')}>
+            {phase === 'intro' ? (
+              <LegalFormComparatorIntro
+                onStart={handleStart}
+                onScrollToTable={handleScrollToTable}
+                isMobile={isMobile}
               />
-            </div>
+            ) : null}
+
+            {phase === 'questions' && currentQuestion ? (
+              <div className="min-w-0">
+                <LegalFormProgressHeader
+                  currentStep={currentStep}
+                  totalSteps={questions.length}
+                  stepLabels={stepLabels}
+                  isMobile={isMobile}
+                />
+                {!isMobile ? <LegalFormDisclaimer className="mb-4" compact /> : null}
+                <LegalFormQuestionStep
+                  question={currentQuestion}
+                  value={answers[currentQuestion.id]}
+                  onChange={handleAnswer}
+                  isMobile={isMobile}
+                />
+                <div
+                  className={
+                    isMobile
+                      ? 'fixed inset-x-0 bottom-[var(--bottom-nav-height-web,4.75rem)] z-30 border-t border-border bg-white/95 px-4 py-3 backdrop-blur-sm'
+                      : 'mt-6'
+                  }
+                >
+                  <WizardNavButtons
+                    variant={isMobile ? 'mobile' : 'default'}
+                    onBack={handleBack}
+                    onContinue={handleContinue}
+                    continueDisabled={!canContinue}
+                    continueLabel={currentStep >= questions.length - 1 ? 'Voir mon résultat' : 'Continuer'}
+                    backLabel={currentStep === 0 ? 'Introduction' : 'Retour'}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {phase === 'result' ? (
+              <LegalFormResultPanel result={result} onRestart={handleRestart} />
+            ) : null}
+          </div>
+
+          {!isMobile && (phase === 'intro' || phase === 'questions') ? (
+            <LegalFormComparatorSidebar onScrollToTable={handleScrollToTable} />
+          ) : null}
+        </div>
+
+        {showReferenceSections ? (
+          <div ref={tableRef} className={cn('min-w-0', phase === 'intro' ? 'mt-14' : 'mt-16')}>
+            <LegalFormComparisonTable />
+            <LegalFormGlossary />
+            <LegalFormFaq />
+            <LegalFormDisclaimer className="mt-10" />
           </div>
         ) : null}
-
-        {phase === 'result' ? (
-          <LegalFormResultPanel result={result} onRestart={handleRestart} />
-        ) : null}
-
-        <div ref={tableRef} className="mt-14">
-          <LegalFormComparisonTable />
-        </div>
-        <LegalFormGlossary />
-        <LegalFormFaq />
-        <LegalFormDisclaimer className="mt-10" />
       </main>
     </div>
   );

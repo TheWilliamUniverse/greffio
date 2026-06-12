@@ -24,6 +24,7 @@ import { lookupPublicCompanyBySiren } from '@/api/company.js';
 import { GooglePlayStoreLink } from '@/components/store/GooglePlayStoreLink.jsx';
 import { LandingPricingSection } from '@/components/pricing/LandingPricingSection.jsx';
 import { GreffioUltraFooter } from '@/components/layout/GreffioUltraFooter.jsx';
+import { LegalFormComparatorPromoCard } from '@/components/comparator/LegalFormComparatorPromoCard.jsx';
 import { MobileLandingPage } from '@/mobile/MobileLandingPage.jsx';
 import { useNavigate } from 'react-router-dom';
 import { SeoHead, HOME_JSON_LD } from '@/components/seo/SeoHead.jsx';
@@ -354,6 +355,11 @@ export const LandingPage = () => {
             <p className="mt-5 text-lg leading-8 text-muted-foreground">
               Greffio rapproche les entrepreneurs, l’équipe Greffio, les cabinets partenaires et les équipes administratives dans un même flux de travail.
             </p>
+            <LegalFormComparatorPromoCard
+              className="mt-8"
+              layout="stacked"
+              revealDelay={0.12}
+            />
           </motion.div>
           <div className="grid gap-4 md:grid-cols-2">
             {platformFeatures.map((feature, index) => (
