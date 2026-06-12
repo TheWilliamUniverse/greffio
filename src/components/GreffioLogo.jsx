@@ -13,11 +13,13 @@ export const GreffioLogo = ({ variant = 'full', className = '', to }) => {
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -1 }}
       transition={{ duration: 0.25 }}
-      className={cn('inline-flex items-center select-none', !to && className)}
+      className={cn('notranslate inline-flex items-center select-none', !to && className)}
+      translate="no"
+      lang="fr"
       aria-hidden={Boolean(to)}
     >
       {isIconOnly ? (
-        <span className="logo-sheen inline-flex h-11 w-11 items-center justify-center rounded-md bg-[hsl(var(--greffio-blue))] text-xl font-extrabold text-white shadow-elevation-sm">
+        <span className="logo-sheen notranslate inline-flex h-11 w-11 items-center justify-center rounded-md bg-[hsl(var(--greffio-blue))] text-xl font-extrabold text-white shadow-elevation-sm" translate="no" lang="fr">
           G
         </span>
       ) : (
@@ -29,6 +31,8 @@ export const GreffioLogo = ({ variant = 'full', className = '', to }) => {
               : 'text-3xl text-[hsl(var(--greffio-blue))] md:text-4xl'
           )}
           style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+          translate="no"
+          lang="fr"
         >
           Greffio
         </span>
@@ -45,6 +49,7 @@ export const GreffioLogo = ({ variant = 'full', className = '', to }) => {
           className,
         )}
         aria-label="Greffio — Retour à l’accueil"
+        translate="no"
       >
         {logo}
       </Link>

@@ -90,6 +90,7 @@ import { createResourceOrderCheckout } from './resourcesCheckout.js';
 import { getResourceOrderById } from './resourceOrderStore.js';
 import { handleResourceOrderPaymentPaid } from './services/resourcePaymentWebhook.js';
 import { registerGooglePayRoutes } from './routes/googlePayRoutes.js';
+import { registerAmazonPayRoutes } from './routes/amazonPayRoutes.js';
 import {
   createGoCardlessCheckout,
   isGoCardlessPaidStatus,
@@ -2632,6 +2633,7 @@ registerWebhookRoutes(app, {
 });
 
 registerGooglePayRoutes(app, { requireAuth, appUrl });
+registerAmazonPayRoutes(app, { requireAuth, appUrl });
 
 app.post('/api/webhooks/didit', express.text({ type: '*/*' }), createDiditWebhookHandler());
 

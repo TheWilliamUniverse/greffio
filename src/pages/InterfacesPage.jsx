@@ -22,7 +22,7 @@ const interfaceMeta = {
   },
   payment: {
     title: 'Paiement',
-    description: 'Google Pay, webhook CAWL et statut transactionnel.',
+    description: 'Amazon Pay, Google Pay, webhooks PSP et statut transactionnel.',
     icon: CreditCard,
   },
   database: {

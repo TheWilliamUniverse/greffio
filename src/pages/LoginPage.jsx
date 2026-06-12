@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth.js';
 import { sendMfaEmailCode } from '@/api/mfa.js';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
+import { BrandName } from '@/components/BrandName.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
@@ -172,7 +173,7 @@ export const LoginPage = () => {
             <div className="rounded-md bg-white/10 p-4">Dépôt au greffe</div>
           </div>
         </div>
-        <p className="text-sm text-white/60">Greffio est une marque déposée de {PUBLISHER_LEGAL_NAME}.</p>
+        <p className="text-sm text-white/60"><BrandName /> est une marque déposée de {PUBLISHER_LEGAL_NAME}.</p>
       </section>
 
       <section className="flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
@@ -329,7 +330,7 @@ export const LoginPage = () => {
           )}
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            Nouveau sur Greffio ? <Link to="/signup" className="font-semibold text-primary hover:underline">Créer un espace</Link>
+            Nouveau sur <BrandName /> ? <Link to="/signup" className="font-semibold text-primary hover:underline">Créer un espace</Link>
           </p>
           <p className="mt-2 text-center text-xs text-muted-foreground">
             Besoin d’aide : <a href={`mailto:${runtimeConfig.supportEmail}`} className="text-primary hover:underline">{runtimeConfig.supportEmail}</a>

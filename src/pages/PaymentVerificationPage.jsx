@@ -1,13 +1,16 @@
 import React from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { CircleCheckBig, Clock3 } from 'lucide-react';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 
 export const PaymentVerificationPage = () => {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const dossierId = searchParams.get('dossierId');
   const resourceOrderId = searchParams.get('resourceOrderId');
+  const provider = searchParams.get('provider')
+    || (location.pathname.includes('amazon-pay') ? 'Amazon Pay' : 'paiement');
 
   return (
     <main className="min-h-screen bg-background px-4 py-10 sm:px-6 lg:px-8">
@@ -25,8 +28,8 @@ export const PaymentVerificationPage = () => {
           </div>
           <h1 className="text-2xl font-extrabold">Retour paiement effectué</h1>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
-            Votre paiement Google Pay a été enregistré. Greffio attend la confirmation serveur
-            (CAWL) avant de marquer le dossier comme payé et de lancer la suite.
+            Votre retour {provider} a été enregistré. Greffio attend la confirmation serveur
+            avant de marquer le dossier comme payé et de lancer la suite.
           </p>
           {resourceOrderId && (
             <p className="mt-3 rounded-md bg-muted px-3 py-2 text-xs font-mono text-muted-foreground">

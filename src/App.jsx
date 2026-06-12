@@ -110,6 +110,7 @@ const Layout = ({ children }) => {
   const mobileWebShellActive = isMobileBrowserViewport()
     && shouldUseMobileWebShell(location.pathname);
   const shouldHideHeader = hideHeaderRoutes.some((route) => location.pathname === route || location.pathname.startsWith('/service/'))
+    || location.pathname.startsWith('/paiement/')
     || location.pathname.startsWith('/ressources/guides/')
     || location.pathname.startsWith('/ressources/comparateur')
     || location.pathname.startsWith('/guides/')
@@ -197,6 +198,7 @@ function AppRoutes() {
             <Route path="/ops-legacy" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}>{withSuspense(LazyOpsDashboardPage, 'Chargement ops…')}</ProtectedRoute>} />
             <Route path="/ops-observability" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}>{withSuspense(LazyOpsLookupObservabilityPage, 'Chargement observabilité…')}</ProtectedRoute>} />
             <Route path="/paiement/verification" element={<PaymentVerificationPage />} />
+            <Route path="/paiement/amazon-pay/retour" element={<PaymentVerificationPage />} />
 
             <Route path="/dashboard" element={<ProtectedRoute><DashboardEntry /></ProtectedRoute>} />
             <Route path="/mobile/search" element={<ProtectedRoute><MobileSearchPage /></ProtectedRoute>} />

@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, CheckCircle2, CreditCard, FileText, ShieldCheck,
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth.js';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
+import { BrandName } from '@/components/BrandName.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
@@ -212,7 +213,7 @@ export const SignupPage = () => {
                 <motion.div key="step1" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-7">
                   <div>
                     <p className="text-sm font-bold uppercase text-primary">Profil</p>
-                    <h1 className="mt-2 text-3xl font-extrabold">Qui utilisera Greffio </h1>
+                    <h1 className="mt-2 text-3xl font-extrabold">Qui utilisera <BrandName /> </h1>
                     <p className="mt-2 text-muted-foreground">Le dashboard s’adapte à votre usage : client final ou professionnel qui suit plusieurs dossiers.</p>
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
@@ -233,7 +234,7 @@ export const SignupPage = () => {
                   <div>
                     <p className="text-sm font-bold uppercase text-primary">Formalité</p>
                     <h1 className="mt-2 text-3xl font-extrabold">Choisissez le premier dossier.</h1>
-                    <p className="mt-2 text-muted-foreground">Greffio créera automatiquement les tâches, pièces attendues et échanges d’équipe.</p>
+                    <p className="mt-2 text-muted-foreground"><BrandName /> créera automatiquement les tâches, pièces attendues et échanges d’équipe.</p>
                   </div>
                   <div className="grid gap-3 md:grid-cols-2">
                     {LEGAL_SERVICES.map((service) => (
@@ -345,7 +346,7 @@ export const SignupPage = () => {
                   <label className="flex items-start gap-3 rounded-md border border-border bg-white p-4">
                     <input type="checkbox" className="mt-1" {...register('acceptedTerms', { required: true })} />
                     <span className="text-sm leading-6 text-muted-foreground">
-                      J’accepte les conditions d’utilisation, la politique de confidentialité et les mentions légales. Greffio est une marque déposée de {PUBLISHER_LEGAL_NAME}.
+                      J’accepte les conditions d’utilisation, la politique de confidentialité et les mentions légales. <BrandName /> est une marque déposée de {PUBLISHER_LEGAL_NAME}.
                     </span>
                   </label>
                   {errors.acceptedTerms ? (
@@ -397,11 +398,11 @@ export const SignupPage = () => {
           <div className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
             <CreditCard className="mb-4 h-7 w-7 text-primary" />
             <h2 className="text-xl font-extrabold">Paiement sécurisé</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">Paiement sécurisé Google Pay via CAWL (en cours de branchement). CB et Visa/Mastercard via votre wallet Google.</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">Paiement sécurisé Amazon Pay, Google Pay ou carte bancaire, avec retour sécurisé dans votre espace Greffio.</p>
           </div>
           <div className="rounded-md bg-[hsl(var(--greffio-blue))] p-5 text-white shadow-elevation-md">
-            <p className="text-sm font-bold">Équipe Greffio</p>
-            <p className="mt-2 text-sm leading-6 text-white/92">L’équipe Greffio peut demander une pièce, commenter un document et suivre l’avancement directement dans votre espace.</p>
+            <p className="text-sm font-bold">Équipe <BrandName /></p>
+            <p className="mt-2 text-sm leading-6 text-white/92">L’équipe <BrandName /> peut demander une pièce, commenter un document et suivre l’avancement directement dans votre espace.</p>
           </div>
         </aside>
       </main>

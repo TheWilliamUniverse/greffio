@@ -73,3 +73,15 @@ export const processGooglePayPayment = async ({
   offerCode,
   paymentData,
 });
+
+export const getAmazonPayConfig = async () => apiGet('/api/payments/amazon-pay/config');
+
+export const createAmazonPaySession = async ({
+  dossierId,
+  resourceOrderId,
+  offerCode,
+}) => apiPost('/api/payments/amazon-pay/session', {
+  dossierId,
+  resourceOrderId,
+  offerCode,
+});

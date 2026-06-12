@@ -9,6 +9,7 @@ import { inferCustomerType, isB2B } from '@/utils/customerType.js';
 import { checkoutResourceOrder, getResourceOrder } from '@/api/resources.js';
 import { formatResourcePrice, getCatalogItemById } from '@/config/resourceServices.js';
 import { GooglePayCheckoutPanel } from '@/components/payments/GooglePayCheckoutPanel.jsx';
+import { AmazonPayCheckoutPanel } from '@/components/payments/AmazonPayCheckoutPanel.jsx';
 import { formatEuroCents, resolveOfferAmountCents } from '@/config/paymentOffers.js';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
 import { useAuth } from '@/hooks/useAuth.js';
@@ -60,7 +61,7 @@ export const MobilePaymentPage = () => {
     if (showB2BProviders) {
       return methods.filter((method) => ['gocardless-checkout', 'sepa-transfer', 'sepa-debit'].includes(method.id));
     }
-    return methods.filter((method) => ['google-pay', 'cards'].includes(method.id));
+    return methods.filter((method) => ['google-pay', 'amazon-pay', 'cards'].includes(method.id));
   }, [showB2BProviders]);
 
   useEffect(() => {
@@ -190,7 +191,7 @@ export const MobilePaymentPage = () => {
         Le statut est vérifié côté serveur avant confirmation du dossier.
         <div className="mt-3 flex items-center gap-2 text-xs">
           <LockKeyhole className="h-4 w-4 text-primary" />
-          {showB2BProviders ? 'Paiement professionnel SEPA / virement.' : 'Google Pay — chiffrement TLS.'}
+          {showB2BProviders ? 'Paiement professionnel SEPA / virement.' : 'Amazon Pay / Google Pay — chiffrement TLS.'}
         </div>
       </section>
 
@@ -206,15 +207,25 @@ export const MobilePaymentPage = () => {
         </div>
       ) : null}
 
-      {(resourceOrder || !showB2BProviders) && amountCents > 0 ? (
-        <GooglePayCheckoutPanel
-          amountCents={amountCents}
-          amountLabel={amountLabel}
-          offerLabel={resourceOrder?.serviceTitle || selectedOffer.title}
-          dossierId={!resourceOrderId ? getCurrentDossierId() : undefined}
-          resourceOrderId={resourceOrderId || undefined}
-          offerCode={offerName}
-        />
+      {currentUser && (resourceOrder || !showB2BProviders) && amountCents > 0 ? (
+        <>
+          <AmazonPayCheckoutPanel
+            amountCents={amountCents}
+            amountLabel={amountLabel}
+            offerLabel={resourceOrder?.serviceTitle || selectedOffer.title}
+            dossierId={!resourceOrderId ? getCurrentDossierId() : undefined}
+            resourceOrderId={resourceOrderId || undefined}
+            offerCode={offerName}
+          />
+          <GooglePayCheckoutPanel
+            amountCents={amountCents}
+            amountLabel={amountLabel}
+            offerLabel={resourceOrder?.serviceTitle || selectedOffer.title}
+            dossierId={!resourceOrderId ? getCurrentDossierId() : undefined}
+            resourceOrderId={resourceOrderId || undefined}
+            offerCode={offerName}
+          />
+        </>
       ) : null}
 
       {(showB2BProviders || resourceOrder) && !resourceLanding ? (

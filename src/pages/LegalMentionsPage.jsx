@@ -36,7 +36,7 @@ export const LegalMentionsPage = () => (
         {[
           { icon: Scale, title: 'Éditeur', text: `${PUBLISHER_LEGAL_NAME} · ${PUBLISHER_RCS}` },
           { icon: ShieldCheck, title: 'Marque', text: `Greffio est une marque déposée détenue par ${PUBLISHER_LEGAL_NAME}.` },
-          { icon: CreditCard, title: 'Paiements', text: 'Google Pay sécurisé (CAWL), prélèvement SEPA professionnel.' },
+          { icon: CreditCard, title: 'Paiements', text: 'Amazon Pay, Google Pay, carte bancaire et prélèvement SEPA professionnel.' },
         ].map((item) => (
           <div key={item.title} className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
             <item.icon className="mb-4 h-6 w-6 text-primary" />
@@ -75,7 +75,7 @@ export const LegalMentionsPage = () => (
         <div className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
           <BadgeEuro className="mb-4 h-6 w-6 text-primary" />
           <h2 className="text-lg font-extrabold">Moyens de paiement</h2>
-          <p className="mt-3 text-sm leading-7 text-muted-foreground">Les paiements B2C sont traités via Google Pay, avec règlement final par notre prestataire CAWL (Worldline). Les paiements professionnels peuvent utiliser le prélèvement SEPA via GoCardless.</p>
+          <p className="mt-3 text-sm leading-7 text-muted-foreground">Les paiements B2C peuvent être traités via Amazon Pay, Google Pay ou carte bancaire, avec confirmation serveur avant validation du dossier. Les paiements professionnels peuvent utiliser le prélèvement SEPA via GoCardless.</p>
           <div className="mt-4 grid gap-2">
             {PAYMENT_METHODS.map((method) => (
               <div key={method.id} className="rounded-md bg-muted p-3 text-sm">

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { BrandName } from '@/components/BrandName.jsx';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { MobileMenuButton } from '@/mobile/MobileAuthenticatedNav.jsx';
 import { MobileCockpitHeaderActions } from '@/mobile/ui/MobileCockpitHeaderActions.jsx';
@@ -17,7 +18,7 @@ export const MobileTopBar = ({
           <GreffioLogo variant="mark" className="h-8 w-auto" />
           <div className="min-w-0">
             <span className="block truncate text-sm font-extrabold tracking-tight text-[hsl(var(--greffio-blue-900))]">
-              Greffio
+              <BrandName />
             </span>
             <span className="block truncate text-[11px] font-medium text-muted-foreground">Espace client</span>
           </div>
