@@ -326,10 +326,16 @@
   }
 
   .simulator-mobile .simulator-contact-card form,
-  .simulator-mobile .simulator-contact-card .simulator-field-stack {
+  .simulator-mobile .simulator-contact-card .simulator-field-stack,
+  .simulator-mobile .comparator-field-stack {
     width: 100%;
     max-width: 100%;
     min-width: 0;
+  }
+
+  .simulator-mobile .comparator-field-stack button {
+    width: 100%;
+    font-size: 16px;
   }
 
   .simulator-mobile .we-card:hover {

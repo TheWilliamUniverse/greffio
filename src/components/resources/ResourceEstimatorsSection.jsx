@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { LEGACY_ESTIMATORS } from '@/config/resourceServices.js';
 
 const resourceLinks = [
-  { title: 'Simulateur de choix de forme juridique', text: 'Comparer SAS, SARL, SA, EI, SCI, association et formes spécialisées selon le projet.', icon: SearchCheck, to: '/simulateur?type=statuts' },
+  { title: 'Simulateur de choix de forme juridique', text: 'Comparer SAS, SARL, SA, EI, SCI, association et formes spécialisées selon le projet.', icon: SearchCheck, to: '/ressources/comparateur-forme-juridique' },
   { title: 'Calcul de charges sociales', text: 'Préparer une estimation dirigeant salarié, TNS, micro ou assimilé salarié.', icon: Calculator, to: '/simulateur?type=charges' },
   { title: 'Estimation du coût de création', text: 'Visualiser accompagnement, annonce légale, dépôt, greffe et frais tiers avant validation.', icon: ReceiptText, to: '/paiement' },
   { title: 'Calcul d’éligibilité à l’ACRE', text: 'Identifier les critères, justificatifs et impacts de l’aide à la création.', icon: Percent, to: '/simulateur?type=acre' },

@@ -27,6 +27,7 @@ const PAGE_TITLES = {
   '/confidentialite': 'Confidentialité',
   '/cookies': 'Cookies',
   '/ressources': 'Ressources',
+  '/ressources/comparateur-forme-juridique': 'Forme juridique',
   '/paiement': 'Paiement',
   '/profil': 'Profil',
   '/settings': 'Paramètres',
@@ -42,6 +43,7 @@ const resolveTitle = (pathname) => {
   if (pathname.startsWith('/dossier/')) return 'Dossier';
   if (pathname.startsWith('/mobile/account') || pathname.startsWith('/profil')) return 'Compte';
   if (pathname.startsWith('/mobile/search') || pathname.startsWith('/chat')) return 'Assistant';
+  if (pathname.startsWith('/ressources/comparateur')) return 'Forme juridique';
   if (pathname.startsWith('/ressources/guides/')) return 'Guide';
   if (pathname.startsWith('/service/')) return 'Service';
   if (pathname.startsWith('/paiement/')) return 'Paiement';

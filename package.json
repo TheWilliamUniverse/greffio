@@ -46,6 +46,7 @@
     "test:login-alerts": "node --test server/utils/loginAlerts.test.js",
     "test:mfa-email-code": "node --test server/mfaEmailCodeStore.test.js",
     "test:app-update": "node --test src/services/appUpdate/tests/appUpdateLogic.test.js",
+    "test:comparator": "node --test src/utils/legalFormComparatorEngine.test.js",
     "cap:sync": "npm run build && npx cap sync",
     "cap:sync:android": "npm run build && npx cap sync android",
     "cap:open:android": "npx cap open android",

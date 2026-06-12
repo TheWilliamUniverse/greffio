@@ -48,6 +48,7 @@ import { AccountDeletionPage } from '@/pages/AccountDeletionPage.jsx';
 import { DataDeletionPage } from '@/pages/DataDeletionPage.jsx';
 import { ResourcesPage } from '@/pages/ResourcesPage.jsx';
 import { ResourceGuidePage } from '@/pages/ResourceGuidePage.jsx';
+import { LegalFormComparatorPage } from '@/pages/LegalFormComparatorPage.jsx';
 import { AppInstallPage } from '@/pages/AppInstallPage.jsx';
 import { ContactPage } from '@/pages/ContactPage.jsx';
 import { GuidePage } from '@/pages/GuidePage.jsx';
@@ -109,6 +110,7 @@ const Layout = ({ children }) => {
     && shouldUseMobileWebShell(location.pathname);
   const shouldHideHeader = hideHeaderRoutes.some((route) => location.pathname === route || location.pathname.startsWith('/service/'))
     || location.pathname.startsWith('/ressources/guides/')
+    || location.pathname.startsWith('/ressources/comparateur')
     || location.pathname.startsWith('/guides/')
     || location.pathname.startsWith('/glossaire/')
     || location.pathname.startsWith('/ops')
@@ -172,6 +174,7 @@ function AppRoutes() {
             <Route path="/suppression-donnees" element={<DataDeletionPage />} />
             <Route path="/paiement" element={<PaymentEntry />} />
             <Route path="/ressources" element={<ResourcesPage />} />
+            <Route path="/ressources/comparateur-forme-juridique" element={<LegalFormComparatorPage />} />
             <Route path="/ressources/guides/:slug" element={<ResourceGuidePage />} />
             <Route path="/app" element={<AppInstallPage />} />
             <Route path="/contact" element={<ContactPage />} />
