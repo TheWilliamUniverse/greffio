@@ -24,6 +24,7 @@ import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 import {
   uploadDossierDocument,
   downloadDossierDocument,
+  deleteDossierDocument,
 } from '@/api/documents.js';
 import { getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.js';
 import { DossierVaultPickerOverlay } from '@/components/dossiers/DossierVaultPickerOverlay.jsx';
@@ -60,6 +61,7 @@ export const MobileDocumentsPage = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadingDocKey, setUploadingDocKey] = useState(null);
   const [uploadError, setUploadError] = useState('');
+  const [deletingDocKey, setDeletingDocKey] = useState(null);
   const [dossierId, setDossierId] = useState(() => getCurrentDossierId());
   const [pickerOpen, setPickerOpen] = useState(false);
   const { data: dossiersList = [], isLoading: loadingDossiers } = useDossiersQuery(currentUser?.id);
@@ -237,6 +239,32 @@ export const MobileDocumentsPage = () => {
     }
   };
 
+  const handleOnlineDocumentAction = (item, state) => {
+    void triggerMobileHaptic('light');
+    if ((state.action === 'download' || state.action === 'view') && state.hasFile) {
+      void openDocumentPreview(state.docKey);
+      return;
+    }
+    const editorPath = item.to(dossierId);
+    if (editorPath) navigate(editorPath);
+  };
+
+  const removeAttachment = async (doc) => {
+    if (!dossierId || !doc.docKey || !doc.hasFile) return;
+    const confirmed = window.confirm(`Supprimer la pièce jointe « ${doc.name} » ?`);
+    if (!confirmed) return;
+    setUploadError('');
+    setDeletingDocKey(doc.docKey);
+    try {
+      await deleteDossierDocument({ dossierId, docKey: doc.docKey });
+      await refetch();
+    } catch (error) {
+      setUploadError(error?.message || 'La suppression a échoué.');
+    } finally {
+      setDeletingDocKey(null);
+    }
+  };
+
   if (loadingDossiers || (loadingDossier && dossierId)) return <MobilePageSkeleton />;
 
   return (
@@ -351,7 +379,12 @@ export const MobileDocumentsPage = () => {
             </MobileAnimatedSection>
           ) : null}
 
-          <MobileOnlineDocumentsPanel dossierId={dossierId} documents={dossierPayload?.documents || []} eiLike={eiLike} />
+          <MobileOnlineDocumentsPanel
+            dossierId={dossierId}
+            documents={dossierPayload?.documents || []}
+            eiLike={eiLike}
+            onDocumentAction={handleOnlineDocumentAction}
+          />
 
           <MobileAnimatedSection delay={0.09}>
             <IdentityVerificationCard
@@ -382,6 +415,8 @@ export const MobileDocumentsPage = () => {
                   hasFile={doc.hasFile}
                   date={doc.date}
                   onAction={() => handleDocumentAction(doc)}
+                  onDelete={doc.hasFile && doc.canUpload ? () => void removeAttachment(doc) : undefined}
+                  deleting={deletingDocKey === doc.docKey}
                 />
               </motion.div>
             ))}

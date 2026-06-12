@@ -20,14 +20,18 @@ export const MobileDocumentCard = ({
   icon: Icon = FileText,
   to,
   onAction,
+  onDelete,
+  deleting = false,
   className,
   minHeight = true,
 }) => {
   const action = resolveDocumentUserAction(status, hasFile);
   const displayHint = hint || action.hint;
   const displayCta = cta || action.cta;
+  const useActionHandler = Boolean(onAction);
+  const useEditorLink = Boolean(to) && !useActionHandler;
 
-  const ctaButton = to ? (
+  const ctaButton = useEditorLink ? (
     <Button asChild size="sm" className="h-10 shrink-0 rounded-xl px-4 font-bold">
       <Link to={to}>{displayCta}</Link>
     </Button>
@@ -37,6 +41,7 @@ export const MobileDocumentCard = ({
       size="sm"
       className="h-10 shrink-0 rounded-xl px-4 font-bold"
       onClick={onAction}
+      disabled={!onAction}
     >
       {displayCta}
     </Button>
@@ -70,7 +75,19 @@ export const MobileDocumentCard = ({
           ) : null}
         </div>
       </div>
-      <div className="mt-3 flex justify-end border-t border-border/60 pt-3">
+      <div className="mt-3 flex flex-wrap items-center justify-end gap-2 border-t border-border/60 pt-3">
+        {onDelete && hasFile ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-10 rounded-xl px-3 text-xs font-bold text-red-600"
+            onClick={onDelete}
+            disabled={deleting}
+          >
+            {deleting ? 'Suppression…' : 'Supprimer'}
+          </Button>
+        ) : null}
         {onAction || to ? ctaButton : null}
       </div>
     </article>

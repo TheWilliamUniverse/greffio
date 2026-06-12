@@ -11,6 +11,48 @@ const buildProofFingerprint = (documentId = '') => {
   return parts.join('');
 };
 
+const stampColor = rgb(0.35, 0.4, 0.48);
+const proofColor = rgb(0.2, 0.35, 0.65);
+
+const drawWhiteTextBlock = (page, {
+  x,
+  y,
+  width,
+  lines,
+  font,
+  size = 8,
+  lineHeight = 11,
+  padding = 5,
+}) => {
+  const safeLines = (lines || []).filter(Boolean);
+  if (!safeLines.length) return y;
+
+  const blockHeight = safeLines.length * lineHeight + padding * 2;
+  page.drawRectangle({
+    x: x - padding,
+    y: y - padding,
+    width: width + padding * 2,
+    height: blockHeight,
+    color: rgb(1, 1, 1),
+    borderWidth: 0,
+  });
+
+  let cursorY = y + blockHeight - padding - size;
+  safeLines.forEach((line) => {
+    page.drawText(line, {
+      x,
+      y: cursorY,
+      size,
+      font,
+      color: stampColor,
+      maxWidth: width,
+    });
+    cursorY -= lineHeight;
+  });
+
+  return y - padding;
+};
+
 export const stampSignatureOnPdf = async ({
   inputPath,
   outputPath,
@@ -33,18 +75,25 @@ export const stampSignatureOnPdf = async ({
   const isOfficialLayout = layout === 'non_conviction_official';
   const marginH = isSubscribersLayout ? 56 : 71;
   const signatureColWidth = 204;
-  const signatureX = isOfficialLayout ? width - marginH - signatureColWidth : marginH;
+  const signatureOnRight = isOfficialLayout;
+  const signatureX = signatureOnRight ? width - marginH - signatureColWidth : marginH;
   const yBase = isSubscribersLayout ? 118 : (isOfficialLayout ? 228 : 168);
 
   const proof = buildProofFingerprint(documentId);
+  const signedLabel = new Date(signedAtIso).toLocaleString('fr-FR');
+
+  // Empreinte GRF — position validée (bas de page, marge blanche).
   page.drawText(proof, {
     x: marginH,
-    y: yBase + 70,
+    y: 42,
     size: 7,
     font,
-    color: rgb(0.2, 0.35, 0.65),
+    color: proofColor,
     maxWidth: width - marginH * 2,
   });
+
+  const signatureMaxWidth = signatureOnRight ? 180 : 220;
+  const signatureMaxHeight = 60;
 
   if (signatureImagePngBase64) {
     const match = String(signatureImagePngBase64).match(/^data:image\/(png|jpeg|jpg);base64,(.+)$/i);
@@ -58,8 +107,8 @@ export const stampSignatureOnPdf = async ({
       page.drawImage(png, {
         x: signatureX,
         y: yBase,
-        width: Math.min(dims.width, isOfficialLayout ? 180 : 220),
-        height: Math.min(dims.height, 60),
+        width: Math.min(dims.width, signatureMaxWidth),
+        height: Math.min(dims.height, signatureMaxHeight),
       });
     } else {
       const jpeg = await pdfDoc.embedJpg(imageBytes);
@@ -67,8 +116,8 @@ export const stampSignatureOnPdf = async ({
       page.drawImage(jpeg, {
         x: signatureX,
         y: yBase,
-        width: Math.min(dims.width, isOfficialLayout ? 180 : 220),
-        height: Math.min(dims.height, 60),
+        width: Math.min(dims.width, signatureMaxWidth),
+        height: Math.min(dims.height, signatureMaxHeight),
       });
     }
   } else {
@@ -81,36 +130,39 @@ export const stampSignatureOnPdf = async ({
     });
   }
 
-  const signedLabel = new Date(signedAtIso).toLocaleString('fr-FR');
+  const metaX = signatureOnRight ? signatureX : Math.max(marginH, width - marginH - signatureColWidth);
+  const metaWidth = signatureColWidth;
+  const metaLines = [
+    `Signé électroniquement par ${signerFullName}`,
+    `Le ${signedLabel}`,
+  ];
+  const metaBaseY = yBase - 42;
+  drawWhiteTextBlock(page, {
+    x: metaX,
+    y: metaBaseY,
+    width: metaWidth,
+    lines: metaLines,
+    font,
+    size: 8,
+    lineHeight: 11,
+  });
+
   const footerLines = [
     `Document signé le ${signedLabel}`,
     ...(proofLines || []).slice(0, 2),
   ];
-
-  page.drawText(`Signé électroniquement par ${signerFullName}`, {
-    x: marginH,
-    y: yBase - 18,
-    size: 9,
-    font,
-    color: rgb(0.35, 0.4, 0.48),
-  });
-  page.drawText(`Le ${new Date(signedAtIso).toLocaleString('fr-FR')}`, {
-    x: marginH,
-    y: yBase - 32,
-    size: 9,
-    font,
-    color: rgb(0.35, 0.4, 0.48),
-  });
-
-  footerLines.forEach((line, index) => {
-    page.drawText(line, {
+  if (footerLines.length) {
+    drawWhiteTextBlock(page, {
       x: marginH,
-      y: 36 - index * 12,
-      size: 7,
+      y: 24,
+      width: Math.min(280, width - marginH * 2),
+      lines: footerLines,
       font,
-      color: rgb(0.35, 0.4, 0.48),
+      size: 7,
+      lineHeight: 10,
+      padding: 4,
     });
-  });
+  }
 
   const outBytes = await pdfDoc.save();
   fs.writeFileSync(outputPath, outBytes);

@@ -7,6 +7,7 @@ import {
   CalendarDays,
   CreditCard,
   FileCheck2,
+  FileSignature,
   FileText,
   MessageSquareText,
   ShieldCheck,
@@ -195,6 +196,7 @@ export const MobileLandingPage = () => {
           <motion.div {...revealMount(0.14)} className="mt-6 flex flex-col gap-3">
             <Button asChild size="lg" className="h-12 w-full rounded-2xl text-base shadow-elevation-sm">
               <Link to="/simulateur?type=statuts">
+                <FileSignature className="h-4 w-4" />
                 Générer mes statuts
                 <ArrowRight className="h-4 w-4" />
               </Link>

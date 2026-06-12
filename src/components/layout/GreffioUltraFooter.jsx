@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Globe, Mail, ShieldCheck } from 'lucide-react';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
+import { PaymentBrandBadges } from '@/components/layout/PaymentBrandBadges.jsx';
 import {
   GREFFIO_FOOTER_COLUMNS,
   GREFFIO_FOOTER_PAYMENT_LABELS,
@@ -116,6 +117,7 @@ export const GreffioUltraFooter = ({
           <div className="mt-8 grid gap-6 border-b border-white/10 pb-8 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/55">Transactions sécurisées</p>
+              <PaymentBrandBadges className="mt-3" />
               <div className="mt-3 flex flex-wrap gap-2">
                 {GREFFIO_FOOTER_PAYMENT_LABELS.map((label) => (
                   <span

@@ -6,6 +6,8 @@
 >
 > **Code source de vérité** : le moteur Greffio (`server/statuts/`, `server/utils/statutesDataMapper.js`) prime sur ce document en cas de divergence.
 
+**Alignement landing ↔ dashboard** : le simulateur (`buildSimulatorStatutesPreview` → `draftStatutesDocument`) et le dashboard dossier (`POST /api/dossiers/:id/statutes/generate`) doivent produire **le même texte à données équivalentes**. Pas de preview « raccourcie » côté landing. Voir `docs/contexte-integrations-greffio-chatgpt.md` §4.
+
 ---
 
 ## 1. Vue d’ensemble Greffio

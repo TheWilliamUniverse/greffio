@@ -1,5 +1,6 @@
 import React from 'react';
 import { DEMARCHE_CATALOG } from '@/lib/questionnaireFlow.js';
+import { formatInitiatorType } from '@/utils/initiatorLabels.js';
 
 const formatValue = (value) => {
   if (value == null || value === '') return '—';
@@ -30,6 +31,9 @@ const SECTIONS = [
     format: (key, value) => {
       if (key === 'typeFormalite') {
         return DEMARCHE_CATALOG.find((item) => item.key === value)?.label || formatValue(value);
+      }
+      if (key === 'initiatorType') {
+        return formatInitiatorType(value);
       }
       return formatValue(value);
     },

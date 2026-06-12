@@ -307,6 +307,14 @@
     transform: none;
   }
 
+  .simulator-mobile input,
+  .simulator-mobile select,
+  .simulator-mobile textarea {
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+  }
+
   .landing-pricing-card {
     transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
   }

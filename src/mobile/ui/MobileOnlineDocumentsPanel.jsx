@@ -33,6 +33,7 @@ export const MobileOnlineDocumentsPanel = ({
   documents = [],
   eiLike = false,
   delay = 0.07,
+  onDocumentAction,
 }) => {
   if (!dossierId || eiLike) return null;
 
@@ -62,6 +63,7 @@ export const MobileOnlineDocumentsPanel = ({
                 hasFile={state.hasFile}
                 icon={item.icon}
                 to={item.to(dossierId)}
+                onAction={onDocumentAction ? () => onDocumentAction(item, state) : undefined}
                 minHeight={false}
                 className="rounded-2xl shadow-none"
               />

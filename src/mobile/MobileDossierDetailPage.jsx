@@ -22,6 +22,8 @@ import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 import { DossierTrashActions } from '@/components/dossiers/DossierTrashActions.jsx';
 import { DossierDeleteAction } from '@/components/dossiers/DossierDeleteAction.jsx';
+import { downloadDossierDocument } from '@/api/documents.js';
+import { resolveDocumentUserAction } from '@/utils/onlineDocumentStatus.js';
 import { cn } from '@/lib/utils.js';
 
 const SECTION_PILLS = [
@@ -177,11 +179,35 @@ export const MobileDossierDetailPage = () => {
           </Button>
         </div>
         <DossierTrashActions dossier={dossier} compact />
-        <DossierDeleteAction dossier={dossier} compact />
       </section>
 
       <div ref={(node) => { sectionRefs.current.documents = node; }}>
-        <MobileOnlineDocumentsPanel dossierId={id} documents={data?.documents || []} eiLike={eiLike} delay={0.03} />
+        <MobileOnlineDocumentsPanel
+          dossierId={id}
+          documents={data?.documents || []}
+          eiLike={eiLike}
+          delay={0.03}
+          onDocumentAction={(item, state) => {
+            if ((state.action === 'download' || state.action === 'view') && state.hasFile) {
+              void downloadDossierDocument({ dossierId: id, docKey: state.docKey, inline: true })
+                .then(({ filename, blob }) => {
+                  const url = window.URL.createObjectURL(blob);
+                  const anchor = document.createElement('a');
+                  anchor.href = url;
+                  anchor.target = '_blank';
+                  anchor.rel = 'noopener noreferrer';
+                  anchor.download = filename;
+                  document.body.appendChild(anchor);
+                  anchor.click();
+                  anchor.remove();
+                  window.setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+                })
+                .catch(() => {});
+              return;
+            }
+            navigate(item.to(id));
+          }}
+        />
       </div>
 
       <MobileAnimatedSection delay={0.05}>
@@ -214,6 +240,10 @@ export const MobileDossierDetailPage = () => {
           </p>
         )}
       </section>
+
+      <div className="mt-6 border-t border-border/70 pt-5">
+        <DossierDeleteAction dossier={dossier} compact />
+      </div>
 
       <div ref={(node) => { sectionRefs.current.messages = node; }} className="rounded-2xl border border-border/70 bg-white p-4">
         <h2 className="text-sm font-extrabold">Messages Greffio</h2>

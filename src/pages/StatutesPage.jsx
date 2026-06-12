@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Download,
+  FileSignature,
   FileText,
   RefreshCw,
   ShieldCheck,
@@ -314,20 +315,20 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
                     : 'Vos réponses alimentent automatiquement le préambule, les articles, les annexes et les blocs de signature du PDF.'}
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" className="bg-white" onClick={() => void load()} disabled={loading}>
+            <div className={cn('flex flex-wrap gap-2', isMobilePresentation && 'w-full grid grid-cols-1 sm:grid-cols-2')}>
+              <Button type="button" variant="outline" className={cn('bg-white', isMobilePresentation && 'h-11 w-full')} onClick={() => void load()} disabled={loading}>
                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                 Actualiser
               </Button>
-              <Button type="button" onClick={() => void onGenerate()} disabled={generating || eiLike}>
-                <FileText className="h-4 w-4" />
+              <Button type="button" className={cn(isMobilePresentation && 'h-11 w-full')} onClick={() => void onGenerate()} disabled={generating || eiLike}>
+                <FileSignature className="h-4 w-4" />
                 {generating ? 'Génération…' : 'Générer les statuts'}
               </Button>
-              <Button type="button" variant="outline" className="bg-white" onClick={() => void onDownload()} disabled={!documents.length || eiLike}>
+              <Button type="button" variant="outline" className={cn('bg-white', isMobilePresentation && 'h-11 w-full sm:col-span-2')} onClick={() => void onDownload()} disabled={!documents.length || eiLike}>
                 <Download className="h-4 w-4" />
                 Télécharger PDF
               </Button>
-              {!eiLike && preview ? (
+              {!eiLike && preview && !isMobilePresentation ? (
                 <>
                   <Button type="button" variant="outline" className="bg-white" onClick={() => void exportDocument('docx')}>
                     Export DOCX

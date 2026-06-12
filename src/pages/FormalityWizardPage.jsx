@@ -52,9 +52,29 @@ import {
   isContactDetailValid,
 } from '@/utils/userProfile.js';
 import { resolveSimulatorFormFromQuery } from '@/utils/formalityMapping.js';
-import { isCapacitorNative } from '@/utils/platform.js';
+import { useMobileKeyboardOffset } from '@/hooks/useMobileKeyboardOffset.js';
+import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 import { cn } from '@/lib/utils.js';
+
+const mobileFieldClass = 'h-14 min-w-0 w-full max-w-full rounded-2xl border-2 border-[#d4e2f5] bg-white px-4 text-base font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/12';
+
+const resolveAutoComplete = (key) => ({
+  firstName: 'given-name',
+  lastName: 'family-name',
+  email: 'email',
+  phone: 'tel',
+  companyName: 'organization',
+  city: 'address-level2',
+}[key] || 'off');
+
+const resolveInputMode = (key) => ({
+  email: 'email',
+  phone: 'tel',
+  capital: 'decimal',
+  postalCode: 'numeric',
+  companySiren: 'numeric',
+}[key] || undefined);
 
 const resolveOfferLink = ({ offer, journey, isAuthenticated }) => {
   if (offer.price === '0€') {
@@ -159,7 +179,7 @@ const targetFormGroups = COMPANY_FORM_CATALOG.reduce((groups, form) => {
   }
   return [...groups, { category: form.family, forms: [form] }];
 }, []);
-const fieldClass = 'h-14 rounded-2xl border-2 border-[#d4e2f5] bg-white px-4 text-base font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/12';
+const fieldClass = `${mobileFieldClass}`;
 
 const typePresetByQuery = Object.freeze({
   statuts: 'statuts',
@@ -229,6 +249,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     || (presentation === 'auto' && (isCapacitorNative() || isMobileBrowserViewport()));
   const wizardPanelRef = useRef(null);
   const wizardNavRef = useRef(null);
+  const keyboardOffset = useMobileKeyboardOffset();
   const questionAnimationTimersRef = useRef([]);
   const draft = getProjectDraft();
   const requestedType = String(searchParams.get('type') || 'statuts').toLowerCase();
@@ -791,7 +812,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
       <main className={cn(
         'mx-auto grid max-w-7xl',
         isMobilePresentation
-          ? 'gap-0 px-0 pb-[calc(5.5rem+var(--bottom-nav-height-web)+env(safe-area-inset-bottom))] pt-0 lg:grid-cols-1'
+          ? 'gap-0 px-0 pb-[calc(7.5rem+var(--bottom-nav-height-web)+env(safe-area-inset-bottom))] pt-0 lg:grid-cols-1'
           : 'gap-8 px-4 pb-10 pt-28 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8',
       )}>
         <section
@@ -838,7 +859,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                 exit={{ opacity: 0, x: -22 }}
                 transition={{ duration: 0.22 }}
                 className={cn(
-                  isMobilePresentation ? 'max-w-full overflow-x-hidden px-5 py-4' : 'p-4 sm:p-6 md:p-10',
+                  isMobilePresentation ? 'w-full max-w-full overflow-x-clip px-4 py-4' : 'p-4 sm:p-6 md:p-10',
                 )}
                 onKeyDown={handleWizardKeyDown}
               >
@@ -994,10 +1015,10 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -12 }}
                         transition={{ duration: 0.22 }}
-                        className="min-h-[320px]"
+                        className={cn(isMobilePresentation ? 'min-h-[280px] w-full min-w-0 overflow-hidden' : 'min-h-[320px]')}
                       >
                         {projectSubStep === 0 && (
-                          <div className="rounded-2xl border border-border bg-muted p-6 md:p-8">
+                          <div className={cn('rounded-2xl border border-border bg-muted', isMobilePresentation ? 'p-4' : 'p-6 md:p-8')}>
                             <div className="flex items-center justify-between gap-4">
                               <div>
                                 <p className="text-sm font-bold uppercase text-primary">Réf. : {dossierReference}</p>
@@ -1028,22 +1049,29 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                               }}
                             >
                               <Label>{activeContactField.label}</Label>
-                              <div className="flex items-center gap-2">
+                              <div className={cn(
+                                isMobilePresentation ? 'grid w-full min-w-0 grid-cols-1 gap-3' : 'flex items-center gap-2',
+                              )}
+                              >
                                 <Input
                                   type={activeContactField.type}
                                   value={data[activeContactField.key]}
                                   onChange={(event) => update(activeContactField.key, event.target.value)}
                                   placeholder={activeContactField.placeholder}
-                                  className="flex-1 rounded-xl"
+                                  autoComplete={resolveAutoComplete(activeContactField.key)}
+                                  inputMode={resolveInputMode(activeContactField.key)}
+                                  className={cn(isMobilePresentation ? mobileFieldClass : 'min-w-0 flex-1 rounded-xl')}
                                 />
-                                <Button
-                                  type="submit"
-                                  disabled={!canContinueContact()}
-                                  className="h-11 w-11 shrink-0 rounded-full p-0 sm:hidden"
-                                  aria-label="Continuer"
-                                >
-                                  <ArrowRight className="h-5 w-5" />
-                                </Button>
+                                {!isMobilePresentation ? (
+                                  <Button
+                                    type="submit"
+                                    disabled={!canContinueContact()}
+                                    className="h-11 w-11 shrink-0 rounded-full p-0 sm:hidden"
+                                    aria-label="Continuer"
+                                  >
+                                    <ArrowRight className="h-5 w-5" />
+                                  </Button>
+                                ) : null}
                               </div>
                             </form>
                             <p className="mt-4 text-xs leading-5 text-muted-foreground">
@@ -1053,7 +1081,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                         )}
 
                         {projectSubStep === 1 && (
-                          <div className="grid gap-5 md:grid-cols-2">
+                          <div className={cn(isMobilePresentation ? 'grid min-w-0 grid-cols-1 gap-4' : 'grid gap-5 md:grid-cols-2')}>
                             <div className="space-y-2">
                               <Label>Qui effectue la démarche</Label>
                               <select className={`${fieldClass} w-full rounded-xl`} value={data.initiatorType} onChange={(event) => update('initiatorType', event.target.value)}>
@@ -1063,7 +1091,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                             </div>
                             <div className="space-y-2">
                               <Label>{data.initiatorType === 'personne_morale' ? 'Nom de la société demandeuse' : 'Nom du fondateur'}</Label>
-                              <Input className="rounded-xl" value={data.initiatorName} onChange={(event) => update('initiatorName', event.target.value)} />
+                              <Input className={cn(isMobilePresentation ? mobileFieldClass : 'w-full rounded-xl')} value={data.initiatorName} onChange={(event) => update('initiatorName', event.target.value)} />
                             </div>
                             {data.initiatorType === 'personne_morale' && (
                               <div className="space-y-2 md:col-span-2">
@@ -1362,10 +1390,12 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                                     />
                                   ) : (
                                     <Input
-                                      className={`${fieldClass} mt-2`}
+                                      className={cn(fieldClass, 'mt-2 w-full min-w-0 max-w-full')}
                                       value={answers[activeQuestion.key] || ''}
                                       placeholder={activeQuestion.placeholder || ''}
                                       disabled={Boolean(questionExitPhase)}
+                                      autoComplete={resolveAutoComplete(activeQuestion.key)}
+                                      inputMode={resolveInputMode(activeQuestion.key)}
                                       onChange={(event) => updateAnswer(activeQuestion.key, event.target.value)}
                                     />
                                   )}
@@ -1551,9 +1581,10 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
               className={cn(
                 'z-30 border-t border-[#e2ebf8] bg-white/96 backdrop-blur-sm',
                 isMobilePresentation
-                  ? cn('fixed inset-x-0 px-5 py-3 shadow-[0_-4px_18px_rgba(15,23,42,0.05)]', mobileActionBarPosition)
+                  ? cn('fixed inset-x-0 px-4 py-3 shadow-[0_-4px_18px_rgba(15,23,42,0.05)]', mobileActionBarPosition)
                   : 'sticky bottom-0 px-4 py-4 shadow-[0_-10px_28px_rgba(15,23,42,0.06)] sm:px-6 sm:py-5 supports-[padding:max(0px)]:pb-[max(1rem,env(safe-area-inset-bottom))]',
               )}
+              style={isMobilePresentation && keyboardOffset ? { transform: `translateY(-${keyboardOffset}px)` } : undefined}
             >
               <WizardNavButtons
                 variant={isMobilePresentation ? 'mobile' : 'default'}
