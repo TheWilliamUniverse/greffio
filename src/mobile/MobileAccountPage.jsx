@@ -31,9 +31,9 @@ const rows = [
 ];
 
 export const MobileAccountPage = () => {
-  const { currentUser, logout } = useAuth();
+  const { currentUser } = useAuth();
   const { staggerItem } = useMobileMotion();
-  const { setLogoutOpen } = useMobileShellOverlay();
+  const { openLogoutDialog } = useMobileShellOverlay();
   const [biometryLabel, setBiometryLabel] = useState('Non configurée');
   const [pushLabel, setPushLabel] = useState('Non configurées');
   const nativeApp = isCapacitorNative();
@@ -117,7 +117,7 @@ export const MobileAccountPage = () => {
             <div className="mt-4 grid gap-2">
               <button
                 type="button"
-                onClick={() => setLogoutOpen(true)}
+                onClick={() => openLogoutDialog('sleep')}
                 className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl border border-border bg-secondary/40 px-4 text-sm font-semibold text-foreground"
               >
                 <Moon className="h-4 w-4" />
@@ -173,7 +173,7 @@ export const MobileAccountPage = () => {
       <motion.button
         type="button"
         whileTap={{ scale: 0.98 }}
-        onClick={logout}
+        onClick={() => openLogoutDialog('logout')}
         className="flex w-full min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-border bg-white py-3 text-sm font-semibold text-red-600"
       >
         <LogOut className="h-4 w-4" />

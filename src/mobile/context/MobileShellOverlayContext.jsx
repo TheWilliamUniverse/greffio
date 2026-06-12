@@ -6,6 +6,13 @@ const MobileShellOverlayContext = createContext(null);
 export const MobileShellOverlayProvider = ({ children }) => {
   const [accountOpen, setAccountOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [logoutMode, setLogoutMode] = useState('logout');
+
+  /** Ouvre le dialog de fin de session : mode 'logout' (déconnexion) ou 'sleep' (mise en veille). */
+  const openLogoutDialog = useCallback((mode = 'logout') => {
+    setLogoutMode(mode === 'sleep' ? 'sleep' : 'logout');
+    setLogoutOpen(true);
+  }, []);
   const [searchOpen, setSearchOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [vaultPickerOpen, setVaultPickerOpen] = useState(false);
@@ -90,6 +97,8 @@ export const MobileShellOverlayProvider = ({ children }) => {
     setAccountOpen,
     logoutOpen,
     setLogoutOpen,
+    logoutMode,
+    openLogoutDialog,
     searchOpen,
     setSearchOpen,
     drawerOpen,
@@ -104,6 +113,8 @@ export const MobileShellOverlayProvider = ({ children }) => {
   }), [
     accountOpen,
     logoutOpen,
+    logoutMode,
+    openLogoutDialog,
     searchOpen,
     drawerOpen,
     vaultPickerOpen,
@@ -128,6 +139,8 @@ export const useMobileShellOverlay = () => {
       setAccountOpen: () => {},
       logoutOpen: false,
       setLogoutOpen: () => {},
+      logoutMode: 'logout',
+      openLogoutDialog: () => {},
       searchOpen: false,
       setSearchOpen: () => {},
       drawerOpen: false,

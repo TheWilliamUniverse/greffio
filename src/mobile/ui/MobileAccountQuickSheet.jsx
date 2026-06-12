@@ -1,11 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Power, Settings, User } from 'lucide-react';
+import { LogOut, Moon, Settings, User } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 
 /** Sheet compte — miroir du dropdown desktop `Header.jsx`. */
-export const MobileAccountQuickSheet = ({ open, onOpenChange, onLogoutRequest }) => {
+export const MobileAccountQuickSheet = ({ open, onOpenChange, onLogoutRequest, onSleepRequest }) => {
   const { currentUser } = useAuth();
   const firstName = currentUser?.firstName || 'Greffio';
   const lastName = currentUser?.lastName || '';
@@ -52,17 +52,30 @@ export const MobileAccountQuickSheet = ({ open, onOpenChange, onLogoutRequest })
           </li>
         </ul>
 
-        <button
-          type="button"
-          onClick={() => {
-            onOpenChange(false);
-            onLogoutRequest?.();
-          }}
-          className="mt-4 flex w-full min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-border bg-white text-sm font-semibold text-red-600"
-        >
-          <Power className="h-4 w-4" />
-          Mettre en veille
-        </button>
+        <div className="mt-4 grid gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              onOpenChange(false);
+              onSleepRequest?.();
+            }}
+            className="flex w-full min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-border bg-secondary/40 text-sm font-semibold text-foreground"
+          >
+            <Moon className="h-4 w-4" />
+            Mettre en veille
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onOpenChange(false);
+              onLogoutRequest?.();
+            }}
+            className="flex w-full min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-border bg-white text-sm font-semibold text-red-600"
+          >
+            <LogOut className="h-4 w-4" />
+            Se déconnecter
+          </button>
+        </div>
       </SheetContent>
     </Sheet>
   );

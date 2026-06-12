@@ -1,13 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bell, Power, Search, User } from 'lucide-react';
+import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet.jsx';
 import { MobileCockpitSearchDialog } from '@/mobile/ui/MobileCockpitSearchDialog.jsx';
 import { MobileAccountQuickSheet } from '@/mobile/ui/MobileAccountQuickSheet.jsx';
 import { MobileLogoutConfirmDialog } from '@/mobile/ui/MobileLogoutConfirmDialog.jsx';
 import { useMobileShellOverlay } from '@/mobile/context/MobileShellOverlayContext.jsx';
+import { useBiometricSession } from '@/context/BiometricSessionContext.jsx';
 import { fetchMobileNotifications } from '@/api/mobile.js';
 import { useAuth } from '@/hooks/useAuth.js';
+import { isCapacitorNative } from '@/utils/platform.js';
+import { isBiometricUnlockEnabled } from '@/utils/biometricAuth.js';
 import { cn } from '@/lib/utils.js';
 
 export const mobileHeaderIconButtonClass = cn(
@@ -33,11 +37,14 @@ export const MobileCockpitHeaderActions = ({
 }) => {
   const navigate = useNavigate();
   const { isAuthenticated, currentUser, logout } = useAuth();
+  const biometricSession = useBiometricSession();
   const {
     accountOpen,
     setAccountOpen,
     logoutOpen,
     setLogoutOpen,
+    logoutMode,
+    openLogoutDialog,
     searchOpen,
     setSearchOpen,
     notificationsOpen: ctxNotificationsOpen,
@@ -82,6 +89,34 @@ export const MobileCockpitHeaderActions = ({
     setAccountOpen(false);
     logout();
     navigate('/login');
+    toast.success('Déconnexion effectuée.');
+  };
+
+  const confirmSleep = async () => {
+    setLogoutOpen(false);
+    setAccountOpen(false);
+    if (isCapacitorNative()) {
+      try {
+        const biometricEnabled = await isBiometricUnlockEnabled();
+        if (biometricEnabled && biometricSession?.resetLock) {
+          biometricSession.resetLock();
+          return;
+        }
+      } catch (_error) {
+        /* fallback déconnexion douce ci-dessous */
+      }
+    }
+    logout();
+    navigate('/login');
+    toast.info('Session mise en veille. Reconnectez-vous pour reprendre.');
+  };
+
+  const confirmDialogAction = () => {
+    if (logoutMode === 'sleep') {
+      void confirmSleep();
+      return;
+    }
+    confirmLogout();
   };
 
   return (
@@ -114,8 +149,9 @@ export const MobileCockpitHeaderActions = ({
         {isAuthenticated ? (
           <button
             type="button"
-            onClick={() => setLogoutOpen(true)}
-            aria-label="Mettre en veille / se déconnecter"
+            onClick={() => openLogoutDialog('logout')}
+            aria-label="Se déconnecter"
+            title="Se déconnecter"
             className={mobileHeaderLogoutButtonClass}
           >
             <Power className="h-[18px] w-[18px] stroke-[2.5]" />
@@ -144,13 +180,15 @@ export const MobileCockpitHeaderActions = ({
       <MobileAccountQuickSheet
         open={accountOpen}
         onOpenChange={setAccountOpen}
-        onLogoutRequest={() => setLogoutOpen(true)}
+        onLogoutRequest={() => openLogoutDialog('logout')}
+        onSleepRequest={() => openLogoutDialog('sleep')}
       />
 
       <MobileLogoutConfirmDialog
         open={logoutOpen}
         onOpenChange={setLogoutOpen}
-        onConfirm={confirmLogout}
+        onConfirm={confirmDialogAction}
+        mode={logoutMode}
       />
 
       {showNotifications ? (
