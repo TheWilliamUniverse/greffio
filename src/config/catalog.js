@@ -94,23 +94,23 @@ export const SERVICE_AVAILABILITY = Object.freeze({
 
 export const PAYMENT_METHODS = [
   {
-    id: 'gocardless-checkout',
-    name: 'GoCardless',
-    type: 'Solution principale',
-    description: 'Paiement sécurisé par prélèvement SEPA ou virement instantané, avec webhook serveur et statut transactionnel fiable.',
+    id: 'google-pay',
+    name: 'Google Pay',
+    type: 'Paiement express',
+    description: 'Réglez en un geste avec les cartes enregistrées dans Google Pay. Idéal sur mobile et desktop.',
     recommended: true,
   },
   {
     id: 'cards',
-    name: 'CB, Cartes Bancaires, Visa, Mastercard',
-    type: 'Paiement immédiat',
-    description: 'Moyen par défaut pour les offres Greffio, avec reçu email et facture post-paiement.',
+    name: 'Visa · Mastercard',
+    type: 'Via Google Pay',
+    description: 'Cartes bancaires acceptées via Google Pay — confirmation serveur avant validation du dossier.',
   },
   {
-    id: 'wallets',
-    name: 'Apple Pay, Google Pay, Link',
-    type: 'Paiement express',
-    description: 'Parcours plus court sur mobile et desktop, idéal pour limiter l’abandon au paiement.',
+    id: 'gocardless-checkout',
+    name: 'GoCardless',
+    type: 'Comptes professionnels',
+    description: 'Prélèvement SEPA ou virement pour cabinets et sociétés clientes, avec webhook serveur.',
   },
   {
     id: 'sepa-transfer',
@@ -126,9 +126,9 @@ export const PAYMENT_METHODS = [
   },
   {
     id: 'optional',
-    name: 'PayPal, Klarna, Alma',
-    type: 'Options activables',
-    description: 'À activer selon conversion, panier moyen et éligibilité du compte marchand.',
+    name: 'Options futures',
+    type: 'À activer',
+    description: 'Autres moyens de paiement selon conversion et éligibilité marchand.',
   },
 ];
 

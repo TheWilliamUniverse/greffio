@@ -124,7 +124,7 @@ Limitation **par IP** (fenêtre glissante) — **pas de WAF edge ni rate limit g
 | GoCardless | `verifyGoCardlessWebhook` |
 | SignWell | `SIGNWELL_WEBHOOK_ID` + callback |
 | CAWL | HMAC-SHA256 (`CawlPaymentAdapter.verifyWebhookSignature`) |
-| Mollie | Webhook URL configurée |
+| Google Pay / CAWL | Clés backend + webhook CAWL |
 
 **Limite connue** : certains webhooks génériques mentionnent « vérification HMAC à venir » dans `server/index.js` — à auditer.
 

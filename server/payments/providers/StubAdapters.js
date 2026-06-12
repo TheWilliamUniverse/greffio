@@ -40,12 +40,6 @@ export class StripeStubAdapter extends StubProviderAdapter {
   }
 }
 
-export class MollieStubAdapter extends StubProviderAdapter {
-  constructor() {
-    super(PAYMENT_PROVIDERS.MOLLIE, 'MOLLIE_API_KEY');
-  }
-}
-
 export class PayPlugStubAdapter extends StubProviderAdapter {
   constructor() {
     super(PAYMENT_PROVIDERS.PAYPLUG, 'PAYPLUG_SECRET_KEY');

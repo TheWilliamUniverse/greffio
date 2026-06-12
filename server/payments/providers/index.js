@@ -3,7 +3,6 @@ import { GoCardlessAdapter } from './GoCardlessAdapter.js';
 import { ManualBankTransferAdapter } from './ManualBankTransferAdapter.js';
 import { QontoReconciliationAdapter } from './QontoReconciliationAdapter.js';
 import {
-  MollieStubAdapter,
   PayPlugStubAdapter,
   StripeStubAdapter,
 } from './StubAdapters.js';
@@ -21,7 +20,6 @@ export const buildProviderRegistry = (overrides = {}) => ({
   [PAYMENT_PROVIDERS.QONTO]: overrides.qonto || new QontoReconciliationAdapter(),
   [PAYMENT_PROVIDERS.MANUAL_BANK_TRANSFER]: overrides.manual_bank_transfer || new ManualBankTransferAdapter(),
   [PAYMENT_PROVIDERS.STRIPE]: overrides.stripe || new StripeStubAdapter(),
-  [PAYMENT_PROVIDERS.MOLLIE]: overrides.mollie || new MollieStubAdapter(),
   [PAYMENT_PROVIDERS.PAYPLUG]: overrides.payplug || new PayPlugStubAdapter(),
 });
 
@@ -38,7 +36,6 @@ export {
   GoCardlessAdapter,
   ManualBankTransferAdapter,
   QontoReconciliationAdapter,
-  MollieStubAdapter,
   PayPlugStubAdapter,
   StripeStubAdapter,
 };

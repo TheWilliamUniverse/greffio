@@ -3,6 +3,12 @@ import { cn } from '@/lib/utils.js';
 
 const BRANDS = [
   {
+    id: 'googlepay',
+    label: 'Google Pay',
+    className: 'bg-[#000] text-white',
+    mark: 'G Pay',
+  },
+  {
     id: 'visa',
     label: 'Visa',
     className: 'bg-[#1a1f71] text-white',
@@ -13,30 +19,6 @@ const BRANDS = [
     label: 'Mastercard',
     className: 'bg-[#252525] text-white',
     mark: 'MC',
-  },
-  {
-    id: 'cb',
-    label: 'Carte bancaire',
-    className: 'bg-[#0b3d91] text-white',
-    mark: 'CB',
-  },
-  {
-    id: 'apple',
-    label: 'Apple Pay',
-    className: 'border border-white/20 bg-white/10 text-white',
-    mark: '',
-  },
-  {
-    id: 'google',
-    label: 'Google Pay',
-    className: 'border border-white/20 bg-white/10 text-white',
-    mark: 'G Pay',
-  },
-  {
-    id: 'sepa',
-    label: 'Prélèvement SEPA',
-    className: 'border border-white/20 bg-white/10 text-white',
-    mark: 'SEPA',
   },
 ];
 
@@ -58,10 +40,8 @@ export const PaymentBrandBadges = ({ compact = false, className }) => (
             <span className="h-3 w-3 rounded-full bg-[#eb001b]" />
             <span className="-ml-1.5 h-3 w-3 rounded-full bg-[#f79e1b]" />
           </span>
-        ) : brand.mark ? (
-          brand.mark
         ) : (
-          <span className="text-[9px] font-bold"> Pay</span>
+          brand.mark
         )}
       </span>
     ))}

@@ -28,24 +28,25 @@
 | Tout type — réconciliation | `qonto`                     | —                     |
 
 Providers prévus pour extension future (déclarés comme stubs inactifs) :
-`stripe`, `mollie`, `payplug`. Brancher un de ces providers consiste à
+`stripe`, `payplug`. Brancher un de ces providers consiste à
 remplacer le stub par un adapter conforme à `PaymentProviderAdapter` puis à
 inscrire la règle dans `PaymentProviderResolver`.
 
-## 3. Flux B2C
+## 3. Flux B2C (Google Pay → CAWL)
 
-1. Le frontend appelle `POST /api/payments` avec `customerType: "b2c"`,
-   le montant, la commande / facture éventuelle et l'URL de retour.
-2. Le serveur valide montant et type via `PaymentService`.
-3. `PaymentProviderResolver.resolve('b2c')` retourne `cawl`.
-4. `CawlPaymentAdapter.createPayment()` crée une session CAWL et retourne
-   `checkoutUrl` + `providerPaymentId`.
-5. Le serveur persiste le paiement (`pending`) et renvoie l'URL au frontend.
-6. Le frontend redirige vers la hosted page CAWL.
-7. CAWL envoie un webhook `POST /api/webhooks/cawl` (signature HMAC SHA256).
-8. Le webhook normalise le statut (`paid`, `failed`, `cancelled`…) et met à
+1. Le frontend affiche `GooglePayCheckoutPanel` et charge la config via
+   `GET /api/payments/google-pay/config`.
+2. L'utilisateur valide Google Pay ; le token est envoyé à
+   `POST /api/payments/google-pay`.
+3. Le serveur persiste le paiement (`pending`, `provider: cawl`,
+   `method: google_pay`) et transmet le token à CAWL lorsque l'API est branchée.
+4. CAWL envoie un webhook `POST /api/webhooks/cawl` (signature HMAC SHA256).
+5. Le webhook normalise le statut (`paid`, `failed`, `cancelled`…) et met à
    jour la ligne `payments`. Aucun statut n'est jamais accepté depuis le
    frontend.
+
+Alternative hébergée CAWL (hosted checkout) : `POST /api/payments` avec
+`customerType: "b2c"` lorsque `CAWL_API_KEY` est configuré.
 
 ## 4. Flux B2B
 
@@ -62,18 +63,17 @@ inscrire la règle dans `PaymentProviderResolver`.
 
 | Code                    | Statut             | Rôle                                  |
 |-------------------------|--------------------|---------------------------------------|
-| `cawl`                  | actif (B2C)        | PSP carte / wallet                    |
+| `cawl`                  | actif (B2C)        | PSP carte / wallet (Google Pay en aval) |
 | `gocardless`            | actif (B2B uniqu.) | SEPA / virement pro                   |
 | `qonto`                 | actif              | Réconciliation, jamais PSP B2C        |
 | `manual_bank_transfer`  | actif              | Virement manuel B2B                   |
 | `stripe`                | stub inactif       | Réservé extension future              |
-| `mollie`                | legacy / stub      | Legacy dossiers Greffio (à remplacer) |
 | `payplug`               | stub inactif       | Réservé extension future              |
 
 ## 6. Variables d'environnement
 
 ```env
-# CAWL — PSP B2C
+# CAWL — PSP B2C (capture token Google Pay)
 CAWL_API_BASE_URL=
 CAWL_API_KEY=
 CAWL_API_KEY_ID=
@@ -81,6 +81,18 @@ CAWL_MERCHANT_ID=
 CAWL_WEBHOOK_SECRET=
 CAWL_RETURN_URL=
 CAWL_CANCEL_URL=
+
+# Google Pay — wallet B2C (frontend + config publique)
+GOOGLE_PAY_API_KEY=
+GOOGLE_PAY_MERCHANT_ID=
+GOOGLE_PAY_MERCHANT_NAME=Greffio
+GOOGLE_PAY_ENVIRONMENT=TEST
+GOOGLE_PAY_GATEWAY=cawl
+GOOGLE_PAY_GATEWAY_MERCHANT_ID=
+VITE_GOOGLE_PAY_ENABLED=true
+VITE_GOOGLE_PAY_MERCHANT_ID=
+VITE_GOOGLE_PAY_ENVIRONMENT=TEST
+VITE_GOOGLE_PAY_MERCHANT_NAME=Greffio
 
 # GoCardless — B2B uniquement
 GOCARDLESS_ACCESS_TOKEN=

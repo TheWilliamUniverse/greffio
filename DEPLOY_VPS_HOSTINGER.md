@@ -43,8 +43,16 @@ PORT=8787
 APP_URL=https://greffio.willentreprises.com
 API_BASE_URL=https://api.greffio.willentreprises.com
 
-MOLLIE_API_KEY=live_xxx
-MOLLIE_WEBHOOK_URL=https://api.greffio.willentreprises.com/webhooks/mollie
+GOOGLE_PAY_API_KEY=
+GOOGLE_PAY_MERCHANT_ID=
+GOOGLE_PAY_MERCHANT_NAME=Greffio
+GOOGLE_PAY_ENVIRONMENT=PRODUCTION
+GOOGLE_PAY_GATEWAY=cawl
+GOOGLE_PAY_GATEWAY_MERCHANT_ID=
+
+CAWL_API_BASE_URL=
+CAWL_API_KEY=
+CAWL_WEBHOOK_SECRET=
 
 JWT_SECRET=replace_with_min_64_chars_random_secret
 ACCESS_TOKEN_EXPIRES_IN=15m
@@ -122,13 +130,15 @@ curl https://api.greffio.willentreprises.com/api/ready
 pm2 logs greffio-api
 ```
 
-## 11) Mollie webhook setup
+## 11) Google Pay + CAWL
 
-In backend env:
-- `MOLLIE_WEBHOOK_URL=https://api.greffio.willentreprises.com/webhooks/mollie`
+Backend env (B2C) :
+- `GOOGLE_PAY_API_KEY` — clé Google Cloud (Pay API)
+- `GOOGLE_PAY_MERCHANT_ID` — console Google Pay Business
+- `CAWL_API_KEY` + `CAWL_WEBHOOK_SECRET` — capture du token en aval
 
-In Mollie dashboard, ensure payment webhook points to:
-- `https://api.greffio.willentreprises.com/webhooks/mollie`
+Webhook CAWL :
+- `https://api.greffio.willentreprises.com/api/webhooks/cawl`
 
 ## 12) Internal Greffio account
 
@@ -149,7 +159,7 @@ INTERNAL_USER_PASSWORD='replace-with-a-strong-temporary-password' INTERNAL_USER_
 
 - Hostinger VPS: Node API + Nginx + PM2
 - Supabase/Postgres: primary database (next migration step)
-- Mollie: payments
+- Google Pay + CAWL : paiements B2C
 - Resend: transactional emails
 - Sentry: backend/frontend observability
 

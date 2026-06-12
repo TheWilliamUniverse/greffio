@@ -32,7 +32,7 @@ VITE_APP_URL=https://greffio.willentreprises.com
 
 ## 4) Variables à ne jamais mettre côté frontend
 
-- `MOLLIE_API_KEY`
+- `GOOGLE_PAY_API_KEY` (backend)
 - `JWT_SECRET`
 - `DATABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`

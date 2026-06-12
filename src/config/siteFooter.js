@@ -57,7 +57,7 @@ export const GREFFIO_FOOTER_COLUMNS = [
 ];
 
 export const GREFFIO_FOOTER_PAYMENT_LABELS = [
-  'CB · Visa · Mastercard',
-  'Apple Pay · Google Pay',
-  'Prélèvement SEPA · GoCardless',
+  'Google Pay',
+  'Visa · Mastercard (via Google Pay)',
+  'Prélèvement SEPA · GoCardless (pro)',
 ];

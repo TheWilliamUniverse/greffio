@@ -25,8 +25,8 @@ export const PaymentVerificationPage = () => {
           </div>
           <h1 className="text-2xl font-extrabold">Retour paiement effectué</h1>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
-            Votre paiement a été initié. Greffio attend la confirmation serveur de Mollie
-            avant de marquer le dossier comme payé et de lancer la suite.
+            Votre paiement Google Pay a été enregistré. Greffio attend la confirmation serveur
+            (CAWL) avant de marquer le dossier comme payé et de lancer la suite.
           </p>
           {resourceOrderId && (
             <p className="mt-3 rounded-md bg-muted px-3 py-2 text-xs font-mono text-muted-foreground">

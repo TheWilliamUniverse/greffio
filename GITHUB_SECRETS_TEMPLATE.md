@@ -15,8 +15,10 @@ Configurer ces secrets dans **Settings > Secrets and variables > Actions**.
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `SUPABASE_STORAGE_BUCKET`
 - `DOCUMENT_STORAGE_DRIVER`
-- `MOLLIE_API_KEY`
-- `MOLLIE_WEBHOOK_URL`
+- `GOOGLE_PAY_API_KEY`
+- `GOOGLE_PAY_MERCHANT_ID`
+- `CAWL_API_KEY`
+- `CAWL_WEBHOOK_SECRET`
 - `FCM_SERVICE_ACCOUNT_JSON` (push mobile Android — aussi sur le VPS via `.env`)
 
 ## Android / Google Play (`mobile-artifacts.yml`)

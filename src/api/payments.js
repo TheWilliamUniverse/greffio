@@ -2,8 +2,7 @@ import { apiGet, apiPost } from '@/api/client.js';
 import { runtimeConfig } from '@/config/runtime.js';
 
 /**
- * Endpoint legacy — flow dossiers Greffio. Continue d'utiliser GoCardless
- * pour les dossiers B2B et refuse explicitement les paiements B2C.
+ * Endpoint legacy — flow dossiers B2B Greffio (GoCardless / virement).
  */
 export const createPayment = async ({ dossierId, offerCode, userId, customerType }) => apiPost('/api/payments/create', {
   dossierId,
@@ -41,9 +40,6 @@ export const initiatePayment = async ({
   cancelUrl,
 });
 
-/**
- * Route le checkout dossier vers le bon endpoint selon le type client.
- */
 export const checkoutDossierPayment = async ({ dossierId, offerCode, customerType }) => {
   const normalized = String(customerType || '').toLowerCase();
   if (normalized === 'b2c') {
@@ -63,3 +59,17 @@ export const getPayment = async (paymentId) => apiGet(`/api/payments/${encodeURI
 export const refundPayment = async (paymentId, amount) => apiPost(`/api/payments/${encodeURIComponent(paymentId)}/refund`, { amount });
 
 export const getProvidersStatus = async () => apiGet('/api/payments/providers/status');
+
+export const getGooglePayConfig = async () => apiGet('/api/payments/google-pay/config');
+
+export const processGooglePayPayment = async ({
+  dossierId,
+  resourceOrderId,
+  offerCode,
+  paymentData,
+}) => apiPost('/api/payments/google-pay', {
+  dossierId,
+  resourceOrderId,
+  offerCode,
+  paymentData,
+});

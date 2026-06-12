@@ -36,7 +36,7 @@ export const LegalMentionsPage = () => (
         {[
           { icon: Scale, title: 'Éditeur', text: `${PUBLISHER_LEGAL_NAME} · ${PUBLISHER_RCS}` },
           { icon: ShieldCheck, title: 'Marque', text: `Greffio est une marque déposée détenue par ${PUBLISHER_LEGAL_NAME}.` },
-          { icon: CreditCard, title: 'Paiements', text: 'Mollie Checkout, CB, wallets, Link, virement SEPA et prélèvement SEPA.' },
+          { icon: CreditCard, title: 'Paiements', text: 'Google Pay sécurisé (CAWL), prélèvement SEPA professionnel.' },
         ].map((item) => (
           <div key={item.title} className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
             <item.icon className="mb-4 h-6 w-6 text-primary" />
@@ -75,7 +75,7 @@ export const LegalMentionsPage = () => (
         <div className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
           <BadgeEuro className="mb-4 h-6 w-6 text-primary" />
           <h2 className="text-lg font-extrabold">Moyens de paiement</h2>
-          <p className="mt-3 text-sm leading-7 text-muted-foreground">La solution retenue est Mollie Checkout, avec activation prioritaire de CB/Cartes Bancaires, Visa, Mastercard, Apple Pay, Google Pay, Link, virement SEPA et prélèvement SEPA. PayPal, Klarna et Alma restent activables selon éligibilité et stratégie de conversion.</p>
+          <p className="mt-3 text-sm leading-7 text-muted-foreground">Les paiements B2C sont traités via Google Pay, avec règlement final par notre prestataire CAWL (Worldline). Les paiements professionnels peuvent utiliser le prélèvement SEPA via GoCardless.</p>
           <div className="mt-4 grid gap-2">
             {PAYMENT_METHODS.map((method) => (
               <div key={method.id} className="rounded-md bg-muted p-3 text-sm">

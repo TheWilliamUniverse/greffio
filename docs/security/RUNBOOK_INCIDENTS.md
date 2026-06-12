@@ -72,7 +72,7 @@ Document opérationnel pour WILLIAM ESTABLISHMENTS / équipe ops. Pas de secrets
 
 ## 5. Webhook suspect
 
-**Symptômes** : échecs vérification signature GoCardless/Mollie/Resend/SignWell.
+**Symptômes** : échecs vérification signature GoCardless/CAWL/Resend/SignWell.
 
 1. **Ne pas** désactiver les webhooks en prod sans backup manuel des paiements
 2. Vérifier secrets webhook dans `.env` VPS (rotation si fuite suspectée)

@@ -8,7 +8,6 @@ export {
   GoCardlessAdapter,
   ManualBankTransferAdapter,
   QontoReconciliationAdapter,
-  MollieStubAdapter,
   PayPlugStubAdapter,
   StripeStubAdapter,
 } from './providers/index.js';

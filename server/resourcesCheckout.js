@@ -1,5 +1,6 @@
 import { createGoCardlessCheckout, retrieveGoCardlessBillingRequest, isGoCardlessPaidStatus } from './gocardless.js';
-import { createMolliePayment, retrieveMolliePayment, isMolliePaidStatus } from './mollie.js';
+import { getPaymentService } from './payments/paymentServiceFactory.js';
+import { CUSTOMER_TYPES } from './payments/types.js';
 import { computeResourcePaymentAmounts } from './pricing.js';
 import { getResourceOrderById, updateResourceOrder } from './resourceOrderStore.js';
 import { upsertPayment } from './store.js';
@@ -8,7 +9,6 @@ export const createResourceOrderCheckout = async ({
   orderId,
   userId,
   appUrl,
-  mollieWebhookUrl,
   gocardlessWebhookUrl,
 }) => {
   const order = await getResourceOrderById(orderId);
@@ -36,10 +36,12 @@ export const createResourceOrderCheckout = async ({
   const amounts = computeResourcePaymentAmounts(order.priceTtcCents);
   const redirectUrl = `${appUrl}/paiement/verification?resourceOrderId=${order.id}`;
   const hasGoCardless = Boolean(process.env.GOCARDLESS_ACCESS_TOKEN || process.env.GOCARDLESS_API_KEY);
-  const hasMollieKey = Boolean(process.env.MOLLIE_API_KEY);
 
   let created;
+  let paymentProvider = 'cawl';
+
   if (hasGoCardless) {
+    paymentProvider = 'gocardless';
     created = await createGoCardlessCheckout({
       amountTotalCents: amounts.amountTotalCents,
       currency: amounts.currency,
@@ -52,32 +54,42 @@ export const createResourceOrderCheckout = async ({
       exitUrl: `${appUrl}/paiement?resourceOrder=${order.id}&service=${order.serviceId}`,
       description: `Greffio ${order.serviceTitle}`,
     });
-  } else if (hasMollieKey) {
-    created = await createMolliePayment({
-      amountTotalCents: amounts.amountTotalCents,
-      currency: amounts.currency,
-      metadata: {
-        resourceOrderId: order.id,
-        serviceId: order.serviceId,
-      },
-      redirectUrl,
-      webhookUrl: mollieWebhookUrl,
-      description: `Greffio ${order.serviceTitle}`,
-    });
-  } else if (process.env.NODE_ENV !== 'production') {
-    created = {
-      providerPaymentId: `resource_demo_${Date.now()}`,
-      status: 'open',
-      checkoutUrl: `${redirectUrl}&mock=resource`,
-      raw: { provider: 'demo', mode: 'mock_fallback' },
-    };
   } else {
+    const service = getPaymentService({ upsertPayment });
+    const result = await service.createPayment({
+      customerType: CUSTOMER_TYPES.B2C,
+      amount: amounts.amountTotalCents,
+      currency: amounts.currency,
+      orderId: order.id,
+      description: `Greffio ${order.serviceTitle}`,
+      returnUrl: redirectUrl,
+      cancelUrl: `${appUrl}/paiement?resourceOrder=${order.id}`,
+      userId,
+      offerCode: `resource:${order.serviceId}`,
+      metadata: { resourceOrderId: order.id, paymentMethod: 'google_pay_preferred' },
+    });
+    created = {
+      providerPaymentId: result.payment?.providerPaymentId,
+      status: result.status,
+      checkoutUrl: result.checkoutUrl,
+      raw: result.payment?.providerPayload,
+    };
+    paymentProvider = result.provider || 'cawl';
+  }
+
+  if (!created?.checkoutUrl && process.env.NODE_ENV !== 'production') {
+    created = {
+      providerPaymentId: created?.providerPaymentId || `resource_demo_${Date.now()}`,
+      status: created?.status || 'open',
+      checkoutUrl: `${redirectUrl}&mock=resource`,
+      raw: created?.raw || { provider: 'demo', mode: 'mock_fallback' },
+    };
+  } else if (!created?.checkoutUrl) {
     const error = new Error('PAYMENT_PROVIDER_NOT_CONFIGURED');
     error.status = 503;
     throw error;
   }
 
-  const paymentProvider = hasGoCardless ? 'gocardless' : 'mollie';
   const payment = await upsertPayment({
     dossierId: order.dossierId || null,
     resourceOrderId: order.id,
@@ -107,7 +119,5 @@ export const createResourceOrderCheckout = async ({
 
 export {
   isGoCardlessPaidStatus,
-  isMolliePaidStatus,
   retrieveGoCardlessBillingRequest,
-  retrieveMolliePayment,
 };

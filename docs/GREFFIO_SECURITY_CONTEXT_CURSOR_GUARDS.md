@@ -50,7 +50,7 @@ La sécurité doit donc être pensée comme un pilier produit, pas comme un simp
 | App Android | Capacitor, bundle web embarqué | Élevé |
 | Supabase/PostgreSQL | Données métiers et comptes | Très élevé |
 | AWS S3 | Documents clients | Très élevé |
-| Paiements / PSP | GoCardless, CAWL, Mollie selon contexte | Très élevé |
+| Paiements / PSP | GoCardless, CAWL, Google Pay | Très élevé |
 | Emails | Resend/Brevo ou équivalent | Élevé |
 | Webhooks | Paiement, signature, email | Très élevé |
 | Assistant IA / OpenAI | Surface d'abus et de coût | Élevé |

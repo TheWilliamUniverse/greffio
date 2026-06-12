@@ -111,7 +111,7 @@ INTERNAL_USER_PASSWORD='replace-with-a-strong-temporary-password' INTERNAL_USER_
 - VPS SSH access: available
 - Backend deploy/restart: available
 - Supabase Postgres connectivity via `DATABASE_URL`: configured
-- Mollie live API key on backend: configured
+- Google Pay + CAWL sur backend : variables configurées
 
 ## 8) What is still needed for full admin automation
 

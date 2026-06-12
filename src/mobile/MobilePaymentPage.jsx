@@ -8,6 +8,8 @@ import { checkoutDossierPayment } from '@/api/payments.js';
 import { inferCustomerType, isB2B } from '@/utils/customerType.js';
 import { checkoutResourceOrder, getResourceOrder } from '@/api/resources.js';
 import { getCatalogItemById } from '@/config/resourceServices.js';
+import { GooglePayCheckoutPanel } from '@/components/payments/GooglePayCheckoutPanel.jsx';
+import { formatEuroCents, resolveOfferAmountCents } from '@/config/paymentOffers.js';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
@@ -48,7 +50,13 @@ export const MobilePaymentPage = () => {
     [currentUser, activeDossier],
   );
   const showB2BProviders = isB2B(customerType);
-  const mainMethods = useMemo(() => PAYMENT_METHODS.filter((method) => method.id !== 'optional'), []);
+  const mainMethods = useMemo(() => {
+    const methods = PAYMENT_METHODS.filter((method) => method.id !== 'optional');
+    if (showB2BProviders) {
+      return methods.filter((method) => ['gocardless-checkout', 'sepa-transfer', 'sepa-debit'].includes(method.id));
+    }
+    return methods.filter((method) => ['google-pay', 'cards'].includes(method.id));
+  }, [showB2BProviders]);
 
   useEffect(() => {
     if (!resourceOrderId) {
@@ -114,6 +122,10 @@ export const MobilePaymentPage = () => {
   const resourcePriceLabel = resourceOrder
     ? `${Number(resourceOrder.priceTtc || 0).toFixed(2).replace('.', ',')} € TTC`
     : null;
+  const amountCents = resourceOrder
+    ? Math.round(Number(resourceOrder.priceTtc || 0) * 100)
+    : resolveOfferAmountCents(offerName);
+  const amountLabel = resourceOrder ? resourcePriceLabel : formatEuroCents(amountCents);
 
   return (
     <MobilePageContainer>
@@ -165,10 +177,22 @@ export const MobilePaymentPage = () => {
         Le statut est vérifié côté serveur avant confirmation du dossier.
         <div className="mt-3 flex items-center gap-2 text-xs">
           <LockKeyhole className="h-4 w-4 text-primary" />
-          {showB2BProviders ? 'Paiement professionnel SEPA / virement.' : 'Carte ou wallet — chiffrement TLS.'}
+          {showB2BProviders ? 'Paiement professionnel SEPA / virement.' : 'Google Pay — chiffrement TLS.'}
         </div>
       </section>
 
+      {!showB2BProviders && amountCents > 0 ? (
+        <GooglePayCheckoutPanel
+          amountCents={amountCents}
+          amountLabel={amountLabel}
+          offerLabel={resourceOrder?.serviceTitle || selectedOffer.title}
+          dossierId={!resourceOrderId ? getCurrentDossierId() : undefined}
+          resourceOrderId={resourceOrderId || undefined}
+          offerCode={offerName}
+        />
+      ) : null}
+
+      {showB2BProviders ? (
       <Button
         type="button"
         className="h-12 w-full text-base"
@@ -178,6 +202,7 @@ export const MobilePaymentPage = () => {
         {isCreatingPayment ? 'Redirection sécurisée…' : 'Payer maintenant'}
         <ArrowRight className="h-4 w-4" />
       </Button>
+      ) : null}
 
       {!currentUser ? (
         <Button asChild variant="outline" className="h-11 w-full bg-white">

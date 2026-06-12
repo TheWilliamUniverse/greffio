@@ -14,8 +14,6 @@ export const registerWebhookRoutes = (app, deps) => {
     transitionDossierStatus,
     DOSSIER_STATUSES,
     ROLE,
-    retrieveMolliePayment,
-    isMolliePaidStatus,
     verifyGoCardlessWebhook,
     parseGoCardlessWebhookEvents,
     retrieveGoCardlessBillingRequest,
@@ -85,81 +83,6 @@ export const registerWebhookRoutes = (app, deps) => {
       results,
     });
   });
-
-  const handleMollieWebhook = async (req, res) => {
-    const providerPaymentId = req.body?.id;
-    const eventType = 'payment.status_sync';
-
-    if (!providerPaymentId) {
-      return res.status(400).json({ ok: false, error: 'INVALID_WEBHOOK_PAYLOAD' });
-    }
-
-    const payment = await getPaymentByProviderId(providerPaymentId);
-    if (!payment) {
-      return res.status(404).json({ ok: false, error: 'PAYMENT_NOT_FOUND' });
-    }
-
-    let providerState;
-    if (process.env.MOLLIE_API_KEY) {
-      try {
-        providerState = await retrieveMolliePayment({ providerPaymentId });
-      } catch (error) {
-        return res.status(502).json({
-          ok: false,
-          error: 'MOLLIE_PAYMENT_RETRIEVE_FAILED',
-          message: error.message,
-        });
-      }
-    } else {
-      providerState = {
-        providerPaymentId,
-        status: 'paid',
-        paidAt: new Date().toISOString(),
-        raw: {
-          provider: 'mollie',
-          status: 'paid',
-          mode: 'mock_fallback',
-        },
-      };
-    }
-
-    const providerEventId = `${providerPaymentId}:${providerState.status || 'status_sync'}`;
-    if (await hasPaymentEventProviderId(providerEventId)) {
-      return res.json({ ok: true, idempotent: true });
-    }
-
-    await addPaymentEvent({
-      paymentId: payment.id,
-      eventType,
-      providerEventId,
-      rawPayload: req.body,
-    });
-
-    if (isMolliePaidStatus(providerState.status) && payment.status !== 'paid') {
-      payment.status = 'paid';
-      payment.paidAt = providerState.paidAt || new Date().toISOString();
-      payment.providerPayload = providerState.raw;
-      await upsertPayment(payment);
-
-      const resourceHandled = await handleResourceOrderPaymentPaid(payment);
-      if (!resourceHandled?.handled && payment.dossierId) {
-        await transitionDossierStatus({
-          dossierId: payment.dossierId,
-          nextStatus: DOSSIER_STATUSES.PAYMENT_CONFIRMED,
-          actorType: 'webhook',
-          actorRole: ROLE.WEBHOOK,
-          reason: 'mollie_paid',
-          metadata: { providerPaymentId, paymentConfirmed: true },
-        });
-      }
-    }
-
-    return res.json({ ok: true, paymentStatus: payment.status });
-  };
-
-  app.post('/webhooks/mollie', handleMollieWebhook);
-  app.post('/api/mollie/webhook', handleMollieWebhook);
-  app.post('/api/webhooks/mollie', handleMollieWebhook);
 
   const handleGoCardlessWebhook = async (req, res) => {
     if (rejectIfWebhookSecretMissing(res, process.env.GOCARDLESS_WEBHOOK_SECRET, 'GOCARDLESS_WEBHOOK')) return;

@@ -22,7 +22,7 @@ const interfaceMeta = {
   },
   payment: {
     title: 'Paiement',
-    description: 'Mollie checkout, webhook et statut transactionnel.',
+    description: 'Google Pay, webhook CAWL et statut transactionnel.',
     icon: CreditCard,
   },
   database: {

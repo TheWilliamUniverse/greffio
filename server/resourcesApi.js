@@ -32,12 +32,14 @@ export const searchResourceCatalog = (query) => searchResources(query);
 
 export const getResourceConfig = () => {
   const hasGoCardless = Boolean(process.env.GOCARDLESS_ACCESS_TOKEN || process.env.GOCARDLESS_API_KEY);
-  const hasMollie = Boolean(process.env.MOLLIE_API_KEY);
+  const hasCawl = Boolean(process.env.CAWL_API_BASE_URL && process.env.CAWL_API_KEY);
+  const hasGooglePay = Boolean(process.env.GOOGLE_PAY_API_KEY || process.env.GOOGLE_PAY_MERCHANT_ID);
   return {
-    paymentEnabled: hasGoCardless || hasMollie || process.env.NODE_ENV !== 'production',
+    paymentEnabled: hasGoCardless || hasCawl || hasGooglePay || process.env.NODE_ENV !== 'production',
     providers: {
       gocardless: hasGoCardless,
-      mollie: hasMollie,
+      cawl: hasCawl,
+      googlePay: hasGooglePay,
     },
   };
 };

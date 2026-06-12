@@ -89,7 +89,7 @@ import {
 import { createResourceOrderCheckout } from './resourcesCheckout.js';
 import { getResourceOrderById } from './resourceOrderStore.js';
 import { handleResourceOrderPaymentPaid } from './services/resourcePaymentWebhook.js';
-import { createMolliePayment, isMolliePaidStatus, retrieveMolliePayment } from './mollie.js';
+import { registerGooglePayRoutes } from './routes/googlePayRoutes.js';
 import {
   createGoCardlessCheckout,
   isGoCardlessPaidStatus,
@@ -300,7 +300,6 @@ const resolveMfaPendingUser = async (mfaToken) => {
   return user;
 };
 const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:8787';
-const mollieWebhookUrl = process.env.MOLLIE_WEBHOOK_URL || `${apiBaseUrl}/webhooks/mollie`;
 const gocardlessWebhookUrl = process.env.GOCARDLESS_WEBHOOK_URL || `${apiBaseUrl}/webhooks/gocardless`;
 const uploadsRoot = path.resolve(process.cwd(), 'server', 'data', 'uploads');
 
@@ -407,13 +406,16 @@ app.get('/api/interfaces/status', requireAuth, requireRole(['ADMIN', 'OPS', 'FOR
       },
       {
         key: 'payment',
-        status: (process.env.GOCARDLESS_ACCESS_TOKEN || process.env.GOCARDLESS_API_KEY || process.env.MOLLIE_API_KEY)
+        status: (process.env.GOCARDLESS_ACCESS_TOKEN || process.env.GOCARDLESS_API_KEY
+          || process.env.CAWL_API_KEY
+          || process.env.GOOGLE_PAY_API_KEY
+          || process.env.GOOGLE_PAY_MERCHANT_ID)
           ? 'healthy'
           : 'warning',
         detail: (process.env.GOCARDLESS_ACCESS_TOKEN || process.env.GOCARDLESS_API_KEY)
           ? 'GoCardless actif avec webhook /webhooks/gocardless'
-          : process.env.MOLLIE_API_KEY
-            ? 'Mollie actif (legacy) avec webhook /webhooks/mollie'
+          : (process.env.CAWL_API_KEY || process.env.GOOGLE_PAY_API_KEY)
+            ? 'CAWL / Google Pay configurés (B2C)'
             : 'Aucun provider paiement configuré: mode simulation actif',
       },
       {
@@ -518,7 +520,6 @@ app.post('/api/resources/orders/:orderId/checkout', requireAuth, async (req, res
       orderId: req.params.orderId,
       userId: req.auth.sub,
       appUrl,
-      mollieWebhookUrl,
       gocardlessWebhookUrl,
     });
     return res.json({ ok: true, ...payload });
@@ -2547,7 +2548,6 @@ app.post('/api/payments/create', paymentLimiter, requireAuth, async (req, res) =
 
   let created;
   const hasGoCardless = Boolean(process.env.GOCARDLESS_ACCESS_TOKEN || process.env.GOCARDLESS_API_KEY);
-  const hasMollieKey = Boolean(process.env.MOLLIE_API_KEY);
   const redirectUrl = `${appUrl}/paiement/verification?dossierId=${dossier.id}`;
 
   if (hasGoCardless) {
@@ -2571,31 +2571,11 @@ app.post('/api/payments/create', paymentLimiter, requireAuth, async (req, res) =
         message: error.message,
       });
     }
-  } else if (hasMollieKey) {
-    try {
-      created = await createMolliePayment({
-        amountTotalCents: amounts.amountTotalCents,
-        currency: amounts.currency,
-        metadata: {
-          dossierId: dossier.id,
-          offerCode: amounts.normalizedOffer,
-          companyName: dossier.companyName,
-        },
-        redirectUrl,
-        webhookUrl: mollieWebhookUrl,
-        description: `Greffio ${amounts.normalizedOffer} ${dossier.companyName}`,
-      });
-    } catch (error) {
-      return res.status(502).json({
-        ok: false,
-        error: 'MOLLIE_PAYMENT_CREATE_FAILED',
-        message: error.message,
-      });
-    }
   } else if (process.env.NODE_ENV === 'production') {
     return res.status(503).json({
       ok: false,
       error: 'PAYMENT_PROVIDER_NOT_CONFIGURED',
+      message: 'Paiement B2B : configurez GoCardless. Paiement B2C : Google Pay / CAWL.',
     });
   } else {
     created = {
@@ -2610,7 +2590,7 @@ app.post('/api/payments/create', paymentLimiter, requireAuth, async (req, res) =
     };
   }
 
-  const paymentProvider = hasGoCardless ? 'gocardless' : 'mollie';
+  const paymentProvider = hasGoCardless ? 'gocardless' : 'cawl';
 
   const payment = await upsertPayment({
     dossierId: dossier.id,
@@ -2645,13 +2625,13 @@ registerWebhookRoutes(app, {
   transitionDossierStatus,
   DOSSIER_STATUSES,
   ROLE,
-  retrieveMolliePayment,
-  isMolliePaidStatus,
   verifyGoCardlessWebhook,
   parseGoCardlessWebhookEvents,
   retrieveGoCardlessBillingRequest,
   isGoCardlessPaidStatus,
 });
+
+registerGooglePayRoutes(app, { requireAuth, appUrl });
 
 app.post('/api/webhooks/didit', express.text({ type: '*/*' }), createDiditWebhookHandler());
 

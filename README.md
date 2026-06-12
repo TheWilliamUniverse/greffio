@@ -9,7 +9,7 @@ Plateforme SaaS de formalités d'entreprise (création, modification, suivi doss
 - Process: PM2
 - Reverse proxy: Nginx
 - DB: Supabase Postgres (fallback SQLite local dev)
-- Paiement: Mollie
+- Paiement B2C: Google Pay (CAWL en aval) · B2B: GoCardless
 
 ## URL cibles
 
@@ -96,4 +96,4 @@ Ce script fait:
 ## Sécurité
 
 - Ne jamais commit les secrets.
-- Garder `SUPABASE_SERVICE_ROLE_KEY`, `MOLLIE_API_KEY`, `JWT_SECRET`, `DATABASE_URL` côté backend uniquement.
+- Garder `SUPABASE_SERVICE_ROLE_KEY`, `GOOGLE_PAY_API_KEY`, `CAWL_API_KEY`, `JWT_SECRET`, `DATABASE_URL` côté backend uniquement.

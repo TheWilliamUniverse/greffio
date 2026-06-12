@@ -39,7 +39,7 @@ VITE_APP_URL=https://greffio.willentreprises.com
 
 Do NOT put in Hostinger frontend env:
 
-- `MOLLIE_API_KEY`
+- `GOOGLE_PAY_API_KEY` (backend VPS uniquement)
 - `JWT_SECRET`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `SUPABASE_SECRET_KEY`

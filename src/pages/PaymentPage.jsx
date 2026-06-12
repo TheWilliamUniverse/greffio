@@ -9,6 +9,8 @@ import { checkoutDossierPayment } from '@/api/payments.js';
 import { inferCustomerType, isB2B } from '@/utils/customerType.js';
 import { checkoutResourceOrder, getResourceOrder } from '@/api/resources.js';
 import { getCatalogItemById } from '@/config/resourceServices.js';
+import { GooglePayCheckoutPanel } from '@/components/payments/GooglePayCheckoutPanel.jsx';
+import { formatEuroCents, resolveOfferAmountCents } from '@/config/paymentOffers.js';
 import { TotalCostSimulator } from '@/components/TotalCostSimulator.jsx';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
 import { useAuth } from '@/hooks/useAuth.js';
@@ -30,7 +32,6 @@ export const PaymentPage = () => {
   const service = searchParams.get('service') || 'creation';
   const resourceOrderId = searchParams.get('resourceOrder');
   const selectedOffer = offers[offerName] || offers['Dossier Standard'];
-  const mainMethods = useMemo(() => PAYMENT_METHODS.filter((method) => method.id !== 'optional'), []);
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
   const [resourceOrder, setResourceOrder] = useState(null);
   const [activeDossier, setActiveDossier] = useState(null);
@@ -40,6 +41,13 @@ export const PaymentPage = () => {
     [currentUser, activeDossier],
   );
   const showB2BProviders = isB2B(customerType);
+  const mainMethods = useMemo(() => {
+    const methods = PAYMENT_METHODS.filter((method) => method.id !== 'optional');
+    if (showB2BProviders) {
+      return methods.filter((method) => ['gocardless-checkout', 'sepa-transfer', 'sepa-debit'].includes(method.id));
+    }
+    return methods.filter((method) => ['google-pay', 'cards'].includes(method.id));
+  }, [showB2BProviders]);
 
   const catalogService = resourceOrder?.serviceId
     ? getCatalogItemById(resourceOrder.serviceId)
@@ -123,9 +131,13 @@ export const PaymentPage = () => {
     }
   };
 
+  const amountCents = resourceOrder
+    ? Math.round(Number(resourceOrder.priceTtc || 0) * 100)
+    : resolveOfferAmountCents(offerName);
   const resourcePriceLabel = resourceOrder
     ? `${Number(resourceOrder.priceTtc || 0).toFixed(2).replace('.', ',')} € TTC`
     : null;
+  const amountLabel = resourceOrder ? resourcePriceLabel : formatEuroCents(amountCents);
 
   return (
     <div className="min-h-screen bg-background">
@@ -148,7 +160,7 @@ export const PaymentPage = () => {
             <p className="mt-3 max-w-3xl text-sm leading-7 text-white/92">
               {resourceOrder
                 ? 'Réglez votre commande de document ou service administratif. Après confirmation, l’équipe Greffio traite votre demande.'
-                : 'Paiement traité par notre prestataire de paiement sécurisé, avec vérification serveur et confirmation par webhook signé avant validation du dossier.'}
+                : 'Paiement sécurisé par Google Pay (CAWL en cours de branchement), avec vérification serveur avant validation du dossier.'}
             </p>
           </div>
 
@@ -235,7 +247,7 @@ export const PaymentPage = () => {
                 <span>
                   {showB2BProviders
                     ? 'Paiement sécurisé professionnel (SEPA / virement).'
-                    : 'Paiement sécurisé par carte ou wallet.'}
+                    : 'Paiement Google Pay — chiffrement TLS et confirmation serveur.'}
                 </span>
               </div>
             </div>
@@ -247,6 +259,18 @@ export const PaymentPage = () => {
                 </Link>
               </Button>
             )}
+            {!showB2BProviders && amountCents > 0 ? (
+              <GooglePayCheckoutPanel
+                className="mt-4"
+                amountCents={amountCents}
+                amountLabel={amountLabel}
+                offerLabel={resourceOrder?.serviceTitle || selectedOffer.title}
+                dossierId={!resourceOrderId ? getCurrentDossierId() : undefined}
+                resourceOrderId={resourceOrderId || undefined}
+                offerCode={offerName}
+              />
+            ) : null}
+            {showB2BProviders ? (
             <Button
               type="button"
               className="mt-3 w-full justify-between"
@@ -257,6 +281,7 @@ export const PaymentPage = () => {
               {isCreatingPayment ? 'Initialisation...' : 'Payer maintenant'}
               <ArrowRight className="h-4 w-4" />
             </Button>
+            ) : null}
             {resourceOrder && (
               <Button asChild variant="outline" className="mt-3 w-full">
                 <Link to="/ressources">Retour aux ressources</Link>
