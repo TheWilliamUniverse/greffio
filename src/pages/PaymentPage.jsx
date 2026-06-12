@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowRight, BadgeEuro, CheckCircle2, CreditCard, FileText, LockKeyhole, ReceiptText, ShieldCheck } from 'lucide-react';
+import { ArrowRight, BadgeEuro, CheckCircle2, CreditCard, FileText, LockKeyhole, ReceiptText, ShieldCheck, WalletCards } from 'lucide-react';
 import { toast } from 'sonner';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
@@ -129,8 +129,15 @@ export const PaymentPage = () => {
       throw new Error('CHECKOUT_URL_MISSING');
     } catch (error) {
       const code = error?.payload?.error || error?.message;
-      if (code === 'GOCARDLESS_FORBIDDEN_FOR_B2C' || code === 'B2C_REQUIRES_CAWL') {
-        toast.error('Paiement B2C indisponible : configuration CAWL en attente. Contactez le support.');
+      if ([
+        'GOCARDLESS_FORBIDDEN_FOR_B2C',
+        'B2C_REQUIRES_CAWL',
+        'PAYMENT_PROVIDER_NOT_CONFIGURED',
+        'CAWL_NOT_CONFIGURED',
+      ].includes(code)) {
+        toast.error('Paiement carte indisponible : le prestataire serveur n’est pas encore configuré.');
+      } else if (code === 'API_TRANSIENT_UNAVAILABLE' || error?.status === 503) {
+        toast.error('Paiement momentanément indisponible. Réessayez dans quelques instants.');
       } else {
         toast.error("Impossible d'initialiser le paiement sécurisé.");
       }
@@ -346,32 +353,50 @@ export const PaymentPage = () => {
               </Button>
             )}
             {currentUser && (resourceOrder || !showB2BProviders) && amountCents > 0 ? (
-              <>
+              <section className="mt-5 overflow-hidden rounded-3xl border border-[#cfe0f5] bg-gradient-to-br from-[#f8fbff] via-white to-[#eef5ff] p-4 shadow-[0_18px_50px_rgba(30,77,140,0.12)]">
+                <div className="mb-4 flex items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[hsl(var(--greffio-blue))] text-white shadow-sm">
+                    <WalletCards className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-wide text-primary">Terminal Greffio</p>
+                    <h3 className="text-lg font-extrabold text-[hsl(var(--greffio-blue-900))]">Paiement centralisé</h3>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      Les wallets s’affichent uniquement quand le serveur les confirme disponibles. Sinon, utilisez la carte bancaire.
+                    </p>
+                  </div>
+                </div>
+                <p className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
+                  Amazon Pay et Google Pay nécessitent leurs clés marchand côté API. Si aucun bouton wallet n’apparaît,
+                  le paiement carte reste le chemin de secours sécurisé.
+                </p>
                 <AmazonPayCheckoutPanel
-                  className="mt-4"
+                  className="border-white/70 shadow-none"
                   amountCents={amountCents}
                   amountLabel={amountLabel}
                   offerLabel={resourceOrder?.serviceTitle || selectedOffer.title}
                   dossierId={!resourceOrderId ? getCurrentDossierId() : undefined}
                   resourceOrderId={resourceOrderId || undefined}
                   offerCode={offerName}
+                  hideWhenUnavailable
                 />
                 <GooglePayCheckoutPanel
-                  className="mt-4"
+                  className="mt-3 border-white/70 shadow-none"
                   amountCents={amountCents}
                   amountLabel={amountLabel}
                   offerLabel={resourceOrder?.serviceTitle || selectedOffer.title}
                   dossierId={!resourceOrderId ? getCurrentDossierId() : undefined}
                   resourceOrderId={resourceOrderId || undefined}
                   offerCode={offerName}
+                  hideWhenUnavailable
                 />
-              </>
+              </section>
             ) : null}
             {(showB2BProviders || resourceOrder) && !resourceLanding ? (
             <Button
               type="button"
               className="mt-3 w-full justify-between"
-              variant={resourceOrder ? 'outline' : showB2BProviders ? 'default' : 'outline'}
+              variant={resourceOrder ? 'default' : showB2BProviders ? 'default' : 'outline'}
               onClick={handleCheckout}
               disabled={isCreatingPayment || (resourceOrderId && loadingResourceOrder)}
             >

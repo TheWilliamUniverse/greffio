@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, LockKeyhole, ShieldCheck } from 'lucide-react';
+import { ArrowRight, CheckCircle2, LockKeyhole, ShieldCheck, WalletCards } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button.jsx';
 import { PAYMENT_METHODS } from '@/config/businessCatalog.js';
@@ -113,8 +113,15 @@ export const MobilePaymentPage = () => {
       throw new Error('CHECKOUT_URL_MISSING');
     } catch (error) {
       const code = error?.payload?.error || error?.message;
-      if (code === 'GOCARDLESS_FORBIDDEN_FOR_B2C' || code === 'B2C_REQUIRES_CAWL') {
-        toast.error('Paiement B2C indisponible : configuration CAWL en attente. Contactez le support.');
+      if ([
+        'GOCARDLESS_FORBIDDEN_FOR_B2C',
+        'B2C_REQUIRES_CAWL',
+        'PAYMENT_PROVIDER_NOT_CONFIGURED',
+        'CAWL_NOT_CONFIGURED',
+      ].includes(code)) {
+        toast.error('Paiement carte indisponible : le prestataire serveur n’est pas encore configuré.');
+      } else if (code === 'API_TRANSIENT_UNAVAILABLE' || error?.status === 503) {
+        toast.error('Paiement momentanément indisponible. Réessayez dans quelques instants.');
       } else {
         toast.error('Impossible d’initialiser le paiement sécurisé.');
       }
@@ -208,31 +215,50 @@ export const MobilePaymentPage = () => {
       ) : null}
 
       {currentUser && (resourceOrder || !showB2BProviders) && amountCents > 0 ? (
-        <>
+        <section className="rounded-3xl border border-[#cfe0f5] bg-gradient-to-br from-[#f8fbff] via-white to-[#eef5ff] p-4 shadow-[0_18px_50px_rgba(30,77,140,0.12)]">
+          <div className="mb-4 flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[hsl(var(--greffio-blue))] text-white">
+              <WalletCards className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-xs font-black uppercase tracking-wide text-primary">Terminal Greffio</p>
+              <h2 className="text-lg font-extrabold">Paiement centralisé</h2>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                Les wallets apparaissent seulement quand le serveur les confirme disponibles.
+              </p>
+            </div>
+          </div>
+          <p className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
+            Si aucun wallet n’est disponible, utilisez le paiement carte bancaire.
+          </p>
           <AmazonPayCheckoutPanel
+            className="border-white/70 shadow-none"
             amountCents={amountCents}
             amountLabel={amountLabel}
             offerLabel={resourceOrder?.serviceTitle || selectedOffer.title}
             dossierId={!resourceOrderId ? getCurrentDossierId() : undefined}
             resourceOrderId={resourceOrderId || undefined}
             offerCode={offerName}
+            hideWhenUnavailable
           />
           <GooglePayCheckoutPanel
+            className="mt-3 border-white/70 shadow-none"
             amountCents={amountCents}
             amountLabel={amountLabel}
             offerLabel={resourceOrder?.serviceTitle || selectedOffer.title}
             dossierId={!resourceOrderId ? getCurrentDossierId() : undefined}
             resourceOrderId={resourceOrderId || undefined}
             offerCode={offerName}
+            hideWhenUnavailable
           />
-        </>
+        </section>
       ) : null}
 
       {(showB2BProviders || resourceOrder) && !resourceLanding ? (
       <Button
         type="button"
-        variant={resourceOrder ? 'outline' : 'default'}
-        className={resourceOrder ? 'h-12 w-full bg-white text-base' : 'h-12 w-full text-base'}
+        variant="default"
+        className="h-12 w-full text-base"
         onClick={handleCheckout}
         disabled={isCreatingPayment || (resourceOrderId && loadingResourceOrder)}
       >

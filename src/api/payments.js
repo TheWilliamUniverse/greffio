@@ -85,3 +85,11 @@ export const createAmazonPaySession = async ({
   resourceOrderId,
   offerCode,
 });
+
+export const completeAmazonPaySession = async ({
+  paymentId,
+  amazonCheckoutSessionId,
+}) => apiPost('/api/payments/amazon-pay/complete', {
+  paymentId,
+  amazonCheckoutSessionId,
+});

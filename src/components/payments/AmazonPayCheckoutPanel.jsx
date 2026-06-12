@@ -29,6 +29,7 @@ export const AmazonPayCheckoutPanel = ({
   resourceOrderId,
   offerCode,
   className,
+  hideWhenUnavailable = false,
 }) => {
   const buttonRef = useRef(null);
   const [loading, setLoading] = useState(true);
@@ -63,17 +64,27 @@ export const AmazonPayCheckoutPanel = ({
         buttonRef.current.innerHTML = '';
         window.amazon.Pay.renderButton(buttonRef.current, {
           merchantId: publicConfig.merchantId,
+          publicKeyId: publicConfig.publicKeyId,
           ledgerCurrency: publicConfig.ledgerCurrency || 'EUR',
           sandbox: Boolean(publicConfig.sandbox),
           checkoutLanguage: publicConfig.checkoutLanguage || 'fr_FR',
           productType: 'PayOnly',
           placement: 'Checkout',
           buttonColor: 'Gold',
+          estimatedOrderAmount: {
+            amount: (Math.max(0, amountCents) / 100).toFixed(2),
+            currencyCode: publicConfig.ledgerCurrency || 'EUR',
+          },
           createCheckoutSessionConfig: sessionPayload.createCheckoutSessionConfig,
         });
       } catch (err) {
         if (!cancelled) {
-          setError(err?.payload?.error || err?.message || 'Amazon Pay indisponible pour le moment.');
+          const reason = err?.payload?.error || err?.message;
+          setError(
+            reason === 'AMAZON_PAY_NOT_CONFIGURED'
+              ? 'Amazon Pay attend encore les variables serveur et la clé privée sur le VPS.'
+              : reason || 'Amazon Pay indisponible pour le moment. Vous pouvez régler par carte bancaire.',
+          );
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -86,6 +97,7 @@ export const AmazonPayCheckoutPanel = ({
   }, [amountCents, dossierId, offerCode, resourceOrderId]);
 
   return (
+    hideWhenUnavailable && error && !loading ? null : (
     <section
       className={cn(
         'overflow-hidden rounded-2xl border border-[#d4e2f5] bg-gradient-to-br from-white via-[#f7faff] to-[#edf4ff] p-5 shadow-[0_12px_32px_rgba(30,77,140,0.08)]',
@@ -142,5 +154,6 @@ export const AmazonPayCheckoutPanel = ({
         </span>
       </div>
     </section>
+    )
   );
 };

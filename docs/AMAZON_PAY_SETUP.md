@@ -1,12 +1,31 @@
 # Amazon Pay Greffio
 
-## URL autorisée
+## Seller Central — Paramètres d'intégration
 
-Allowed return URL:
+### Allowed return URL
 
 ```text
 https://greffio.willentreprises.com/paiement/amazon-pay/retour
 ```
+
+### JavaScript origin (Integration Central)
+
+```text
+https://greffio.willentreprises.com/
+```
+
+### URL IPN (notifications instantanées)
+
+Dans **Paramètres > Paramètres d'intégration > Paramètres des notifications instantanées**, cliquer **Modifier** et renseigner :
+
+```text
+https://api.greffio.willentreprises.com/api/webhooks/amazon-pay
+```
+
+- HTTPS obligatoire en production
+- L'endpoint répond `200 OK` immédiatement
+- Les IPN `CHARGE` déclenchent une relecture serveur via l'API Amazon Pay
+- La confirmation SNS initiale est acceptée automatiquement
 
 ## Variables serveur
 

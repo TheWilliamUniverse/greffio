@@ -15,6 +15,7 @@ export const GooglePayCheckoutPanel = ({
   offerCode,
   className,
   onSuccess,
+  hideWhenUnavailable = false,
 }) => {
   const { ready, error, config, isReadyToPay, pay } = useGooglePay({
     amountCents,
@@ -58,6 +59,7 @@ export const GooglePayCheckoutPanel = ({
   };
 
   return (
+    hideWhenUnavailable && error && !ready ? null : (
     <section
       className={cn(
         'overflow-hidden rounded-2xl border border-[#d4e2f5] bg-gradient-to-br from-white via-[#f4f8ff] to-[#eef4fb] p-5 shadow-[0_12px_32px_rgba(30,77,140,0.08)]',
@@ -145,5 +147,6 @@ export const GooglePayCheckoutPanel = ({
         </span>
       </div>
     </section>
+    )
   );
 };

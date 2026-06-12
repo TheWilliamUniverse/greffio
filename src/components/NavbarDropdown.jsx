@@ -168,7 +168,7 @@ export const NavbarDropdown = () => {
             <Search className="h-4 w-4" />
           </Button>
           <Button asChild className="gap-2 bg-[#0f1f3d] hover:bg-[#0f1f3d]/92">
-            <Link to="/simulateur?type=creation">
+            <Link to="/signup">
               Créer mon espace
               <ArrowRight className="h-4 w-4" />
             </Link>
@@ -192,7 +192,7 @@ export const NavbarDropdown = () => {
             <User className="h-4 w-4" />
           </Link>
           <Link
-            to="/simulateur?type=creation"
+            to="/signup"
             className="hidden h-9 items-center gap-1 rounded-md bg-[#0f1f3d] px-3 text-xs font-semibold text-white transition hover:bg-[#0f1f3d]/92 sm:inline-flex"
           >
             Créer mon espace
@@ -231,7 +231,7 @@ export const NavbarDropdown = () => {
                   </Link>
                 </Button>
                 <Button asChild className="bg-[#0f1f3d] hover:bg-[#0f1f3d]/92">
-                  <Link to="/simulateur?type=creation" onClick={() => setIsMobileOpen(false)}>
+                  <Link to="/signup" onClick={() => setIsMobileOpen(false)}>
                     Créer mon espace
                     <ArrowRight className="h-4 w-4" />
                   </Link>

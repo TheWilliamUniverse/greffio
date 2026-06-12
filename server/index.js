@@ -247,6 +247,7 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   if (req.path === '/api/webhooks/resend' || req.path === '/api/webhooks/brevo') return next();
   if (req.path === '/webhooks/gocardless' || req.path === '/api/webhooks/gocardless') return next();
+  if (req.path === '/api/webhooks/amazon-pay') return next();
   return express.json()(req, res, next);
 });
 
