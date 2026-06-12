@@ -5,16 +5,22 @@ import { getResourceOrderById, updateResourceOrder } from '../resourceOrderStore
 import { DOSSIER_STATUSES, ROLE } from '../stateMachine.js';
 import { handleResourceOrderPaymentPaid } from './resourcePaymentWebhook.js';
 
-export const getGooglePayPublicConfig = () => ({
-  enabled: Boolean(process.env.GOOGLE_PAY_API_KEY || process.env.GOOGLE_PAY_MERCHANT_ID),
-  environment: process.env.GOOGLE_PAY_ENVIRONMENT === 'PRODUCTION' ? 'PRODUCTION' : 'TEST',
-  merchantId: process.env.GOOGLE_PAY_MERCHANT_ID || '',
-  merchantName: process.env.GOOGLE_PAY_MERCHANT_NAME || 'Greffio',
-  gateway: process.env.GOOGLE_PAY_GATEWAY || 'cawl',
-  gatewayMerchantId: process.env.GOOGLE_PAY_GATEWAY_MERCHANT_ID || process.env.CAWL_MERCHANT_ID || '',
-  countryCode: 'FR',
-  currencyCode: 'EUR',
-});
+export const getGooglePayPublicConfig = () => {
+  const environment = process.env.GOOGLE_PAY_ENVIRONMENT === 'PRODUCTION' ? 'PRODUCTION' : 'TEST';
+  const hasMerchant = Boolean(process.env.GOOGLE_PAY_API_KEY || process.env.GOOGLE_PAY_MERCHANT_ID);
+  return {
+    // En attendant CAWL : le mode TEST Google Pay fonctionne sans compte marchand
+    // (gateway "example"), donc on l'active par défaut hors PRODUCTION.
+    enabled: hasMerchant || environment === 'TEST',
+    environment,
+    merchantId: process.env.GOOGLE_PAY_MERCHANT_ID || '',
+    merchantName: process.env.GOOGLE_PAY_MERCHANT_NAME || 'Greffio',
+    gateway: process.env.GOOGLE_PAY_GATEWAY || 'cawl',
+    gatewayMerchantId: process.env.GOOGLE_PAY_GATEWAY_MERCHANT_ID || process.env.CAWL_MERCHANT_ID || '',
+    countryCode: 'FR',
+    currencyCode: 'EUR',
+  };
+};
 
 const extractPaymentToken = (paymentData) => {
   const tokenization = paymentData?.paymentMethodData?.tokenizationData;

@@ -355,15 +355,19 @@ export const PaymentPage = () => {
                 offerCode={offerName}
               />
             ) : null}
-            {showB2BProviders && !resourceLanding ? (
+            {(showB2BProviders || resourceOrder) && !resourceLanding ? (
             <Button
               type="button"
               className="mt-3 w-full justify-between"
-              variant={resourceOrder ? 'default' : 'outline'}
+              variant={resourceOrder ? 'outline' : showB2BProviders ? 'default' : 'outline'}
               onClick={handleCheckout}
               disabled={isCreatingPayment || (resourceOrderId && loadingResourceOrder)}
             >
-              {isCreatingPayment ? 'Initialisation...' : 'Payer maintenant'}
+              {isCreatingPayment
+                ? 'Initialisation...'
+                : resourceOrder
+                  ? 'Payer par carte bancaire'
+                  : 'Payer maintenant'}
               <ArrowRight className="h-4 w-4" />
             </Button>
             ) : null}

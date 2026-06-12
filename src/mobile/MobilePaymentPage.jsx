@@ -217,14 +217,19 @@ export const MobilePaymentPage = () => {
         />
       ) : null}
 
-      {showB2BProviders && !resourceLanding ? (
+      {(showB2BProviders || resourceOrder) && !resourceLanding ? (
       <Button
         type="button"
-        className="h-12 w-full text-base"
+        variant={resourceOrder ? 'outline' : 'default'}
+        className={resourceOrder ? 'h-12 w-full bg-white text-base' : 'h-12 w-full text-base'}
         onClick={handleCheckout}
         disabled={isCreatingPayment || (resourceOrderId && loadingResourceOrder)}
       >
-        {isCreatingPayment ? 'Redirection sécurisée…' : 'Payer maintenant'}
+        {isCreatingPayment
+          ? 'Redirection sécurisée…'
+          : resourceOrder
+            ? 'Payer par carte bancaire'
+            : 'Payer maintenant'}
         <ArrowRight className="h-4 w-4" />
       </Button>
       ) : null}

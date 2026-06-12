@@ -16,10 +16,11 @@ export const GooglePayCheckoutPanel = ({
   className,
   onSuccess,
 }) => {
-  const { ready, error, isReadyToPay, pay } = useGooglePay({
+  const { ready, error, config, isReadyToPay, pay } = useGooglePay({
     amountCents,
     label: offerLabel,
   });
+  const isTestEnvironment = config?.environment !== 'PRODUCTION';
   const [canPay, setCanPay] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -68,7 +69,14 @@ export const GooglePayCheckoutPanel = ({
           <Smartphone className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold uppercase tracking-wide text-primary">Paiement express</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs font-bold uppercase tracking-wide text-primary">Paiement express</p>
+            {ready && isTestEnvironment ? (
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+                Pré-production
+              </span>
+            ) : null}
+          </div>
           <h2 className="mt-0.5 text-lg font-extrabold text-[hsl(var(--greffio-blue-900))]">Google Pay</h2>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">
             Réglez en un geste. Vos cartes enregistrées dans Google Pay — chiffrement TLS et confirmation serveur Greffio.
@@ -116,9 +124,16 @@ export const GooglePayCheckoutPanel = ({
           </Button>
         ) : null}
 
+        {ready && canPay ? (
+          <p className="text-center text-xs text-muted-foreground">
+            Visa · Mastercard — montant débité : {amountLabel || 'montant TTC'}
+          </p>
+        ) : null}
+
         {ready && !canPay && !error ? (
           <p className="rounded-xl border border-border bg-white px-4 py-3 text-sm text-muted-foreground">
             Google Pay n&apos;est pas disponible sur cet appareil ou ce navigateur.
+            Utilisez le paiement par carte bancaire ci-dessous.
           </p>
         ) : null}
       </div>
