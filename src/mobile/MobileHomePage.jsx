@@ -39,7 +39,7 @@ export const MobileHomePage = () => {
   const cachedAt = isError ? offlineSnapshot?.cachedAt : null;
   const primaryDossier = dossiers[0];
   const actionLabel = useMemo(() => {
-    if (!primaryDossier) return 'Commencez une simulation pour créer votre première démarche.';
+    if (!primaryDossier) return 'Votre espace est prêt. Lancez votre première démarche : Greffio prépare les documents, les pièces et le suivi avec vous.';
     return mapDossierClientAction(primaryDossier.status, primaryDossier.progressPercent);
   }, [primaryDossier]);
 
@@ -47,7 +47,7 @@ export const MobileHomePage = () => {
     ? (['under_administration_review', 'filed_to_guichet_unique'].includes(String(primaryDossier.status || '').toLowerCase())
       ? 'En vérification'
       : 'Action requise')
-    : 'Bienvenue';
+    : 'Bienvenue sur Greffio';
 
   const quickLinks = [
     { to: '/dossiers', icon: FolderKanban, label: 'Dossiers', hint: 'Suivi formalités' },
@@ -78,13 +78,13 @@ export const MobileHomePage = () => {
           >
             <p className="text-xs font-bold uppercase tracking-wide text-primary/80">{actionCardTitle}</p>
             <h2 className="mt-1 text-lg font-extrabold text-foreground">
-              {primaryDossier?.companyName || 'Aucun dossier actif'}
+              {primaryDossier?.companyName || 'Créez votre premier dossier'}
             </h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">{actionLabel}</p>
             <div className="mt-4 flex flex-col gap-2">
               <Button asChild className="h-11 w-full rounded-2xl text-base">
-                <Link to={primaryDossier ? resolveDossierContinueUrl(primaryDossier) : '/simulateur'}>
-                  {primaryDossier ? 'Reprendre mon dossier' : 'Commencer'}
+                <Link to={primaryDossier ? resolveDossierContinueUrl(primaryDossier) : '/simulateur?type=creation'}>
+                  {primaryDossier ? 'Reprendre mon dossier' : 'Créer mon premier dossier'}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>

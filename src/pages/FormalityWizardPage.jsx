@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -10,6 +10,7 @@ import {
   Download,
   FileSignature,
   FileText,
+  Lock,
   Mail,
   PenLine,
   ShieldAlert,
@@ -46,6 +47,8 @@ import { GREFFIO_CONTACT } from '@/config/legalFlow.js';
 import { getFormalityRule, isEiLikeFormality } from '@/config/formalities.js';
 import { lookupCompanyBySiren } from '@/api/company.js';
 import { useAuth } from '@/hooks/useAuth.js';
+import { SecurityChallengeWidget } from '@/components/security/SecurityChallengeWidget.jsx';
+import { useSecurityConfig } from '@/hooks/useSecurityConfig.js';
 import {
   contactDetailsFromUser,
   hasCompleteUserContact,
@@ -244,7 +247,9 @@ const compareModules = Object.freeze({
 
 export const FormalityWizardPage = ({ presentation = 'auto' }) => {
   const [searchParams] = useSearchParams();
-  const { currentUser, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const { currentUser, isAuthenticated, signup } = useAuth();
+  const security = useSecurityConfig();
   const isMobilePresentation = presentation === 'mobile'
     || (presentation === 'auto' && (isCapacitorNative() || isMobileBrowserViewport()));
   const wizardPanelRef = useRef(null);
@@ -269,6 +274,11 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
   const [questionExitPhase, setQuestionExitPhase] = useState(null);
   const [questionnaireFinished, setQuestionnaireFinished] = useState(false);
   const [contactStep, setContactStep] = useState(0);
+  // Création d'espace inline (mobile, nouveau client) : none → offer → creating | skipped
+  const [accountPhase, setAccountPhase] = useState('none');
+  const [accountPassword, setAccountPassword] = useState('');
+  const [accountError, setAccountError] = useState('');
+  const [accountCaptcha, setAccountCaptcha] = useState({ provider: 'turnstile', turnstileToken: '', recaptchaToken: '' });
   const [existingCompanyIdentifier, setExistingCompanyIdentifier] = useState('');
   const [existingCompanyState, setExistingCompanyState] = useState('idle');
   const [existingCompanyError, setExistingCompanyError] = useState('');
@@ -312,6 +322,13 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     () => isAuthenticated && hasCompleteUserContact(currentUser),
     [isAuthenticated, currentUser],
   );
+  const shouldCreateAccountInline = isMobilePresentation && !isAuthenticated && data.journey === 'creation';
+  const isAccountCreationStep = step === 1
+    && !isCompanyLookupStep
+    && projectSubStep === 0
+    && (accountPhase === 'offer' || accountPhase === 'creating');
+  const showAccountChallenge = security.turnstileOnSignup && security.captchaProvider !== 'none';
+  const hasAccountCaptchaToken = Boolean(accountCaptcha.turnstileToken || accountCaptcha.recaptchaToken);
   const visibleProjectSubSteps = useMemo(() => {
     let subSteps = skipContactStep
       ? PROJECT_SUB_STEPS.filter((item) => item.id !== 'contact')
@@ -634,8 +651,54 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     );
   };
 
+  const canContinueAccountCreation = () => {
+    if (accountPhase === 'creating') return false;
+    if (String(accountPassword).length < 8) return false;
+    if (showAccountChallenge && !hasAccountCaptchaToken) return false;
+    return true;
+  };
+
+  const createAccountSpace = async () => {
+    if (accountPhase === 'creating') return;
+    if (String(accountPassword).length < 8) {
+      setAccountError('Choisissez un mot de passe d’au moins 8 caractères.');
+      return;
+    }
+    setAccountPhase('creating');
+    setAccountError('');
+    const result = await signup({
+      email: String(data.email || '').trim(),
+      password: accountPassword,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      phone: data.phone,
+      companyName: data.companyName,
+      legalForm: data.legalForm,
+      city: data.city,
+      activity: data.activity,
+      initiatorType: data.initiatorType,
+      initiatorName: data.initiatorName || `${data.firstName || ''} ${data.lastName || ''}`.trim(),
+      ...(showAccountChallenge && hasAccountCaptchaToken ? accountCaptcha : {}),
+    });
+    if (!result.success) {
+      setAccountPhase('offer');
+      setAccountError(result.message || result.error || 'Création du compte impossible. Réessayez.');
+      return;
+    }
+    setAccountPassword('');
+    toast.success('Votre espace Greffio est créé !');
+    navigate('/dashboard');
+  };
+
+  const skipAccountCreation = () => {
+    setAccountPhase('skipped');
+    setAccountError('');
+    setProjectSubStep(1);
+  };
+
   const canContinueProjectSubStep = () => {
     if (isCompanyLookupStep) return Boolean(existingCompany);
+    if (isAccountCreationStep) return canContinueAccountCreation();
     if (projectSubStep === 0) {
       if (skipContactStep) return true;
       return canContinueContact();
@@ -659,8 +722,16 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
         setProjectSubStep(1);
         return;
       }
+      if (isAccountCreationStep) {
+        void createAccountSpace();
+        return;
+      }
       if (contactStep < contactFields.length - 1) {
         setContactStep((value) => value + 1);
+        return;
+      }
+      if (shouldCreateAccountInline && accountPhase === 'none') {
+        setAccountPhase('offer');
         return;
       }
     }
@@ -674,6 +745,11 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
   const retreatProjectFlow = () => {
     if (isCompanyLookupStep) {
       setStep(0);
+      return;
+    }
+    if (isAccountCreationStep) {
+      setAccountPhase('none');
+      setAccountError('');
       return;
     }
     if (needsExistingCompanyLookup && companyLookupConfirmed && projectSubStep === (skipContactStep ? 1 : 0) && contactStep === 0) {
@@ -955,11 +1031,12 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                   <div className={cn(isMobilePresentation ? 'min-w-0 space-y-3' : 'space-y-7')}>
                     <div className="min-w-0">
                       <p className={cn('font-bold uppercase text-primary', isMobilePresentation ? 'text-[10px] tracking-wide' : 'text-sm')}>
-                        {isCompanyLookupStep ? 'Entreprise existante' : 'Projet'}
+                        {isCompanyLookupStep ? 'Entreprise existante' : isAccountCreationStep ? 'Votre espace' : 'Projet'}
                       </p>
                       <h1 className={cn('font-extrabold', isMobilePresentation ? 'mt-1 text-lg' : 'mt-2 text-3xl')}>
                         {isCompanyLookupStep && 'Identifier votre société'}
-                        {!isCompanyLookupStep && projectSubStep === 0 && 'Vos coordonnées'}
+                        {!isCompanyLookupStep && isAccountCreationStep && 'Créez votre espace Greffio'}
+                        {!isCompanyLookupStep && !isAccountCreationStep && projectSubStep === 0 && 'Vos coordonnées'}
                         {!isCompanyLookupStep && projectSubStep === 1 && 'Qui effectue la démarche ?'}
                         {!isCompanyLookupStep && projectSubStep === 2 && 'Forme juridique visée'}
                         {!isCompanyLookupStep && projectSubStep === 3 && 'Choisissez votre forme'}
@@ -967,7 +1044,8 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                       </h1>
                       <p className={cn('text-muted-foreground', isMobilePresentation ? 'simulator-step-subtitle mt-1.5' : 'mt-2')}>
                         {isCompanyLookupStep && 'Signature électronique qualifiée nécessaire pour modifier, cesser ou corriger une société existante.'}
-                        {!isCompanyLookupStep && projectSubStep === 0 && 'Une question à la fois — vos coordonnées servent au dossier et aux relances Greffio.'}
+                        {!isCompanyLookupStep && isAccountCreationStep && 'Un mot de passe suffit : votre dossier, vos documents et votre suivi seront réunis au même endroit.'}
+                        {!isCompanyLookupStep && !isAccountCreationStep && projectSubStep === 0 && 'Une question à la fois — vos coordonnées servent au dossier et aux relances Greffio.'}
                         {!isCompanyLookupStep && projectSubStep === 1 && 'Une personne physique ou morale peut porter la demande, y compris une société qui crée une filiale.'}
                         {!isCompanyLookupStep && projectSubStep === 2 && 'Sélectionnez la catégorie la plus proche de votre situation, puis continuez.'}
                         {!isCompanyLookupStep && projectSubStep === 3 && 'Comparez les formes disponibles dans cette catégorie.'}
@@ -1016,14 +1094,77 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                     ) : (
                     <AnimatePresence mode="wait">
                       <motion.div
-                        key={`project-${projectSubStep}-${projectSubStep === 0 ? contactStep : 'static'}`}
+                        key={`project-${projectSubStep}-${projectSubStep === 0 ? (isAccountCreationStep ? 'account' : contactStep) : 'static'}`}
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -12 }}
                         transition={{ duration: 0.22 }}
                         className={cn(isMobilePresentation ? 'min-h-[280px] w-full min-w-0 overflow-hidden' : 'min-h-[320px]')}
                       >
-                        {projectSubStep === 0 && (
+                        {projectSubStep === 0 && isAccountCreationStep && (
+                          <div className={cn('simulator-contact-card rounded-2xl border border-primary/25 bg-gradient-to-br from-white via-secondary/40 to-white shadow-elevation-sm', isMobilePresentation ? 'p-4' : 'p-6 md:p-8')}>
+                            <div className="flex items-center gap-3">
+                              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+                                <Lock className="h-5 w-5 text-primary" />
+                              </span>
+                              <div className="min-w-0">
+                                <p className="text-sm font-extrabold text-[hsl(var(--greffio-blue-900))]">
+                                  {data.firstName} {data.lastName}
+                                </p>
+                                <p className="truncate text-xs text-muted-foreground">{data.email}</p>
+                              </div>
+                            </div>
+                            <form
+                              className="simulator-field-stack mt-4 space-y-2"
+                              onSubmit={(event) => {
+                                event.preventDefault();
+                                if (canContinueAccountCreation()) void createAccountSpace();
+                              }}
+                            >
+                              <Label className="text-sm">Choisissez un mot de passe</Label>
+                              <Input
+                                type="password"
+                                value={accountPassword}
+                                onChange={(event) => {
+                                  setAccountPassword(event.target.value);
+                                  setAccountError('');
+                                }}
+                                placeholder="8 caractères minimum"
+                                autoComplete="new-password"
+                                disabled={accountPhase === 'creating'}
+                                className={cn(isMobilePresentation ? mobileFieldClass : 'min-w-0 w-full rounded-xl')}
+                              />
+                              {accountError ? (
+                                <p className="text-xs font-semibold text-red-600" role="alert">{accountError}</p>
+                              ) : null}
+                              {showAccountChallenge ? (
+                                <SecurityChallengeWidget action="signup" onTokens={setAccountCaptcha} />
+                              ) : null}
+                            </form>
+                            <ul className="mt-4 space-y-1.5 text-xs leading-5 text-muted-foreground">
+                              {[
+                                'Votre projet est enregistré, rien à ressaisir.',
+                                'Dossier, documents et relances réunis dans votre cockpit.',
+                                'Gratuit et sans engagement.',
+                              ].map((item) => (
+                                <li key={item} className="flex items-start gap-2">
+                                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                                  <span>{item}</span>
+                                </li>
+                              ))}
+                            </ul>
+                            <button
+                              type="button"
+                              onClick={skipAccountCreation}
+                              disabled={accountPhase === 'creating'}
+                              className="mt-4 w-full text-center text-xs font-semibold text-muted-foreground underline underline-offset-2"
+                            >
+                              Continuer sans créer mon espace pour l’instant
+                            </button>
+                          </div>
+                        )}
+
+                        {projectSubStep === 0 && !isAccountCreationStep && (
                           <div className={cn('simulator-contact-card rounded-2xl border border-border bg-muted', isMobilePresentation ? 'p-3.5' : 'p-6 md:p-8')}>
                             <div className={cn('flex gap-3', isMobilePresentation ? 'flex-col items-stretch' : 'items-center justify-between gap-4')}>
                               <div className="min-w-0 flex-1">
@@ -1620,6 +1761,8 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                       ? 'Validation…'
                     : step === 2 && step2Phase === 'questionnaire'
                       ? (isLastQuestion ? 'Valider' : 'Continuer')
+                    : isAccountCreationStep
+                      ? (accountPhase === 'creating' ? 'Création…' : 'Créer mon espace')
                     : step === 1 && projectSubStep === 0 && contactStep < contactFields.length - 1
                       ? 'Question suivante'
                       : step === 1 && projectSubStep === PROJECT_SUB_STEPS.length - 1

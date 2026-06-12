@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useCallback, useRef, useState } from 'react';
+import { Briefcase, ChevronLeft, ChevronRight, Landmark, ShieldCheck, Users } from 'lucide-react';
 import {
   COMPARATOR_FORM_ORDER,
   LEGAL_FORM_COMPARATOR_FORMS,
@@ -7,11 +8,12 @@ import {
 } from '@/config/legalFormComparator.js';
 import { getFormAvailability } from '@/config/catalog.js';
 import { AvailabilityBadge, LegalFormBadge } from '@/components/comparator/LegalFormBadge.jsx';
+import { cn } from '@/lib/utils.js';
 
 const associatesLabel = (form) => {
-  if (form.minAssociates === 1 && form.maxAssociates === 1) return '1';
+  if (form.minAssociates === 1 && form.maxAssociates === 1) return '1 (seul)';
   if (form.maxAssociates) return `${form.minAssociates} à ${form.maxAssociates}`;
-  return `${form.minAssociates}+`;
+  return `${form.minAssociates} ou plus`;
 };
 
 const ComplexityDots = ({ level }) => (
@@ -26,115 +28,162 @@ const ComplexityDots = ({ level }) => (
   </span>
 );
 
-const DesktopTable = () => (
-  <div className="hidden overflow-hidden rounded-xl border border-border bg-white shadow-elevation-sm md:block">
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[860px] text-left text-sm">
-        <thead>
-          <tr className="border-b border-border bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
-            <th scope="col" className="p-3.5 font-bold">Forme</th>
-            <th scope="col" className="p-3.5 font-bold">Idéal pour</th>
-            <th scope="col" className="p-3.5 font-bold">Associés</th>
-            <th scope="col" className="p-3.5 font-bold">Responsabilité</th>
-            <th scope="col" className="p-3.5 font-bold">Fiscalité indicative</th>
-            <th scope="col" className="p-3.5 font-bold">Social dirigeant</th>
-            <th scope="col" className="p-3.5 font-bold">Complexité</th>
-            <th scope="col" className="p-3.5 font-bold">Greffio</th>
-          </tr>
-        </thead>
-        <tbody>
-          {COMPARATOR_FORM_ORDER.map((formKey) => {
-            const form = LEGAL_FORM_COMPARATOR_FORMS[formKey];
-            if (!form) return null;
-            return (
-              <tr key={formKey} className="border-b border-border/70 align-top transition-colors last:border-0 hover:bg-muted/25">
-                <td className="p-3.5">
-                  <span className="font-extrabold text-[hsl(var(--greffio-blue-900))]">{form.label}</span>
-                  <div className="mt-1.5 flex flex-wrap gap-1">
-                    {(LEGAL_FORM_FEATURE_BADGES[formKey] || []).map((badge) => (
-                      <LegalFormBadge key={badge} tone="blue">{badge}</LegalFormBadge>
-                    ))}
-                  </div>
-                </td>
-                <td className="p-3.5 text-muted-foreground">{LEGAL_FORM_IDEAL_FOR[formKey]}</td>
-                <td className="p-3.5 text-muted-foreground">{associatesLabel(form)}</td>
-                <td className="p-3.5 text-muted-foreground">{form.liability}</td>
-                <td className="p-3.5 text-muted-foreground">{form.taxDefault}</td>
-                <td className="p-3.5 text-muted-foreground">{form.social}</td>
-                <td className="p-3.5"><ComplexityDots level={form.complexity} /></td>
-                <td className="p-3.5">
-                  <AvailabilityBadge availability={getFormAvailability(form.availabilityKey)} />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  </div>
-);
+const SLIDE_ROWS = [
+  { key: 'associates', label: 'Associés', icon: Users, value: (form) => associatesLabel(form) },
+  { key: 'liability', label: 'Responsabilité', icon: ShieldCheck, value: (form) => form.liability },
+  { key: 'tax', label: 'Fiscalité indicative', icon: Landmark, value: (form) => form.taxDefault },
+  { key: 'social', label: 'Social dirigeant', icon: Briefcase, value: (form) => form.social },
+];
 
-const MobileCards = () => (
-  <div className="grid min-w-0 gap-3 md:hidden">
-    {COMPARATOR_FORM_ORDER.map((formKey) => {
-      const form = LEGAL_FORM_COMPARATOR_FORMS[formKey];
-      if (!form) return null;
-      return (
-        <article key={formKey} className="min-w-0 rounded-xl border border-border bg-white p-4 shadow-elevation-sm">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div className="min-w-0">
-              <h3 className="text-base font-extrabold text-[hsl(var(--greffio-blue-900))]">{form.label}</h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">{LEGAL_FORM_IDEAL_FOR[formKey]}</p>
-            </div>
-            <AvailabilityBadge availability={getFormAvailability(form.availabilityKey)} />
-          </div>
-          {(LEGAL_FORM_FEATURE_BADGES[formKey] || []).length ? (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {LEGAL_FORM_FEATURE_BADGES[formKey].map((badge) => (
-                <LegalFormBadge key={badge} tone="blue">{badge}</LegalFormBadge>
-              ))}
-            </div>
-          ) : null}
-          <dl className="mt-3 space-y-2 text-sm">
-            <div className="flex justify-between gap-3">
-              <dt className="shrink-0 font-semibold text-foreground">Associés</dt>
-              <dd className="text-right text-muted-foreground">{associatesLabel(form)}</dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-foreground">Responsabilité</dt>
-              <dd className="mt-0.5 leading-5 text-muted-foreground">{form.liability}</dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-foreground">Fiscalité indicative</dt>
-              <dd className="mt-0.5 leading-5 text-muted-foreground">{form.taxDefault}</dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-foreground">Social dirigeant</dt>
-              <dd className="mt-0.5 leading-5 text-muted-foreground">{form.social}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <dt className="font-semibold text-foreground">Complexité</dt>
-              <dd><ComplexityDots level={form.complexity} /></dd>
-            </div>
-          </dl>
-        </article>
-      );
-    })}
-  </div>
-);
+const FormSlide = ({ formKey, index, total }) => {
+  const form = LEGAL_FORM_COMPARATOR_FORMS[formKey];
+  if (!form) return null;
+  return (
+    <article
+      data-comparator-slide
+      className="flex w-[86%] max-w-[380px] shrink-0 snap-center flex-col rounded-2xl border border-border bg-white p-5 shadow-elevation-sm sm:w-[380px]"
+      aria-label={`${form.label} — fiche ${index + 1} sur ${total}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+            {index + 1} / {total}
+          </p>
+          <h3 className="mt-0.5 text-xl font-extrabold text-[hsl(var(--greffio-blue-900))]">{form.label}</h3>
+        </div>
+        <AvailabilityBadge availability={getFormAvailability(form.availabilityKey)} />
+      </div>
 
-export const LegalFormComparisonTable = () => (
-  <section id="comparateur-tableau" className="min-w-0 scroll-mt-24">
-    <div className="mb-5 max-w-2xl">
-      <p className="text-sm font-bold uppercase tracking-wide text-primary">Tableau comparatif</p>
-      <h2 className="mt-2 text-2xl font-extrabold text-[hsl(var(--greffio-blue-900))]">
-        Synthèse des principales formes
-      </h2>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">
-        Vue d’ensemble indicative. Le choix doit être confirmé selon votre situation.
+      <p className="mt-2 text-sm font-semibold text-foreground">
+        Idéal pour : <span className="font-medium text-muted-foreground">{LEGAL_FORM_IDEAL_FOR[formKey]}</span>
       </p>
-    </div>
-    <DesktopTable />
-    <MobileCards />
-  </section>
-);
+
+      {(LEGAL_FORM_FEATURE_BADGES[formKey] || []).length ? (
+        <div className="mt-2.5 flex flex-wrap gap-1">
+          {LEGAL_FORM_FEATURE_BADGES[formKey].map((badge) => (
+            <LegalFormBadge key={badge} tone="blue">{badge}</LegalFormBadge>
+          ))}
+        </div>
+      ) : null}
+
+      <dl className="mt-4 flex-1 space-y-3 border-t border-border/70 pt-4">
+        {SLIDE_ROWS.map((row) => (
+          <div key={row.key} className="flex items-start gap-2.5">
+            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-secondary/70">
+              <row.icon className="h-3.5 w-3.5 text-primary" />
+            </span>
+            <div className="min-w-0">
+              <dt className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{row.label}</dt>
+              <dd className="mt-0.5 text-sm leading-5 text-foreground">{row.value(form)}</dd>
+            </div>
+          </div>
+        ))}
+      </dl>
+
+      <div className="mt-4 flex items-center justify-between gap-3 border-t border-border/70 pt-3.5">
+        <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Complexité</span>
+        <ComplexityDots level={form.complexity} />
+      </div>
+    </article>
+  );
+};
+
+export const LegalFormComparisonTable = () => {
+  const trackRef = useRef(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const total = COMPARATOR_FORM_ORDER.length;
+
+  const handleScroll = useCallback(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    const slides = Array.from(track.querySelectorAll('[data-comparator-slide]'));
+    if (!slides.length) return;
+    const center = track.scrollLeft + track.clientWidth / 2;
+    let closest = 0;
+    let closestDistance = Infinity;
+    slides.forEach((slide, index) => {
+      const slideCenter = slide.offsetLeft + slide.offsetWidth / 2;
+      const distance = Math.abs(slideCenter - center);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closest = index;
+      }
+    });
+    setActiveIndex(closest);
+  }, []);
+
+  const scrollToSlide = useCallback((index) => {
+    const track = trackRef.current;
+    if (!track) return;
+    const slides = track.querySelectorAll('[data-comparator-slide]');
+    const slide = slides[Math.max(0, Math.min(index, slides.length - 1))];
+    if (!slide) return;
+    track.scrollTo({
+      left: slide.offsetLeft - (track.clientWidth - slide.offsetWidth) / 2,
+      behavior: 'smooth',
+    });
+  }, []);
+
+  return (
+    <section id="comparateur-tableau" className="min-w-0 scroll-mt-24">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+        <div className="max-w-2xl">
+          <p className="text-sm font-bold uppercase tracking-wide text-primary">Comparatif</p>
+          <h2 className="mt-2 text-2xl font-extrabold text-[hsl(var(--greffio-blue-900))]">
+            Synthèse des principales formes
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            Faites défiler les fiches pour comparer. Vue indicative — le choix doit être confirmé selon votre situation.
+          </p>
+        </div>
+        <div className="hidden items-center gap-2 sm:flex">
+          <button
+            type="button"
+            onClick={() => scrollToSlide(activeIndex - 1)}
+            disabled={activeIndex === 0}
+            aria-label="Fiche précédente"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-white text-foreground shadow-sm transition hover:border-primary/40 disabled:opacity-40"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSlide(activeIndex + 1)}
+            disabled={activeIndex === total - 1}
+            aria-label="Fiche suivante"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-white text-foreground shadow-sm transition hover:border-primary/40 disabled:opacity-40"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <div
+        ref={trackRef}
+        onScroll={handleScroll}
+        role="group"
+        aria-label="Fiches comparatives des formes juridiques"
+        className="flex snap-x snap-mandatory items-stretch gap-4 overflow-x-auto scroll-smooth px-1 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {COMPARATOR_FORM_ORDER.map((formKey, index) => (
+          <FormSlide key={formKey} formKey={formKey} index={index} total={total} />
+        ))}
+      </div>
+
+      <div className="mt-3 flex items-center justify-center gap-1.5" aria-hidden>
+        {COMPARATOR_FORM_ORDER.map((formKey, index) => (
+          <button
+            key={formKey}
+            type="button"
+            tabIndex={-1}
+            onClick={() => scrollToSlide(index)}
+            className={cn(
+              'h-1.5 rounded-full transition-all duration-300',
+              index === activeIndex ? 'w-6 bg-primary' : 'w-1.5 bg-[#d4e2f5]',
+            )}
+          />
+        ))}
+      </div>
+    </section>
+  );
+};
