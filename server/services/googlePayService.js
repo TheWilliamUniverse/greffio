@@ -1,8 +1,8 @@
 import crypto from 'node:crypto';
 import { computePaymentAmounts, computeResourcePaymentAmounts } from '../pricing.js';
-import { upsertPayment } from '../store.js';
+import { upsertPayment, transitionDossierStatus } from '../store.js';
 import { getResourceOrderById, updateResourceOrder } from '../resourceOrderStore.js';
-import { transitionDossierStatus, DOSSIER_STATUSES, ROLE } from '../stateMachine.js';
+import { DOSSIER_STATUSES, ROLE } from '../stateMachine.js';
 import { handleResourceOrderPaymentPaid } from './resourcePaymentWebhook.js';
 
 export const getGooglePayPublicConfig = () => ({
