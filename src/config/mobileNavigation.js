@@ -15,6 +15,7 @@ import {
   Plus,
   Receipt,
   Settings,
+  ShoppingBag,
   Sparkles,
   UserRound,
 } from 'lucide-react';
@@ -53,6 +54,7 @@ export const MOBILE_DRAWER_NAV_ITEMS = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
   { to: '/dossiers', icon: FolderKanban, label: 'Dossiers' },
   { to: '/documents', icon: FileText, label: 'Documents' },
+  { to: '/boutique', icon: ShoppingBag, label: 'Boutique' },
   { to: '/team', icon: MessageSquareText, label: 'Messages' },
   { to: '/simulateur', icon: FileSignature, label: 'Nouvelle démarche' },
   { to: '/profil', icon: UserRound, label: 'Mon profil' },
@@ -70,6 +72,7 @@ export const MOBILE_DRAWER_NAV_GROUPS = [
       { to: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
       { to: '/dossiers', icon: FolderKanban, label: 'Dossiers' },
       { to: '/documents', icon: FileText, label: 'Documents' },
+      { to: '/boutique', icon: ShoppingBag, label: 'Boutique' },
       { to: '/team', icon: MessageSquareText, label: 'Messages' },
     ],
   },

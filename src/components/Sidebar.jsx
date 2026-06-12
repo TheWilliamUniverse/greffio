@@ -15,6 +15,7 @@ import {
   ClipboardList,
   Settings,
   ShieldCheck,
+  ShoppingBag,
   UserRound,
 } from 'lucide-react';
 import { cn } from '@/lib/utils.js';
@@ -54,6 +55,7 @@ export const Sidebar = ({ className }) => {
     { to: '/simulateur', icon: FileSignature, label: 'Nouvelle démarche' },
     { to: '/dossiers', icon: FolderKanban, label: 'Dossiers', badge: dossiersCount },
     { to: '/documents', icon: FileText, label: 'Documents' },
+    { to: '/boutique', icon: ShoppingBag, label: 'Boutique' },
     { to: '/team', icon: MessageSquareText, label: 'Équipe & clients' },
     ...(internalView ? [
       { to: '/ops/cockpit', icon: ClipboardList, label: 'Cockpit Ops' },

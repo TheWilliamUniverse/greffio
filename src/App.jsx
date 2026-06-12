@@ -47,6 +47,7 @@ import { CookiesPage } from '@/pages/CookiesPage.jsx';
 import { AccountDeletionPage } from '@/pages/AccountDeletionPage.jsx';
 import { DataDeletionPage } from '@/pages/DataDeletionPage.jsx';
 import { ResourcesPage } from '@/pages/ResourcesPage.jsx';
+import { ClientShopPage } from '@/pages/ClientShopPage.jsx';
 import { ResourceGuidePage } from '@/pages/ResourceGuidePage.jsx';
 import { LegalFormComparatorPage } from '@/pages/LegalFormComparatorPage.jsx';
 import { AppInstallPage } from '@/pages/AppInstallPage.jsx';
@@ -203,6 +204,7 @@ function AppRoutes() {
             <Route path="/dossiers" element={<ProtectedRoute><DossiersEntry /></ProtectedRoute>} />
             <Route path="/dossier/:id" element={<ProtectedRoute><DossierDetailEntry /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><DocumentsEntry /></ProtectedRoute>} />
+            <Route path="/boutique" element={<ProtectedRoute><ClientShopPage /></ProtectedRoute>} />
             <Route path="/dossier/:dossierId/declaration-non-condamnation" element={<ProtectedRoute>{withSuspense(LazyNonConvictionDeclarationPage, 'Chargement déclaration…')}</ProtectedRoute>} />
             <Route path="/dossier/:dossierId/liste-souscripteurs" element={<ProtectedRoute><SubscribersListPage /></ProtectedRoute>} />
             <Route path="/dossier/:dossierId/pouvoirs-formalites" element={<ProtectedRoute><FormalityPowersPage /></ProtectedRoute>} />

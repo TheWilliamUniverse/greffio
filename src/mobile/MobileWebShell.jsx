@@ -14,6 +14,7 @@ const PAGE_TITLES = {
   '/dashboard': 'Accueil',
   '/dossiers': 'Dossiers',
   '/documents': 'Documents',
+  '/boutique': 'Boutique',
   '/tarifs': 'Tarifs',
   '/guide': 'Guide',
   '/login': 'Connexion',
