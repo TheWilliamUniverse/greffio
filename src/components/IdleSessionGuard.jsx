@@ -3,36 +3,64 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { LockKeyhole } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth.js';
 import { Button } from '@/components/ui/button.jsx';
+import { isCapacitorNative } from '@/utils/platform.js';
 
 const IDLE_MS = 30 * 60 * 1000;
+const CHECK_MS = 15 * 1000;
 
 export const IdleSessionGuard = ({ children }) => {
   const { isAuthenticated, logout } = useAuth();
   const [locked, setLocked] = useState(false);
-  const timerRef = useRef(null);
+  const lastActivityRef = useRef(Date.now());
+  const lockedRef = useRef(false);
 
-  const resetTimer = useCallback(() => {
-    if (!isAuthenticated) {
-      setLocked(false);
-      return;
+  const guardEnabled = isAuthenticated && !isCapacitorNative();
+
+  const lockSession = useCallback(async () => {
+    if (lockedRef.current || !guardEnabled) return;
+    lockedRef.current = true;
+    setLocked(true);
+    await logout();
+  }, [guardEnabled, logout]);
+
+  const touchActivity = useCallback(() => {
+    if (!guardEnabled || lockedRef.current) return;
+    lastActivityRef.current = Date.now();
+  }, [guardEnabled]);
+
+  const evaluateIdle = useCallback(() => {
+    if (!guardEnabled || lockedRef.current) return;
+    if (Date.now() - lastActivityRef.current >= IDLE_MS) {
+      void lockSession();
     }
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => setLocked(true), IDLE_MS);
-  }, [isAuthenticated]);
+  }, [guardEnabled, lockSession]);
 
   useEffect(() => {
-    if (!isAuthenticated) return undefined;
-    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
-    events.forEach((event) => window.addEventListener(event, resetTimer, { passive: true }));
-    resetTimer();
-    return () => {
-      events.forEach((event) => window.removeEventListener(event, resetTimer));
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [isAuthenticated, resetTimer]);
+    if (!guardEnabled) {
+      lockedRef.current = false;
+      setLocked(false);
+      return undefined;
+    }
 
-  const handleReconnect = async () => {
-    await logout();
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+    events.forEach((event) => window.addEventListener(event, touchActivity, { passive: true }));
+
+    const onVisibility = () => {
+      if (!document.hidden) evaluateIdle();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    const intervalId = window.setInterval(evaluateIdle, CHECK_MS);
+    touchActivity();
+
+    return () => {
+      events.forEach((event) => window.removeEventListener(event, touchActivity));
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.clearInterval(intervalId);
+    };
+  }, [guardEnabled, touchActivity, evaluateIdle]);
+
+  const handleReconnect = () => {
     window.location.href = '/login';
   };
 
@@ -63,7 +91,7 @@ export const IdleSessionGuard = ({ children }) => {
               <p className="mt-3 text-sm leading-6 text-white/80">
                 Vous avez été inactif pendant 30 minutes. Pour protéger vos dossiers, reconnectez-vous pour continuer.
               </p>
-              <Button className="mt-6 h-11 w-full bg-white text-[hsl(var(--greffio-blue))] hover:bg-white/90" onClick={() => void handleReconnect()}>
+              <Button className="mt-6 h-11 w-full bg-white text-[hsl(var(--greffio-blue))] hover:bg-white/90" onClick={handleReconnect}>
                 Se reconnecter
               </Button>
             </motion.div>

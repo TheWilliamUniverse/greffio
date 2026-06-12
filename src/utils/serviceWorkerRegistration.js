@@ -1,21 +1,9 @@
-import { toast } from 'sonner';
 import { isCapacitorNative } from '@/utils/platform.js';
 
-let updateToastShown = false;
-
-const notifyUpdateReady = (registration) => {
-  if (updateToastShown || isCapacitorNative()) return;
-  updateToastShown = true;
-  toast('Une nouvelle version de Greffio est disponible.', {
-    duration: Infinity,
-    action: {
-      label: 'Recharger',
-      onClick: () => {
-        registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
-        window.location.reload();
-      },
-    },
-  });
+const applyWaitingWorker = (registration) => {
+  if (registration.waiting) {
+    registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+  }
 };
 
 export const registerGreffioServiceWorker = () => {
@@ -25,14 +13,14 @@ export const registerGreffioServiceWorker = () => {
 
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').then((registration) => {
-      if (registration.waiting) notifyUpdateReady(registration);
+      if (registration.waiting) applyWaitingWorker(registration);
 
       registration.addEventListener('updatefound', () => {
         const worker = registration.installing;
         if (!worker) return;
         worker.addEventListener('statechange', () => {
           if (worker.state === 'installed' && navigator.serviceWorker.controller) {
-            notifyUpdateReady(registration);
+            applyWaitingWorker(registration);
           }
         });
       });

@@ -31,6 +31,20 @@ export const GREFFIO_FOOTER_COLUMNS = [
     ],
   },
   {
+    id: 'seo',
+    title: 'Formalités & SEO',
+    links: [
+      { to: '/creation-entreprise', label: 'Création d\'entreprise' },
+      { to: '/modification-entreprise', label: 'Modification d\'entreprise' },
+      { to: '/annonce-legale', label: 'Annonce légale' },
+      { to: '/guichet-unique-inpi', label: 'Guichet unique INPI' },
+      { to: '/kbis', label: 'KBIS' },
+      { to: '/guides', label: 'Guides' },
+      { to: '/glossaire', label: 'Glossaire' },
+      { to: '/faq', label: 'FAQ' },
+    ],
+  },
+  {
     id: 'documentation',
     title: 'Documentation',
     links: [

@@ -6,14 +6,17 @@ Chrome affiche `DNS_PROBE_FINISHED_NXDOMAIN` sur `greffio.willentreprises.com`.
 
 Ce n'est **pas** un bug React/Express : le sous-domaine `greffio` n'a **aucun enregistrement DNS**.
 
-## État actuel (juin 2026)
+## État actuel (juin 2026, vérifié 2026-06-08)
 
 - Cloudflare retiré — DNS géré chez **Hostinger**
-- Nameservers : `ns1.dns-parking.com` / `ns2.dns-parking.com` (normal après reset Hostinger)
-- `willentreprises.com` (racine) résout → OK
-- `greffio.willentreprises.com` → **NXDOMAIN** (enregistrement manquant)
-- `api.greffio.willentreprises.com` → **NXDOMAIN** (enregistrement manquant)
-- API VPS locale OK : `curl http://127.0.0.1:8787/api/health` sur `187.127.232.210`
+- Nameservers : `ns1.dns-parking.com` / `ns2.dns-parking.com`
+- **DNS authoritative + Google 8.8.8.8** : `greffio` et `api.greffio` résolvent correctement
+- **DNS box/routeur local** (`192.168.11.254`) : peut encore renvoyer **NXDOMAIN** (cache négatif FAI)
+- Frontend HTTPS : **200** (testé avec résolution forcée)
+- API HTTPS : **health OK** sur `187.127.232.210`
+
+> Contexte détaillé pour ChatGPT : `docs/contexte-incident-dns-greffio-chatgpt.md`  
+> Script diagnostic local : `pwsh -File scripts/diagnose-dns-greffio.ps1`
 
 ## Action corrective — Hostinger hPanel
 
@@ -27,7 +30,8 @@ Sinon, ajoutez manuellement :
 
 | Type | Nom | Pointe vers | TTL |
 |---|---|---|---|
-| **A** | `greffio` | `147.79.116.56` | 14400 |
+| **A** | `greffio` | `147.79.119.94` | 14400 |
+| **A** | `greffio` | `77.37.50.129` | 14400 |
 
 > Si Hostinger affiche une autre IP ou un CNAME (`xxxx.hostingersite.com`), utilisez **leur** valeur.
 

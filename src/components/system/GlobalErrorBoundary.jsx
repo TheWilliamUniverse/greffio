@@ -30,7 +30,7 @@ export class GlobalErrorBoundary extends React.Component {
       return (
         <MobileErrorFallback
           title="Greffio a rencontré un problème"
-          message="L’application n’a pas pu s’afficher correctement. Rechargez la page ou revenez à l’accueil."
+          message="L’application n’a pas pu s’afficher correctement. Réessayez ou revenez à l’accueil."
           onRetry={() => window.location.reload()}
         />
       );

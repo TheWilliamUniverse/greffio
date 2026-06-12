@@ -34,9 +34,9 @@ const parseChangelog = (value) => {
     .filter(Boolean);
 };
 
-const DEFAULT_LATEST_VERSION_CODE = 261510007;
+const DEFAULT_LATEST_VERSION_CODE = 261510008;
 const DEFAULT_MIN_VERSION_CODE = 261422041;
-const DEFAULT_LATEST_VERSION_NAME = '1.2.8';
+const DEFAULT_LATEST_VERSION_NAME = '1.2.9';
 
 const DEFAULT_CHANGELOG = [
   'Simulateur mobile fluide, questionnaire sticky, reprise vs nouveau dossier clarifiés',

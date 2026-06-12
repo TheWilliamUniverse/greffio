@@ -1,0 +1,6 @@
+$ORIGIN willentreprises.com.
+$TTL 14400
+
+greffio         IN      A       147.79.119.94
+greffio         IN      A       77.37.50.129
+api.greffio     IN      A       187.127.232.210

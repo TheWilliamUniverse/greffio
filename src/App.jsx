@@ -75,6 +75,20 @@ import { AppUpdateGate } from '@/components/AppUpdateGate.jsx';
 import { IdleSessionGuard } from '@/components/IdleSessionGuard.jsx';
 import { GlobalErrorBoundary } from '@/components/system/GlobalErrorBoundary.jsx';
 import { RouteErrorBoundary } from '@/components/system/RouteErrorBoundary.jsx';
+import {
+  SEO_FAQ_ITEMS,
+  SEO_GLOSSARY_PAGES,
+  SEO_GUIDE_PAGES,
+  SEO_HUBS,
+  SEO_PILLAR_PAGES,
+} from '@/config/seoContent.js';
+import {
+  SeoFaqPage,
+  SeoGlossaryPage,
+  SeoGuidePage,
+  SeoHubPage,
+  SeoPillarPage,
+} from '@/pages/SeoPages.jsx';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -90,11 +104,13 @@ const NotFound = () => <NotFoundPage />;
 
 const Layout = ({ children }) => {
   const location = useLocation();
-  const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/services', '/paiement', '/ressources', '/app', '/guide', '/procuration', '/contact', '/credentials-unlock', '/login', '/password-reset', '/tarifs'];
+  const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/services', '/paiement', '/ressources', '/app', '/guide', '/procuration', '/contact', '/credentials-unlock', '/login', '/password-reset', '/tarifs', '/creation-entreprise', '/modification-entreprise', '/annonce-legale', '/guichet-unique-inpi', '/kbis', '/guides', '/glossaire', '/faq'];
   const mobileWebShellActive = isMobileBrowserViewport()
     && shouldUseMobileWebShell(location.pathname);
   const shouldHideHeader = hideHeaderRoutes.some((route) => location.pathname === route || location.pathname.startsWith('/service/'))
     || location.pathname.startsWith('/ressources/guides/')
+    || location.pathname.startsWith('/guides/')
+    || location.pathname.startsWith('/glossaire/')
     || location.pathname.startsWith('/ops')
     || (isCapacitorNative() && shouldUseMobileShell(location.pathname))
     || mobileWebShellActive;
@@ -137,6 +153,18 @@ function AppRoutes() {
             {SERVICE_PAGE_SLUGS.map((slug) => (
               <Route key={slug} path={`/${slug}`} element={<ServiceLandingPage />} />
             ))}
+            {Object.values(SEO_PILLAR_PAGES).map((page) => (
+              <Route key={page.path} path={page.path} element={<SeoPillarPage page={page} />} />
+            ))}
+            <Route path="/guides" element={<SeoHubPage hub={SEO_HUBS.guides} />} />
+            {Object.values(SEO_GUIDE_PAGES).map((page) => (
+              <Route key={page.path} path={page.path} element={<SeoGuidePage page={page} />} />
+            ))}
+            <Route path="/glossaire" element={<SeoHubPage hub={SEO_HUBS.glossaire} />} />
+            {Object.values(SEO_GLOSSARY_PAGES).map((page) => (
+              <Route key={page.path} path={page.path} element={<SeoGlossaryPage page={page} />} />
+            ))}
+            <Route path="/faq" element={<SeoFaqPage hub={SEO_HUBS.faq} items={SEO_FAQ_ITEMS} />} />
             <Route path="/mentions-legales" element={<LegalMentionsPage />} />
             <Route path="/confidentialite" element={<PrivacyPolicyPage />} />
             <Route path="/cookies" element={<CookiesPage />} />

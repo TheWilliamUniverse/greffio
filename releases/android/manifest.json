@@ -74,9 +74,18 @@
       "sha256": "210E32C4DBC4EF708230158FC4B55E306B2CA8B213BD9A37C912864016A4B655",
       "sizeBytes": 9945318,
       "builtAt": "2026-06-08",
-      "gitCommit": "0096e67",
       "notesFile": "../MOBILE_RELEASE_1.2.8.md",
       "archivedAt": "2026-05-29"
+    },
+    {
+      "versionName": "1.2.9",
+      "versionCode": 261510008,
+      "artifact": "greffio-1.2.9-261510008.aab",
+      "sha256": "CBC79D67828454C08C8723D11F0B54A9AA2E41E4ADC7AB2C1476CEF433F35AA1",
+      "sizeBytes": 9947473,
+      "builtAt": "2026-06-08",
+      "notesFile": "../MOBILE_RELEASE_1.2.9.md",
+      "archivedAt": "2026-06-08"
     }
   ],
   "package": "com.greffio.app"

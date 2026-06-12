@@ -92,7 +92,7 @@ export const GreffioUltraFooter = ({
             </div>
             <div className={cn(
               'grid gap-8',
-              compact ? 'grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-4',
+              compact ? 'grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-5',
             )}
             >
               {columns.map((column) => (
@@ -103,7 +103,7 @@ export const GreffioUltraFooter = ({
         ) : (
           <div className={cn(
             'grid gap-8',
-            compact ? 'grid-cols-2' : 'mt-8 border-b border-white/10 pb-8 sm:grid-cols-2 lg:grid-cols-4',
+            compact ? 'grid-cols-2' : 'mt-8 border-b border-white/10 pb-8 sm:grid-cols-2 lg:grid-cols-5',
           )}
           >
             {columns.map((column) => (
