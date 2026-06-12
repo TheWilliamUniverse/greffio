@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import { Loader2, ShieldCheck } from 'lucide-react';
 import { createAmazonPaySession, getAmazonPayConfig } from '@/api/payments.js';
 import { cn } from '@/lib/utils.js';
@@ -38,7 +38,8 @@ export const AmazonPayCheckoutPanel = ({
   className,
   hideWhenUnavailable = false,
 }) => {
-  const buttonRef = useRef(null);
+  const buttonContainerId = useId().replace(/:/g, '');
+  const buttonSelector = `#${buttonContainerId}`;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [buttonReady, setButtonReady] = useState(false);
@@ -76,31 +77,39 @@ export const AmazonPayCheckoutPanel = ({
         await loadAmazonPayScript(publicConfig.scriptUrl);
         if (cancelled) return;
         setLoading(false);
-        await new Promise((resolve) => requestAnimationFrame(resolve));
-        if (cancelled || !buttonRef.current || !window.amazon?.Pay) {
+        await new Promise((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(resolve));
+        });
+        const buttonHost = document.getElementById(buttonContainerId);
+        if (cancelled || !buttonHost || !window.amazon?.Pay) {
           setError('Le script Amazon Pay n’a pas pu s’initialiser.');
           return;
         }
-        buttonRef.current.innerHTML = '';
-        window.amazon.Pay.renderButton(buttonRef.current, {
-          merchantId: publicConfig.merchantId,
-          publicKeyId: publicConfig.publicKeyId,
-          ledgerCurrency: publicConfig.ledgerCurrency || 'EUR',
-          sandbox: Boolean(publicConfig.sandbox),
-          checkoutLanguage: publicConfig.checkoutLanguage || 'fr_FR',
-          productType: 'PayOnly',
-          placement: 'Checkout',
-          buttonColor: 'Gold',
-          estimatedOrderAmount: {
-            amount: (Math.max(0, amountCents) / 100).toFixed(2),
-            currencyCode: publicConfig.ledgerCurrency || 'EUR',
-          },
-          createCheckoutSessionConfig: {
-            payloadJSON: checkoutConfig.payloadJSON,
-            signature: checkoutConfig.signature,
-            algorithm: checkoutConfig.algorithm || 'AMZN-PAY-RSASSA-PSS-V2',
-          },
-        });
+        buttonHost.innerHTML = '';
+        try {
+          window.amazon.Pay.renderButton(buttonSelector, {
+            merchantId: publicConfig.merchantId,
+            publicKeyId: publicConfig.publicKeyId,
+            ledgerCurrency: publicConfig.ledgerCurrency || 'EUR',
+            sandbox: Boolean(publicConfig.sandbox),
+            checkoutLanguage: publicConfig.checkoutLanguage || 'fr_FR',
+            productType: 'PayOnly',
+            placement: 'Checkout',
+            buttonColor: 'Gold',
+            estimatedOrderAmount: {
+              amount: (Math.max(0, amountCents) / 100).toFixed(2),
+              currencyCode: publicConfig.ledgerCurrency || 'EUR',
+            },
+            createCheckoutSessionConfig: {
+              payloadJSON: checkoutConfig.payloadJSON,
+              signature: checkoutConfig.signature,
+              algorithm: checkoutConfig.algorithm || 'AMZN-PAY-RSASSA-PSS-V2',
+            },
+          });
+        } catch (renderError) {
+          setError(renderError?.message || 'Impossible d’afficher le bouton Amazon Pay.');
+          return;
+        }
         if (!cancelled) setButtonReady(true);
       } catch (err) {
         if (!cancelled) {
@@ -123,7 +132,7 @@ export const AmazonPayCheckoutPanel = ({
     return () => {
       cancelled = true;
     };
-  }, [amountCents, dossierId, offerCode, resourceOrderId]);
+  }, [amountCents, buttonContainerId, buttonSelector, dossierId, offerCode, resourceOrderId]);
 
   if (hideWhenUnavailable && error && !loading && !buttonReady) return null;
 
@@ -173,10 +182,10 @@ export const AmazonPayCheckoutPanel = ({
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-900 sm:text-left">{error}</p>
         ) : null}
         <div
-          ref={buttonRef}
+          id={buttonContainerId}
           className={cn(
             'mx-auto flex min-h-[48px] w-full max-w-[320px] items-center justify-center',
-            (loading || error) && 'hidden',
+            error && 'hidden',
           )}
         />
       </div>
