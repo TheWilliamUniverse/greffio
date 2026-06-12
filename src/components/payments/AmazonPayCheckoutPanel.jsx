@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Loader2, ShieldCheck, WalletCards } from 'lucide-react';
-import { toast } from 'sonner';
+import { Loader2, ShieldCheck } from 'lucide-react';
 import { createAmazonPaySession, getAmazonPayConfig } from '@/api/payments.js';
 import { cn } from '@/lib/utils.js';
 
@@ -21,6 +20,14 @@ const loadAmazonPayScript = (scriptUrl) => {
   return amazonPayScriptPromise;
 };
 
+const AmazonPayMark = () => (
+  <svg viewBox="0 0 120 36" aria-hidden="true" className="h-7 w-auto">
+    <rect width="120" height="36" rx="6" fill="#FF9900" />
+    <text x="12" y="23" fill="#111827" fontSize="11" fontWeight="700" fontFamily="Arial, sans-serif">amazon</text>
+    <text x="68" y="23" fill="#111827" fontSize="11" fontWeight="700" fontFamily="Arial, sans-serif">pay</text>
+  </svg>
+);
+
 export const AmazonPayCheckoutPanel = ({
   amountCents = 0,
   amountLabel,
@@ -34,6 +41,7 @@ export const AmazonPayCheckoutPanel = ({
   const buttonRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [buttonReady, setButtonReady] = useState(false);
   const [config, setConfig] = useState(null);
 
   useEffect(() => {
@@ -41,6 +49,7 @@ export const AmazonPayCheckoutPanel = ({
     const renderAmazonPay = async () => {
       setLoading(true);
       setError('');
+      setButtonReady(false);
       try {
         const configPayload = await getAmazonPayConfig();
         const publicConfig = configPayload?.config || {};
@@ -59,8 +68,19 @@ export const AmazonPayCheckoutPanel = ({
           resourceOrderId,
           offerCode,
         });
+        const checkoutConfig = sessionPayload?.createCheckoutSessionConfig || {};
+        if (!checkoutConfig.payloadJSON || !checkoutConfig.signature) {
+          setError('Session Amazon Pay incomplète. Réessayez ou utilisez la carte bancaire.');
+          return;
+        }
         await loadAmazonPayScript(publicConfig.scriptUrl);
-        if (cancelled || !buttonRef.current || !window.amazon?.Pay) return;
+        if (cancelled) return;
+        setLoading(false);
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        if (cancelled || !buttonRef.current || !window.amazon?.Pay) {
+          setError('Le script Amazon Pay n’a pas pu s’initialiser.');
+          return;
+        }
         buttonRef.current.innerHTML = '';
         window.amazon.Pay.renderButton(buttonRef.current, {
           merchantId: publicConfig.merchantId,
@@ -75,16 +95,25 @@ export const AmazonPayCheckoutPanel = ({
             amount: (Math.max(0, amountCents) / 100).toFixed(2),
             currencyCode: publicConfig.ledgerCurrency || 'EUR',
           },
-          createCheckoutSessionConfig: sessionPayload.createCheckoutSessionConfig,
+          createCheckoutSessionConfig: {
+            payloadJSON: checkoutConfig.payloadJSON,
+            signature: checkoutConfig.signature,
+            algorithm: checkoutConfig.algorithm || 'AMZN-PAY-RSASSA-PSS-V2',
+          },
         });
+        if (!cancelled) setButtonReady(true);
       } catch (err) {
         if (!cancelled) {
           const reason = err?.payload?.error || err?.message;
-          setError(
-            reason === 'AMAZON_PAY_NOT_CONFIGURED'
-              ? 'Amazon Pay attend encore les variables serveur et la clé privée sur le VPS.'
-              : reason || 'Amazon Pay indisponible pour le moment. Vous pouvez régler par carte bancaire.',
-          );
+          if (reason === 'AUTH_REQUIRED' || err?.status === 401) {
+            setError('Connectez-vous à votre espace Greffio pour payer avec Amazon Pay.');
+          } else {
+            setError(
+              reason === 'AMAZON_PAY_NOT_CONFIGURED'
+                ? 'Amazon Pay attend encore les variables serveur et la clé privée sur le VPS.'
+                : reason || 'Amazon Pay indisponible pour le moment. Vous pouvez régler par carte bancaire.',
+            );
+          }
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -96,21 +125,20 @@ export const AmazonPayCheckoutPanel = ({
     };
   }, [amountCents, dossierId, offerCode, resourceOrderId]);
 
+  if (hideWhenUnavailable && error && !loading && !buttonReady) return null;
+
   return (
-    hideWhenUnavailable && error && !loading ? null : (
     <section
       className={cn(
-        'overflow-hidden rounded-2xl border border-[#d4e2f5] bg-gradient-to-br from-white via-[#f7faff] to-[#edf4ff] p-5 shadow-[0_12px_32px_rgba(30,77,140,0.08)]',
+        'overflow-hidden rounded-2xl border border-[#d4e2f5] bg-gradient-to-br from-white via-[#fffaf0] to-[#fff4df] p-5 shadow-[0_12px_32px_rgba(30,77,140,0.08)]',
         className,
       )}
     >
-      <div className="flex items-start gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[hsl(var(--greffio-blue))] text-white shadow-sm">
-          <WalletCards className="h-5 w-5" />
-        </span>
+      <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:text-left">
+        <AmazonPayMark />
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-bold uppercase tracking-wide text-primary">Wallet sécurisé</p>
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+            <p className="text-xs font-bold uppercase tracking-wide text-primary">Recommandé</p>
             {config?.sandbox ? (
               <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
                 Sandbox
@@ -121,14 +149,14 @@ export const AmazonPayCheckoutPanel = ({
               </span>
             )}
           </div>
-          <h2 className="mt-0.5 text-lg font-extrabold text-[hsl(var(--greffio-blue-900))]">Amazon Pay</h2>
+          <h3 className="mt-0.5 text-lg font-extrabold text-[hsl(var(--greffio-blue-900))]">Amazon Pay</h3>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">
-            Payez avec votre compte Amazon. La session est signée par Greffio et aucune donnée de paiement n&apos;est stockée sur nos serveurs.
+            Payez avec votre compte Amazon. Session signée par Greffio, sans stockage de vos données de paiement.
           </p>
         </div>
       </div>
 
-      <div className="mt-4 rounded-xl border border-white/80 bg-white/90 px-4 py-3">
+      <div className="mt-4 rounded-xl border border-white/80 bg-white/90 px-4 py-3 text-center sm:text-left">
         <p className="text-xs font-semibold uppercase text-muted-foreground">Montant</p>
         <p className="mt-0.5 text-2xl font-extrabold text-[hsl(var(--greffio-blue-900))]">{amountLabel || 'Montant TTC'}</p>
         <p className="mt-1 text-xs text-muted-foreground">{offerLabel}</p>
@@ -142,18 +170,21 @@ export const AmazonPayCheckoutPanel = ({
           </div>
         ) : null}
         {error ? (
-          <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{error}</p>
+          <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-900 sm:text-left">{error}</p>
         ) : null}
-        <div ref={buttonRef} className={cn('min-h-12', (loading || error) && 'hidden')} />
+        <div
+          ref={buttonRef}
+          className={cn(
+            'mx-auto flex min-h-[48px] w-full max-w-[320px] items-center justify-center',
+            (loading || error) && 'hidden',
+          )}
+        />
       </div>
 
-      <div className="mt-4 flex items-start gap-2 text-xs leading-5 text-muted-foreground">
+      <div className="mt-4 flex items-start justify-center gap-2 text-center text-xs leading-5 text-muted-foreground sm:justify-start sm:text-left">
         <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-        <span>
-          Retour autorisé : https://greffio.willentreprises.com/paiement/amazon-pay/retour
-        </span>
+        <span>Paiement chiffré TLS — retour sécurisé vers Greffio après validation Amazon.</span>
       </div>
     </section>
-    )
   );
 };

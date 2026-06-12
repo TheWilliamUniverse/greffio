@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, LockKeyhole, ShieldCheck, WalletCards } from 'lucide-react';
+import { ArrowRight, CheckCircle2, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button.jsx';
 import { PAYMENT_METHODS } from '@/config/businessCatalog.js';
@@ -8,8 +8,7 @@ import { checkoutDossierPayment } from '@/api/payments.js';
 import { inferCustomerType, isB2B } from '@/utils/customerType.js';
 import { checkoutResourceOrder, getResourceOrder } from '@/api/resources.js';
 import { formatResourcePrice, getCatalogItemById } from '@/config/resourceServices.js';
-import { GooglePayCheckoutPanel } from '@/components/payments/GooglePayCheckoutPanel.jsx';
-import { AmazonPayCheckoutPanel } from '@/components/payments/AmazonPayCheckoutPanel.jsx';
+import { WalletPaymentTerminal } from '@/components/payments/WalletPaymentTerminal.jsx';
 import { formatEuroCents, resolveOfferAmountCents } from '@/config/paymentOffers.js';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
 import { useAuth } from '@/hooks/useAuth.js';
@@ -215,43 +214,14 @@ export const MobilePaymentPage = () => {
       ) : null}
 
       {currentUser && (resourceOrder || !showB2BProviders) && amountCents > 0 ? (
-        <section className="rounded-3xl border border-[#cfe0f5] bg-gradient-to-br from-[#f8fbff] via-white to-[#eef5ff] p-4 shadow-[0_18px_50px_rgba(30,77,140,0.12)]">
-          <div className="mb-4 flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[hsl(var(--greffio-blue))] text-white">
-              <WalletCards className="h-5 w-5" />
-            </span>
-            <div>
-              <p className="text-xs font-black uppercase tracking-wide text-primary">Terminal Greffio</p>
-              <h2 className="text-lg font-extrabold">Paiement centralisé</h2>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                Les wallets apparaissent seulement quand le serveur les confirme disponibles.
-              </p>
-            </div>
-          </div>
-          <p className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
-            Si aucun wallet n’est disponible, utilisez le paiement carte bancaire.
-          </p>
-          <AmazonPayCheckoutPanel
-            className="border-white/70 shadow-none"
-            amountCents={amountCents}
-            amountLabel={amountLabel}
-            offerLabel={resourceOrder?.serviceTitle || selectedOffer.title}
-            dossierId={!resourceOrderId ? getCurrentDossierId() : undefined}
-            resourceOrderId={resourceOrderId || undefined}
-            offerCode={offerName}
-            hideWhenUnavailable
-          />
-          <GooglePayCheckoutPanel
-            className="mt-3 border-white/70 shadow-none"
-            amountCents={amountCents}
-            amountLabel={amountLabel}
-            offerLabel={resourceOrder?.serviceTitle || selectedOffer.title}
-            dossierId={!resourceOrderId ? getCurrentDossierId() : undefined}
-            resourceOrderId={resourceOrderId || undefined}
-            offerCode={offerName}
-            hideWhenUnavailable
-          />
-        </section>
+        <WalletPaymentTerminal
+          amountCents={amountCents}
+          amountLabel={amountLabel}
+          offerLabel={resourceOrder?.serviceTitle || selectedOffer.title}
+          dossierId={!resourceOrderId ? getCurrentDossierId() : undefined}
+          resourceOrderId={resourceOrderId || undefined}
+          offerCode={offerName}
+        />
       ) : null}
 
       {(showB2BProviders || resourceOrder) && !resourceLanding ? (

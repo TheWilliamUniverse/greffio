@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowRight, BadgeEuro, CheckCircle2, CreditCard, FileText, LockKeyhole, ReceiptText, ShieldCheck, WalletCards } from 'lucide-react';
+import { ArrowRight, BadgeEuro, CheckCircle2, CreditCard, FileText, LockKeyhole, ReceiptText, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
@@ -9,8 +9,7 @@ import { checkoutDossierPayment } from '@/api/payments.js';
 import { inferCustomerType, isB2B } from '@/utils/customerType.js';
 import { checkoutResourceOrder, getResourceOrder } from '@/api/resources.js';
 import { formatResourcePrice, getCatalogItemById, getProcessingLabel } from '@/config/resourceServices.js';
-import { GooglePayCheckoutPanel } from '@/components/payments/GooglePayCheckoutPanel.jsx';
-import { AmazonPayCheckoutPanel } from '@/components/payments/AmazonPayCheckoutPanel.jsx';
+import { WalletPaymentTerminal } from '@/components/payments/WalletPaymentTerminal.jsx';
 import { formatEuroCents, resolveOfferAmountCents } from '@/config/paymentOffers.js';
 import { TotalCostSimulator } from '@/components/TotalCostSimulator.jsx';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
@@ -235,6 +234,17 @@ export const PaymentPage = () => {
                   </div>
                 ))}
               </section>
+
+              {currentUser && amountCents > 0 ? (
+                <WalletPaymentTerminal
+                  amountCents={amountCents}
+                  amountLabel={amountLabel}
+                  offerLabel={resourceOrder?.serviceTitle || resourceLanding?.title || selectedOffer.title}
+                  dossierId={!resourceOrderId ? getCurrentDossierId() : undefined}
+                  resourceOrderId={resourceOrderId || undefined}
+                  offerCode={offerName}
+                />
+              ) : null}
             </>
           ) : (
             <section className="grid gap-4 md:grid-cols-2">
@@ -352,45 +362,15 @@ export const PaymentPage = () => {
                 </Link>
               </Button>
             )}
-            {currentUser && (resourceOrder || !showB2BProviders) && amountCents > 0 ? (
-              <section className="mt-5 overflow-hidden rounded-3xl border border-[#cfe0f5] bg-gradient-to-br from-[#f8fbff] via-white to-[#eef5ff] p-4 shadow-[0_18px_50px_rgba(30,77,140,0.12)]">
-                <div className="mb-4 flex items-start gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[hsl(var(--greffio-blue))] text-white shadow-sm">
-                    <WalletCards className="h-5 w-5" />
-                  </span>
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-wide text-primary">Terminal Greffio</p>
-                    <h3 className="text-lg font-extrabold text-[hsl(var(--greffio-blue-900))]">Paiement centralisé</h3>
-                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                      Les wallets s’affichent uniquement quand le serveur les confirme disponibles. Sinon, utilisez la carte bancaire.
-                    </p>
-                  </div>
-                </div>
-                <p className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
-                  Amazon Pay et Google Pay nécessitent leurs clés marchand côté API. Si aucun bouton wallet n’apparaît,
-                  le paiement carte reste le chemin de secours sécurisé.
-                </p>
-                <AmazonPayCheckoutPanel
-                  className="border-white/70 shadow-none"
-                  amountCents={amountCents}
-                  amountLabel={amountLabel}
-                  offerLabel={resourceOrder?.serviceTitle || selectedOffer.title}
-                  dossierId={!resourceOrderId ? getCurrentDossierId() : undefined}
-                  resourceOrderId={resourceOrderId || undefined}
-                  offerCode={offerName}
-                  hideWhenUnavailable
-                />
-                <GooglePayCheckoutPanel
-                  className="mt-3 border-white/70 shadow-none"
-                  amountCents={amountCents}
-                  amountLabel={amountLabel}
-                  offerLabel={resourceOrder?.serviceTitle || selectedOffer.title}
-                  dossierId={!resourceOrderId ? getCurrentDossierId() : undefined}
-                  resourceOrderId={resourceOrderId || undefined}
-                  offerCode={offerName}
-                  hideWhenUnavailable
-                />
-              </section>
+            {!isResourceFlow && currentUser && !showB2BProviders && amountCents > 0 ? (
+              <WalletPaymentTerminal
+                className="mt-5"
+                amountCents={amountCents}
+                amountLabel={amountLabel}
+                offerLabel={selectedOffer.title}
+                dossierId={getCurrentDossierId()}
+                offerCode={offerName}
+              />
             ) : null}
             {(showB2BProviders || resourceOrder) && !resourceLanding ? (
             <Button
