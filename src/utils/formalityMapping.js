@@ -112,5 +112,10 @@ export const mapSimulatorDraftToQuestionnaire = (draft = {}) => {
     denomination: draft.companyName || draft.data?.companyName || draft.denomination || '',
     activite: draft.activity || draft.data?.activity || '',
     capital: draft.capital || draft.data?.capital || '',
+    initiatorType: draft.initiatorType || draft.data?.initiatorType || '',
+    firstName: draft.firstName || draft.data?.firstName || '',
+    lastName: draft.lastName || draft.data?.lastName || '',
+    email: draft.email || draft.data?.email || '',
+    phone: draft.phone || draft.data?.phone || '',
   };
 };

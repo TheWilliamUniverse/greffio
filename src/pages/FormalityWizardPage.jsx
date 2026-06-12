@@ -429,6 +429,18 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     saveProjectDraft({ data, answers });
   }, [data, answers]);
 
+  // PC : un visiteur non connecté qui lance une vraie formalité (création, modification,
+  // dissolution) crée d'abord son espace Greffio, puis entame la démarche depuis le dashboard.
+  const requiresAccountFirst = !isMobilePresentation
+    && !isAuthenticated
+    && !activeCompareModule
+    && journeyChosen
+    && DIRECT_JOURNEY_TYPES.has(data.journey);
+  useEffect(() => {
+    if (!requiresAccountFirst) return;
+    navigate(`/signup?service=${encodeURIComponent(data.journey)}`, { replace: true });
+  }, [requiresAccountFirst, data.journey, navigate]);
+
   useEffect(() => {
     if (!currentUser) return;
     const contact = contactDetailsFromUser(currentUser);

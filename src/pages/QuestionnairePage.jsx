@@ -355,9 +355,15 @@ export const QuestionnairePage = () => {
         newQuestionnaireRef.current = startNewQuestionnaire;
 
         let mergedData = { ...defaultData };
-        if (searchParams.get('fromSimulator') === '1') {
-          const simulatorDraft = getProjectDraft();
-          mergedData = { ...mergedData, ...mapSimulatorDraftToQuestionnaire(simulatorDraft) };
+        // Réponses déjà données (simulateur, signup) : préremplies pour ne jamais reposer
+        // les mêmes questions. L'état du dossier (chargé plus bas) reste prioritaire.
+        const simulatorDraft = getProjectDraft();
+        if (simulatorDraft) {
+          const mapped = mapSimulatorDraftToQuestionnaire(simulatorDraft);
+          const nonEmpty = Object.fromEntries(
+            Object.entries(mapped).filter(([, value]) => value !== '' && value != null),
+          );
+          mergedData = { ...mergedData, ...nonEmpty };
         }
 
         let currentDossierId = null;
@@ -448,9 +454,25 @@ export const QuestionnairePage = () => {
           };
         }
 
+        // Nouveau questionnaire : on saute les questions d'identité déjà connues
+        // (compte, simulateur, signup) pour aller droit aux questions primordiales.
+        // Le type de déclarant n'est sauté que s'il a été choisi explicitement (signup/simulateur).
+        const initiatorTypeExplicit = Boolean(simulatorDraft?.data?.initiatorType);
+        const resolveNewStartPosition = (data) => {
+          if (!initiatorTypeExplicit) return { stepIndex: 0, fieldIndex: 0 };
+          const contactStep = QUESTIONNAIRE_FLOW[0];
+          const contactStepFields = getVisibleFieldsForStep(contactStep, data);
+          const firstInvalid = contactStepFields.findIndex(
+            (field) => !isFieldValueValid(field, data[field.key], data),
+          );
+          if (firstInvalid >= 0) return { stepIndex: 0, fieldIndex: firstInvalid };
+          const demarcheIndex = QUESTIONNAIRE_FLOW.findIndex((entry) => entry.id === 'demarche');
+          return { stepIndex: Math.max(demarcheIndex, 0), fieldIndex: 0 };
+        };
+
         const resume = mergedData._resume || {};
         const { stepIndex: resumeStep, fieldIndex: resumeField, demarcheCategory: resumeCategory, categoryConfirmed } = startNewQuestionnaire
-          ? { stepIndex: 0, fieldIndex: 0, demarcheCategory: inferDemarcheCategory(mergedData.typeFormalite), categoryConfirmed: false }
+          ? { ...resolveNewStartPosition(mergedData), demarcheCategory: inferDemarcheCategory(mergedData.typeFormalite), categoryConfirmed: false }
           : resolveResumePosition(mergedData, resume);
 
         setFormData(mergedData);

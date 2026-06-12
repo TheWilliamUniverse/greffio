@@ -14,7 +14,7 @@ import { PUBLISHER_LEGAL_NAME } from '@/config/publisher.js';
 import { LoginAlertsToggle } from '@/components/security/LoginAlertsToggle.jsx';
 import { SecurityChallengeWidget } from '@/components/security/SecurityChallengeWidget.jsx';
 import { useSecurityConfig } from '@/hooks/useSecurityConfig.js';
-import { getProjectDraft } from '@/utils/localStorage.js';
+import { getProjectDraft, saveProjectDraft } from '@/utils/localStorage.js';
 import { createDossier } from '@/api/dossiers.js';
 import { saveCurrentDossierId } from '@/utils/sessionStore.js';
 
@@ -145,6 +145,28 @@ export const SignupPage = () => {
       } catch (_e) {
         toast.warning('Compte créé, mais le dossier API sera finalisé au prochain écran.');
       }
+      // Mémoriser les réponses du signup : le questionnaire et les formulaires
+      // de formalité préremplissent ces champs au lieu de les redemander.
+      saveProjectDraft({
+        ...(draft || {}),
+        data: {
+          ...(draft?.data || {}),
+          journey: data.service === 'modification'
+            ? 'modification'
+            : data.service === 'fermeture'
+              ? 'dissolution'
+              : 'creation',
+          companyName: data.companyName,
+          legalForm: data.legalStructure,
+          activity: data.activity,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          phone: data.phone,
+          initiatorType: data.initiatorType,
+          initiatorName: data.initiatorName,
+        },
+      });
       toast.success('Espace Greffio créé. Votre dossier est prêt à être piloté.');
       navigate('/dashboard');
     } finally {

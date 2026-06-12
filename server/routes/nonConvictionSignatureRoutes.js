@@ -189,7 +189,7 @@ export const registerNonConvictionSignatureRoutes = (app, {
     }
     const validation = validateNonConvictionFields({
       ...fields,
-      signatureFullName,
+      signatureFullName: signerFullName,
       declarationNonCondamnation: true,
       declarationFiliation: fields.declarationFiliation !== false,
     });
@@ -205,7 +205,7 @@ export const registerNonConvictionSignatureRoutes = (app, {
     try {
       const { pdfPath, sha256: sha256Draft, updated } = await persistDraftPdf({
         dossier,
-        fields: { ...normalizedFields, signerEmail, signatureFullName },
+        fields: { ...normalizedFields, signerEmail, signatureFullName: signerFullName },
       });
       if (!pdfPath || !fs.existsSync(pdfPath)) {
         throw new Error('PDF_GENERATION_FAILED');
@@ -223,7 +223,7 @@ export const registerNonConvictionSignatureRoutes = (app, {
           signerFullName,
           draftPdfPath: pdfPath,
           sha256Draft,
-          fields: { ...normalizedFields, signerEmail, signatureFullName },
+          fields: { ...normalizedFields, signerEmail, signatureFullName: signerFullName },
           expiresAt,
         });
         try {
@@ -236,7 +236,7 @@ export const registerNonConvictionSignatureRoutes = (app, {
             signerEmail,
             signerFullName,
             signatureRequestId: signatureRequest.id,
-            fields: { ...normalizedFields, signerEmail, signatureFullName },
+            fields: { ...normalizedFields, signerEmail, signatureFullName: signerFullName },
             appUrl,
             emailSubject: `Signature — Déclaration de non-condamnation (${dossier.companyName || dossier.denomination || 'Greffio'})`,
           });
@@ -272,7 +272,8 @@ export const registerNonConvictionSignatureRoutes = (app, {
         proofLines: [`Empreinte brouillon : ${sha256Draft.slice(0, 16)}…`],
         layout: 'non_conviction_official',
       });
-      const { sha256Signed } = await persistSignedNonConvictionPdf({
+      const sha256Signed = createHash('sha256').update(fs.readFileSync(signedFilename)).digest('hex');
+      await persistSignedNonConvictionPdf({
         dossier,
         signedLocalPath: signedFilename,
         fields: normalizedFields,

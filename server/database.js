@@ -257,6 +257,9 @@ addColumnIfMissing('dossiers', 'data_json', 'TEXT');
 addColumnIfMissing('dossiers', 'assigned_to_user_id', 'TEXT');
 addColumnIfMissing('dossiers', 'ops_queue', 'TEXT');
 addColumnIfMissing('dossiers', 'ops_priority', 'TEXT');
+addColumnIfMissing('dossiers', 'deleted_at', 'TEXT');
+addColumnIfMissing('dossiers', 'purge_after', 'TEXT');
+addColumnIfMissing('dossiers', 'deleted_by', 'TEXT');
 addColumnIfMissing('documents', 'type', 'TEXT');
 addColumnIfMissing('users', 'phone', 'TEXT');
 addColumnIfMissing('users', 'profile_json', 'TEXT');
@@ -284,6 +287,32 @@ addColumnIfMissing('payments', 'qonto_transaction_id', 'TEXT');
 addColumnIfMissing('users', 'mfa_enabled', 'INTEGER NOT NULL DEFAULT 0');
 addColumnIfMissing('users', 'totp_secret_encrypted', 'TEXT');
 addColumnIfMissing('users', 'totp_pending_secret_encrypted', 'TEXT');
+
+sqlite.exec(`
+CREATE TABLE IF NOT EXISTS signature_requests (
+  id TEXT PRIMARY KEY,
+  dossier_id TEXT NOT NULL,
+  document_id TEXT,
+  doc_key TEXT NOT NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  signer_email TEXT NOT NULL,
+  signer_full_name TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  draft_pdf_path TEXT,
+  signed_pdf_path TEXT,
+  sha256_draft TEXT,
+  sha256_signed TEXT,
+  fields_json TEXT,
+  expires_at TEXT,
+  signed_at TEXT,
+  ip_address TEXT,
+  user_agent TEXT,
+  evidence_json TEXT,
+  audit_json TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+`);
 
 sqlite.exec(`
 CREATE TABLE IF NOT EXISTS mfa_recovery_codes (
