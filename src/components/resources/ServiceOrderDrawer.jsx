@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Building2, Loader2 } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -19,6 +19,7 @@ import {
 import { createResourceOrder, fetchResourceConfig } from '@/api/resources.js';
 import { useNavigate } from 'react-router-dom';
 import { listDossiers } from '@/api/dossiers.js';
+import { lookupCompanyBySiren } from '@/api/company.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { toast } from 'sonner';
 
@@ -35,6 +36,9 @@ export const ServiceOrderDrawer = ({ open, onOpenChange, service }) => {
   const [loadingDossiers, setLoadingDossiers] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [orderSaved, setOrderSaved] = useState(false);
+  // Lookup automatique : SIREN/SIRET saisi → dénomination préremplie (comme l'outil de recherche)
+  const [lookupState, setLookupState] = useState('idle');
+  const [lookupCompany, setLookupCompany] = useState(null);
 
   useEffect(() => {
     if (!open) return;
@@ -51,7 +55,44 @@ export const ServiceOrderDrawer = ({ open, onOpenChange, service }) => {
     setNotes('');
     setDossierId('');
     setEmail(currentUser?.email || '');
+    setLookupState('idle');
+    setLookupCompany(null);
   }, [open, service, currentUser?.email]);
+
+  useEffect(() => {
+    const digits = String(siren || '').replace(/\D/g, '');
+    if (digits.length !== 9 && digits.length !== 14) {
+      setLookupState('idle');
+      setLookupCompany(null);
+      return undefined;
+    }
+    let cancelled = false;
+    setLookupState('loading');
+    const timer = setTimeout(() => {
+      void lookupCompanyBySiren(digits)
+        .then((payload) => {
+          if (cancelled) return;
+          const company = payload?.company || null;
+          if (company?.denomination) {
+            setLookupCompany(company);
+            setLookupState('found');
+            setCompanyName(company.denomination);
+          } else {
+            setLookupCompany(null);
+            setLookupState('notfound');
+          }
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setLookupCompany(null);
+          setLookupState('notfound');
+        });
+    }, 450);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [siren]);
 
   useEffect(() => {
     if (!open || !isAuthenticated) return;
@@ -155,16 +196,38 @@ export const ServiceOrderDrawer = ({ open, onOpenChange, service }) => {
                 }}
               >
                 {service.requiresSiren !== false && (
-                  <label className="block text-sm">
-                    SIREN ou SIRET
-                    <input
-                      className="mt-1 h-10 w-full rounded-md border border-input px-3"
-                      value={siren}
-                      onChange={(event) => setSiren(event.target.value)}
-                      placeholder="123 456 789"
-                      inputMode="numeric"
-                    />
-                  </label>
+                  <div>
+                    <label className="block text-sm">
+                      SIREN ou SIRET
+                      <input
+                        className="mt-1 h-10 w-full rounded-md border border-input px-3"
+                        value={siren}
+                        onChange={(event) => setSiren(event.target.value)}
+                        placeholder="123 456 789"
+                        inputMode="numeric"
+                      />
+                    </label>
+                    {lookupState === 'loading' && (
+                      <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                        Recherche de l’entreprise…
+                      </p>
+                    )}
+                    {lookupState === 'found' && lookupCompany && (
+                      <div className="mt-2 flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+                        <Building2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <span>
+                          <span className="font-bold">{lookupCompany.denomination}</span>
+                          {lookupCompany.city ? ` — ${lookupCompany.city}` : ''}
+                        </span>
+                      </div>
+                    )}
+                    {lookupState === 'notfound' && (
+                      <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                        Entreprise introuvable avec cet identifiant. Vérifiez le SIREN/SIRET ou saisissez la dénomination manuellement.
+                      </p>
+                    )}
+                  </div>
                 )}
                 {service.requiresCompany !== false && (
                   <label className="block text-sm">
@@ -220,16 +283,10 @@ export const ServiceOrderDrawer = ({ open, onOpenChange, service }) => {
                 )}
 
                 <SheetFooter className="mt-2 flex-col gap-2 sm:flex-col sm:space-x-0">
-                  {canPay ? (
-                    <Button type="button" asChild className="w-full">
-                      <Link to={`/paiement?service=${service.id}`}>Payer et commander</Link>
-                    </Button>
-                  ) : (
-                    <Button type="submit" className="w-full" disabled={submitting}>
-                      {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      {orderable ? 'Enregistrer ma demande' : 'Demander une alerte'}
-                    </Button>
-                  )}
+                  <Button type="submit" className="w-full" disabled={submitting}>
+                    {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {canPay ? 'Payer et commander' : orderable ? 'Enregistrer ma demande' : 'Demander une alerte'}
+                  </Button>
                   <Button type="button" variant="outline" className="w-full" onClick={() => onOpenChange(false)}>
                     Fermer
                   </Button>

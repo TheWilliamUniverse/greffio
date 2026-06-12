@@ -8,7 +8,7 @@ import { PAYMENT_METHODS } from '@/config/businessCatalog.js';
 import { checkoutDossierPayment } from '@/api/payments.js';
 import { inferCustomerType, isB2B } from '@/utils/customerType.js';
 import { checkoutResourceOrder, getResourceOrder } from '@/api/resources.js';
-import { getCatalogItemById } from '@/config/resourceServices.js';
+import { formatResourcePrice, getCatalogItemById, getProcessingLabel } from '@/config/resourceServices.js';
 import { GooglePayCheckoutPanel } from '@/components/payments/GooglePayCheckoutPanel.jsx';
 import { formatEuroCents, resolveOfferAmountCents } from '@/config/paymentOffers.js';
 import { TotalCostSimulator } from '@/components/TotalCostSimulator.jsx';
@@ -52,6 +52,13 @@ export const PaymentPage = () => {
   const catalogService = resourceOrder?.serviceId
     ? getCatalogItemById(resourceOrder.serviceId)
     : getCatalogItemById(service);
+  // Lien direct /paiement?service=<doc> sans commande créée : afficher le bon document, pas l'offre dossier.
+  const resourceLanding = !resourceOrderId
+    && catalogService
+    && ['document', 'pack', 'service'].includes(catalogService.kind)
+    ? catalogService
+    : null;
+  const isResourceFlow = Boolean(resourceOrderId || resourceLanding);
 
   useEffect(() => {
     if (!resourceOrderId) {
@@ -133,7 +140,9 @@ export const PaymentPage = () => {
 
   const amountCents = resourceOrder
     ? Math.round(Number(resourceOrder.priceTtc || 0) * 100)
-    : resolveOfferAmountCents(offerName);
+    : resourceLanding
+      ? 0
+      : resolveOfferAmountCents(offerName);
   const resourcePriceLabel = resourceOrder
     ? `${Number(resourceOrder.priceTtc || 0).toFixed(2).replace('.', ',')} € TTC`
     : null;
@@ -155,30 +164,87 @@ export const PaymentPage = () => {
           <div className="rounded-md bg-[hsl(var(--greffio-blue))] p-6 text-white shadow-elevation-md md:p-8">
             <p className="text-sm font-bold uppercase text-white/70">Paiement sécurisé</p>
             <h1 className="mt-2 text-3xl font-extrabold">
-              {resourceOrder ? 'Paiement de votre commande document' : 'Paiement sécurisé'}
+              {isResourceFlow ? 'Réglez votre document en quelques secondes' : 'Paiement sécurisé'}
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-white/92">
-              {resourceOrder
-                ? 'Réglez votre commande de document ou service administratif. Après confirmation, l’équipe Greffio traite votre demande.'
+              {isResourceFlow
+                ? 'Paiement express par Google Pay ou carte, avec confirmation serveur. Dès validation, l’équipe Greffio traite votre commande et dépose le document dans votre espace.'
                 : 'Paiement sécurisé par Google Pay (CAWL en cours de branchement), avec vérification serveur avant validation du dossier.'}
             </p>
           </div>
 
-          <section className="grid gap-4 md:grid-cols-2">
-            {mainMethods.map((method) => (
-              <div key={method.id} className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <CreditCard className="h-6 w-6 text-primary" />
-                  {method.recommended && <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-bold text-emerald-700">Recommandé</span>}
+          {isResourceFlow ? (
+            <>
+              <section className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
+                <div className="mb-4 flex items-center gap-3">
+                  <FileText className="h-6 w-6 text-primary" />
+                  <h2 className="text-xl font-extrabold">Récapitulatif de votre commande</h2>
                 </div>
-                <p className="text-sm font-bold uppercase text-primary">{method.type}</p>
-                <h2 className="mt-1 text-lg font-extrabold">{method.name}</h2>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{method.description}</p>
-              </div>
-            ))}
-          </section>
+                <dl className="divide-y divide-border text-sm">
+                  <div className="flex justify-between gap-4 py-3">
+                    <dt className="text-muted-foreground">Document / service</dt>
+                    <dd className="text-right font-semibold">
+                      {resourceOrder?.serviceTitle || resourceLanding?.title}
+                    </dd>
+                  </div>
+                  {resourceOrder?.companyName && (
+                    <div className="flex justify-between gap-4 py-3">
+                      <dt className="text-muted-foreground">Entreprise</dt>
+                      <dd className="text-right font-semibold">{resourceOrder.companyName}</dd>
+                    </div>
+                  )}
+                  {resourceOrder?.siren && (
+                    <div className="flex justify-between gap-4 py-3">
+                      <dt className="text-muted-foreground">SIREN / SIRET</dt>
+                      <dd className="text-right font-semibold">{resourceOrder.siren}</dd>
+                    </div>
+                  )}
+                  {catalogService?.estimatedDelay && (
+                    <div className="flex justify-between gap-4 py-3">
+                      <dt className="text-muted-foreground">Délai estimatif</dt>
+                      <dd className="text-right font-semibold">{catalogService.estimatedDelay}</dd>
+                    </div>
+                  )}
+                  {catalogService && (
+                    <div className="flex justify-between gap-4 py-3">
+                      <dt className="text-muted-foreground">Traitement</dt>
+                      <dd className="text-right font-semibold">{getProcessingLabel(catalogService)}</dd>
+                    </div>
+                  )}
+                </dl>
+              </section>
 
-          {!resourceOrderId && (
+              <section className="grid gap-3 md:grid-cols-3">
+                {[
+                  { title: '1. Paiement express', text: 'Google Pay ou carte bancaire — montant TTC, sans frais cachés.' },
+                  { title: '2. Traitement Greffio', text: 'Notre équipe lance la demande auprès du greffe ou de l’organisme concerné.' },
+                  { title: '3. Document dans votre espace', text: 'Vous le retrouvez dans « Documents », avec une notification par email.' },
+                ].map((step) => (
+                  <div key={step.title} className="rounded-md border border-border bg-white p-4 shadow-elevation-sm">
+                    <CheckCircle2 className="mb-3 h-5 w-5 text-emerald-600" />
+                    <p className="text-sm font-extrabold">{step.title}</p>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{step.text}</p>
+                  </div>
+                ))}
+              </section>
+            </>
+          ) : (
+            <section className="grid gap-4 md:grid-cols-2">
+              {mainMethods.map((method) => (
+                <div key={method.id} className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <CreditCard className="h-6 w-6 text-primary" />
+                    {method.recommended && <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-bold text-emerald-700">Recommandé</span>}
+                  </div>
+                  <p className="text-sm font-bold uppercase text-primary">{method.type}</p>
+                  <h2 className="mt-1 text-lg font-extrabold">{method.name}</h2>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{method.description}</p>
+                </div>
+              ))}
+            </section>
+          )}
+
+          {!isResourceFlow && (
             <>
               <section className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
                 <div className="mb-4 flex items-center gap-3">
@@ -210,7 +276,7 @@ export const PaymentPage = () => {
             </div>
             {resourceOrder ? (
               <>
-                <p className="text-sm font-bold uppercase text-primary">Commande ressource</p>
+                <p className="text-sm font-bold uppercase text-primary">Commande document</p>
                 <h2 className="mt-1 text-2xl font-extrabold">{resourceOrder.serviceTitle}</h2>
                 {loadingResourceOrder ? (
                   <p className="mt-3 text-sm text-muted-foreground">Chargement…</p>
@@ -224,6 +290,12 @@ export const PaymentPage = () => {
                   </>
                 )}
               </>
+            ) : resourceLanding ? (
+              <>
+                <p className="text-sm font-bold uppercase text-primary">Document sélectionné</p>
+                <h2 className="mt-1 text-2xl font-extrabold">{resourceLanding.title}</h2>
+                <p className="mt-3 text-4xl font-extrabold">{formatResourcePrice(resourceLanding.priceTtc)}</p>
+              </>
             ) : (
               <>
                 <p className="text-sm font-bold uppercase text-primary">Offre sélectionnée</p>
@@ -234,9 +306,9 @@ export const PaymentPage = () => {
             <div className="mt-5 space-y-3 text-sm text-muted-foreground">
               <div className="flex gap-2">
                 <ReceiptText className="mt-0.5 h-4 w-4 text-primary" />
-                <span>{resourceOrder ? 'TVA incluse — document administratif' : selectedOffer.tax}</span>
+                <span>{isResourceFlow ? 'TVA incluse — document administratif' : selectedOffer.tax}</span>
               </div>
-              {!resourceOrder && (
+              {!isResourceFlow && (
                 <div className="flex gap-2">
                   <FileText className="mt-0.5 h-4 w-4 text-primary" />
                   <span>{selectedOffer.legalFees}</span>
@@ -245,13 +317,26 @@ export const PaymentPage = () => {
               <div className="flex gap-2">
                 <LockKeyhole className="mt-0.5 h-4 w-4 text-primary" />
                 <span>
-                  {showB2BProviders
-                    ? 'Paiement sécurisé professionnel (SEPA / virement).'
-                    : 'Paiement Google Pay — chiffrement TLS et confirmation serveur.'}
+                  {isResourceFlow || !showB2BProviders
+                    ? 'Paiement Google Pay — chiffrement TLS et confirmation serveur.'
+                    : 'Paiement sécurisé professionnel (SEPA / virement).'}
                 </span>
               </div>
             </div>
-            {!resourceOrder && (
+            {resourceLanding && (
+              <>
+                <p className="mt-5 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                  Indiquez d’abord l’entreprise concernée (SIREN, dénomination) pour finaliser cette commande.
+                </p>
+                <Button asChild className="mt-3 w-full justify-between">
+                  <Link to={currentUser ? '/boutique' : '/ressources'}>
+                    Compléter ma commande
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </>
+            )}
+            {!isResourceFlow && (
               <Button asChild className="mt-6 w-full justify-between">
                 <Link to={`/signup?service=${service}`}>
                   Créer le compte et payer
@@ -259,7 +344,7 @@ export const PaymentPage = () => {
                 </Link>
               </Button>
             )}
-            {!showB2BProviders && amountCents > 0 ? (
+            {(resourceOrder || !showB2BProviders) && amountCents > 0 ? (
               <GooglePayCheckoutPanel
                 className="mt-4"
                 amountCents={amountCents}
@@ -270,7 +355,7 @@ export const PaymentPage = () => {
                 offerCode={offerName}
               />
             ) : null}
-            {showB2BProviders ? (
+            {showB2BProviders && !resourceLanding ? (
             <Button
               type="button"
               className="mt-3 w-full justify-between"

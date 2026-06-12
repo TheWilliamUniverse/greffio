@@ -7,7 +7,7 @@ import { PAYMENT_METHODS } from '@/config/businessCatalog.js';
 import { checkoutDossierPayment } from '@/api/payments.js';
 import { inferCustomerType, isB2B } from '@/utils/customerType.js';
 import { checkoutResourceOrder, getResourceOrder } from '@/api/resources.js';
-import { getCatalogItemById } from '@/config/resourceServices.js';
+import { formatResourcePrice, getCatalogItemById } from '@/config/resourceServices.js';
 import { GooglePayCheckoutPanel } from '@/components/payments/GooglePayCheckoutPanel.jsx';
 import { formatEuroCents, resolveOfferAmountCents } from '@/config/paymentOffers.js';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
@@ -50,6 +50,11 @@ export const MobilePaymentPage = () => {
     [currentUser, activeDossier],
   );
   const showB2BProviders = isB2B(customerType);
+  // Lien direct /paiement?service=<doc> sans commande créée : afficher le bon document, pas l'offre dossier.
+  const landingCatalogItem = !resourceOrderId ? getCatalogItemById(service) : null;
+  const resourceLanding = landingCatalogItem && ['document', 'pack', 'service'].includes(landingCatalogItem.kind)
+    ? landingCatalogItem
+    : null;
   const mainMethods = useMemo(() => {
     const methods = PAYMENT_METHODS.filter((method) => method.id !== 'optional');
     if (showB2BProviders) {
@@ -124,7 +129,9 @@ export const MobilePaymentPage = () => {
     : null;
   const amountCents = resourceOrder
     ? Math.round(Number(resourceOrder.priceTtc || 0) * 100)
-    : resolveOfferAmountCents(offerName);
+    : resourceLanding
+      ? 0
+      : resolveOfferAmountCents(offerName);
   const amountLabel = resourceOrder ? resourcePriceLabel : formatEuroCents(amountCents);
 
   return (
@@ -150,12 +157,18 @@ export const MobilePaymentPage = () => {
       <section className="rounded-2xl bg-[hsl(var(--greffio-blue))] p-5 text-white shadow-lg">
         <p className="text-xs font-bold uppercase text-white/70">Paiement sécurisé</p>
         <h1 className="mt-2 text-2xl font-extrabold">
-          {resourceOrder ? resourceOrder.serviceTitle : selectedOffer.title}
+          {resourceOrder ? resourceOrder.serviceTitle : resourceLanding ? resourceLanding.title : selectedOffer.title}
         </h1>
         <p className="mt-3 text-3xl font-extrabold">
-          {resourceOrder ? resourcePriceLabel : selectedOffer.price}
+          {resourceOrder
+            ? resourcePriceLabel
+            : resourceLanding
+              ? formatResourcePrice(resourceLanding.priceTtc)
+              : selectedOffer.price}
         </p>
-        <p className="mt-2 text-sm text-white/85">{resourceOrder ? 'Commande document' : selectedOffer.tax}</p>
+        <p className="mt-2 text-sm text-white/85">
+          {resourceOrder || resourceLanding ? 'Commande document — TVA incluse' : selectedOffer.tax}
+        </p>
       </section>
 
       <section className="space-y-3">
@@ -181,7 +194,19 @@ export const MobilePaymentPage = () => {
         </div>
       </section>
 
-      {!showB2BProviders && amountCents > 0 ? (
+      {resourceLanding ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          Indiquez d’abord l’entreprise concernée (SIREN, dénomination) pour finaliser cette commande.
+          <Button asChild className="mt-3 h-11 w-full">
+            <Link to={currentUser ? '/boutique' : '/ressources'}>
+              Compléter ma commande
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      ) : null}
+
+      {(resourceOrder || !showB2BProviders) && amountCents > 0 ? (
         <GooglePayCheckoutPanel
           amountCents={amountCents}
           amountLabel={amountLabel}
@@ -192,7 +217,7 @@ export const MobilePaymentPage = () => {
         />
       ) : null}
 
-      {showB2BProviders ? (
+      {showB2BProviders && !resourceLanding ? (
       <Button
         type="button"
         className="h-12 w-full text-base"
@@ -211,7 +236,7 @@ export const MobilePaymentPage = () => {
       ) : null}
 
       <Button asChild variant="ghost" className="h-11 w-full">
-        <Link to={resourceOrder ? '/ressources' : '/tarifs'}>Retour</Link>
+        <Link to={resourceOrder || resourceLanding ? '/ressources' : '/tarifs'}>Retour</Link>
       </Button>
     </MobilePageContainer>
   );
