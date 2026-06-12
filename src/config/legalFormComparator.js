@@ -1,6 +1,59 @@
 export const COMPARATOR_DISCLAIMER_SHORT =
   'Ce questionnaire fournit une orientation générale à partir de vos réponses. Il ne constitue pas un conseil juridique, fiscal, social ou comptable personnalisé. Le choix final doit être confirmé selon votre situation et, si nécessaire, avec un professionnel.';
 
+export const COMPARATOR_DISCLAIMER_RESULT =
+  'Cette recommandation est une aide à la décision basée sur vos réponses. Elle ne constitue pas un conseil juridique, fiscal, social ou comptable personnalisé. Le choix final doit être confirmé selon votre situation.';
+
+export const COMPARATOR_TRUST_LINE = [
+  'Orientation indicative',
+  'Sans engagement',
+  'Données juridiques vulgarisées',
+];
+
+export const COMPARATOR_EDUCATION_CARDS = [
+  {
+    key: 'why',
+    title: 'Pourquoi la forme juridique compte ?',
+    text: 'Elle détermine votre responsabilité, votre fiscalité, votre protection sociale et la capacité de votre structure à accueillir des associés ou des investisseurs.',
+  },
+  {
+    key: 'criteria',
+    title: 'Ce que le comparateur prend en compte',
+    text: 'Nombre de fondateurs, nature de l’activité, chiffre d’affaires visé, charges, risque, image recherchée, formalités acceptées et préférences sociales.',
+  },
+  {
+    key: 'next',
+    title: 'Ce que Greffio peut faire ensuite',
+    text: 'Générer vos statuts, préparer votre dossier de création, publier l’annonce légale et suivre le dépôt au greffe jusqu’à l’immatriculation.',
+  },
+];
+
+export const LEGAL_FORM_IDEAL_FOR = {
+  micro: 'Tester seul, peu de charges',
+  ei: 'Indépendant seul',
+  sasu: 'Projet seul ambitieux',
+  sas: 'Projet à plusieurs, startup',
+  eurl: 'Société seul, cadre classique',
+  sarl: 'Commerce, PME, famille',
+  sci: 'Immobilier à plusieurs',
+  association_1901: 'Projet non lucratif',
+  sa: 'Grande entreprise structurée',
+  snc: 'Cas commercial spécifique',
+};
+
+export const LEGAL_FORM_FEATURE_BADGES = {
+  micro: ['Simple'],
+  ei: ['Simple'],
+  sasu: ['Flexible', 'Investisseurs', 'Responsabilité limitée'],
+  sas: ['Flexible', 'Investisseurs', 'Responsabilité limitée'],
+  eurl: ['Responsabilité limitée'],
+  sarl: ['Responsabilité limitée'],
+  sci: ['Immobilier'],
+  association_1901: ['Non lucratif'],
+  sa: ['Investisseurs', 'Responsabilité limitée'],
+  snc: [],
+};
+
 export const COMPARATOR_MICRO_THRESHOLDS_2026 = {
   goods: 203_100,
   services: 83_600,
@@ -11,7 +64,7 @@ export const COMPARATOR_MICRO_THRESHOLDS_2026 = {
 export const FIT_LEVEL_LABELS = {
   strong: 'Très adapté',
   good: 'Adapté',
-  possible: 'Possible',
+  possible: 'Possible avec vigilance',
   weak: 'À étudier',
   avoid: 'Peu adapté',
 };
@@ -336,10 +389,10 @@ export const LEGAL_FORM_COMPARATOR_QUESTIONS = [
     type: 'single_choice',
     required: true,
     options: [
-      { value: 'solo', label: 'Je suis seul' },
-      { value: 'two', label: 'Nous sommes deux' },
-      { value: 'three_plus', label: 'Nous sommes trois ou plus' },
-      { value: 'not_sure', label: 'Je ne sais pas encore' },
+      { value: 'solo', label: 'Je suis seul', description: 'Vous serez l’unique associé ou exploitant.' },
+      { value: 'two', label: 'Nous sommes deux', description: 'Deux personnes au capital dès le départ.' },
+      { value: 'three_plus', label: 'Nous sommes trois ou plus', description: 'Une équipe fondatrice élargie.' },
+      { value: 'not_sure', label: 'Je ne sais pas encore', description: 'Le nombre d’associés reste à confirmer.' },
     ],
   },
   {
@@ -384,9 +437,9 @@ export const LEGAL_FORM_COMPARATOR_QUESTIONS = [
     type: 'single_choice',
     required: true,
     options: [
-      { value: 'low', label: 'Très peu de charges' },
-      { value: 'medium', label: 'Charges modérées' },
-      { value: 'high', label: 'Charges importantes' },
+      { value: 'low', label: 'Très peu de charges', description: 'Activité légère, peu d’achats ou d’équipement.' },
+      { value: 'medium', label: 'Charges modérées', description: 'Quelques achats, outils ou prestataires réguliers.' },
+      { value: 'high', label: 'Charges importantes', description: 'Stock, matériel, locaux ou sous-traitance significatifs.' },
       { value: 'unknown', label: 'Je ne sais pas encore' },
     ],
   },
@@ -397,9 +450,9 @@ export const LEGAL_FORM_COMPARATOR_QUESTIONS = [
     type: 'single_choice',
     required: true,
     options: [
-      { value: 'yes_short_term', label: 'Oui, à court terme' },
-      { value: 'maybe_later', label: 'Peut-être plus tard' },
-      { value: 'no', label: 'Non' },
+      { value: 'yes_short_term', label: 'Oui, à court terme', description: 'Une levée de fonds est prévue rapidement.' },
+      { value: 'maybe_later', label: 'Peut-être plus tard', description: 'L’option doit rester ouverte.' },
+      { value: 'no', label: 'Non', description: 'Pas d’investisseurs externes envisagés.' },
     ],
   },
   {
@@ -409,9 +462,9 @@ export const LEGAL_FORM_COMPARATOR_QUESTIONS = [
     type: 'single_choice',
     required: true,
     options: [
-      { value: 'low', label: 'Faible' },
-      { value: 'medium', label: 'Modéré' },
-      { value: 'high', label: 'Élevé' },
+      { value: 'low', label: 'Faible', description: 'Peu d’engagements financiers ou contractuels.' },
+      { value: 'medium', label: 'Modéré', description: 'Quelques contrats ou engagements à suivre.' },
+      { value: 'high', label: 'Élevé', description: 'Dettes, stock, salariés ou contrats importants.' },
     ],
   },
   {
@@ -428,25 +481,25 @@ export const LEGAL_FORM_COMPARATOR_QUESTIONS = [
   },
   {
     id: 'admin_tolerance',
-    title: 'Quel niveau de complexité administrative acceptez-vous ?',
+    title: 'Quel niveau de formalités acceptez-vous ?',
     subtitle: 'Plus une structure est complète, plus elle implique généralement de formalités et de comptabilité.',
     type: 'single_choice',
     required: true,
     options: [
-      { value: 'minimal', label: 'Le minimum possible' },
-      { value: 'moderate', label: 'Un niveau raisonnable' },
-      { value: 'advanced', label: 'J’accepte une structure plus complète si elle est adaptée' },
+      { value: 'minimal', label: 'Le minimum possible', description: 'Déclarations simples, gestion très allégée.' },
+      { value: 'moderate', label: 'Un niveau raisonnable', description: 'Une comptabilité encadrée mais accessible.' },
+      { value: 'advanced', label: 'Une structure plus complète si elle est adaptée', description: 'Statuts, comptabilité commerciale et formalités assumés.' },
     ],
   },
   {
     id: 'social_preference',
-    title: 'Avez-vous une préférence pour le régime social du dirigeant ?',
+    title: 'Quelle protection sociale souhaitez-vous pour le dirigeant ?',
     subtitle: 'À ce stade, il s’agit seulement d’une orientation générale, pas d’une optimisation personnalisée.',
     type: 'single_choice',
     required: true,
     options: [
-      { value: 'low_contributions', label: 'Je privilégie des cotisations plus faibles' },
-      { value: 'better_protection', label: 'Je privilégie une protection sociale plus proche du régime général' },
+      { value: 'low_contributions', label: 'Des cotisations plus faibles', description: 'Régime des indépendants, charges souvent réduites.' },
+      { value: 'better_protection', label: 'Une protection proche du régime général', description: 'Couverture étendue, cotisations souvent plus élevées.' },
       { value: 'no_preference', label: 'Je n’ai pas de préférence' },
     ],
   },
@@ -457,8 +510,8 @@ export const LEGAL_FORM_COMPARATOR_QUESTIONS = [
     type: 'single_choice',
     required: true,
     options: [
-      { value: 'yes', label: 'Oui' },
-      { value: 'maybe', label: 'Peut-être' },
+      { value: 'yes', label: 'Oui', description: 'Distribuer une partie des bénéfices en dividendes.' },
+      { value: 'maybe', label: 'Peut-être', description: 'À envisager selon les résultats.' },
       { value: 'no', label: 'Non, je veux surtout me rémunérer simplement' },
     ],
   },
@@ -469,9 +522,9 @@ export const LEGAL_FORM_COMPARATOR_QUESTIONS = [
     type: 'single_choice',
     required: true,
     options: [
-      { value: 'now', label: 'Je veux démarrer maintenant' },
-      { value: 'this_month', label: 'Je veux lancer ce mois-ci' },
-      { value: 'exploring', label: 'Je compare encore' },
+      { value: 'now', label: 'Je veux démarrer maintenant', description: 'Prêt à lancer les démarches immédiatement.' },
+      { value: 'this_month', label: 'Je veux lancer ce mois-ci', description: 'Démarrage prévu dans les prochaines semaines.' },
+      { value: 'exploring', label: 'Je compare encore', description: 'En phase de réflexion et de comparaison.' },
     ],
   },
 ];
