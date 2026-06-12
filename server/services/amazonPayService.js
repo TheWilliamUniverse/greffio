@@ -67,7 +67,7 @@ export const getAmazonPayPublicConfig = () => {
   };
 };
 
-const signPayload = (payloadJSON) => {
+const signAmazonPayString = (stringToSign, saltLength = 32) => {
   const privateKey = resolvePrivateKey();
   if (!privateKey) {
     const error = new Error('AMAZON_PAY_PRIVATE_KEY_MISSING');
@@ -75,14 +75,18 @@ const signPayload = (payloadJSON) => {
     throw error;
   }
   return crypto
-    .createSign('sha256')
-    .update(payloadJSON)
-    .end()
+    .createSign('RSA-SHA256')
+    .update(stringToSign)
     .sign({
       key: privateKey,
       padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
-      saltLength: 32,
+      saltLength,
     }, 'base64');
+};
+
+const signPayload = (payloadJSON) => {
+  const stringToSign = `${AMAZON_PAY_ALGORITHM}\n${sha256Hex(payloadJSON)}`;
+  return signAmazonPayString(stringToSign, 32);
 };
 
 const signApiRequest = ({
@@ -117,16 +121,7 @@ const signApiRequest = ({
     sha256Hex(payload),
   ].join('\n');
   const stringToSign = `${AMAZON_PAY_ALGORITHM}\n${sha256Hex(canonicalRequest)}`;
-  const privateKey = resolvePrivateKey();
-  const signature = crypto
-    .createSign('sha256')
-    .update(stringToSign)
-    .end()
-    .sign({
-      key: privateKey,
-      padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
-      saltLength: 32,
-    }, 'base64');
+  const signature = signAmazonPayString(stringToSign, 32);
   return {
     url: `https://${host}${path}`,
     payload,
