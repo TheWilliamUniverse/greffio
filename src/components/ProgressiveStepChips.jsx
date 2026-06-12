@@ -13,9 +13,9 @@ export const ProgressiveStepChips = ({
   return (
   <nav
     aria-label="Étapes du questionnaire"
-    className={isCompact ? 'simulator-stepper-mask overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden' : 'overflow-x-auto pb-1 md:overflow-visible'}
+    className={isCompact ? 'simulator-stepper-mask max-w-full overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden' : 'overflow-x-auto pb-1 md:overflow-visible'}
   >
-    <ol className={isCompact ? 'flex min-w-max items-center gap-1.5 px-0.5' : 'flex min-w-0 flex-wrap items-center gap-1 sm:min-w-max sm:flex-nowrap'}>
+    <ol className={isCompact ? 'flex max-w-full items-center gap-1 px-0.5' : 'flex min-w-0 flex-wrap items-center gap-1 sm:min-w-max sm:flex-nowrap'}>
       {steps.map((step, index) => {
         if (revealThroughIndex != null && index > revealThroughIndex) return null;
         const done = index < activeIndex;

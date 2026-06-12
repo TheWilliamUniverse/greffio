@@ -303,6 +303,35 @@
     mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
   }
 
+  .simulator-mobile {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  .simulator-mobile .simulator-mobile-content {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .simulator-mobile .simulator-contact-card {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .simulator-mobile .simulator-contact-card form,
+  .simulator-mobile .simulator-contact-card .simulator-field-stack {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
   .simulator-mobile .we-card:hover {
     transform: none;
   }
@@ -310,9 +339,24 @@
   .simulator-mobile input,
   .simulator-mobile select,
   .simulator-mobile textarea {
+    box-sizing: border-box;
     min-width: 0;
     max-width: 100%;
     width: 100%;
+  }
+
+  @media (max-width: 767px) {
+    .simulator-mobile h1 {
+      font-size: 1.125rem;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    .simulator-mobile .simulator-step-subtitle {
+      font-size: 0.8125rem;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
   }
 
   .landing-pricing-card {

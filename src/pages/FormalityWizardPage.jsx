@@ -57,7 +57,7 @@ import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js'
 import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 import { cn } from '@/lib/utils.js';
 
-const mobileFieldClass = 'h-14 min-w-0 w-full max-w-full rounded-2xl border-2 border-[#d4e2f5] bg-white px-4 text-base font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/12';
+const mobileFieldClass = 'box-border h-12 min-w-0 w-full max-w-full rounded-xl border-2 border-[#d4e2f5] bg-white px-3.5 text-base font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/12';
 
 const resolveAutoComplete = (key) => ({
   firstName: 'given-name',
@@ -806,14 +806,14 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     : 'bottom-[calc(var(--bottom-nav-height-web)+env(safe-area-inset-bottom))]';
 
   return (
-    <div className={cn('min-h-screen', isMobilePresentation ? 'bg-[var(--we-bg)]' : 'bg-[var(--we-bg)]')}>
+    <div className={cn('min-h-screen w-full min-w-0 max-w-[100vw] overflow-x-hidden', isMobilePresentation ? 'bg-[var(--we-bg)]' : 'bg-[var(--we-bg)]')}>
       {!isMobilePresentation ? <NavbarDropdown /> : null}
 
       <main className={cn(
-        'mx-auto grid max-w-7xl',
+        'mx-auto grid w-full min-w-0 max-w-full',
         isMobilePresentation
-          ? 'gap-0 px-0 pb-[calc(7.5rem+var(--bottom-nav-height-web)+env(safe-area-inset-bottom))] pt-0 lg:grid-cols-1'
-          : 'gap-8 px-4 pb-10 pt-28 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8',
+          ? 'gap-0 px-0 pb-[calc(6.5rem+var(--bottom-nav-height-web)+env(safe-area-inset-bottom))] pt-0'
+          : 'max-w-7xl gap-8 px-4 pb-10 pt-28 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8',
       )}>
         <section
           ref={wizardPanelRef}
@@ -821,7 +821,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
         >
           <div className={cn(
             isMobilePresentation
-              ? 'border-b border-[#e2ebf8]/90 bg-[var(--we-bg)]/95 px-5 py-3 backdrop-blur-sm'
+              ? 'border-b border-[#e2ebf8]/90 bg-[var(--we-bg)]/95 px-4 py-2.5 backdrop-blur-sm'
               : 'border-b border-[var(--we-border)] bg-white px-6 py-4',
           )}
           >
@@ -839,12 +839,18 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
               <div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: showOffers ? '100%' : `${progress}%` }} />
             </div>
             {!showOffers ? (
-              <div className={cn(isMobilePresentation ? 'mt-2.5' : 'mt-4 space-y-3')}>
+              <div className={cn(isMobilePresentation ? 'mt-2 space-y-1.5' : 'mt-4 space-y-3')}>
                 <ProgressiveStepChips steps={PROGRESSIVE_WIZARD_STEPS} activeIndex={step} variant={stepperVariant} />
                 {step === 1 ? (
-                  <div className={isMobilePresentation ? 'mt-2' : ''}>
+                  isMobilePresentation ? (
+                    <p className="text-[11px] font-semibold text-muted-foreground">
+                      {visibleProjectSubSteps[activeProjectSubIndex]?.label || 'Projet'}
+                      {' · '}
+                      {activeProjectSubIndex + 1}/{visibleProjectSubSteps.length}
+                    </p>
+                  ) : (
                     <ProgressiveStepChips steps={visibleProjectSubSteps} activeIndex={activeProjectSubIndex} variant={stepperVariant} />
-                  </div>
+                  )
                 ) : null}
               </div>
             ) : null}
@@ -854,12 +860,12 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
             {!showOffers ? (
               <motion.div
                 key={step}
-                initial={{ opacity: 0, x: 22 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -22 }}
+                initial={isMobilePresentation ? { opacity: 0, y: 10 } : { opacity: 0, x: 22 }}
+                animate={isMobilePresentation ? { opacity: 1, y: 0 } : { opacity: 1, x: 0 }}
+                exit={isMobilePresentation ? { opacity: 0, y: -10 } : { opacity: 0, x: -22 }}
                 transition={{ duration: 0.22 }}
                 className={cn(
-                  isMobilePresentation ? 'w-full max-w-full overflow-x-clip px-4 py-4' : 'p-4 sm:p-6 md:p-10',
+                  isMobilePresentation ? 'simulator-mobile-content w-full min-w-0 max-w-full px-3.5 py-3' : 'p-4 sm:p-6 md:p-10',
                 )}
                 onKeyDown={handleWizardKeyDown}
               >
@@ -946,12 +952,12 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                 )}
 
                 {step === 1 && (
-                  <div className={cn(isMobilePresentation ? 'space-y-4' : 'space-y-7')}>
-                    <div>
-                      <p className={cn('font-bold uppercase text-primary', isMobilePresentation ? 'text-[11px] tracking-wide' : 'text-sm')}>
+                  <div className={cn(isMobilePresentation ? 'min-w-0 space-y-3' : 'space-y-7')}>
+                    <div className="min-w-0">
+                      <p className={cn('font-bold uppercase text-primary', isMobilePresentation ? 'text-[10px] tracking-wide' : 'text-sm')}>
                         {isCompanyLookupStep ? 'Entreprise existante' : 'Projet'}
                       </p>
-                      <h1 className={cn('font-extrabold', isMobilePresentation ? 'mt-1.5 text-xl' : 'mt-2 text-3xl')}>
+                      <h1 className={cn('font-extrabold', isMobilePresentation ? 'mt-1 text-lg' : 'mt-2 text-3xl')}>
                         {isCompanyLookupStep && 'Identifier votre société'}
                         {!isCompanyLookupStep && projectSubStep === 0 && 'Vos coordonnées'}
                         {!isCompanyLookupStep && projectSubStep === 1 && 'Qui effectue la démarche ?'}
@@ -959,7 +965,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                         {!isCompanyLookupStep && projectSubStep === 3 && 'Choisissez votre forme'}
                         {!isCompanyLookupStep && projectSubStep === 4 && 'Précisez votre projet'}
                       </h1>
-                      <p className="mt-2 text-muted-foreground">
+                      <p className={cn('text-muted-foreground', isMobilePresentation ? 'simulator-step-subtitle mt-1.5' : 'mt-2')}>
                         {isCompanyLookupStep && 'Signature électronique qualifiée nécessaire pour modifier, cesser ou corriger une société existante.'}
                         {!isCompanyLookupStep && projectSubStep === 0 && 'Une question à la fois — vos coordonnées servent au dossier et aux relances Greffio.'}
                         {!isCompanyLookupStep && projectSubStep === 1 && 'Une personne physique ou morale peut porter la demande, y compris une société qui crée une filiale.'}
@@ -1018,16 +1024,16 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                         className={cn(isMobilePresentation ? 'min-h-[280px] w-full min-w-0 overflow-hidden' : 'min-h-[320px]')}
                       >
                         {projectSubStep === 0 && (
-                          <div className={cn('rounded-2xl border border-border bg-muted', isMobilePresentation ? 'p-4' : 'p-6 md:p-8')}>
-                            <div className="flex items-center justify-between gap-4">
-                              <div>
-                                <p className="text-sm font-bold uppercase text-primary">Réf. : {dossierReference}</p>
-                                <p className="text-xs text-muted-foreground">
+                          <div className={cn('simulator-contact-card rounded-2xl border border-border bg-muted', isMobilePresentation ? 'p-3.5' : 'p-6 md:p-8')}>
+                            <div className={cn('flex gap-3', isMobilePresentation ? 'flex-col items-stretch' : 'items-center justify-between gap-4')}>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-bold uppercase text-primary sm:text-sm">Réf. : {dossierReference}</p>
+                                <p className="text-[11px] text-muted-foreground sm:text-xs">
                                   {contactStep + 1}/{contactFields.length} — {contactCompletion}%
                                 </p>
                               </div>
-                              <div className="relative h-16 w-16">
-                                <svg viewBox="0 0 36 36" className="h-16 w-16">
+                              <div className={cn('relative shrink-0 self-end', isMobilePresentation ? 'h-12 w-12' : 'h-16 w-16')}>
+                                <svg viewBox="0 0 36 36" className={isMobilePresentation ? 'h-12 w-12' : 'h-16 w-16'}>
                                   <path className="stroke-white" fill="none" strokeWidth="3" d="M18 2.5a15.5 15.5 0 1 1 0 31a15.5 15.5 0 1 1 0-31" />
                                   <path
                                     className="stroke-primary"
@@ -1042,15 +1048,16 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                               </div>
                             </div>
                             <form
-                              className="mt-6 space-y-2"
+                              className="simulator-field-stack mt-4 space-y-2 sm:mt-6"
                               onSubmit={(event) => {
                                 event.preventDefault();
                                 if (canContinueContact()) tryWizardContinue();
                               }}
                             >
-                              <Label>{activeContactField.label}</Label>
+                              <Label className="text-sm">{activeContactField.label}</Label>
                               <div className={cn(
-                                isMobilePresentation ? 'grid w-full min-w-0 grid-cols-1 gap-3' : 'flex items-center gap-2',
+                                'simulator-field-stack grid w-full min-w-0 max-w-full grid-cols-1 gap-2',
+                                !isMobilePresentation && 'flex items-center gap-2',
                               )}
                               >
                                 <Input
@@ -1081,7 +1088,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                         )}
 
                         {projectSubStep === 1 && (
-                          <div className={cn(isMobilePresentation ? 'grid min-w-0 grid-cols-1 gap-4' : 'grid gap-5 md:grid-cols-2')}>
+                          <div className={cn(isMobilePresentation ? 'simulator-field-stack grid min-w-0 grid-cols-1 gap-3' : 'grid gap-5 md:grid-cols-2')}>
                             <div className="space-y-2">
                               <Label>Qui effectue la démarche</Label>
                               <select className={`${fieldClass} w-full rounded-xl`} value={data.initiatorType} onChange={(event) => update('initiatorType', event.target.value)}>
@@ -1581,7 +1588,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
               className={cn(
                 'z-30 border-t border-[#e2ebf8] bg-white/96 backdrop-blur-sm',
                 isMobilePresentation
-                  ? cn('fixed inset-x-0 px-4 py-3 shadow-[0_-4px_18px_rgba(15,23,42,0.05)]', mobileActionBarPosition)
+                  ? cn('fixed inset-x-0 px-3.5 py-2.5 shadow-[0_-4px_18px_rgba(15,23,42,0.05)]', mobileActionBarPosition)
                   : 'sticky bottom-0 px-4 py-4 shadow-[0_-10px_28px_rgba(15,23,42,0.06)] sm:px-6 sm:py-5 supports-[padding:max(0px)]:pb-[max(1rem,env(safe-area-inset-bottom))]',
               )}
               style={isMobilePresentation && keyboardOffset ? { transform: `translateY(-${keyboardOffset}px)` } : undefined}

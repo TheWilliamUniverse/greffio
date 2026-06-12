@@ -100,7 +100,7 @@ const MobileWebShellInner = ({
       ) : null}
       <main
         ref={scrollRef}
-        className={`flex-1 md:contents ${
+        className={`flex-1 min-w-0 max-w-full overflow-x-hidden md:contents ${
           isLanding
             ? 'pb-[calc(var(--bottom-nav-height-web)+env(safe-area-inset-bottom))]'
             : 'overflow-y-auto pb-[calc(var(--bottom-nav-height-web)+env(safe-area-inset-bottom)+var(--mobile-page-bottom-extra))]'
