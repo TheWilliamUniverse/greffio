@@ -34,15 +34,15 @@ const parseChangelog = (value) => {
     .filter(Boolean);
 };
 
-const DEFAULT_LATEST_VERSION_CODE = 261510013;
+const DEFAULT_LATEST_VERSION_CODE = 261510014;
 const DEFAULT_MIN_VERSION_CODE = 261422041;
-const DEFAULT_LATEST_VERSION_NAME = '1.2.14';
+const DEFAULT_LATEST_VERSION_NAME = '1.2.15';
 
 const DEFAULT_CHANGELOG = [
-  'Connexion via la page web Greffio (MFA et récupération mot de passe)',
-  'Création d\'espace simulateur : validation au tap et sans captcha bloquant',
-  'Catalogue formalités : icônes du site, textes sans mention concurrente',
-  'Tarifs et accueil app : copy Greffio uniquement',
+  'Shell remote : l\'app charge le site live — mises à jour UI sans nouvel AAB',
+  'Connexion native corrigée : ouverture navigateur système et retour deep link',
+  'PDF pouvoirs formalités refondu (signature, lieu, sans mention SES)',
+  'Commandes ressources (Kbis) : emails uniquement après paiement effectif',
   'Stabilité générale et corrections diverses',
 ];
 
