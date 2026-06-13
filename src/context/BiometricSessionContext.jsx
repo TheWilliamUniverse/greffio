@@ -66,11 +66,15 @@ export const BiometricSessionProvider = ({ children }) => {
   useEffect(() => {
     let mounted = true;
     const init = async () => {
-      if (!isCapacitorNative() || loading) {
+      if (!isCapacitorNative()) {
         if (mounted) {
           setUnlocked(true);
           setChecking(false);
         }
+        return;
+      }
+      if (loading) {
+        if (mounted) setChecking(true);
         return;
       }
       if (!isAuthenticated) {
@@ -96,13 +100,28 @@ export const BiometricSessionProvider = ({ children }) => {
         }
         return;
       }
-      if (mounted) setChecking(false);
+      if (mounted) {
+        setUnlocked(false);
+        setChecking(false);
+      }
     };
     void init();
     return () => {
       mounted = false;
     };
   }, [isAuthenticated, loading]);
+
+  useEffect(() => {
+    if (!isCapacitorNative() || loading || checking || !isAuthenticated || unlocked) return;
+    if (hasFreshNativePasswordLogin()) return;
+    let cancelled = false;
+    void isBiometricUnlockEnabled().then((enabled) => {
+      if (!cancelled && enabled) void performUnlock();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, loading, checking, unlocked, performUnlock]);
 
   useEffect(() => {
     if (!CapApp?.addListener || !isCapacitorNative()) return undefined;

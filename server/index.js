@@ -14,6 +14,7 @@ import {
   companyLookupPublicLimiter,
   contactLimiter,
   credentialsUnlockLimiter,
+  appDownloadAccessLimiter,
   createGlobalApiRateLimiter,
   createStrictPublicRateLimiter,
   healthRateLimiter,
@@ -105,6 +106,10 @@ import { parseResendWebhook } from './emails/provider.js';
 import { searchAddresses as searchGeoAddresses } from './services/addressSearch.js';
 import { sendTransactionalEmail, handleBrevoWebhookEvent } from './services/emailService.js';
 import { getUnlockByToken, verifyAndConsumeUnlock } from './credentialUnlockStore.js';
+import {
+  requestAppDownloadAccessCode,
+  verifyAppDownloadAccess,
+} from './features/appDownloadAccess/appDownloadAccessService.js';
 import { formatParisDateTime, getClientIp, parseDeviceLabel } from './utils/loginContext.js';
 import { buildLoginAlertsProfilePatch, shouldSendLoginAlert } from './utils/loginAlerts.js';
 import { buildMobileSearchResponse } from './utils/mobileSearch.js';
@@ -1081,6 +1086,36 @@ app.post('/api/public/credentials-unlock/verify', credentialsUnlockLimiter, asyn
     email: user.email,
     temporaryPassword: result.temporaryPassword,
     loginUrl: `${appUrl}/login`,
+  });
+});
+
+app.post('/api/public/app-download/request-code', appDownloadAccessLimiter, async (_req, res) => {
+  const result = await requestAppDownloadAccessCode({ appUrl });
+  if (!result.ok) {
+    return res.status(503).json({ ok: false, error: result.error || 'APP_DOWNLOAD_CODE_SEND_FAILED' });
+  }
+  return res.json({
+    ok: true,
+    recipientMasked: result.recipientMasked,
+  });
+});
+
+app.post('/api/public/app-download/verify', appDownloadAccessLimiter, async (req, res) => {
+  const code = String(req.body?.code || '').trim();
+  const accessToken = String(req.body?.accessToken || '').trim();
+  if (!code && !accessToken) {
+    return res.status(400).json({ ok: false, error: 'APP_DOWNLOAD_PAYLOAD_INVALID' });
+  }
+  const result = verifyAppDownloadAccess({ code, accessToken });
+  if (!result.ok) {
+    const status = result.error === 'APP_DOWNLOAD_CODE_INVALID' ? 401 : 400;
+    return res.status(status).json({ ok: false, error: result.error });
+  }
+  return res.json({
+    ok: true,
+    accessToken: result.accessToken,
+    expiresAt: result.expiresAt,
+    revalidated: Boolean(result.revalidated),
   });
 });
 

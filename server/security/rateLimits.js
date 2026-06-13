@@ -102,6 +102,12 @@ export const credentialsUnlockLimiter = createSpecializedRateLimiter({
   signal: 'CREDENTIALS_UNLOCK_RATE_LIMIT_HIT',
 });
 
+export const appDownloadAccessLimiter = createSpecializedRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  signal: 'APP_DOWNLOAD_ACCESS_RATE_LIMIT_HIT',
+});
+
 export const healthRateLimiter = createSpecializedRateLimiter({
   windowMs: 60 * 1000,
   max: parsePositiveInt(process.env.HEALTH_RATE_LIMIT_MAX, 60),

@@ -52,6 +52,7 @@ import { ClientShopPage } from '@/pages/ClientShopPage.jsx';
 import { ResourceGuidePage } from '@/pages/ResourceGuidePage.jsx';
 import { LegalFormComparatorPage } from '@/pages/LegalFormComparatorPage.jsx';
 import { AppInstallPage } from '@/pages/AppInstallPage.jsx';
+import { AppDownloadGatePage } from '@/pages/AppDownloadGatePage.jsx';
 import { ContactPage } from '@/pages/ContactPage.jsx';
 import { AboutPage } from '@/pages/AboutPage.jsx';
 import { GuidePage } from '@/pages/GuidePage.jsx';
@@ -113,7 +114,7 @@ const NotFound = () => <NotFoundPage />;
 
 const Layout = ({ children }) => {
   const location = useLocation();
-  const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/services', '/paiement', '/ressources', '/app', '/app/welcome', '/app/home', '/guide', '/procuration', '/contact', '/a-propos', '/credentials-unlock', '/login', '/password-reset', '/auth/app-bridge', '/tarifs', '/creation-entreprise', '/modification-entreprise', '/annonce-legale', '/guichet-unique-inpi', '/kbis', '/guides', '/glossaire', '/faq'];
+  const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/services', '/paiement', '/ressources', '/app', '/app/welcome', '/app/home', '/guide', '/procuration', '/contact', '/a-propos', '/credentials-unlock', '/telechargement-app', '/login', '/password-reset', '/auth/app-bridge', '/tarifs', '/creation-entreprise', '/modification-entreprise', '/annonce-legale', '/guichet-unique-inpi', '/kbis', '/guides', '/glossaire', '/faq'];
   const mobileWebShellActive = isMobileBrowserViewport()
     && shouldUseMobileWebShell(location.pathname);
   const shouldHideHeader = hideHeaderRoutes.some((route) => location.pathname === route || location.pathname.startsWith('/service/'))
@@ -191,6 +192,7 @@ function AppRoutes() {
             <Route path="/ressources/comparateur-forme-juridique" element={<LegalFormComparatorPage />} />
             <Route path="/ressources/guides/:slug" element={<ResourceGuidePage />} />
             <Route path="/app" element={<AppInstallPage />} />
+            <Route path="/telechargement-app" element={<AppDownloadGatePage />} />
             <Route path="/app/welcome" element={<NativeAppWelcomePage />} />
             <Route path="/app/home" element={<NativeAppHomePage />} />
             <Route path="/contact" element={<ContactPage />} />
