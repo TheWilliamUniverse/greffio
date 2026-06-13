@@ -284,6 +284,7 @@ export const FormalityPowersPage = () => {
           <SignatureAdoptPanel
             defaultName={fields.signatureFullName || fields.signatoryName || ''}
             defaultEmail={fields.signerEmail || ''}
+            subtitle="Signature électronique Greffio — horodatée et traçable"
             loading={saving}
             onCancel={() => setSignMode(null)}
             onConfirm={(payload) => {

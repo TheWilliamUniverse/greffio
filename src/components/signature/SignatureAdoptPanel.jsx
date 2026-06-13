@@ -26,6 +26,7 @@ export const SignatureAdoptPanel = ({
   defaultName = '',
   defaultEmail = '',
   consentText = '',
+  subtitle = 'Signature électronique simple Greffio (SES)',
   onCancel,
   onConfirm,
   loading = false,
@@ -106,7 +107,7 @@ export const SignatureAdoptPanel = ({
           </span>
           <div>
             <p className="text-base font-extrabold text-foreground">Signer ce document</p>
-            <p className="text-xs text-muted-foreground">Signature électronique simple Greffio (SES)</p>
+            <p className="text-xs text-muted-foreground">{subtitle}</p>
           </div>
         </div>
       </div>

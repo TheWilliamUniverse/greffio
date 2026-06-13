@@ -1,0 +1,22 @@
+{
+  "appId": "com.greffio.app",
+  "appName": "Greffio",
+  "webDir": "dist",
+  "server": {
+    "url": "https://greffio.willentreprises.com/?nativeApp=1",
+    "androidScheme": "https",
+    "cleartext": false,
+    "allowNavigation": [
+      "greffio.willentreprises.com",
+      "*.willentreprises.com",
+      "willentreprises.com",
+      "api.greffio.willentreprises.com"
+    ]
+  },
+  "android": {
+    "allowMixedContent": false
+  },
+  "ios": {
+    "contentInset": "automatic"
+  }
+}

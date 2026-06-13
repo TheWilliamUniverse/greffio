@@ -1,4 +1,6 @@
 import { runtimeConfig } from '@/config/runtime.js';
+import { App as CapApp } from '@capacitor/app';
+import { isCapacitorNative } from '@/utils/platform.js';
 import {
   getRefreshToken,
   getToken,
@@ -15,6 +17,21 @@ export const buildNativeWebLoginUrl = (returnPath = '/auth/app-bridge') => {
   url.searchParams.set('nativeApp', '1');
   url.searchParams.set('return', returnPath);
   return url.toString();
+};
+
+/** Ouvre la connexion web (navigateur système en natif, sinon même onglet). */
+export const openNativeWebLoginUrl = async (returnPath = '/auth/app-bridge') => {
+  const url = buildNativeWebLoginUrl(returnPath);
+  try {
+    if (isCapacitorNative() && CapApp?.openUrl) {
+      await CapApp.openUrl({ url });
+      return true;
+    }
+  } catch (_error) {
+    // fallback ci-dessous
+  }
+  window.location.assign(url);
+  return true;
 };
 
 export const buildNativeWebSignupUrl = (returnPath = '/auth/app-bridge') => {

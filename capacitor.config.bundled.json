@@ -1,0 +1,11 @@
+{
+  "appId": "com.greffio.app",
+  "appName": "Greffio",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": false
+  },
+  "ios": {
+    "contentInset": "automatic"
+  }
+}

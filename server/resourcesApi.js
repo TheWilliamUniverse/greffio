@@ -11,7 +11,7 @@ import {
   updateResourceOrder,
 } from './resourceOrderStore.js';
 import { resolveFulfillmentMode } from './services/resourceFulfillment.js';
-import { notifyResourceOrderCreated } from './services/resourceOrderNotifications.js';
+import { notifyResourceOrderConfirmed } from './services/resourceOrderNotifications.js';
 
 export const listResourceServices = () => getAllCatalogItems().map((item) => ({
   id: item.id,
@@ -74,14 +74,17 @@ export const submitResourceOrder = async ({ userId, body, appUrl, customerName }
     },
   });
 
-  try {
-    await notifyResourceOrderCreated({
-      appUrl,
-      order,
-      customerName,
-    });
-  } catch (_error) {
-    // Ne pas bloquer la commande si l’email échoue
+  // Brouillon sans paiement : pas d'email. Gratuit (0 €) = confirmation immédiate.
+  if (!needsPayment) {
+    try {
+      await notifyResourceOrderConfirmed({
+        appUrl,
+        order,
+        customerName,
+      });
+    } catch (_error) {
+      // Ne pas bloquer la commande si l'email échoue
+    }
   }
 
   return order;

@@ -50,8 +50,9 @@
     "cap:sync": "npm run build && npx cap sync",
     "cap:sync:android": "npm run build && npx cap sync android",
     "cap:open:android": "npx cap open android",
-    "mobile:build": "npm run build && npx cap sync android",
-    "mobile:dev:live": "echo \"Copiez capacitor.config.dev.json vers capacitor.config.json pour le dev live, puis cap sync\""
+    "mobile:build": "npm run build && node scripts/use-capacitor-config.mjs bundled && npx cap sync android",
+    "mobile:build:remote": "npm run build && node scripts/use-capacitor-config.mjs remote && npx cap sync android",
+    "mobile:dev:live": "node scripts/use-capacitor-config.mjs dev && npx cap sync android"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1063.0",

@@ -95,14 +95,14 @@ export const stampSignatureOnPdf = async ({
   const isSubscribersLayout = layout === 'subscribers_list_official';
   const isFormalityPowersLayout = layout === 'formality_powers_official';
   const isOfficialLayout = layout === 'non_conviction_official';
-  const marginH = isSubscribersLayout || isFormalityPowersLayout ? 56 : 71;
+  const marginH = isSubscribersLayout || isFormalityPowersLayout ? 70.87 : 71;
   const signatureColWidth = 204;
   const signatureOnRight = isOfficialLayout;
   const signatureX = isFormalityPowersLayout
-    ? marginH
+    ? marginH + 58
     : (signatureOnRight ? width - marginH - signatureColWidth : marginH);
   const yBase = isFormalityPowersLayout
-    ? 132
+    ? 98
     : (isSubscribersLayout ? 118 : (isOfficialLayout ? 228 : 168));
 
   const safeSignerName = pdfSafeText(signerFullName, 'Signataire');
@@ -158,13 +158,15 @@ export const stampSignatureOnPdf = async ({
     });
   }
 
-  const metaX = signatureOnRight ? signatureX : Math.max(marginH, width - marginH - signatureColWidth);
+  const metaX = isFormalityPowersLayout
+    ? marginH
+    : (signatureOnRight ? signatureX : Math.max(marginH, width - marginH - signatureColWidth));
   const metaWidth = signatureColWidth;
   const metaLines = [
     pdfSafeText(`Signé électroniquement par ${safeSignerName}`),
     pdfSafeText(`Le ${signedLabel}`),
   ];
-  const metaBaseY = yBase - 42;
+  const metaBaseY = isFormalityPowersLayout ? 52 : yBase - 42;
   drawWhiteTextBlock(page, {
     x: metaX,
     y: metaBaseY,
@@ -175,11 +177,17 @@ export const stampSignatureOnPdf = async ({
     lineHeight: 11,
   });
 
-  const footerLines = [
-    pdfSafeText(`Document signé le ${signedLabel}`),
-    'Greffio — signature électronique simple (SES)',
-    ...(proofLines || []).slice(0, 2).map((line) => pdfSafeText(line)),
-  ];
+  const footerLines = isFormalityPowersLayout
+    ? [
+      pdfSafeText(`Document signé le ${signedLabel}`),
+      'Greffio — horodatage et empreinte documentaire',
+      ...(proofLines || []).slice(0, 2).map((line) => pdfSafeText(line)),
+    ]
+    : [
+      pdfSafeText(`Document signé le ${signedLabel}`),
+      'Greffio — signature électronique simple (SES)',
+      ...(proofLines || []).slice(0, 2).map((line) => pdfSafeText(line)),
+    ];
   if (footerLines.length) {
     drawWhiteTextBlock(page, {
       x: marginH,

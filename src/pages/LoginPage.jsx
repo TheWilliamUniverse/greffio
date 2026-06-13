@@ -222,7 +222,7 @@ export const LoginPage = () => {
     return () => window.clearTimeout(timer);
   }, [nativeApp, step, isLoading, mfaMode, emailCodeSent, otpCode]);
 
-  if (nativeApp) {
+  if (nativeApp && !nativeAppHandoff) {
     return <NativeWebLoginPage />;
   }
 

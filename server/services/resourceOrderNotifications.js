@@ -1,6 +1,6 @@
 import { sendTransactionalEmail } from './emailService.js';
 
-export const notifyResourceOrderCreated = async ({
+export const notifyResourceOrderConfirmed = async ({
   appUrl,
   order,
   customerName,
@@ -49,3 +49,6 @@ export const notifyResourceOrderCreated = async ({
 
   return { internalResult, customerResult };
 };
+
+/** @deprecated Utiliser notifyResourceOrderConfirmed */
+export const notifyResourceOrderCreated = notifyResourceOrderConfirmed;
