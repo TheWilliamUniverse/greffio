@@ -55,7 +55,7 @@ export const markNativeColdStartRouted = () => {
   }
 };
 
-/** Connexion mot de passe réussie — évite le verrou biométrique immédiat. */
+/** Connexion mot de passe réussie – évite le verrou biométrique immédiat. */
 export const markFreshNativePasswordLogin = () => writeFlag(KEYS.freshPasswordLogin);
 
 export const hasFreshNativePasswordLogin = () => readFlag(KEYS.freshPasswordLogin);

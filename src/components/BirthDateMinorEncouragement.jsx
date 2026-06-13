@@ -36,7 +36,7 @@ export const BirthDateMinorEncouragement = ({
           role="status"
           aria-live="polite"
         >
-          <QuestionnaireNotice variant="tip" title={`Tu t’as lancé à ${age} ans — bravo.`}>
+          <QuestionnaireNotice variant="tip" title={`Tu t’as lancé à ${age} ans – bravo.`}>
             On est là pour transformer ta curiosité en ambition.
             {showLegalHint ? (
               <span className="mt-2 block text-xs leading-5 opacity-90">

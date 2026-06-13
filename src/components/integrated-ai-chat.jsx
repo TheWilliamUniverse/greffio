@@ -15,7 +15,7 @@ export default function IntegratedAiChat() {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Bonjour, je suis l’assistant Greffio. Je vous guide sur vos formalités, documents, signatures et prochaines étapes — de façon claire et actionnable.' },
+    { role: 'assistant', content: 'Bonjour, je suis l’assistant Greffio. Je vous guide sur vos formalités, documents, signatures et prochaines étapes – de façon claire et actionnable.' },
   ]);
 
   const canSend = useMemo(() => input.trim().length > 0, [input]);

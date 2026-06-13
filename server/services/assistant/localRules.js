@@ -92,7 +92,7 @@ const tryDossierPersonalAnswer = ({ text, userContext = {} }) => {
   const ref = dossier.reference || dossier.dossierId;
   const company = dossier.companyName || 'votre société';
   const form = dossier.legalForm ? ` (${dossier.legalForm})` : '';
-  const progress = dossier.progressPercent != null ? `${dossier.progressPercent} %` : '—';
+  const progress = dossier.progressPercent != null ? `${dossier.progressPercent} %` : '–';
   const statusHint = hintForDossierStatus(dossier.status);
 
   if (
@@ -104,9 +104,9 @@ const tryDossierPersonalAnswer = ({ text, userContext = {} }) => {
   ) {
     const pendingLine = dossier.pendingCount
       ? `\nPièces encore à traiter : ${formatDocKeys(dossier.pendingDocuments)}.`
-      : '\nToutes les pièces attendues semblent déposées — l’équipe peut contrôler.';
+      : '\nToutes les pièces attendues semblent déposées – l’équipe peut contrôler.';
     return [
-      `Dossier ${ref} — ${company}${form}`,
+      `Dossier ${ref} – ${company}${form}`,
       `Statut actuel : ${String(dossier.status || 'en cours').replace(/_/g, ' ')} · Avancement ${progress}.`,
       statusHint,
       pendingLine,
@@ -187,7 +187,7 @@ export const tryLocalRulesAnswer = ({ message = '', userContext = {} } = {}) => 
 
   if (text.includes('sas') && (text.includes('sarl') || text.includes('>') || text.includes('vs'))) {
     return [
-      'SAS vs SARL — repères rapides :',
+      'SAS vs SARL – repères rapides :',
       '• SAS : souplesse statutaire, président, actions, régime social variable.',
       '• SARL : cadre codifié, parts sociales, gérant, TNS fréquent.',
       '• Greffio : choisissez la forme au questionnaire, puis gouvernance, capital et annexes.',
@@ -196,7 +196,7 @@ export const tryLocalRulesAnswer = ({ message = '', userContext = {} } = {}) => 
 
   if (text.includes('sasu') && !text.includes('sarl')) {
     return [
-      'SASU — points clés :',
+      'SASU – points clés :',
       '• Un seul associé, président obligatoire, capital libre (min. 1 €).',
       '• Statuts William 27 articles dans Greffio après questionnaire.',
       '• Pièces : identité, domicile, non-condamnation, souscripteurs, pouvoirs, attestation capital.',

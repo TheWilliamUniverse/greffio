@@ -1,5 +1,5 @@
 /**
- * AppUpdateManager — abstraction sur le mécanisme de vérification / lancement
+ * AppUpdateManager – abstraction sur le mécanisme de vérification / lancement
  * de mise à jour.
  *
  * Deux implémentations sont prévues :
@@ -11,7 +11,7 @@
  *    avec un futur plugin Capacitor custom.
  *
  * Toute erreur est isolée : `checkForUpdate()` ne lance jamais une exception
- * non gérée vers l'appelant — il renvoie un état `NoUpdate` en cas de pépin.
+ * non gérée vers l'appelant – il renvoie un état `NoUpdate` en cas de pépin.
  */
 
 import { App as CapApp } from '@capacitor/app';

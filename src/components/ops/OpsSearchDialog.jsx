@@ -95,7 +95,7 @@ export const OpsSearchDialog = ({ open, onClose, dossiers = [] }) => {
                         {item.companyName || 'Sans dénomination'}
                       </span>
                       <span className="mt-0.5 block truncate text-xs text-slate-500">
-                        {item.reference || item.id} · {item.legalForm || '—'} · {item.status}
+                        {item.reference || item.id} · {item.legalForm || '–'} · {item.status}
                       </span>
                     </span>
                     <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />

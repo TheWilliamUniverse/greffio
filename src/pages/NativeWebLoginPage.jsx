@@ -55,7 +55,7 @@ export const NativeWebLoginPage = () => {
           ) : null}
           <div className="mt-5 flex items-start gap-2 rounded-2xl bg-secondary/60 p-3 text-left text-xs leading-5 text-muted-foreground">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            <span>Même identifiants que sur greffio.willentreprises.com — MFA et récupération de mot de passe inclus.</span>
+            <span>Même identifiants que sur greffio.willentreprises.com – MFA et récupération de mot de passe inclus.</span>
           </div>
           <Button
             type="button"

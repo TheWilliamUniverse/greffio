@@ -61,9 +61,9 @@ export const COOKIE_CATEGORIES = [
       {
         name: 'Aucun cookie analytics actif',
         purpose: 'Greffio ne dépose pas de cookie statistique tant que vous n’avez pas accepté les cookies non essentiels.',
-        storage: '—',
-        duration: '—',
-        provider: '—',
+        storage: '–',
+        duration: '–',
+        provider: '–',
       },
     ],
   },

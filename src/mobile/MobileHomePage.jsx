@@ -13,7 +13,6 @@ import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
 import { MobileDossierTimeline } from '@/mobile/ui/MobileDossierTimeline.jsx';
 import { MobileCockpitOnboarding } from '@/mobile/ui/MobileCockpitOnboarding.jsx';
 import { useMobileMotion } from '@/mobile/ui/mobileMotion.js';
-import { OfflineDataBanner } from '@/components/system/OfflineDataBanner.jsx';
 import { mapDossierClientAction } from '@/utils/dossierClientStatus.js';
 import { resolveDossierContinueUrl } from '@/utils/dossierContinueUrl.js';
 import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
@@ -36,7 +35,6 @@ export const MobileHomePage = () => {
   }, [currentUser?.id, data, isSuccess]);
 
   const dossiers = isError ? (offlineSnapshot?.dossiers || []) : (data || []);
-  const cachedAt = isError ? offlineSnapshot?.cachedAt : null;
   const primaryDossier = dossiers[0];
   const actionLabel = useMemo(() => {
     if (!primaryDossier) return 'Votre espace est prêt. Lancez votre première démarche : Greffio prépare les documents, les pièces et le suivi avec vous.';
@@ -68,8 +66,6 @@ export const MobileHomePage = () => {
             Que devez-vous faire maintenant ?
           </h1>
         </MobileAnimatedSection>
-
-        {cachedAt ? <OfflineDataBanner cachedAt={cachedAt} /> : null}
 
         <MobileAnimatedSection delay={0.05}>
           <motion.section
@@ -138,7 +134,7 @@ export const MobileHomePage = () => {
             <section className="rounded-3xl border border-border/70 bg-white p-4 shadow-sm">
               <h3 className="text-sm font-extrabold">Envoi mobile</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Photographiez une pièce — conversion PDF optimisée avant envoi.
+                Photographiez une pièce – conversion PDF optimisée avant envoi.
               </p>
               <div className="mt-4">
                 <MobileDocumentScanner dossierId={primaryDossier.id} docKey="identity_proof" label="Scanner & envoyer" />

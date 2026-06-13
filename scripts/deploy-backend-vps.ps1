@@ -114,7 +114,19 @@ echo "Backup : $BACKUP"
 rm -rf server/routes server/config server/payments server/migrations
 tar -xzf /tmp/greffio-deploy.tar.gz -C /opt/greffio/
 chmod +x /opt/greffio/scripts/setup-aws-s3-production.sh 2>/dev/null || true
-npm ci --omit=dev --no-audit --no-fund 2>&1 | tail -3
+pm2 stop greffio-api > /dev/null 2>&1 || true
+pkill -f 'better-sqlite3/build/Release/.deps' 2>/dev/null || true
+npm ci --omit=dev --ignore-scripts --no-audit --no-fund 2>&1 | tail -3
+DEPS="/opt/greffio/node_modules/better-sqlite3/build/Release/.deps/Release/obj.target/sqlite3/gen/sqlite3"
+mkdir -p "$DEPS"
+( while true; do mkdir -p "$DEPS"; sleep 0.1; done ) &
+WATCH_PID=$!
+if ! ( cd /opt/greffio/node_modules/better-sqlite3 && npx --yes node-gyp rebuild --release ); then
+  kill "$WATCH_PID" 2>/dev/null || true
+  echo "better-sqlite3 rebuild failed" >&2
+  exit 1
+fi
+kill "$WATCH_PID" 2>/dev/null || true
 npm run db:migrate
 pm2 restart greffio-api --update-env > /dev/null
 sleep 3

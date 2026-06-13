@@ -17,6 +17,12 @@ import {
 } from '@/utils/appDownloadAccessStorage.js';
 import { runtimeConfig } from '@/config/runtime.js';
 import { getAuthInputClass } from '@/lib/authFormStyles.js';
+import { maskEmailFirstFour } from '@/utils/maskEmail.js';
+
+/** Affichage masqué de l’adresse autorisée (aligné sur APP_DOWNLOAD_CODE_RECIPIENT côté serveur). */
+const AUTHORIZED_RECIPIENT_MASKED = maskEmailFirstFour(
+  import.meta.env.VITE_APP_DOWNLOAD_RECIPIENT || 'ibtissam@willentreprises.com',
+);
 
 const LATEST_ANDROID = {
   versionName: '1.2.15',
@@ -72,8 +78,9 @@ export const AppDownloadGatePage = () => {
         toast.error('Impossible d’envoyer le code pour le moment.');
         return;
       }
-      setRecipientMasked(payload.recipientMasked || '');
-      toast.success(`Code envoyé à ${payload.recipientMasked || 'l’adresse autorisée'}.`);
+      const masked = payload.recipientMasked || AUTHORIZED_RECIPIENT_MASKED;
+      setRecipientMasked(masked);
+      toast.success(`Code envoyé à ${masked}.`);
     } catch (_error) {
       toast.error('Envoi impossible. Réessayez dans quelques minutes.');
     } finally {
@@ -92,9 +99,9 @@ export const AppDownloadGatePage = () => {
       const payload = await verifyAppDownloadCode({ code: code.trim() });
       if (!payload?.ok || !payload.accessToken) {
         const message = payload?.error === 'APP_DOWNLOAD_CODE_EXPIRED'
-          ? 'Code expiré — demandez un nouveau code.'
+          ? 'Code expiré – demandez un nouveau code.'
           : payload?.error === 'APP_DOWNLOAD_CODE_LOCKED'
-            ? 'Trop de tentatives — demandez un nouveau code.'
+            ? 'Trop de tentatives – demandez un nouveau code.'
             : 'Code incorrect.';
         toast.error(message);
         return;
@@ -204,7 +211,7 @@ export const AppDownloadGatePage = () => {
                   </div>
                   <div>
                     <h1 className="text-xl font-extrabold">Téléchargement Greffio</h1>
-                    <p className="text-sm text-muted-foreground">Distribution interne — ne pas partager publiquement</p>
+                    <p className="text-sm text-muted-foreground">Distribution interne – ne pas partager publiquement</p>
                   </div>
                 </div>
                 <Button type="button" variant="ghost" size="sm" onClick={handleLogout}>
@@ -218,7 +225,7 @@ export const AppDownloadGatePage = () => {
                   <div>
                     <h2 className="font-extrabold text-[hsl(var(--greffio-blue-900))]">Android</h2>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Version {LATEST_ANDROID.versionName} (build {LATEST_ANDROID.versionCode}) — mode {LATEST_ANDROID.mode}.
+                      Version {LATEST_ANDROID.versionName} (build {LATEST_ANDROID.versionCode}) – mode {LATEST_ANDROID.mode}.
                       L’app charge le site {runtimeConfig.appUrl} en natif (Capacitor remote).
                     </p>
                     <div className="mt-4">
@@ -226,7 +233,7 @@ export const AppDownloadGatePage = () => {
                     </div>
                     <p className="mt-3 text-xs text-muted-foreground">
                       AAB interne archivé : releases/android/greffio-1.2.15-261510014.aab
-                      (distribution Play Console / test interne — non installable directement sur téléphone).
+                      (distribution Play Console / test interne – non installable directement sur téléphone).
                     </p>
                   </div>
                 </div>
@@ -280,5 +287,3 @@ export const AppDownloadGatePage = () => {
 
       <PublicMinimalLegalFooter />
     </div>
-  );
-};

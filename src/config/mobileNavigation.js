@@ -30,7 +30,7 @@ export const MOBILE_AUTH_TABS_WEB = [
 ];
 
 /**
- * Onglets app native — source unique partagée avec mobileStore.MOBILE_BOTTOM_TABS.
+ * Onglets app native – source unique partagée avec mobileStore.MOBILE_BOTTOM_TABS.
  * Web : Messages (5e onglet). Native : Compte (assistant/statuts via drawer ☰).
  */
 export const MOBILE_AUTH_TABS_NATIVE = [
@@ -49,7 +49,7 @@ export const MOBILE_PUBLIC_TABS = [
   { to: '/login', label: 'Compte' },
 ];
 
-/** Liens drawer cockpit (auth) — source unique pour web mobile et app native. */
+/** Liens drawer cockpit (auth) – source unique pour web mobile et app native. */
 export const MOBILE_DRAWER_NAV_ITEMS = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
   { to: '/dossiers', icon: FolderKanban, label: 'Dossiers' },
@@ -64,7 +64,7 @@ export const MOBILE_DRAWER_NAV_ITEMS = [
   { to: '/contact', icon: HelpCircle, label: 'Aide / support' },
 ];
 
-/** Groupes drawer mobile — navigation structurée (audit UX). */
+/** Groupes drawer mobile – navigation structurée (audit UX). */
 export const MOBILE_DRAWER_NAV_GROUPS = [
   {
     label: 'Mon activité',
@@ -106,7 +106,7 @@ export const MOBILE_DRAWER_INTERNAL_ITEM = {
   label: 'Interfaces',
 };
 
-/** Menu ☰ simplifié — landing et pages publiques mobile. */
+/** Menu ☰ simplifié – landing et pages publiques mobile. */
 export const MOBILE_PUBLIC_DRAWER_ITEMS = [
   { to: '/', icon: Home, label: 'Accueil' },
   { to: '/simulateur', icon: Sparkles, label: 'Simuler une formalité' },
@@ -117,7 +117,7 @@ export const MOBILE_PUBLIC_DRAWER_ITEMS = [
 ];
 
 /**
- * État actif drawer — pathname.startsWith avec règles métier (sous-routes dossier, etc.).
+ * État actif drawer – pathname.startsWith avec règles métier (sous-routes dossier, etc.).
  */
 export const isMobileDrawerNavActive = (pathname, to) => {
   const path = String(pathname || '');

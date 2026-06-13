@@ -1,5 +1,5 @@
 /**
- * Objet social rédigé — modèle William Establishments SAS (référence 2026).
+ * Objet social rédigé – modèle William Establishments SAS (référence 2026).
  * Chaque catégorie du questionnaire mappe vers des puces complètes, pas un libellé court.
  */
 

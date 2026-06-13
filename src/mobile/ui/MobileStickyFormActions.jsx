@@ -4,7 +4,7 @@ import { useMobileKeyboardOffset } from '@/hooks/useMobileKeyboardOffset.js';
 import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 
 /**
- * Barre d’actions sticky au-dessus du clavier — formulaires signature mobile.
+ * Barre d’actions sticky au-dessus du clavier – formulaires signature mobile.
  */
 export const MobileStickyFormActions = ({
   children,

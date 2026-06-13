@@ -4,7 +4,7 @@ import { LogOut, Moon, Settings, User } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 
-/** Sheet compte — miroir du dropdown desktop `Header.jsx`. */
+/** Sheet compte – miroir du dropdown desktop `Header.jsx`. */
 export const MobileAccountQuickSheet = ({ open, onOpenChange, onLogoutRequest, onSleepRequest }) => {
   const { currentUser } = useAuth();
   const firstName = currentUser?.firstName || 'Greffio';

@@ -28,7 +28,7 @@ export const NativeAppHomePage = () => (
             Vos formalités, simplifiées.
           </h1>
           <p className="mt-2 max-w-sm text-sm leading-6 text-white/85">
-            Reprenez un dossier ou démarrez une création — questionnaire, signatures et suivi greffe au même endroit.
+            Reprenez un dossier ou démarrez une création – questionnaire, signatures et suivi greffe au même endroit.
           </p>
         </div>
         <div className="grid grid-cols-3 gap-px bg-white/10">

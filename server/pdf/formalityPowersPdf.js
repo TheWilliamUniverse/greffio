@@ -10,11 +10,13 @@ if (!fs.existsSync(outputDir)) {
 
 const PAGE_WIDTH = 595.28;
 const PAGE_HEIGHT = 841.89;
-const MARGIN_LEFT = 70.87; // 25 mm
-const MARGIN_RIGHT = 70.87;
-const MARGIN_TOP = 62.36; // 22 mm
-const MARGIN_BOTTOM = 68.03; // 24 mm
+const MARGIN_LEFT = 56.69; // 20 mm
+const MARGIN_RIGHT = 56.69;
+const MARGIN_TOP = 56.69;
+const MARGIN_BOTTOM = 62.36;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
+const BODY_SIZE = 10;
+const BODY_LINE_HEIGHT = 13;
 const COLOR_TEXT = rgb(0.08, 0.08, 0.08);
 const COLOR_MUTED = rgb(0.35, 0.35, 0.35);
 
@@ -37,39 +39,41 @@ const LEGAL_FORM_LABELS = {
   SCI: 'société civile immobilière',
 };
 
-const resolveLegalFormLabel = (code, companyName) => {
+const resolveLegalFormLabel = (code) => {
   const key = String(code || '').trim().toUpperCase();
-  const label = LEGAL_FORM_LABELS[key];
-  if (label) return label;
-  return key || 'forme sociale';
+  return LEGAL_FORM_LABELS[key] || key || 'forme sociale';
 };
 
-const wrapLines = (text, maxChars = 92) => {
+const wrapTextByWidth = (text, font, size, maxWidth) => {
   const words = pdfSafe(text).split(/\s+/).filter(Boolean);
   const lines = [];
   let current = '';
   words.forEach((word) => {
-    const next = current ? `${current} ${word}` : word;
-    if (next.length > maxChars) {
-      if (current) lines.push(current);
+    const trial = current ? `${current} ${word}` : word;
+    const width = font.widthOfTextAtSize(trial, size);
+    if (width > maxWidth && current) {
+      lines.push(current);
       current = word;
+    } else if (width > maxWidth) {
+      lines.push(word);
+      current = '';
     } else {
-      current = next;
+      current = trial;
     }
   });
   if (current) lines.push(current);
-  return lines;
+  return lines.length ? lines : [''];
 };
 
-const drawLines = ({
+const drawWrappedBlock = ({
   page,
   lines,
   x,
   yStart,
   font,
-  size,
+  size = BODY_SIZE,
   color = COLOR_TEXT,
-  lineHeight,
+  lineHeight = BODY_LINE_HEIGHT,
   maxWidth = CONTENT_WIDTH,
 }) => {
   let y = yStart;
@@ -87,6 +91,38 @@ const drawLines = ({
   return y;
 };
 
+const drawLabelValue = ({
+  page,
+  label,
+  value,
+  y,
+  font,
+  fontBold,
+  size = BODY_SIZE,
+}) => {
+  const labelText = pdfSafe(label);
+  const labelWidth = fontBold.widthOfTextAtSize(labelText, size);
+  page.drawText(labelText, {
+    x: MARGIN_LEFT,
+    y,
+    size,
+    font: fontBold,
+    color: COLOR_TEXT,
+  });
+  const valueLines = wrapTextByWidth(value, font, size, CONTENT_WIDTH - labelWidth - 4);
+  valueLines.forEach((line, index) => {
+    page.drawText(pdfSafe(line), {
+      x: MARGIN_LEFT + (index === 0 ? labelWidth : 0),
+      y: y - (index * BODY_LINE_HEIGHT),
+      size,
+      font,
+      color: COLOR_TEXT,
+      maxWidth: CONTENT_WIDTH - (index === 0 ? labelWidth : 0),
+    });
+  });
+  return y - (valueLines.length * BODY_LINE_HEIGHT);
+};
+
 export const generateFormalityPowersPdf = async ({ filename, fields = {} }) => {
   const targetPath = path.join(outputDir, filename);
   const pdfDoc = await PDFDocument.create();
@@ -95,105 +131,81 @@ export const generateFormalityPowersPdf = async ({ filename, fields = {} }) => {
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const fontItalic = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
 
-  const companyName = pdfSafe(fields.companyName || '—');
+  const companyName = pdfSafe(fields.companyName || '–');
   const legalFormCode = String(fields.legalForm || 'SAS').trim().toUpperCase();
-  const legalFormLabel = resolveLegalFormLabel(legalFormCode, companyName);
-  const greffe = pdfSafe(fields.greffe || '—');
+  const legalFormLabel = resolveLegalFormLabel(legalFormCode);
+  const greffe = pdfSafe(fields.greffe || '–');
   const mandataire = pdfSafe(fields.mandataire || 'WILLIAM ESTABLISHMENTS / Greffio');
   const city = pdfSafe(fields.statementCity || '______________________');
   const dateFr = formatFrenchDate(fields.statementDate) || '____ / ____ / ______';
   const signatoryName = pdfSafe(fields.signatoryName || fields.signatureFullName || 'Le signataire');
   const signatoryTitle = pdfSafe(fields.signatoryTitle || 'Le Président');
 
-  // Titre principal centré (~26 mm du haut)
   const title = pdfSafe(fields.title || 'POUVOIRS POUR FORMALITÉS');
-  const titleSize = 15.5;
+  const titleSize = 14.5;
   const titleWidth = fontBold.widthOfTextAtSize(title, titleSize);
   page.drawText(title, {
     x: (PAGE_WIDTH - titleWidth) / 2,
-    y: mmFromTopToY(26),
+    y: mmFromTopToY(24),
     size: titleSize,
     font: fontBold,
     color: COLOR_TEXT,
   });
 
-  // Annexe 3
-  let y = mmFromTopToY(42);
-  page.drawText('Annexe 3', { x: MARGIN_LEFT, y, size: 10.5, font: fontBold, color: COLOR_TEXT });
-  y -= 14;
+  let y = mmFromTopToY(40);
+  page.drawText('Annexe 3', { x: MARGIN_LEFT, y, size: BODY_SIZE, font: fontBold, color: COLOR_TEXT });
+  y -= BODY_LINE_HEIGHT;
   page.drawText('Pouvoirs pour formalités', {
     x: MARGIN_LEFT,
     y,
-    size: 10.5,
+    size: BODY_SIZE,
     font: fontItalic,
     color: COLOR_MUTED,
   });
 
-  // Bloc société (~62 mm)
-  y = mmFromTopToY(62);
-  page.drawText('Société concernée : ', {
-    x: MARGIN_LEFT,
+  y = mmFromTopToY(58);
+  y = drawLabelValue({
+    page,
+    label: 'Société concernée : ',
+    value: companyName,
     y,
-    size: 10.5,
-    font: fontBold,
-    color: COLOR_TEXT,
-  });
-  const companyLabel = `${companyName}, ${legalFormLabel}`;
-  page.drawText(companyLabel, {
-    x: MARGIN_LEFT + fontBold.widthOfTextAtSize('Société concernée : ', 10.5),
-    y,
-    size: 10.5,
     font,
-    color: COLOR_TEXT,
-    maxWidth: CONTENT_WIDTH - 95,
+    fontBold,
   });
-  y -= 15;
-  page.drawText('Greffe compétent : ', {
-    x: MARGIN_LEFT,
-    y,
-    size: 10.5,
-    font: fontBold,
-    color: COLOR_TEXT,
-  });
-  page.drawText(greffe, {
-    x: MARGIN_LEFT + fontBold.widthOfTextAtSize('Greffe compétent : ', 10.5),
-    y,
-    size: 10.5,
-    font,
-    color: COLOR_TEXT,
-  });
-
-  // Introduction pouvoirs (~84 mm)
-  y = mmFromTopToY(84);
-  const introPrefix = 'Les pouvoirs sont expressément conférés à ';
-  const introSuffix = ', ou à toute personne qu\'elle désignera, aux fins notamment de :';
-  page.drawText(introPrefix, {
-    x: MARGIN_LEFT,
-    y,
-    size: 10.5,
-    font,
-    color: COLOR_TEXT,
-  });
-  const prefixWidth = font.widthOfTextAtSize(introPrefix, 10.5);
-  page.drawText(mandataire, {
-    x: MARGIN_LEFT + prefixWidth,
-    y,
-    size: 10.5,
-    font: fontBold,
-    color: COLOR_TEXT,
-  });
-  const mandataireWidth = fontBold.widthOfTextAtSize(mandataire, 10.5);
-  wrapLines(introSuffix, 88).forEach((line, index) => {
-    page.drawText(line, {
-      x: index === 0 ? MARGIN_LEFT + prefixWidth + mandataireWidth : MARGIN_LEFT,
-      y: index === 0 ? y : y - (index * 14),
-      size: 10.5,
-      font,
-      color: COLOR_TEXT,
-      maxWidth: CONTENT_WIDTH,
+  y -= 2;
+  const formLines = wrapTextByWidth(legalFormLabel, fontItalic, BODY_SIZE - 0.5, CONTENT_WIDTH - 12);
+  formLines.forEach((line, index) => {
+    page.drawText(pdfSafe(line), {
+      x: MARGIN_LEFT + 12,
+      y: y - (index * (BODY_LINE_HEIGHT - 1)),
+      size: BODY_SIZE - 0.5,
+      font: fontItalic,
+      color: COLOR_MUTED,
+      maxWidth: CONTENT_WIDTH - 12,
     });
   });
-  y -= 28;
+  y -= (formLines.length * (BODY_LINE_HEIGHT - 1)) + 4;
+
+  y = drawLabelValue({
+    page,
+    label: 'Greffe compétent : ',
+    value: greffe,
+    y,
+    font,
+    fontBold,
+  });
+  y -= 10;
+
+  const introLead = `Les pouvoirs sont expressément conférés à ${mandataire}, ou à toute personne qu'elle désignera, aux fins notamment de :`;
+  const introLines = wrapTextByWidth(introLead, font, BODY_SIZE, CONTENT_WIDTH);
+  y = drawWrappedBlock({
+    page,
+    lines: introLines,
+    x: MARGIN_LEFT,
+    yStart: y,
+    font,
+  });
+  y -= 8;
 
   const bullets = (fields.paragraphs && fields.paragraphs.length > 1)
     ? fields.paragraphs.slice(1).map((item) => String(item).replace(/^•\s*/, '').trim())
@@ -205,55 +217,56 @@ export const generateFormalityPowersPdf = async ({ filename, fields = {} }) => {
       'corriger, compléter ou regulariser le dossier dans l\'intérêt de la Société.',
     ];
 
-  y = mmFromTopToY(102);
   bullets.forEach((bullet) => {
-    const lines = wrapLines(bullet, 86);
-    page.drawText('-', { x: MARGIN_LEFT + 4, y, size: 10.5, font, color: COLOR_TEXT });
+    const lines = wrapTextByWidth(bullet, font, BODY_SIZE, CONTENT_WIDTH - 18);
+    page.drawText('-', { x: MARGIN_LEFT + 2, y, size: BODY_SIZE, font, color: COLOR_TEXT });
     lines.forEach((line, lineIndex) => {
-      page.drawText(line, {
-        x: MARGIN_LEFT + 16,
-        y: y - (lineIndex * 14),
-        size: 10.5,
+      page.drawText(pdfSafe(line), {
+        x: MARGIN_LEFT + 14,
+        y: y - (lineIndex * BODY_LINE_HEIGHT),
+        size: BODY_SIZE,
         font,
         color: COLOR_TEXT,
-        maxWidth: CONTENT_WIDTH - 20,
+        maxWidth: CONTENT_WIDTH - 18,
       });
     });
-    y -= Math.max(lines.length * 14, 14) + 4;
+    y -= Math.max(lines.length * BODY_LINE_HEIGHT, BODY_LINE_HEIGHT) + 3;
   });
 
-  // Bloc signature — dernier tiers de page
   y = mmFromTopToY(188);
   page.drawText(`Fait à ${city}, le ${pdfSafe(dateFr)}.`, {
     x: MARGIN_LEFT,
     y,
-    size: 10.5,
+    size: BODY_SIZE,
     font,
     color: COLOR_TEXT,
+    maxWidth: CONTENT_WIDTH,
   });
 
   y = mmFromTopToY(206);
-  page.drawText(`${signatoryName},`, {
+  const signNameLines = wrapTextByWidth(`${signatoryName},`, font, BODY_SIZE, CONTENT_WIDTH);
+  y = drawWrappedBlock({
+    page,
+    lines: signNameLines,
     x: MARGIN_LEFT,
-    y,
-    size: 10.5,
+    yStart: y,
     font,
-    color: COLOR_TEXT,
   });
-  y -= 15;
+  y -= 2;
   page.drawText(signatoryTitle, {
     x: MARGIN_LEFT,
     y,
-    size: 10.5,
+    size: BODY_SIZE,
     font: fontBold,
     color: COLOR_TEXT,
+    maxWidth: CONTENT_WIDTH,
   });
 
   y = mmFromTopToY(232);
   page.drawText('Signature :', {
     x: MARGIN_LEFT,
     y,
-    size: 10.5,
+    size: BODY_SIZE,
     font,
     color: COLOR_TEXT,
   });

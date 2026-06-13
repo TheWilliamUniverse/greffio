@@ -77,7 +77,7 @@ export const GreffioLogo = ({ variant = 'full', className = '', to }) => {
           isOnBlue &&
             'rounded-lg focus-visible:ring-offset-[hsl(var(--greffio-blue))]',
         )}
-        aria-label="Greffio — Retour à l’accueil"
+        aria-label="Greffio – Retour à l’accueil"
         translate="no"
       >
         {logo}

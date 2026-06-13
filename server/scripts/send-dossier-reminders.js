@@ -70,6 +70,10 @@ const isQuestionnaireValidated = (dossier) => {
 };
 
 const runReminders = async () => {
+  if (process.env.EMAIL_DOSSIER_REMINDERS_ENABLED === 'false'
+    || process.env.EMAIL_DOSSIER_REMINDERS_ENABLED === '0') {
+    return { sent: 0, skipped: 0, mode: 'reminders', disabled: true };
+  }
   const dossiers = await getAllDossiers();
   let sent = 0;
   let skipped = 0;

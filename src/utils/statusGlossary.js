@@ -1,4 +1,4 @@
-/** Glossaire statuts client — libellés sans clés techniques. */
+/** Glossaire statuts client – libellés sans clés techniques. */
 export const STATUS_GLOSSARY = Object.freeze({
   BROUILLON: 'Votre dossier est en cours de création.',
   EN_COURS: 'Des informations restent à compléter.',

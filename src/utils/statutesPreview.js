@@ -21,7 +21,7 @@ export const fullPreviewToDocumentPreview = (preview) => {
   sections.push({
     title: 'Page de garde',
     lines: [
-      `STATUTS — ${legalForm}`,
+      `STATUTS – ${legalForm}`,
       `Société : ${denomination}`,
       cover.subtitle ? String(cover.subtitle) : '',
     ].filter(Boolean),
@@ -42,11 +42,11 @@ export const fullPreviewToDocumentPreview = (preview) => {
       continue;
     }
     if (block.kind === 'article') {
-      const articleLines = [`Article ${block.number} — ${block.title}`, block.body];
+      const articleLines = [`Article ${block.number} – ${block.title}`, block.body];
       if (currentTitleSection) {
         currentTitleSection.lines.push(...articleLines, '');
       } else {
-        sections.push({ title: `Article ${block.number} — ${block.title}`, lines: [block.body] });
+        sections.push({ title: `Article ${block.number} – ${block.title}`, lines: [block.body] });
       }
       continue;
     }
@@ -104,7 +104,7 @@ export const fullPreviewToDocumentPreview = (preview) => {
     clauseCount: articleLabel,
     pageCount: meta.pageCount,
     templateId: meta.templateId || meta.template,
-    previewMetaLine: `${articleLabel} articles rédigés${pageLabel} — document prêt à relire et exporter.`,
+    previewMetaLine: `${articleLabel} articles rédigés${pageLabel} – document prêt à relire et exporter.`,
     williamPreview: preview,
   };
 };

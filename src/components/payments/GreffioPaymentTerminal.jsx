@@ -64,7 +64,7 @@ export const GreffioPaymentTerminal = ({
     items.push({
       id: 'card',
       title: 'Carte bancaire',
-      subtitle: 'Visa, Mastercard — confirmation serveur Greffio',
+      subtitle: 'Visa, Mastercard – confirmation serveur Greffio',
       badge: showGooglePay ? 'Sécurisé' : 'Recommandé',
       badgeTone: 'bg-secondary text-primary border-[#cfe0f5]',
       mark: <CardMark />,
@@ -107,7 +107,7 @@ export const GreffioPaymentTerminal = ({
 
           <div className="rounded-2xl border border-white/80 bg-white/90 px-4 py-3 text-center sm:min-w-[180px] sm:text-right">
             <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Montant TTC</p>
-            <p className="mt-0.5 text-3xl font-extrabold text-[hsl(var(--greffio-blue-900))]">{amountLabel || '—'}</p>
+            <p className="mt-0.5 text-3xl font-extrabold text-[hsl(var(--greffio-blue-900))]">{amountLabel || '–'}</p>
             <p className="mt-1 text-xs text-muted-foreground">{offerLabel}</p>
           </div>
         </div>
@@ -189,7 +189,7 @@ export const GreffioPaymentTerminal = ({
                             onClick={onPayByCard}
                             disabled={isCreatingPayment || !amountCents}
                           >
-                            {isCreatingPayment ? 'Initialisation…' : `${cardButtonLabel} — ${amountLabel || ''}`}
+                            {isCreatingPayment ? 'Initialisation…' : `${cardButtonLabel} – ${amountLabel || ''}`}
                             <ArrowRight className="h-4 w-4" />
                           </Button>
                         </div>

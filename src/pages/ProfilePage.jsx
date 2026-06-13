@@ -188,7 +188,7 @@ export const ProfilePage = () => {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-foreground">{avatar.caption}</p>
-                      <p className="text-xs text-muted-foreground">Badge visuel — pas de photo de profil.</p>
+                      <p className="text-xs text-muted-foreground">Badge visuel – pas de photo de profil.</p>
                     </div>
                   </div>
                   <div className="grid flex-1 gap-4 md:grid-cols-2">
@@ -373,7 +373,7 @@ export const ProfilePage = () => {
                       <ShieldCheck className="h-4 w-4 text-primary" />
                       <p className="font-semibold">Authentification & sessions</p>
                     </div>
-                    <p className="mt-2 text-sm text-muted-foreground">Double authentification et sessions connectées — bientôt disponibles.</p>
+                    <p className="mt-2 text-sm text-muted-foreground">Double authentification et sessions connectées – bientôt disponibles.</p>
                     <Button asChild variant="outline" className="mt-4 bg-white">
                       <Link to="/settings">Paramètres de sécurité</Link>
                     </Button>

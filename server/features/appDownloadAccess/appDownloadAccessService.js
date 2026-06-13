@@ -1,4 +1,5 @@
 import { sendWithProvider } from '../../emails/provider.js';
+import { maskEmailFirstFour } from '../../utils/maskEmail.js';
 import {
   generateAccessCode,
   getCodeRecipientEmail,
@@ -38,7 +39,7 @@ export const requestAppDownloadAccessCode = async ({ appUrl }) => {
     console.info('APP_DOWNLOAD_ACCESS_CODE_DEV', { recipient, code });
     return {
       ok: true,
-      recipientMasked: maskEmail(recipient),
+      recipientMasked: maskEmailFirstFour(recipient),
       devCodeLogged: true,
     };
   }
@@ -49,7 +50,7 @@ export const requestAppDownloadAccessCode = async ({ appUrl }) => {
 
   return {
     ok: true,
-    recipientMasked: maskEmail(recipient),
+    recipientMasked: maskEmailFirstFour(recipient),
   };
 };
 
@@ -58,11 +59,4 @@ export const verifyAppDownloadAccess = ({ code, accessToken }) => {
     return { ok: true, accessToken, revalidated: true };
   }
   return verifyAccessCode(code);
-};
-
-const maskEmail = (email) => {
-  const [local, domain] = String(email).split('@');
-  if (!local || !domain) return '***';
-  const visible = local.slice(0, Math.min(2, local.length));
-  return `${visible}***@${domain}`;
 };

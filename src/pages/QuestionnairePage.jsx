@@ -170,7 +170,7 @@ export const QuestionnairePage = () => {
     && (step.id !== 'gouvernance' || validateDirectorEligibility(formData).ok);
   const canContinue = isLastFieldInStep ? canCompleteStep : canAdvanceCurrentField;
   const continueLabel = isLastFieldInStep && stepIndex >= QUESTIONNAIRE_FLOW.length - 1
-    ? 'Valider et continuer'
+    ? 'Terminer le questionnaire'
     : isLastFieldInStep
       ? 'Étape suivante'
       : 'Continuer';

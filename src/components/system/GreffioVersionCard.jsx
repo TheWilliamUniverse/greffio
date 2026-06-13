@@ -26,7 +26,7 @@ export const GreffioVersionCard = ({ compact = false }) => {
   }, []);
 
   const versionLabel = nativeInfo?.version || remote?.latestVersionName || import.meta.env.VITE_APP_VERSION || 'Web';
-  const buildLabel = nativeInfo?.build || remote?.latestVersionCode || '—';
+  const buildLabel = nativeInfo?.build || remote?.latestVersionCode || '–';
   const changelogUrl = runtimeConfig.playStoreUrl;
 
   if (compact) {

@@ -1,4 +1,4 @@
-/** Libellés publics des formalités (emails, espace client) — jamais de slug technique seul. */
+/** Libellés publics des formalités (emails, espace client) – jamais de slug technique seul. */
 
 export const TYPE_FORMALITE_PUBLIC_LABELS = Object.freeze({
   creation_societe: 'Formalité de création de société',

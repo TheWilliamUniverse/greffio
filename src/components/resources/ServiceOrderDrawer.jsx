@@ -218,7 +218,7 @@ export const ServiceOrderDrawer = ({ open, onOpenChange, service }) => {
                         <Building2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                         <span>
                           <span className="font-bold">{lookupCompany.denomination}</span>
-                          {lookupCompany.city ? ` — ${lookupCompany.city}` : ''}
+                          {lookupCompany.city ? ` – ${lookupCompany.city}` : ''}
                         </span>
                       </div>
                     )}

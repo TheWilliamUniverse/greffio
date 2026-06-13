@@ -43,6 +43,7 @@ export function resolveCawlETransactionsConfig(env = process.env) {
     cancelUrl: String(env.CAWL_CANCEL_URL || `${appUrl}/paiement`).trim(),
     refuseUrl: String(env.CAWL_REFUSE_URL || `${appUrl}/paiement/verification?status=refused`).trim(),
     pubkeyPath: String(env.CAWL_ETRANS_PUBKEY_PATH || '').trim(),
+    pbxTheme: String(env.CAWL_PBX_THEME || '').trim(),
     checkoutPath: normalizeETransactionsCheckoutPath(
       env.CAWL_ETRANSACTIONS_CHECKOUT_PATH || env.CAWL_ETRANS_CHECKOUT_PATH,
     ),
@@ -245,6 +246,9 @@ export function buildHostedCheckoutFields(input, config, serverHost) {
 
   const msg = buildHmacMessage(fields);
   fields.PBX_HMAC = computeHmacSha512(msg, config.hmacKeyHex);
+  if (config.pbxTheme) {
+    fields.PBX_THEME = config.pbxTheme;
+  }
 
   return {
     actionUrl: buildETransactionsCheckoutActionUrl(serverHost, config),
@@ -269,12 +273,77 @@ export function renderHostedCheckoutHtml(payload) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Redirection paiement sécurisé…</title>
+  <meta name="theme-color" content="#1e4d8c">
+  <title>Greffio – Redirection paiement sécurisé</title>
   <style>
-    body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f8fbff;color:#1e4d8c}
-    main{text-align:center;padding:2rem;max-width:28rem}
-    button{margin-top:1rem;padding:0.75rem 1.25rem;border:0;border-radius:0.75rem;background:#1e4d8c;color:#fff;font:inherit;font-weight:700;cursor:pointer}
-    #cawl-fallback{display:none;margin-top:1rem}
+    :root { --greffio-blue: #1e4d8c; --greffio-blue-900: #0f2748; --greffio-citron: #d4e157; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif;
+      background: radial-gradient(circle at top left, rgba(59,130,246,0.12), transparent 42%), linear-gradient(180deg, #f8fbff 0%, #ffffff 55%, #eef4ff 100%);
+      color: var(--greffio-blue-900);
+    }
+    main {
+      width: min(28rem, calc(100vw - 2rem));
+      text-align: center;
+      padding: 2rem 1.5rem;
+      border-radius: 1.75rem;
+      border: 1px solid #cfe0f5;
+      background: rgba(255,255,255,0.92);
+      box-shadow: 0 28px 80px rgba(30,77,140,0.14);
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: var(--greffio-blue);
+      font-size: 1.125rem;
+    }
+    .brand-mark {
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 0.75rem;
+      background: var(--greffio-blue);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.875rem;
+      font-weight: 900;
+    }
+    h1 { margin: 1.25rem 0 0.5rem; font-size: 1.25rem; font-weight: 800; }
+    p { margin: 0; line-height: 1.6; color: #475569; font-size: 0.9375rem; }
+    .spinner {
+      width: 2.5rem;
+      height: 2.5rem;
+      margin: 1.25rem auto 0;
+      border-radius: 9999px;
+      border: 3px solid rgba(30,77,140,0.15);
+      border-top-color: var(--greffio-blue);
+      animation: spin 0.8s linear infinite;
+    }
+    button {
+      margin-top: 1rem;
+      padding: 0.75rem 1.25rem;
+      border: 0;
+      border-radius: 0.75rem;
+      background: var(--greffio-blue);
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+    }
+    #cawl-fallback { display: none; margin-top: 1rem; }
+    .secure { margin-top: 1rem; font-size: 0.75rem; color: #64748b; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
   <script>
     (function () {
@@ -300,16 +369,20 @@ export function renderHostedCheckoutHtml(payload) {
 </head>
 <body onload="(function(){var f=document.getElementById('cawl-checkout');if(f)f.submit();})();">
   <main>
-    <p>Redirection vers la page de paiement sécurisée CAWL…</p>
+    <div class="brand"><span class="brand-mark">G</span> Greffio</div>
+    <h1>Connexion au terminal sécurisé</h1>
+    <p>Redirection vers la page de paiement carte. Ne fermez pas cette fenêtre.</p>
+    <div class="spinner" role="status" aria-label="Redirection en cours"></div>
     <form id="cawl-checkout" method="POST" action="${actionUrl}">
       ${inputs}
       <noscript>
-        <p><button type="submit">Continuer vers le paiement sécurisé</button></p>
+        <p id="cawl-fallback"><button type="submit">Continuer vers le paiement sécurisé</button></p>
       </noscript>
       <p id="cawl-fallback">
         <button type="submit">Continuer vers le paiement sécurisé</button>
       </p>
     </form>
+    <p class="secure">Paiement chiffré TLS · Prestataire certifié · Greffio</p>
   </main>
 </body>
 </html>`;

@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils.js';
 import { useMobileSafeBottomPadding } from '@/hooks/useMobileSafeBottomPadding.js';
 
 /**
- * Conteneur standard cockpit mobile — padding bas au-dessus bottom nav + FAB.
+ * Conteneur standard cockpit mobile – padding bas au-dessus bottom nav + FAB.
  */
 export const MobilePageContainer = ({
   children,

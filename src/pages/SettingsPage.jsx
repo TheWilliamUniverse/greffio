@@ -411,7 +411,7 @@ export const SettingsPage = () => {
 
               {recoveryCodes.length > 0 && (
                 <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-4">
-                  <p className="mb-1 text-sm font-bold text-amber-900">Codes de secours — enregistrez-les maintenant</p>
+                  <p className="mb-1 text-sm font-bold text-amber-900">Codes de secours – enregistrez-les maintenant</p>
                   <p className="mb-3 text-xs text-amber-800">Ces codes ne seront plus affichés après fermeture de cette page.</p>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {recoveryCodes.map((code) => (

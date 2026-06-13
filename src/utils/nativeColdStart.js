@@ -16,7 +16,7 @@ const pickPrimaryDossier = (dossiers = []) => {
 /** Après connexion ou cold start natif : toujours l’accueil cockpit. */
 export const resolveNativePostLoginPath = async () => '/dashboard';
 
-/** Reprise dossier depuis l’accueil (carte action) — distinct du post-login. */
+/** Reprise dossier depuis l’accueil (carte action) – distinct du post-login. */
 export const resolveNativeDossierContinuePath = async () => {
   try {
     const payload = await apiGet('/api/dossiers', { retryOnUnauthorized: false });

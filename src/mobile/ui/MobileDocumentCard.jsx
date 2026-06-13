@@ -7,7 +7,7 @@ import { resolveDocumentUserAction } from '@/utils/onlineDocumentStatus.js';
 import { cn } from '@/lib/utils.js';
 
 /**
- * Carte document mobile — badge + hint actionnable + CTA unique.
+ * Carte document mobile – badge + hint actionnable + CTA unique.
  */
 export const MobileDocumentCard = ({
   name,

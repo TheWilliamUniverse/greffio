@@ -76,7 +76,7 @@ const wrapGreffioEmail = ({ preheader = '', bodyHtml }) => `
             <td style="padding:8px 28px 28px;font-size:12px;line-height:1.6;color:#64748b;border-top:1px solid #e2e8f0;">
               <p style="margin:16px 0 0;">Greffio est un service de ${PUBLISHER_LEGAL_NAME}.<br/>
               Cet email vous est envoyé dans le cadre de l’utilisation de votre compte ou de votre dossier Greffio.</p>
-              <p style="margin:12px 0 0;">L’équipe Greffio — greffio.willentreprises.com</p>
+              <p style="margin:12px 0 0;">L’équipe Greffio – greffio.willentreprises.com</p>
             </td>
           </tr>
         </table>

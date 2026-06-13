@@ -36,7 +36,7 @@ export const FORMALITY_POWER_STATUS_LABELS = {
   missing: 'À fournir',
   pending_signature: 'Signature attendue',
   signed: 'Signé',
-  signed_unverified: 'Signé — à vérifier',
+  signed_unverified: 'Signé – à vérifier',
   verified: 'Vérifié',
   rejected: 'Refusé',
   requires_manual_review: 'Vérification manuelle',

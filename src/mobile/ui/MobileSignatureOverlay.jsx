@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '@/lib/utils.js';
 
 /**
- * Overlay signature mobile — bottom sheet + centré desktop.
+ * Overlay signature mobile – bottom sheet + centré desktop.
  */
 export const MobileSignatureOverlay = ({ open, children, footerHint = '' }) => {
   if (!open) return null;

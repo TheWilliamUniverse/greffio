@@ -322,8 +322,8 @@ export const AssociatesMinorPanel = ({
                     <p className="text-sm font-bold text-amber-950">Associé mineur</p>
                     <div className="flex flex-wrap gap-2">
                       {[
-                        { value: true, label: 'Oui — ordonnance d’émancipation à joindre' },
-                        { value: false, label: 'Non — représenté(e) par ses représentants légaux' },
+                        { value: true, label: 'Oui – ordonnance d’émancipation à joindre' },
+                        { value: false, label: 'Non – représenté(e) par ses représentants légaux' },
                       ].map((option) => (
                         <button
                           key={String(option.value)}

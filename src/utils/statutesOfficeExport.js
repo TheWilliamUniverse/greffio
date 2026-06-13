@@ -58,7 +58,7 @@ export const buildStatutesExportElements = (preview) => {
       inPreliminary = false;
       elements.push({
         type: 'article',
-        heading: block.number ? `Article ${block.number} — ${block.title}` : block.title,
+        heading: block.number ? `Article ${block.number} – ${block.title}` : block.title,
         body: block.body,
       });
       return;

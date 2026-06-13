@@ -1,4 +1,4 @@
-/** Messages d’erreur signature publique — français juridique simple. */
+/** Messages d’erreur signature publique – français juridique simple. */
 export const mapSignaturePublicError = (code, fallback = '') => {
   const key = String(code || '').toUpperCase();
   const messages = {

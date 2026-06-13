@@ -76,7 +76,7 @@ const NEXT_ACTIONS = {
   mandate_required: 'Lire et signer la procuration Greffio.',
   mandate_pending_signature: 'Signer la procuration Greffio.',
   statutes_generated: 'Relire les statuts générés avant signature.',
-  client_validation_required: 'Valider le dossier avant dépôt.',
+  client_validation_required: 'Confirmer le dossier avant dépôt.',
   payment_pending: 'Régler les frais requis pour poursuivre la formalité.',
   filed_to_guichet_unique: 'Le dossier est déposé et suivi par Greffio.',
   under_administration_review: 'Aucune action requise, instruction en cours.',
@@ -258,7 +258,7 @@ export const DossiersPage = () => {
               <h1 className="mt-2 text-3xl font-extrabold text-foreground">Dossiers</h1>
               <p className="mt-2 text-sm text-muted-foreground">
                 {internalView
-                  ? 'Vue équipe Greffio — tous les dossiers ouverts sur la plateforme.'
+                  ? 'Vue équipe Greffio – tous les dossiers ouverts sur la plateforme.'
                   : 'Vue réelle de vos créations, modifications, dissolutions et démarches administratives.'}
               </p>
             </div>

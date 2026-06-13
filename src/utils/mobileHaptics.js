@@ -38,6 +38,6 @@ export const triggerMobileHaptic = async (kind = 'light') => {
     }
     await Haptics.impact({ style: ImpactStyle.Light });
   } catch (_error) {
-    // ignore — appareil sans vibreur ou permission refusée
+    // ignore – appareil sans vibreur ou permission refusée
   }
 };

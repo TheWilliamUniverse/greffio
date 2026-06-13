@@ -11,11 +11,11 @@ import { PUBLISHER_LEGAL_NAME } from '@/config/publisher.js';
 const pageMeta = {
   '/ops/cockpit': {
     title: 'Cockpit ops',
-    subtitle: 'Vue d’ensemble — priorités, SLA et actions immédiates.',
+    subtitle: 'Vue d’ensemble – priorités, SLA et actions immédiates.',
   },
   '/ops/dossiers': {
     title: 'Dossiers',
-    subtitle: 'Tous les dossiers clients — filtres, risque et complétude.',
+    subtitle: 'Tous les dossiers clients – filtres, risque et complétude.',
   },
   '/ops/documents': {
     title: 'Documents',
@@ -23,7 +23,7 @@ const pageMeta = {
   },
   '/ops/relances': {
     title: 'Relances',
-    subtitle: 'Clients à relancer — suggestions automatiques (Lot 2).',
+    subtitle: 'Clients à relancer – suggestions automatiques (Lot 2).',
   },
   '/ops/depot': {
     title: 'Dépôt guichet unique',

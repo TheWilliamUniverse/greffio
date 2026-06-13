@@ -1,4 +1,4 @@
-/** Parcours questionnaire — démarrage explicite vs reprise d’un dossier existant. */
+/** Parcours questionnaire – démarrage explicite vs reprise d’un dossier existant. */
 
 export const QUESTIONNAIRE_NEW_PATH = '/questionnaire?new=1';
 

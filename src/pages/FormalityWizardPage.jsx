@@ -1847,7 +1847,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                     : step === 2 && step2Phase === 'questionnaire' && questionExitPhase
                       ? 'Validation…'
                     : step === 2 && step2Phase === 'questionnaire'
-                      ? (isLastQuestion ? 'Valider' : 'Continuer')
+                      ? (isLastQuestion ? 'Étape suivante' : 'Continuer')
                     : isAccountCreationStep
                       ? (accountPhase === 'creating' ? 'Création…' : 'Créer mon espace')
                     : step === 1 && projectSubStep === 0 && contactStep < contactFields.length - 1

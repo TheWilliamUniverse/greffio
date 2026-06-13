@@ -24,11 +24,11 @@ export const SignwellPublicSigningPanel = ({
     <dl className="mt-5 space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm">
       <div>
         <dt className="text-white/50">Signataire</dt>
-        <dd className="font-medium">{signerFullName || '—'}</dd>
+        <dd className="font-medium">{signerFullName || '–'}</dd>
       </div>
       <div>
         <dt className="text-white/50">Email</dt>
-        <dd className="font-medium break-all">{signerEmail || '—'}</dd>
+        <dd className="font-medium break-all">{signerEmail || '–'}</dd>
       </div>
     </dl>
     {errorMessage ? (

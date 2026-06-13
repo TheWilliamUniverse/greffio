@@ -737,7 +737,7 @@ export const DocumentsPage = () => {
           {previewDoc?.blobUrl ? (
             <section className="overflow-hidden rounded-md border border-border bg-white shadow-elevation-sm">
               <div className="flex items-center justify-between border-b border-border px-5 py-3">
-                <p className="text-sm font-bold text-foreground">Aperçu — {previewDoc.label}</p>
+                <p className="text-sm font-bold text-foreground">Aperçu – {previewDoc.label}</p>
                 <Button type="button" variant="outline" size="sm" className="bg-white" onClick={() => setPreviewDoc(null)}>
                   Fermer
                 </Button>

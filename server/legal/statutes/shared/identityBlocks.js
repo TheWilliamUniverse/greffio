@@ -43,7 +43,7 @@ export const buildSoussignesBlocks = (data) => {
     ].filter(Boolean);
 
     if (!isUniqueAssociateForm(data.legalForm) && data.associates.length > 1) {
-      blocks.push(paragraph(`Associé ${index + 1} —`));
+      blocks.push(paragraph(`Associé ${index + 1} –`));
     }
     lines.forEach((line) => blocks.push(paragraph(line)));
     blocks.push({ kind: 'blank' });

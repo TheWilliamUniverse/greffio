@@ -6,7 +6,7 @@ import { MobileConnectionStatusRow } from '@/mobile/MobileNativeOfflineBanner.js
 import { getBiometryLabel, isBiometricUnlockEnabled } from '@/utils/biometricAuth.js';
 
 /**
- * Centre d'état natif — rassure sur connexion, notifications, biométrie, version (Natif Android).
+ * Centre d'état natif – rassure sur connexion, notifications, biométrie, version (Natif Android).
  */
 export const MobileNativeStatusCenter = () => {
   const { version, build, loading: appInfoLoading } = useMobileAppInfo();
@@ -52,8 +52,8 @@ export const MobileNativeStatusCenter = () => {
     { label: 'Connexion', value: <MobileConnectionStatusRow /> },
     { label: 'Notifications', value: pushStatus },
     { label: 'Biométrie', value: biometryStatus },
-    { label: 'Version', value: appInfoLoading ? '…' : (version || '—') },
-    { label: 'Build', value: appInfoLoading ? '…' : (build || '—') },
+    { label: 'Version', value: appInfoLoading ? '…' : (version || '–') },
+    { label: 'Build', value: appInfoLoading ? '…' : (build || '–') },
   ];
 
   return (

@@ -31,6 +31,10 @@ export const getLoginAlertsSettings = (user) => {
 export const isLoginAlertsConfigured = (user) => getLoginAlertsSettings(user).configured;
 
 export const shouldSendLoginAlert = (user) => {
+  if (process.env.EMAIL_LOGIN_ALERTS_ENABLED === 'false'
+    || process.env.EMAIL_LOGIN_ALERTS_ENABLED === '0') {
+    return false;
+  }
   const { enabled, configured } = getLoginAlertsSettings(user);
   if (!configured) return DEFAULT_LOGIN_ALERTS_ENABLED;
   return enabled;

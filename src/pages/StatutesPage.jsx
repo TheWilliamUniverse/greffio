@@ -359,7 +359,7 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
                     <p className="mt-1 text-sm text-muted-foreground">
                       Complétude : <span className="font-bold text-foreground">{completeness} %</span>
                       {preview.metadata?.missingFields?.length ? (
-                        <> — champs manquants : {preview.metadata.missingFields.join(', ')}</>
+                        <> – champs manquants : {preview.metadata.missingFields.join(', ')}</>
                       ) : null}
                     </p>
                   </div>
@@ -380,7 +380,7 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
                   <p className="mt-1 text-sm text-muted-foreground">Structure imposée pour conformité greffe et relecture client.</p>
                   <dl className="mt-5 space-y-3 text-sm">
                     {[
-                      ['Couverture', `${preview.cover?.title} — ${preview.cover?.denomination || preview.cover?.subtitle}`],
+                      ['Couverture', `${preview.cover?.title} – ${preview.cover?.denomination || preview.cover?.subtitle}`],
                       ['Forme juridique', incorporated?.legalForm],
                       ['Modèle', preview.structure?.template || preview.metadata?.template],
                       ['Capital', `${incorporated?.capital} €`],
@@ -391,7 +391,7 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
                     ].map(([term, value]) => (
                       <div key={term} className="grid grid-cols-[140px_1fr] gap-3 border-b border-[var(--we-border)] pb-3 last:border-b-0">
                         <dt className="font-semibold text-muted-foreground">{term}</dt>
-                        <dd className="font-medium text-foreground">{value || '—'}</dd>
+                        <dd className="font-medium text-foreground">{value || '–'}</dd>
                       </div>
                     ))}
                   </dl>
@@ -400,7 +400,7 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
                 <div className="we-panel p-6 lg:col-span-2">
                   <h2 className="text-lg font-extrabold">Statuts complets</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {preview.clauseCount || preview.allClauses?.length || 0} articles rédigés — document William prêt à relire avant génération PDF.
+                    {preview.clauseCount || preview.allClauses?.length || 0} articles rédigés – document William prêt à relire avant génération PDF.
                   </p>
                   {preview.preamble?.paragraphs?.length ? (
                     <div className="mt-5 rounded-xl border border-dashed border-[var(--we-border)] bg-[#fafcff] p-4">
@@ -424,7 +424,7 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
                       if (block.kind === 'article') {
                         return (
                           <article key={`article-${block.number}`} className="rounded-xl border border-[var(--we-border)] bg-white p-4">
-                            <h3 className="text-sm font-extrabold text-primary">{`Article ${block.number} — ${block.title}`}</h3>
+                            <h3 className="text-sm font-extrabold text-primary">{`Article ${block.number} – ${block.title}`}</h3>
                             <StatutesArticleBody body={block.body} />
                           </article>
                         );

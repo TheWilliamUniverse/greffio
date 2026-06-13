@@ -20,7 +20,7 @@ export const completionTone = (score) => {
 
 export const formatRelativeTime = (value) => {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
+  if (Number.isNaN(date.getTime())) return '–';
   const diffMs = Date.now() - date.getTime();
   const hours = Math.floor(diffMs / (60 * 60 * 1000));
   if (hours < 1) return 'À l’instant';
@@ -33,7 +33,7 @@ export const formatRelativeTime = (value) => {
 
 export const formatDateTime = (value) => {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
+  if (Number.isNaN(date.getTime())) return '–';
   return date.toLocaleString('fr-FR', {
     day: '2-digit',
     month: 'short',

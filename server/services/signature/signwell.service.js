@@ -88,7 +88,7 @@ export const createSignwellDocument = async ({
       ...(embeddedSigning ? { embedded_signing_notifications: false } : {}),
       redirect_url: redirectUrl,
       message: message || '<p>Veuillez signer ce document Greffio.</p>',
-      subject: subject || `Signature — ${safeName}`,
+      subject: subject || `Signature – ${safeName}`,
       files: [{
         name: `${safeName.replace(/[^\w.-]+/g, '_')}.pdf`,
         file_base64: Buffer.from(pdfBuffer).toString('base64'),

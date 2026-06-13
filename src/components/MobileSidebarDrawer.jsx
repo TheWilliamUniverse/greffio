@@ -83,7 +83,7 @@ export const MobileSidebarDrawer = ({ open, onClose, className }) => {
         {showNavHint ? (
           <p className="border-b border-border/70 bg-secondary/30 px-5 py-2.5 text-xs leading-5 text-muted-foreground">
             Messages, pilotage et statuts sont accessibles via ce menu ☰
-            {isCapacitorNative() ? ' — l’onglet Compte remplace Messages sur l’app.' : '.'}
+            {isCapacitorNative() ? ' – l’onglet Compte remplace Messages sur l’app.' : '.'}
           </p>
         ) : null}
 

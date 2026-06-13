@@ -100,7 +100,7 @@ export const capitalRepartitionWilliam = (data) => {
     return data.capitalRepartitionLines.join('\n');
   }
   return (data.associates || []).map((a) => (
-    `${a.label} : ${a.share || '—'} des actions, soit ${a.titlesCount || '—'} actions.`
+    `${a.label} : ${a.share || '–'} des actions, soit ${a.titlesCount || '–'} actions.`
   )).join('\n');
 };
 

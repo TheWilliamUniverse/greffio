@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button.jsx';
 const Row = ({ label, value }) => (
   <div className="flex flex-col gap-0.5 border-b border-emerald-100/70 py-2 last:border-b-0 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
     <span className="text-xs font-semibold uppercase tracking-wide text-emerald-900/70">{label}</span>
-    <span className="break-words text-sm font-semibold text-emerald-950 sm:text-right">{value || '—'}</span>
+    <span className="break-words text-sm font-semibold text-emerald-950 sm:text-right">{value || '–'}</span>
   </div>
 );
 

@@ -113,4 +113,5 @@ test('renderHostedCheckoutHtml auto-submits form with fallbacks', () => {
   assert.match(html, /onload=/);
   assert.match(html, /id="cawl-fallback"/);
   assert.match(html, /Continuer vers le paiement sécurisé/);
+  assert.match(html, /Greffio/);
 });

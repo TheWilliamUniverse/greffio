@@ -23,7 +23,7 @@ export const PUBLISHER_WEBSITE = 'https://greffio.willentreprises.com';
 
 export const PUBLISHER_BRAND = 'Greffio';
 
-export const PUBLISHER_BRAND_LINE = `${PUBLISHER_LEGAL_NAME} — ${PUBLISHER_BRAND}`;
+export const PUBLISHER_BRAND_LINE = `${PUBLISHER_LEGAL_NAME} – ${PUBLISHER_BRAND}`;
 
 export const PUBLISHER_SERVICE_DISCLAIMER =
   'Greffio est un service privé d’assistance aux démarches administratives des entreprises ; il ne constitue pas un service officiel de l’État, des greffes des tribunaux de commerce ou d’Infogreffe.';

@@ -20,7 +20,7 @@ import { searchResources } from '@/utils/resourceSearch.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { listDossiers } from '@/api/dossiers.js';
 
-/** Boutique de documents du cockpit client — catalogue payant des Ressources, dans le dashboard. */
+/** Boutique de documents du cockpit client – catalogue payant des Ressources, dans le dashboard. */
 export const ClientShopPage = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();

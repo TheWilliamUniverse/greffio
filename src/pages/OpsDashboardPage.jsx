@@ -132,7 +132,7 @@ export const OpsDashboardPage = () => {
             <p className="text-sm font-bold uppercase text-primary">Ops</p>
             <h1 className="mt-1 text-3xl font-extrabold">Pilotage opérationnel Greffio</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Vue rapide dossiers/paiements — accès global à tous les dossiers clients (hors assignation personnelle).
+              Vue rapide dossiers/paiements – accès global à tous les dossiers clients (hors assignation personnelle).
             </p>
           </div>
           <Button type="button" variant="outline" className="bg-white" onClick={loadData} disabled={loading}>
@@ -162,7 +162,7 @@ export const OpsDashboardPage = () => {
         <section id="resource-orders" className="rounded-md border border-border bg-white shadow-elevation-sm">
           <div className="border-b border-border p-4">
             <h2 className="text-lg font-extrabold">Commandes documents / ressources</h2>
-            <p className="mt-1 text-xs text-muted-foreground">File manuelle OPS — Kbis, copies certifiées, packs.</p>
+            <p className="mt-1 text-xs text-muted-foreground">File manuelle OPS – Kbis, copies certifiées, packs.</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -183,7 +183,7 @@ export const OpsDashboardPage = () => {
                       <p className="text-xs text-muted-foreground">{order.id}</p>
                     </td>
                     <td className="px-4 py-3">
-                      {order.companyName || '—'}
+                      {order.companyName || '–'}
                       {order.siren && <p className="text-xs text-muted-foreground">SIREN {order.siren}</p>}
                     </td>
                     <td className="px-4 py-3">
@@ -353,7 +353,7 @@ export const OpsDashboardPage = () => {
                 </div>
                 <div>
                   <p className="mb-1 text-xs font-bold uppercase text-muted-foreground">Assignation formaliste (optionnelle)</p>
-                  <Input value={selectedDossier.assignedToUserId || ''} onChange={(event) => setSelectedDossier((current) => ({ ...current, assignedToUserId: event.target.value }))} placeholder="ID formaliste externe (usr_...) — laisser vide pour dossiers clients" />
+                  <Input value={selectedDossier.assignedToUserId || ''} onChange={(event) => setSelectedDossier((current) => ({ ...current, assignedToUserId: event.target.value }))} placeholder="ID formaliste externe (usr_...) – laisser vide pour dossiers clients" />
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <div>

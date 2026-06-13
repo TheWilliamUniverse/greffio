@@ -111,10 +111,10 @@ export const OpsDossiersPage = () => {
               {dossiers.map((item) => (
                 <tr key={item.id} className="border-b border-slate-100 last:border-b-0">
                   <td className="px-4 py-4">
-                    <p className="font-semibold text-slate-900">{item.companyName || '—'}</p>
+                    <p className="font-semibold text-slate-900">{item.companyName || '–'}</p>
                     <p className="text-xs text-slate-500">{item.reference || item.id}</p>
                   </td>
-                  <td className="px-4 py-4 text-slate-700">{item.legalForm || '—'}</td>
+                  <td className="px-4 py-4 text-slate-700">{item.legalForm || '–'}</td>
                   <td className="px-4 py-4">
                     <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
                       {item.status}
@@ -133,7 +133,7 @@ export const OpsDossiersPage = () => {
                     <OpsCompletionBadge score={item.completionScore || 0} />
                   </td>
                   <td className="px-4 py-4 max-w-[220px]">
-                    <p className="line-clamp-2 text-slate-700">{item.nextBestAction?.label || '—'}</p>
+                    <p className="line-clamp-2 text-slate-700">{item.nextBestAction?.label || '–'}</p>
                   </td>
                   <td className="px-4 py-4 text-slate-500">{formatRelativeTime(item.lastActivityAt)}</td>
                   <td className="px-4 py-4">

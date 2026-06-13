@@ -40,7 +40,7 @@ export const OpsQueueBadge = ({ queue }) => {
     waiting_client: 'watch',
     ready_to_file: 'ok',
   };
-  return <Badge label={labels[queue] || queue || '—'} tone={tones[queue] || 'low'} />;
+  return <Badge label={labels[queue] || queue || '–'} tone={tones[queue] || 'low'} />;
 };
 
 export const OpsPriorityBadge = ({ priority }) => {

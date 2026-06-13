@@ -17,7 +17,7 @@ export const buildCapitalAnnexe = (data) => {
   });
 
   return {
-    title: 'Annexe 1 — Répartition du capital',
+    title: 'Annexe 1 – Répartition du capital',
     paragraphs: [
       `Société : ${data.denomination} (${data.legalForm})`,
       `Capital social : ${formatFrInteger(model.capitalTotal)} euros`,
@@ -50,7 +50,7 @@ export const buildActsAnnexe = (data) => {
     && data.actsInFormation.some((row) => row?.nature && !/à compléter/i.test(String(row.nature)));
 
   return {
-    title: 'Annexe 2 — État des actes accomplis pour le compte de la société en formation',
+    title: 'Annexe 2 – État des actes accomplis pour le compte de la société en formation',
     paragraphs: [
       'Conformément aux dispositions applicables, les actes accomplis pour le compte de la Société en formation seront repris automatiquement par la Société du fait de son immatriculation au Registre du Commerce et des Sociétés, sous réserve qu’ils aient été conclus dans l’intérêt de la Société.',
       'Les actes suivants pourront notamment être repris :',
@@ -64,7 +64,7 @@ export const buildActsAnnexe = (data) => {
 };
 
 export const buildPowersAnnexe = (data) => ({
-  title: 'Annexe 3 — Pouvoirs pour formalités',
+  title: 'Annexe 3 – Pouvoirs pour formalités',
   paragraphs: [
     `Les pouvoirs sont expressément conférés à ${data.mandataire || 'WILLIAM ESTABLISHMENTS / Greffio'}, ou à toute personne qu'il désignera, aux fins notamment de :`,
     '• procéder à la signature électronique des pièces lorsque la loi l\'autorise ;',

@@ -13,23 +13,27 @@ export const notifyResourceOrderConfirmed = async ({
   const priceLabel = `${(order.priceTtcCents / 100).toFixed(2).replace('.', ',')} € TTC`;
   const opsUrl = `${appUrl}/ops?tab=resource-orders`;
 
-  const internalResult = await sendTransactionalEmail({
-    templateKey: 'resource_order_internal',
-    to: { email: supportInbox, name: 'Greffio OPS' },
-    variables: {
-      order_id: order.id,
-      service_title: order.serviceTitle,
-      company_name: order.companyName || '—',
-      siren: order.siren || '—',
-      contact_email: order.contactEmail,
-      price_label: priceLabel,
-      status: order.status,
-      fulfillment_mode: order.fulfillmentMode,
-      notes: order.notes || '—',
-      ops_url: opsUrl,
-    },
-    tags: ['ops', 'resource_order'],
-  });
+  let internalResult = { ok: true, skipped: true };
+  if (process.env.EMAIL_RESOURCE_ORDER_INTERNAL_ENABLED !== 'false'
+    && process.env.EMAIL_RESOURCE_ORDER_INTERNAL_ENABLED !== '0') {
+    internalResult = await sendTransactionalEmail({
+      templateKey: 'resource_order_internal',
+      to: { email: supportInbox, name: 'Greffio OPS' },
+      variables: {
+        order_id: order.id,
+        service_title: order.serviceTitle,
+        company_name: order.companyName || '–',
+        siren: order.siren || '–',
+        contact_email: order.contactEmail,
+        price_label: priceLabel,
+        status: order.status,
+        fulfillment_mode: order.fulfillmentMode,
+        notes: order.notes || '–',
+        ops_url: opsUrl,
+      },
+      tags: ['ops', 'resource_order'],
+    });
+  }
 
   const customerResult = await sendTransactionalEmail({
     templateKey: 'resource_order_received',

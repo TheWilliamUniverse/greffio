@@ -182,7 +182,7 @@ export const OpsDossierDetailPage = () => {
           </Button>
           <h2 className="text-2xl font-extrabold text-slate-900">{dossier.companyName || 'Sans dénomination'}</h2>
           <p className="mt-1 text-sm text-slate-500">
-            {dossier.reference || dossier.id} · {dossier.legalForm || '—'} · {dossier.status}
+            {dossier.reference || dossier.id} · {dossier.legalForm || '–'} · {dossier.status}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <OpsRiskBadge score={payload.risk?.riskScore || 0} />
@@ -323,7 +323,7 @@ export const OpsDossierDetailPage = () => {
                     dossier: { ...current.dossier, assignedToUserId: event.target.value || null },
                   }))}
                 >
-                  <option value="">Non assigné — équipe globale</option>
+                  <option value="">Non assigné – équipe globale</option>
                   {GREFFIO_OPS_TEAM.map((member) => (
                     <option key={member.id} value={member.email}>{member.name}</option>
                   ))}
@@ -370,7 +370,7 @@ export const OpsDossierDetailPage = () => {
           <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-200 px-5 py-4">
               <h3 className="text-lg font-extrabold text-slate-900">Messages client</h3>
-              <p className="text-sm text-slate-500">Fil partagé avec le client — envoi email direct possible.</p>
+              <p className="text-sm text-slate-500">Fil partagé avec le client – envoi email direct possible.</p>
             </div>
             <div className="p-5">
               <DossierMessageThread

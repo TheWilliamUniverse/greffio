@@ -63,7 +63,7 @@ export const shouldUseMobileWebShell = (pathname) => {
   return !isMobileShellExcluded(pathname);
 };
 
-/** @deprecated Préfixes historiques — le shell natif couvre désormais toutes les routes hors exclusions. */
+/** @deprecated Préfixes historiques – le shell natif couvre désormais toutes les routes hors exclusions. */
 export const MOBILE_SHELL_PREFIXES = [
   '/dashboard',
   '/dossiers',
@@ -107,7 +107,7 @@ export const shouldUseMobileShell = (pathname) => {
   return !isMobileShellExcluded(pathname);
 };
 
-/** Log dev : route × shell natif (Natif Android — dev uniquement). */
+/** Log dev : route × shell natif (Natif Android – dev uniquement). */
 export const logMobileShellRoute = (pathname) => {
   if (!import.meta.env.DEV || !isCapacitorNative()) return;
   const path = String(pathname || '');

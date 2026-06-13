@@ -25,7 +25,7 @@ export const MobileShellOverlayProvider = ({ children }) => {
     signatureOverlayCloseRef.current = open && typeof onClose === 'function' ? onClose : null;
   }, []);
 
-  /** Fermeture overlay Android — priorité : veille > compte > notifications > recherche > dossier > signature > drawer */
+  /** Fermeture overlay Android – priorité : veille > compte > notifications > recherche > dossier > signature > drawer */
   const closeTopOverlay = useCallback(() => {
     let topOverlay = null;
     let action = null;

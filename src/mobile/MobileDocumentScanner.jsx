@@ -119,7 +119,7 @@ export const MobileDocumentScanner = ({
         icon={Camera}
         title="Photographier vos pièces"
         description="Greffio utilise l’appareil photo pour numériser vos justificatifs et les convertir en PDF."
-        benefit="Vos photos restent dans votre dossier Greffio — elles ne sont pas partagées en dehors du service."
+        benefit="Vos photos restent dans votre dossier Greffio – elles ne sont pas partagées en dehors du service."
         confirmLabel="Autoriser la caméra"
         onConfirm={confirmCameraAccess}
         onCancel={() => {

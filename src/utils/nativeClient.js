@@ -1,6 +1,6 @@
 import { getNativePlatform, isCapacitorNative } from '@/utils/platform.js';
 
-/** En-têtes API pour clients Capacitor — captcha allégé côté serveur. */
+/** En-têtes API pour clients Capacitor – captcha allégé côté serveur. */
 export const nativeClientAuthHeaders = () => {
   if (!isCapacitorNative()) return {};
   const platform = getNativePlatform();

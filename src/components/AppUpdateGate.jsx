@@ -5,7 +5,7 @@ import { isCapacitorNative } from '@/utils/platform.js';
 
 /**
  * Compose le hook `useAppUpdate` avec la modale.
- * Activé uniquement sur les builds natifs (Capacitor) — sur le web la
+ * Activé uniquement sur les builds natifs (Capacitor) – sur le web la
  * notion de "mise à jour applicative" ne s'applique pas (le navigateur
  * recharge toujours la dernière version déployée).
  */

@@ -26,7 +26,7 @@ export const documentToFullPreview = (document) => {
     .map((block) => ({
       number: block.number,
       title: block.title,
-      heading: `Article ${block.number} — ${block.title}`,
+      heading: `Article ${block.number} – ${block.title}`,
       body: block.body,
     }));
 
@@ -74,7 +74,7 @@ export const fullPreviewToExportSections = (preview) => {
   sections.push({
     title: 'Page de garde',
     lines: [
-      `STATUTS — ${legalForm}`,
+      `STATUTS – ${legalForm}`,
       `Société : ${denomination}`,
       cover.subtitle ? String(cover.subtitle) : '',
       cover.reference ? `Référence : ${cover.reference}` : '',
@@ -97,13 +97,13 @@ export const fullPreviewToExportSections = (preview) => {
     }
     if (block.kind === 'article') {
       const articleLines = [
-        `Article ${block.number} — ${block.title}`,
+        `Article ${block.number} – ${block.title}`,
         block.body,
       ];
       if (currentTitleSection) {
         currentTitleSection.lines.push(...articleLines, '');
       } else {
-        sections.push({ title: `Article ${block.number} — ${block.title}`, lines: [block.body] });
+        sections.push({ title: `Article ${block.number} – ${block.title}`, lines: [block.body] });
       }
       continue;
     }

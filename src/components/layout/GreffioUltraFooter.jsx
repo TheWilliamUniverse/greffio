@@ -42,7 +42,7 @@ const FooterColumn = ({ title, links, compact = false }) => (
 );
 
 /**
- * Footer public structuré (inspiré Namirial) — barre utilitaire, colonnes, paiements, bandeau légal.
+ * Footer public structuré (inspiré Namirial) – barre utilitaire, colonnes, paiements, bandeau légal.
  */
 export const GreffioUltraFooter = ({
   id = 'mentions-legales',

@@ -46,7 +46,7 @@ export const DOSSIER_NEXT_ACTIONS = Object.freeze({
   mandate_required: 'Lire et signer la procuration Greffio.',
   mandate_pending_signature: 'Signer la procuration Greffio.',
   statutes_generated: 'Relire les statuts générés avant signature.',
-  client_validation_required: 'Valider le dossier avant dépôt.',
+  client_validation_required: 'Confirmer le dossier avant dépôt.',
   payment_pending: 'Régler les frais requis pour poursuivre la formalité.',
   filed_to_guichet_unique: 'Le dossier est déposé et suivi par Greffio.',
   under_administration_review: 'Aucune action requise, instruction en cours.',
@@ -65,7 +65,7 @@ export const mapDossierClientAction = (status, progressPercent = 0) => {
   const key = String(status || '').toLowerCase();
   if (DOSSIER_NEXT_ACTIONS[key]) return DOSSIER_NEXT_ACTIONS[key];
   const progress = Number(progressPercent || 0);
-  if (progress > 0 && progress < 100) return `Progression ${progress} % — poursuivez votre dossier.`;
+  if (progress > 0 && progress < 100) return `Progression ${progress} % – poursuivez votre dossier.`;
   return 'Poursuivez votre dossier Greffio.';
 };
 
@@ -128,7 +128,7 @@ export const buildDossierTimelineSteps = (dossier = {}) => {
   });
 };
 
-/** Résumé cockpit — étape, action, prochaine étape. */
+/** Résumé cockpit – étape, action, prochaine étape. */
 export const resolveDossierStatusSummary = (dossier = {}, documents = []) => {
   const status = String(dossier.status || '').toLowerCase();
   const progress = Number(dossier.progressPercent || 0);
@@ -147,7 +147,7 @@ export const resolveDossierStatusSummary = (dossier = {}, documents = []) => {
   if (pendingDocs.length) {
     blocking = `${pendingDocs.length} document${pendingDocs.length > 1 ? 's' : ''} en attente`;
   } else if (['under_administration_review', 'filed_to_guichet_unique'].includes(status)) {
-    blocking = 'Aucun blocage — instruction en cours';
+    blocking = 'Aucun blocage – instruction en cours';
   } else if (['rejected', 'regularization_requested', 'documents_missing_or_invalid'].includes(status)) {
     blocking = 'Action requise de votre part';
   }

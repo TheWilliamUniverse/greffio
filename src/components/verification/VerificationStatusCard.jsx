@@ -39,7 +39,7 @@ export const VerificationStatusCard = ({
     );
   }
 
-  const companyLabel = COMPANY_STATUS_LABELS[profile.company_status] || profile.company_status || '—';
+  const companyLabel = COMPANY_STATUS_LABELS[profile.company_status] || profile.company_status || '–';
 
   return (
     <div className="rounded-2xl border border-border bg-white p-5">

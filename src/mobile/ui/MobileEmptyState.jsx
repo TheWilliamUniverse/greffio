@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { cn } from '@/lib/utils.js';
 
 /**
- * Empty state premium orienté action — cockpit mobile.
+ * Empty state premium orienté action – cockpit mobile.
  */
 export const MobileEmptyState = ({
   icon: Icon,

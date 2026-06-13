@@ -1,4 +1,4 @@
-/** Colonnes du footer public Greffio — structure type Namirial. */
+/** Colonnes du footer public Greffio – structure type Namirial. */
 export const GREFFIO_FOOTER_COLUMNS = [
   {
     id: 'utilitaire',

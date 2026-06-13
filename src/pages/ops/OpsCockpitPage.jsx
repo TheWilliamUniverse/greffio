@@ -30,18 +30,18 @@ export const OpsCockpitPage = () => {
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <OpsKpiCard title="Dossiers actifs" value={kpis.activeDossiers ?? '—'} icon={FolderKanban} tone="info" />
-        <OpsKpiCard title="Docs à valider" value={kpis.documentsToValidate ?? '—'} icon={FileCheck2} tone="warning" />
-        <OpsKpiCard title="En retard / critique" value={kpis.lateDossiers ?? '—'} icon={Clock3} tone="danger" onClick={() => goFilter('sla:late')} active={false} />
-        <OpsKpiCard title="Prêts au dépôt" value={kpis.readyForDeposit ?? '—'} icon={CheckCircle2} tone="success" onClick={() => goFilter('ready:deposit')} />
+        <OpsKpiCard title="Dossiers actifs" value={kpis.activeDossiers ?? '–'} icon={FolderKanban} tone="info" />
+        <OpsKpiCard title="Docs à valider" value={kpis.documentsToValidate ?? '–'} icon={FileCheck2} tone="warning" />
+        <OpsKpiCard title="En retard / critique" value={kpis.lateDossiers ?? '–'} icon={Clock3} tone="danger" onClick={() => goFilter('sla:late')} active={false} />
+        <OpsKpiCard title="Prêts au dépôt" value={kpis.readyForDeposit ?? '–'} icon={CheckCircle2} tone="success" onClick={() => goFilter('ready:deposit')} />
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <OpsKpiCard title="Risque élevé" value={kpis.highRisk ?? '—'} hint="Score ≥ 70/100" icon={ShieldAlert} tone="danger" onClick={() => goFilter('risk:high')} />
-        <OpsKpiCard title="Relances suggérées" value={kpis.remindersSuggested ?? '—'} icon={AlertTriangle} tone="warning" onClick={() => goFilter('action:reminder')} />
-        <OpsKpiCard title="Bloqués > 48 h" value={kpis.blockedOver48h ?? '—'} icon={Clock3} tone="danger" onClick={() => goFilter('sla:late')} />
-        <OpsKpiCard title="Uploads S3 échoués" value={kpis.storageUploadFailures ?? '—'} icon={FileCheck2} tone="warning" onClick={() => goFilter('storage:failed')} />
-        <OpsKpiCard title="Brouillons fantômes" value={kpis.placeholderDossiers ?? '—'} icon={FolderKanban} tone="warning" onClick={() => goFilter('placeholder:ghost')} />
+        <OpsKpiCard title="Risque élevé" value={kpis.highRisk ?? '–'} hint="Score ≥ 70/100" icon={ShieldAlert} tone="danger" onClick={() => goFilter('risk:high')} />
+        <OpsKpiCard title="Relances suggérées" value={kpis.remindersSuggested ?? '–'} icon={AlertTriangle} tone="warning" onClick={() => goFilter('action:reminder')} />
+        <OpsKpiCard title="Bloqués > 48 h" value={kpis.blockedOver48h ?? '–'} icon={Clock3} tone="danger" onClick={() => goFilter('sla:late')} />
+        <OpsKpiCard title="Uploads S3 échoués" value={kpis.storageUploadFailures ?? '–'} icon={FileCheck2} tone="warning" onClick={() => goFilter('storage:failed')} />
+        <OpsKpiCard title="Brouillons fantômes" value={kpis.placeholderDossiers ?? '–'} icon={FolderKanban} tone="warning" onClick={() => goFilter('placeholder:ghost')} />
         <OpsKpiCard title="Complétude moyenne" value={`${kpis.averageCompletion ?? 0}%`} icon={CheckCircle2} tone="success" />
       </section>
 
@@ -50,7 +50,7 @@ export const OpsCockpitPage = () => {
           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
             <div>
               <h2 className="text-lg font-extrabold text-slate-900">À traiter maintenant</h2>
-              <p className="text-sm text-slate-500">Priorisation anti-rejet — SLA, risque et documents en attente.</p>
+              <p className="text-sm text-slate-500">Priorisation anti-rejet – SLA, risque et documents en attente.</p>
             </div>
             <Button type="button" variant="outline" className="bg-white" asChild>
               <Link to="/ops/dossiers?filter=action:now">Voir tout</Link>
@@ -81,7 +81,7 @@ export const OpsCockpitPage = () => {
                 <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-slate-400" />
               </button>
             )) : (
-              <p className="px-5 py-8 text-sm text-slate-500">Aucune action urgente — excellente nouvelle.</p>
+              <p className="px-5 py-8 text-sm text-slate-500">Aucune action urgente – excellente nouvelle.</p>
             )}
           </div>
         </div>

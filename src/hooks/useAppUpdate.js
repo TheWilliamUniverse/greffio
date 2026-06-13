@@ -4,7 +4,7 @@
  * Cycle :
  *  1. Au montage, attend un court délai pour ne pas peser sur le démarrage,
  *     puis interroge le manager d'update.
- *  2. Filtre via la persistance "snooze" — si l'utilisateur a cliqué sur
+ *  2. Filtre via la persistance "snooze" – si l'utilisateur a cliqué sur
  *     "Plus tard" et que le délai n'est pas écoulé, ne déclenche pas la
  *     modale (sauf si une MAJ obligatoire est disponible).
  *  3. Expose un état stable + 3 actions : `startUpdate`, `dismiss`, `recheck`.

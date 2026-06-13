@@ -43,7 +43,7 @@ const drawPageFooter = (doc, companyName, pageNumber) => {
   doc.save();
   doc.font(FONTS.regular).fontSize(9).fillColor('#444444');
   doc.text(
-    `${companyName} — Page ${pageNumber}`,
+    `${companyName} – Page ${pageNumber}`,
     PAGE.marginLeft,
     footerY,
     { width: contentWidth(doc), align: 'center', lineBreak: false },
@@ -271,7 +271,7 @@ const renderSignatureBlock = (doc, companyName, pages, block) => {
   }
   (block.names || []).forEach((name, index) => {
     const role = block.roles?.[index];
-    const line = role ? `${name} — ${role}` : name;
+    const line = role ? `${name} – ${role}` : name;
     doc.font(FONTS.regular).fontSize(11).text(line, PAGE.marginLeft, doc.y, { width: contentWidth(doc) });
     doc.moveDown(0.25);
   });

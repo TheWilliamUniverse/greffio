@@ -311,7 +311,7 @@ export const QUESTIONNAIRE_FLOW = [
         label: 'Président / dirigeant',
         type: 'text',
         required: true,
-        placeholder: 'Renseigné automatiquement si un associé est Président — sinon nom du dirigeant',
+        placeholder: 'Renseigné automatiquement si un associé est Président – sinon nom du dirigeant',
         condition: (data) => !isEiLikeFormality(data),
       },
     ],

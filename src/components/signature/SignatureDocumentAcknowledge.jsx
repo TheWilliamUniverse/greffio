@@ -38,7 +38,7 @@ export const SignatureDocumentAcknowledge = ({
         </span>
       ) : (
         <span className="text-xs leading-relaxed text-emerald-100/85">
-          Document lu — vous pouvez poursuivre la signature.
+          Document lu – vous pouvez poursuivre la signature.
         </span>
       )}
     </span>

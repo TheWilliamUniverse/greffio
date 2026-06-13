@@ -77,7 +77,7 @@ export const MobilePushRegistration = () => {
         platform: getNativePlatform(),
         deviceLabel: `${getNativePlatform()} Greffio`,
       }).catch(() => {
-        // silent — backend may not be deployed yet
+        // silent – backend may not be deployed yet
       });
     });
 
@@ -88,7 +88,7 @@ export const MobilePushRegistration = () => {
     pushReceivedHandle = PushNotifications.addListener('pushNotificationReceived', (notification) => {
       const title = notification?.title || 'Greffio';
       const body = notification?.body || '';
-      if (body) toast.info(`${title} — ${body}`);
+      if (body) toast.info(`${title} – ${body}`);
     });
 
     pushActionHandle = PushNotifications.addListener('pushNotificationActionPerformed', (event) => {
@@ -149,7 +149,7 @@ export const MobilePushRegistration = () => {
       icon={Bell}
       title="Restez informé de votre dossier"
       description="Greffio peut vous alerter lorsque l’équipe valide une pièce, demande un document ou avance votre formalité."
-      benefit="Vous gardez le contrôle — désactivable à tout moment dans les réglages Android."
+      benefit="Vous gardez le contrôle – désactivable à tout moment dans les réglages Android."
       confirmLabel="Activer les notifications"
       onConfirm={() => { void confirmPush(); }}
       onCancel={dismissPush}

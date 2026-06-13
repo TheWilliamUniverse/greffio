@@ -1,4 +1,4 @@
-/** Libellés publics des formalités (UI client) — alignés sur server/domain/formalityLabels.js */
+/** Libellés publics des formalités (UI client) – alignés sur server/domain/formalityLabels.js */
 
 export const TYPE_FORMALITE_PUBLIC_LABELS = Object.freeze({
   creation_societe: 'Formalité de création de société',

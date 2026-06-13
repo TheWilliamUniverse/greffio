@@ -125,7 +125,7 @@ export const computeNextBestAction = ({ dossier, documents = [], risk = {} }) =>
     };
   }
   return {
-    label: 'Revue de routine — aucun blocage critique',
+    label: 'Revue de routine – aucun blocage critique',
     type: 'routine',
     priority: 'low',
   };

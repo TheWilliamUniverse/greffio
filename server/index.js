@@ -1604,13 +1604,16 @@ app.post('/api/dossiers/:dossierId/complete-step', requireAuth, async (req, res)
         toEmail: mergedData.email,
         variables: baseVars,
       });
-      await sendDossierEmailById({
-        templateId: 'contact_confirmed',
-        dossierId: updated.id,
-        userId: req.auth.sub,
-        toEmail: mergedData.email,
-        variables: baseVars,
-      });
+      if (process.env.EMAIL_DOSSIER_CONTACT_CONFIRMED_ENABLED !== 'false'
+        && process.env.EMAIL_DOSSIER_CONTACT_CONFIRMED_ENABLED !== '0') {
+        await sendDossierEmailById({
+          templateId: 'contact_confirmed',
+          dossierId: updated.id,
+          userId: req.auth.sub,
+          toEmail: mergedData.email,
+          variables: baseVars,
+        });
+      }
     } catch (emailError) {
       console.error('[complete-step] contact emails failed:', emailError?.message || emailError);
     }
@@ -1735,18 +1738,21 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
   const uploadedDoc = (await listDossierDocuments(dossier.id)).find((item) => item.docKey === docKey);
   const documentLabel = uploadedDoc?.label || docKey;
   if (recipientEmail) {
-    await sendDossierEmailById({
-      templateId: 'documents_received',
-      dossierId: dossier.id,
-      userId: req.auth.sub,
-      toEmail: recipientEmail,
-      variables: {
-        prenom: firstNameForEmail,
-        firstName: firstNameForEmail,
-        reference_dossier: dossier.reference || dossier.id,
-        documentName: documentLabel,
-      },
-    });
+    if (process.env.EMAIL_DOCUMENT_UPLOAD_RECEIVED_ENABLED !== 'false'
+      && process.env.EMAIL_DOCUMENT_UPLOAD_RECEIVED_ENABLED !== '0') {
+      await sendDossierEmailById({
+        templateId: 'documents_received',
+        dossierId: dossier.id,
+        userId: req.auth.sub,
+        toEmail: recipientEmail,
+        variables: {
+          prenom: firstNameForEmail,
+          firstName: firstNameForEmail,
+          reference_dossier: dossier.reference || dossier.id,
+          documentName: documentLabel,
+        },
+      });
+    }
 
     if (analysis.ok && analysis.requiresManualReview) {
       await sendDossierEmailById({

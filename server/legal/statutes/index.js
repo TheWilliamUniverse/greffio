@@ -21,7 +21,7 @@ export const isStatutesSupportedForm = (legalForm) => (
 export const normalizeAiClauses = (rawClauses = []) => rawClauses
   .map((item) => {
     if (typeof item === 'string') {
-      const match = item.match(/^(Article\s+\d+\s*[—–-]\s*[^:—–-]+:?)\s*(.+)$/i);
+      const match = item.match(/^(Article\s+\d+\s*[––-]\s*[^:––-]+:?)\s*(.+)$/i);
       if (match) {
         return { kind: 'article', number: null, title: match[1].replace(/:$/, '').trim(), body: match[2].trim() };
       }

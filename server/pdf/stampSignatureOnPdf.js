@@ -110,7 +110,7 @@ export const stampSignatureOnPdf = async ({
   const proof = pdfSafeText(buildProofFingerprint(documentId));
   const signedLabel = formatSignatureTimestampFr(signedAtIso);
 
-  // Empreinte GRF — position validée (bas de page, marge blanche).
+  // Empreinte GRF – position validée (bas de page, marge blanche).
   page.drawText(proof, {
     x: marginH,
     y: 42,
@@ -180,12 +180,12 @@ export const stampSignatureOnPdf = async ({
   const footerLines = isFormalityPowersLayout
     ? [
       pdfSafeText(`Document signé le ${signedLabel}`),
-      'Greffio — horodatage et empreinte documentaire',
+      'Greffio – horodatage et empreinte documentaire',
       ...(proofLines || []).slice(0, 2).map((line) => pdfSafeText(line)),
     ]
     : [
       pdfSafeText(`Document signé le ${signedLabel}`),
-      'Greffio — signature électronique simple (SES)',
+      'Greffio – signature électronique simple (SES)',
       ...(proofLines || []).slice(0, 2).map((line) => pdfSafeText(line)),
     ];
   if (footerLines.length) {

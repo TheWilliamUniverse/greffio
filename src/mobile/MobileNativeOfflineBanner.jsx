@@ -7,7 +7,7 @@ import { triggerMobileHaptic } from '@/utils/mobileHaptics.js';
 const OFFLINE_COPY = 'Connexion indisponible. Vos informations seront rechargées dès que la connexion reviendra.';
 
 /**
- * Bannière offline explicite — app native Capacitor Android/iOS (Natif Android).
+ * Bannière offline explicite – app native Capacitor Android/iOS (Natif Android).
  */
 export const MobileNativeOfflineBanner = () => {
   const [offline, setOffline] = useState(() => (
@@ -60,7 +60,7 @@ export const MobileNativeOfflineBanner = () => {
   );
 };
 
-/** Indicateur compact en ligne — utilisé dans Compte (Premium). */
+/** Indicateur compact en ligne – utilisé dans Compte (Premium). */
 export const MobileConnectionStatusRow = () => {
   const [online, setOnline] = useState(() => (
     typeof navigator !== 'undefined' ? navigator.onLine : true

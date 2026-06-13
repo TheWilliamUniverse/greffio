@@ -26,7 +26,7 @@ const drawCentered = (page, font, y, text, size, bold = false) => {
 
 const drawLabelValue = (page, font, fontBold, y, label, value) => {
   page.drawText(label, { x: MARGIN_H, y, size: 10.5, font: fontBold, color: COLOR_TEXT });
-  page.drawText(String(value || '—'), {
+  page.drawText(String(value || '–'), {
     x: MARGIN_H + 175,
     y,
     size: 10.5,
@@ -67,31 +67,31 @@ export const generateSubscribersListPdf = async ({ filename, fields = {} }) => {
     const rows = subscriber.isLegalEntity
       ? [
         ['Type', 'Personne morale'],
-        ['Dénomination sociale', subscriber.fullName || '—'],
-        ['Forme juridique', subscriber.legalFormLabel || '—'],
-        ['SIREN', subscriber.siren || '—'],
-        ['Siège social', subscriber.address || '—'],
-        ['Représentant légal', subscriber.legalRepresentativeName || '—'],
-        ['Qualité du représentant', subscriber.legalRepresentativeQuality || '—'],
-        [`${securitiesUnit} souscrites`, subscriber.titlesCount || '—'],
-        ['% du capital', subscriber.sharePercent || '—'],
+        ['Dénomination sociale', subscriber.fullName || '–'],
+        ['Forme juridique', subscriber.legalFormLabel || '–'],
+        ['SIREN', subscriber.siren || '–'],
+        ['Siège social', subscriber.address || '–'],
+        ['Représentant légal', subscriber.legalRepresentativeName || '–'],
+        ['Qualité du représentant', subscriber.legalRepresentativeQuality || '–'],
+        [`${securitiesUnit} souscrites`, subscriber.titlesCount || '–'],
+        ['% du capital', subscriber.sharePercent || '–'],
         ['Apport en numéraire', subscriber.contributionCash || '0 €'],
         ['Apport en nature', subscriber.contributionInKind || '0 €'],
         ['Montant libéré à la constitution', subscriber.liberationAmount || '0 €'],
-        ['Observations', subscriber.observations || '—'],
+        ['Observations', subscriber.observations || '–'],
       ]
       : [
         ['Titre', subscriber.roleTitle || 'Associé'],
-        ['Nom et Prénom', subscriber.fullName || '—'],
-        ['Date et lieu de naissance', subscriber.birthDatePlace || '—'],
+        ['Nom et Prénom', subscriber.fullName || '–'],
+        ['Date et lieu de naissance', subscriber.birthDatePlace || '–'],
         ['Nationalité', subscriber.nationality || 'Française'],
-        ['Adresse', subscriber.address || '—'],
-        [`${securitiesUnit} souscrites`, subscriber.titlesCount || '—'],
-        ['% du capital', subscriber.sharePercent || '—'],
+        ['Adresse', subscriber.address || '–'],
+        [`${securitiesUnit} souscrites`, subscriber.titlesCount || '–'],
+        ['% du capital', subscriber.sharePercent || '–'],
         ['Apport en numéraire', subscriber.contributionCash || '0 €'],
         ['Apport en nature', subscriber.contributionInKind || '0 €'],
         ['Montant libéré à la constitution', subscriber.liberationAmount || '0 €'],
-        ['Observations', subscriber.observations || '—'],
+        ['Observations', subscriber.observations || '–'],
       ];
     rows.forEach(([label, value]) => {
       if (y < MARGIN_BOTTOM + 40) {

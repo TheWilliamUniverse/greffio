@@ -85,7 +85,7 @@ export const buildEurlStatutes = (data) => {
     blocks,
     annexes: buildStandardAnnexes(data),
     signatures: buildSignatures(data),
-    footerNotice: 'Document généré par Greffio — WILLIAM ESTABLISHMENTS. Modèle à relire et valider avant signature.',
+    footerNotice: 'Document généré par Greffio – WILLIAM ESTABLISHMENTS. Modèle à relire et valider avant signature.',
     metadata: { legalForm: 'EURL', template: 'william_eurl_v1', ...data.metadataBundle },
   };
 };

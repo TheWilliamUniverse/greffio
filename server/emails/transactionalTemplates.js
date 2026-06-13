@@ -89,7 +89,7 @@ const transactionalTemplates = Object.freeze({
   }),
 
   credentials_secured: defineTemplate({
-    subject: 'Accès sécurisé — identifiants Greffio',
+    subject: 'Accès sécurisé – identifiants Greffio',
     tags: ['auth', 'credentials', 'security'],
     requiredVariables: ['firstName', 'unlockUrl', 'phoneMasked', 'expirationMinutes', 'loginUrl'],
     preheader: 'Déverrouillez vos identifiants avec le code SMS.',
@@ -288,7 +288,7 @@ const transactionalTemplates = Object.freeze({
     subject: 'Reprenez votre démarche de création',
     tags: ['dossier', 'reminder', 'onboarding'],
     requiredVariables: ['firstName', 'dossierNumber', 'formalityType', 'continueUrl'],
-    preheader: 'Votre démarche Greffio est enregistrée — reprenez quand vous le souhaitez.',
+    preheader: 'Votre démarche Greffio est enregistrée – reprenez quand vous le souhaitez.',
     textLines: [
       'Bonjour {{firstName}},',
       '',
@@ -555,7 +555,7 @@ const transactionalTemplates = Object.freeze({
   }),
 
   payment_confirmed: defineTemplate({
-    subject: 'Paiement confirmé — Greffio',
+    subject: 'Paiement confirmé – Greffio',
     tags: ['payment', 'billing'],
     requiredVariables: ['firstName', 'amount', 'paymentDate'],
     preheader: 'Votre paiement a été confirmé.',
@@ -670,7 +670,7 @@ const transactionalTemplates = Object.freeze({
   }),
 
   ops_new_dossier: defineTemplate({
-    subject: 'Nouveau dossier à traiter — {{dossierNumber}}',
+    subject: 'Nouveau dossier à traiter – {{dossierNumber}}',
     tags: ['ops', 'internal'],
     requiredVariables: ['dossierNumber', 'clientName', 'formalityType', 'opsUrl'],
     preheader: 'Nouveau dossier OPS.',
@@ -694,7 +694,7 @@ const transactionalTemplates = Object.freeze({
   }),
 
   ops_risk_alert: defineTemplate({
-    subject: 'Dossier à risque élevé — {{dossierNumber}}',
+    subject: 'Dossier à risque élevé – {{dossierNumber}}',
     tags: ['ops', 'internal', 'alert'],
     requiredVariables: ['dossierNumber', 'riskScore', 'opsUrl'],
     preheader: 'Alerte dossier à risque.',
@@ -707,7 +707,7 @@ const transactionalTemplates = Object.freeze({
       'Ouvrir : {{opsUrl}}',
     ],
     bodyHtml: `
-      <p style="margin:0 0 16px;"><strong>Alerte — dossier à risque élevé</strong></p>
+      <p style="margin:0 0 16px;"><strong>Alerte – dossier à risque élevé</strong></p>
       <p style="margin:0 0 8px;">Référence : {{dossierNumber}}</p>
       <p style="margin:0 0 8px;">Score : {{riskScore}}</p>
       <p style="margin:0 0 8px;">Manquants : {{missingItems}}</p>
@@ -739,7 +739,7 @@ const transactionalTemplates = Object.freeze({
   }),
 
   resource_order_received: defineTemplate({
-    subject: 'Demande enregistrée — {{service_title}}',
+    subject: 'Demande enregistrée – {{service_title}}',
     tags: ['resource_order', 'customer'],
     requiredVariables: ['firstName', 'service_title', 'order_id', 'price_label', 'resources_url', 'payment_url'],
     preheader: 'Votre demande de document a bien été enregistrée.',
@@ -861,7 +861,7 @@ const transactionalTemplates = Object.freeze({
   }),
 
   resource_order_internal: defineTemplate({
-    subject: 'Nouvelle commande ressource — {{service_title}}',
+    subject: 'Nouvelle commande ressource – {{service_title}}',
     tags: ['ops', 'resource_order'],
     requiredVariables: ['order_id', 'service_title', 'contact_email', 'price_label', 'status'],
     preheader: 'Commande document/service Greffio.',

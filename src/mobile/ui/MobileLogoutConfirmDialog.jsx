@@ -15,7 +15,7 @@ const COPY = {
   logout: {
     icon: LogOut,
     title: 'Se déconnecter ?',
-    description: 'Vous serez déconnecté de votre compte Greffio. Vos dossiers restent enregistrés — reconnectez-vous pour les retrouver.',
+    description: 'Vous serez déconnecté de votre compte Greffio. Vos dossiers restent enregistrés – reconnectez-vous pour les retrouver.',
     action: 'Se déconnecter',
     actionClass: 'h-11 w-full rounded-2xl bg-red-600 hover:bg-red-700',
   },

@@ -432,7 +432,7 @@ export const LoginPage = () => {
                     className="h-11 w-full justify-between"
                     disabled={isLoading || !canSubmitMfa || (mfaMode === MFA_MODES.email && !emailCodeSent)}
                   >
-                    {isLoading ? 'Vérification...' : 'Valider et accéder'}
+                    {isLoading ? 'Vérification...' : 'Accéder à mon espace'}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 ) : (

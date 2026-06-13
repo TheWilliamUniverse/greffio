@@ -1,5 +1,5 @@
 /**
- * Routage fournisseur Kbis/RNE — file manuelle OPS tant que l’API n’est pas branchée.
+ * Routage fournisseur Kbis/RNE – file manuelle OPS tant que l’API n’est pas branchée.
  */
 
 const PROVIDER_BY_SERVICE = Object.freeze({
@@ -34,7 +34,7 @@ export const enqueueProviderFulfillment = async ({ order, updateResourceOrder })
       ...(order.metadata || {}),
       providerQueue: order.fulfillmentMode,
       providerStatus: 'queued_manual_fallback',
-      message: 'Fournisseur non connecté — traitement OPS prioritaire.',
+      message: 'Fournisseur non connecté – traitement OPS prioritaire.',
     },
   });
 
