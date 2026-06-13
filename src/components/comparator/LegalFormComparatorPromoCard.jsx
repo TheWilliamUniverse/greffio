@@ -18,8 +18,9 @@ export const LegalFormComparatorPromoCard = ({
   inView = true,
 }) => {
   const reduceMotion = useReducedMotion();
+  const isGridTile = variant === 'gridTile';
 
-  const motionProps = reduceMotion
+  const motionProps = reduceMotion || isGridTile
     ? {}
     : inView
       ? {
@@ -34,7 +35,26 @@ export const LegalFormComparatorPromoCard = ({
         transition: { duration: 0.5, delay: revealDelay, ease: EASE_OUT },
       };
 
-  const card = (
+  const card = isGridTile ? (
+    <Link
+      to={COMPARATOR_PAGE_PATH}
+      className={cn(
+        'group flex h-full min-h-[88px] flex-col justify-between rounded-2xl bg-[hsl(var(--greffio-blue))] p-4 text-left text-white shadow-[0_12px_32px_rgba(30,77,140,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_36px_rgba(30,77,140,0.24)]',
+        className,
+      )}
+    >
+      <div>
+        <p className="text-sm font-extrabold leading-snug">Comparer les formes juridiques</p>
+        <p className="mt-1 text-xs font-medium leading-5 text-white/90">
+          SAS, SARL, EI, SCI… guide pas à pas.
+        </p>
+      </div>
+      <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[hsl(var(--greffio-citron))]">
+        Lancer le comparateur
+        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+      </span>
+    </Link>
+  ) : (
     <motion.div
       {...motionProps}
       whileHover={reduceMotion ? undefined : { y: -4, scale: 1.005 }}

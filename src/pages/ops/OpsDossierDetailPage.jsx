@@ -12,6 +12,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
+import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import {
@@ -156,7 +157,7 @@ export const OpsDossierDetailPage = () => {
   };
 
   if (loading) {
-    return <p className="text-sm text-slate-500">Chargement de la fiche dossier…</p>;
+    return <PageLoadingState label="Chargement de la fiche dossier…" />;
   }
 
   if (!dossier) {

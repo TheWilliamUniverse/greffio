@@ -80,7 +80,6 @@ export const NonConvictionDeclarationPage = () => {
         const message = mapError(error);
         setLoadError(message);
         setLoadStatus('error');
-        toast.error(message);
       }
     };
     void boot();
@@ -215,7 +214,6 @@ export const NonConvictionDeclarationPage = () => {
               const message = mapError(error);
               setLoadError(message);
               setLoadStatus('error');
-              toast.error(message);
             });
         }}
       />

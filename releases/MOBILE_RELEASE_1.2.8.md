@@ -7,20 +7,17 @@
 ## Notes de version (Play Console — fr-FR)
 
 ```
-Parcours mobile et dossiers :
-• Simulateur / questionnaire : interface directe, barre d’action sticky, moins de scroll
-• Reprendre vs Nouveau dossier : parcours distincts et explicites
-• Suppression dossier : bouton en bas de l’onglet Actions (corbeille 72 h)
-• Auth stable pendant les mises à jour — plus de « session invalide » intempestif
-• Upload documents : messages d’erreur clairs, scanner PDF natif
-• Validation → statuts reliés au bon dossier ; purge auto des brouillons fantômes
-• Version et nouveautés visibles dans le profil / compte
+• Parcours simulateur plus fluide
+• Reprendre ou créer un nouveau dossier
+• Connexion stable pendant les mises à jour
+• Upload documents et scanner PDF améliorés
+• Statuts reliés au bon dossier
 ```
 
 ## Notes ultra-courtes (≤ 500 car.)
 
 ```
-Simulateur fluide, auth stable, uploads clairs, reprise/nouveau dossier, statuts reliés, version visible.
+Simulateur fluide, auth stable, uploads améliorés, statuts reliés.
 ```
 
 ## Artefact archivé (Git)

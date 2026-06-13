@@ -22,10 +22,13 @@ export const StepLayout = ({
 }) => {
   const nativeApp = isCapacitorNative();
   const mobileShell = nativeApp || isMobileBrowserViewport();
-  const bottomNavVar = nativeApp ? 'var(--bottom-nav-height)' : 'var(--bottom-nav-height-web,3.5rem)';
+  const bottomNavVar = nativeApp ? 'var(--bottom-nav-height)' : 'var(--bottom-nav-height-web, 3.5rem)';
+  const stickyBottomStyle = mobileShell
+    ? { bottom: `calc(${bottomNavVar} + env(safe-area-inset-bottom))` }
+    : undefined;
   const actionBarClass = mobileShell
-    ? `sticky bottom-[calc(${bottomNavVar}+env(safe-area-inset-bottom))] z-20 border-t border-[#e2ebf8] bg-white/95 px-4 py-4 backdrop-blur-sm md:static md:bg-[#fafcff] md:px-6 md:py-5 md:backdrop-blur-none lg:px-8`
-    : 'flex flex-wrap items-center justify-between gap-3 border-t border-[#e2ebf8] bg-[#fafcff] px-6 py-5 md:px-8';
+    ? 'sticky z-20 border-t border-border bg-white/95 px-4 py-4 backdrop-blur-sm md:static md:bg-background md:px-6 md:py-5 md:backdrop-blur-none lg:px-8'
+    : 'flex flex-wrap items-center justify-between gap-3 border-t border-border bg-background px-6 py-5 md:px-8';
 
   return (
   <section
@@ -33,7 +36,7 @@ export const StepLayout = ({
       'overflow-hidden bg-white',
       mobileShell
         ? 'rounded-none border-0 shadow-none'
-        : 'rounded-[1.35rem] border border-[#d4e2f5] shadow-[0_18px_48px_rgba(15,31,61,0.08)]',
+        : 'rounded-[1.35rem] border border-border shadow-elevation-md',
     )}
     onKeyDown={(event) => {
       if (event.key !== 'Enter' || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
@@ -46,7 +49,7 @@ export const StepLayout = ({
       onEnterNext();
     }}
   >
-    <div className="border-b border-[#e2ebf8] bg-gradient-to-br from-[#f0f6ff] via-white to-white px-6 py-6 md:px-8">
+    <div className="border-b border-border bg-gradient-to-br from-secondary/40 via-white to-white px-6 py-6 md:px-8">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-xs font-extrabold uppercase tracking-wide text-primary">Réf. : {reference}</p>
@@ -56,7 +59,7 @@ export const StepLayout = ({
         {progressNode}
       </div>
       <div className="mt-4 flex items-center justify-between gap-4">
-        <div className="h-2.5 w-full max-w-md overflow-hidden rounded-full bg-white ring-1 ring-[#d4e2f5]">
+        <div className="h-2.5 w-full max-w-md overflow-hidden rounded-full bg-background ring-1 ring-border">
           <div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
         </div>
         <div className="shrink-0">{autosaveNode}</div>
@@ -68,7 +71,7 @@ export const StepLayout = ({
       {securityNode}
     </div>
 
-    <div className={cn(actionBarClass, 'flex flex-wrap items-center justify-between gap-3')}>
+    <div className={cn(actionBarClass, 'flex flex-wrap items-center justify-between gap-3')} style={stickyBottomStyle}>
       <QuestionBackButton type="button" onClick={onBack} disabled={!canGoBack} />
       <QuestionContinueButton type="button" label={continueLabel} onClick={onNext} disabled={!canGoNext} />
     </div>

@@ -21,6 +21,11 @@ import {
 import { IdentityVerificationCard } from '@/components/identity/IdentityVerificationCard.jsx';
 import { DossierBreadcrumb } from '@/components/layout/DossierBreadcrumb.jsx';
 import { PdfPreviewPanel } from '@/components/documents/PdfPreviewPanel.jsx';
+import { FormalityPowerSummary } from '@/components/documents/FormalityPowerSummary.jsx';
+import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
+import { DocumentStatusCard } from '@/components/patterns/DocumentStatusCard.jsx';
+import { EmptyState } from '@/components/patterns/EmptyState.jsx';
+import { isFormalityPowerDocument, mapFormalityPowerStatus } from '@/utils/formalityPowerDocuments.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { useDossierQuery } from '@/hooks/queries/useDossierQuery.js';
 import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
@@ -338,12 +343,32 @@ export const DocumentsPage = () => {
   };
 
   const waitingDocs = normalizedDocuments.filter((document) => ['REQUESTED', 'PENDING_REVIEW', 'INVALID', 'REJECTED', 'GENERATED'].includes(document.status));
+  const powerDocuments = useMemo(
+    () => normalizedDocuments.filter((document) => isFormalityPowerDocument(document).match),
+    [normalizedDocuments],
+  );
+  const showPowerSection = Boolean(resolvedDossierId) && !eiLike;
+  const isInitialLoading = loadingDossiers || (Boolean(resolvedDossierId) && loadingDossier && !dossierPayload && !dossierLoadError);
   const identityDocUploaded = normalizedDocuments.some((document) => document.docKey === 'identity_proof' && document.hasFile);
   const summary = [
     { label: 'Pièces en coffre', value: normalizedDocuments.length, text: 'document(s) du dossier actif', icon: Archive },
     { label: 'À traiter', value: waitingDocs.length, text: 'pièces à compléter ou signer', icon: FileText },
     { label: 'Dossier relié', value: resolvedDossierId ? 1 : 0, text: resolvedDossierId ? 'dossier actif sélectionné' : 'aucun dossier actif', icon: CheckCircle2 },
   ];
+
+  if (isInitialLoading) {
+    return (
+      <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto p-5 md:p-8">
+          <PageLoadingState
+            label="Chargement des documents…"
+            description="Récupération du dossier actif et de vos pièces."
+          />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background">
@@ -404,10 +429,10 @@ export const DocumentsPage = () => {
               </div>
               <p className="text-xs text-muted-foreground">PDF uniquement, 10 Mo max, un justificatif par fichier.</p>
             </div>
-            {uploadError ? <p className="mt-2 text-xs text-red-600">{uploadError}</p> : null}
+            {uploadError ? <p className="mt-2 text-xs text-destructive">{uploadError}</p> : null}
             {uploadSuccess ? <p className="mt-2 text-xs text-emerald-700">{uploadSuccess}</p> : null}
             {!resolvedDossierId ? <p className="mt-2 text-xs text-amber-700">Aucun dossier actif détecté. Ouvrez un dossier puis revenez ici pour déposer vos pièces.</p> : null}
-            {dossierAccessError ? <p className="mt-2 text-xs text-red-600">{dossierAccessError}</p> : null}
+            {dossierAccessError ? <p className="mt-2 text-xs text-destructive">{dossierAccessError}</p> : null}
             <div className="mt-3 flex flex-wrap gap-2">
               <Button
                 variant="outline"
@@ -448,6 +473,61 @@ export const DocumentsPage = () => {
               identityDocUploaded={identityDocUploaded}
               onVerificationUpdated={() => { void invalidateDossierDocuments(); }}
             />
+          ) : null}
+
+          {showPowerSection ? (
+            <section className="space-y-4 rounded-md border border-border bg-white p-5 shadow-elevation-sm">
+              <div>
+                <p className="text-sm font-bold uppercase text-primary">Mandat et pouvoirs</p>
+                <h2 className="mt-1 text-xl font-extrabold text-foreground">Documents de représentation</h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Ces documents peuvent valoir procuration selon leur contenu, leur signature et les exigences du greffe ou de l’administration.
+                </p>
+              </div>
+              {powerDocuments.length ? (
+                <div className="space-y-4">
+                  {powerDocuments.map((document) => {
+                    const powerMeta = isFormalityPowerDocument(document);
+                    const actions = [
+                      document.hasFile ? {
+                        label: previewLoadingDocKey === document.docKey ? 'Ouverture…' : 'Voir',
+                        onClick: () => { void openDocumentPreview(document.docKey, document.label); },
+                        disabled: previewLoadingDocKey === document.docKey,
+                      } : null,
+                      document.hasFile ? {
+                        label: 'Télécharger',
+                        onClick: () => { void openDocumentDownload(document.docKey); },
+                      } : null,
+                      document.docKey === 'formality_powers' ? {
+                        label: 'Compléter en ligne',
+                        to: `/dossier/${resolvedDossierId}/pouvoirs-formalites`,
+                      } : null,
+                    ].filter(Boolean);
+                    return (
+                      <div key={document.docKey} className="space-y-3">
+                        <DocumentStatusCard
+                          title={document.label}
+                          subtitle="Document de représentation pour les formalités de votre dossier."
+                          status={mapFormalityPowerStatus(document)}
+                          badges={powerMeta.confidence !== 'low' ? ['Vaut procuration'] : []}
+                          warning={document.status === 'PENDING_REVIEW' ? 'Ce pouvoir est en cours de contrôle Greffio.' : undefined}
+                          actions={actions}
+                        />
+                        <FormalityPowerSummary document={document} />
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <EmptyState
+                  compact
+                  icon={ShieldCheck}
+                  title="Aucun pouvoir identifié"
+                  description="Si votre dossier nécessite un mandat ou des pouvoirs pour formalités, ils apparaîtront ici dès qu’ils seront générés ou déposés."
+                  cta={{ to: `/dossier/${resolvedDossierId}/pouvoirs-formalites`, label: 'Préparer les pouvoirs' }}
+                />
+              )}
+            </section>
           ) : null}
 
           {editorData ? (
@@ -618,7 +698,7 @@ export const DocumentsPage = () => {
                     <Button
                       variant="outline"
                       size="icon"
-                      className="bg-white text-red-700 hover:bg-red-50 hover:text-red-800"
+                      className="bg-white text-destructive hover:bg-destructive/5 hover:text-destructive"
                       aria-label="Supprimer la pièce jointe"
                       onClick={() => removeAttachment(document.docKey, document.name)}
                       disabled={!resolvedDossierId || !document.hasFile || deletingDocKey === document.docKey}

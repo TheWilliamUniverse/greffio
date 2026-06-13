@@ -9,6 +9,7 @@ import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
 import { OfflineDataBanner } from '@/components/system/OfflineDataBanner.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
+import { Progress } from '@/components/ui/progress.jsx';
 import { MobileDocumentUploadSheet } from '@/mobile/MobileDocumentUploadSheet.jsx';
 import { MobileOnlineDocumentsPanel } from '@/mobile/ui/MobileOnlineDocumentsPanel.jsx';
 import { MobileDossierStatusCard } from '@/mobile/ui/MobileDossierStatusCard.jsx';
@@ -151,9 +152,7 @@ export const MobileDossierDetailPage = () => {
             <span>Avancement</span>
             <span>{progress}%</span>
           </div>
-          <div className="h-2.5 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} />
-          </div>
+          <Progress value={progress} className="h-2.5" />
         </div>
       </div>
 

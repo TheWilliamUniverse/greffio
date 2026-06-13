@@ -17,6 +17,7 @@ import { MobileSidebarDrawer, MobileSidebarTrigger } from '@/components/MobileSi
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Card, CardContent } from '@/components/ui/card.jsx';
+import { Progress } from '@/components/ui/progress.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 import { getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.js';
 import { syncCurrentDossierId } from '@/utils/documentEditorErrors.js';
@@ -334,9 +335,7 @@ export const DashboardPage = () => {
                       <StatusBadge status={dossier.status} className="hidden w-fit xl:inline-flex" />
                       <span className="hidden text-sm font-semibold text-foreground xl:inline">{new Date(dossier.dueDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}</span>
                       <div className="mt-3 xl:mt-0">
-                        <div className="h-2 rounded-full bg-muted">
-                          <div className="h-2 rounded-full bg-primary" style={{ width: `${dossier.progress || 0}%` }} />
-                        </div>
+                        <Progress value={dossier.progress || 0} className="h-2" />
                         <p className="mt-1 text-xs font-bold text-muted-foreground">{dossier.progress || 0}%</p>
                       </div>
                     </Link>

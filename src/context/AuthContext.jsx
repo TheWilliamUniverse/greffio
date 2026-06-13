@@ -167,10 +167,14 @@ export const AuthProvider = ({ children }) => {
       }
       toast.success('Bienvenue dans votre espace Greffio');
       if (isCapacitorNative()) {
-        await syncBiometricRefreshToken({
-          email: user?.email || email,
-          refreshToken: apiPayload.refreshToken || getRefreshToken(),
-        });
+        try {
+          await syncBiometricRefreshToken({
+            email: user?.email || email,
+            refreshToken: apiPayload.refreshToken || getRefreshToken(),
+          });
+        } catch (_biometricError) {
+          // non-blocking
+        }
       }
       return { success: true, user };
     } catch (error) {
@@ -217,10 +221,14 @@ export const AuthProvider = ({ children }) => {
       }
       toast.success('Authentification multifacteur validée');
       if (isCapacitorNative()) {
-        await syncBiometricRefreshToken({
-          email: user?.email,
-          refreshToken: apiPayload.refreshToken || getRefreshToken(),
-        });
+        try {
+          await syncBiometricRefreshToken({
+            email: user?.email,
+            refreshToken: apiPayload.refreshToken || getRefreshToken(),
+          });
+        } catch (_biometricError) {
+          // non-blocking
+        }
       }
       return { success: true, user };
     } catch (error) {

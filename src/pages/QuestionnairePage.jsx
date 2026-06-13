@@ -86,9 +86,10 @@ const defaultData = {
   beneficiairesEffectifsSelected: [],
   beneficiairesEffectifsAutre: '',
   validationConfirmed: false,
+  recapAcknowledged: false,
 };
 
-const fieldClass = 'h-14 rounded-2xl border-2 border-[#d4e2f5] bg-white px-4 text-base font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/12';
+const fieldClass = 'h-14 rounded-2xl border-2 border-border bg-white px-4 text-base font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/12';
 const STEP_TITLES_BY_ID = Object.freeze({
   contact: 'Type de déclarant',
   demarche: 'Type de formalité',
@@ -157,7 +158,7 @@ export const QuestionnairePage = () => {
     }
     return valid;
   }, [activeField, formData]);
-  const canCompleteStep = isStepComplete(step, formData)
+  const canCompleteStep = (step.id === 'recap' || isStepComplete(step, formData))
     && (step.id !== 'gouvernance' || validateDirectorEligibility(formData).ok);
   const canContinue = isLastFieldInStep ? canCompleteStep : canAdvanceCurrentField;
   const continueLabel = isLastFieldInStep && stepIndex >= QUESTIONNAIRE_FLOW.length - 1
@@ -471,9 +472,27 @@ export const QuestionnairePage = () => {
         };
 
         const resume = mergedData._resume || {};
-        const { stepIndex: resumeStep, fieldIndex: resumeField, demarcheCategory: resumeCategory, categoryConfirmed } = startNewQuestionnaire
+        const resumeResult = startNewQuestionnaire
           ? { ...resolveNewStartPosition(mergedData), demarcheCategory: inferDemarcheCategory(mergedData.typeFormalite), categoryConfirmed: false }
           : resolveResumePosition(mergedData, resume);
+
+        if (resumeResult.questionnaireAlreadyValidated && currentDossierId) {
+          const form = String(mergedData.formeJuridique || '').toUpperCase();
+          const eiLikeResume = isEiLikeFormality(mergedData);
+          if (!eiLikeResume && isStatutesSupportedForm(form)) {
+            navigate(`/statuts?dossierId=${encodeURIComponent(currentDossierId)}`, { replace: true });
+          } else {
+            navigate('/dashboard', { replace: true });
+          }
+          return;
+        }
+
+        const {
+          stepIndex: resumeStep,
+          fieldIndex: resumeField,
+          demarcheCategory: resumeCategory,
+          categoryConfirmed,
+        } = resumeResult;
 
         setFormData(mergedData);
         setStepIndex(resumeStep);
@@ -584,8 +603,12 @@ export const QuestionnairePage = () => {
     }
     try {
       setAutosaveState('saving');
+      const basePayload = step.id === 'contact' ? { ...formData, ...contactPayload } : formData;
+      const persistData = step.id === 'recap'
+        ? { ...basePayload, recapAcknowledged: true }
+        : basePayload;
       const saveResult = await persistQuestionnaire({
-        dataPatch: buildPersistPayload(step.id === 'contact' ? { ...formData, ...contactPayload } : formData),
+        dataPatch: buildPersistPayload(persistData),
         progressPercent: progress,
       });
       const activeDossierId = saveResult?.dossierId || getCurrentDossierId();
@@ -597,7 +620,7 @@ export const QuestionnairePage = () => {
       await completeQuestionnaireStep({
         dossierId: activeDossierId,
         stepId: step.id,
-        dataPatch: buildPersistPayload(step.id === 'contact' ? { ...formData, ...contactPayload } : formData),
+        dataPatch: buildPersistPayload(persistData),
         progressPercent: progress,
       });
       setAutosaveState('saved');
@@ -781,7 +804,7 @@ export const QuestionnairePage = () => {
 
     if (field.type === 'checkbox') {
       return (
-        <label key={field.key} className="flex items-start gap-3 rounded-xl border border-[#d4e2f5] bg-muted/40 p-5">
+        <label key={field.key} className="flex items-start gap-3 rounded-xl border border-border bg-muted/40 p-5">
           <input
             type="checkbox"
             checked={Boolean(formData[field.key])}
@@ -889,7 +912,7 @@ export const QuestionnairePage = () => {
             onBlur={markTouched}
             className={`${fieldClass} min-h-[110px] w-full ${showInlineError ? 'border-red-400' : ''}`}
           />
-          {showInlineError ? <p className="text-xs text-red-600">{inlineMessage}</p> : null}
+          {showInlineError ? <p className="text-xs text-destructive">{inlineMessage}</p> : null}
         </div>
       );
     }
@@ -917,7 +940,7 @@ export const QuestionnairePage = () => {
             </Button>
             {sirenLookupState === 'loading' ? <span className="text-xs text-muted-foreground">Recherche...</span> : null}
             {sirenLookupState === 'done' ? <span className="text-xs text-emerald-600">Entreprise trouvée</span> : null}
-            {sirenLookupState === 'error' ? <span className="text-xs text-red-600">Aucune correspondance</span> : null}
+            {sirenLookupState === 'error' ? <span className="text-xs text-destructive">Aucune correspondance</span> : null}
           </div>
         ) : null}
         {field.key === 'existingBusinessSiren' && EXISTING_BUSINESS_FORMALITIES.has(String(formData.typeFormalite || '')) ? (
@@ -927,11 +950,11 @@ export const QuestionnairePage = () => {
             </Button>
             {sirenLookupState === 'loading' ? <span className="text-xs text-muted-foreground">Recherche...</span> : null}
             {sirenLookupState === 'done' ? <span className="text-xs text-emerald-600">Entreprise trouvée</span> : null}
-            {sirenLookupState === 'error' ? <span className="text-xs text-red-600">Aucune correspondance</span> : null}
+            {sirenLookupState === 'error' ? <span className="text-xs text-destructive">Aucune correspondance</span> : null}
           </div>
         ) : null}
         {(field.key === 'companySiren' || field.key === 'existingBusinessSiren') && sirenLookupMessage ? (
-          <p className={`text-xs ${sirenLookupState === 'error' ? 'text-red-600' : 'text-emerald-600'}`}>
+          <p className={`text-xs ${sirenLookupState === 'error' ? 'text-destructive' : 'text-emerald-600'}`}>
             {sirenLookupMessage}
           </p>
         ) : null}
@@ -939,7 +962,7 @@ export const QuestionnairePage = () => {
           <CompanyLookupCard company={foundCompany} onUse={applyFoundCompany} />
         ) : null}
         {showInlineError ? (
-          <p className="text-xs text-red-600">{inlineMessage}</p>
+          <p className="text-xs text-destructive">{inlineMessage}</p>
         ) : null}
       </div>
     );
@@ -1001,7 +1024,7 @@ export const QuestionnairePage = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.22 }}
-            className="min-h-[12rem] rounded-xl border border-[#d4e2f5] bg-[#fafcff] p-5 md:p-6"
+            className="min-h-[12rem] rounded-xl border border-border bg-muted/30 p-5 md:p-6"
           >
             {renderQuestionField(activeField)}
           </motion.div>

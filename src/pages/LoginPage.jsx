@@ -17,6 +17,8 @@ import { PUBLISHER_LEGAL_NAME } from '@/config/publisher.js';
 import { isMobileBrowserViewport } from '@/utils/platform.js';
 import { SecurityChallengeWidget } from '@/components/security/SecurityChallengeWidget.jsx';
 import { useSecurityConfig } from '@/hooks/useSecurityConfig.js';
+import { FieldError } from '@/components/patterns/FieldError.jsx';
+import { getAuthInputClass } from '@/lib/authFormStyles.js';
 
 const MFA_MODES = {
   totp: 'totp',
@@ -37,6 +39,7 @@ export const LoginPage = () => {
   const [emailCodeSent, setEmailCodeSent] = useState(false);
   const [sendingEmailCode, setSendingEmailCode] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
+  const [fieldErrors, setFieldErrors] = useState({ email: '', password: '' });
   const [captcha, setCaptcha] = useState({ provider: 'turnstile', turnstileToken: '', recaptchaToken: '' });
   const { login, completeMfaLogin } = useAuth();
   const security = useSecurityConfig();
@@ -48,7 +51,22 @@ export const LoginPage = () => {
   const location = useLocation();
   const redirectTarget = location.state?.from?.pathname || '/dashboard';
   const mobileAuth = isMobileBrowserViewport();
-  const authInputClass = mobileAuth ? 'h-12 text-base md:h-10 md:text-sm' : '';
+  const authInputClass = getAuthInputClass(mobileAuth);
+
+  const validateCredentials = () => {
+    const errors = { email: '', password: '' };
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      errors.email = 'Indiquez votre email ou identifiant.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      errors.email = 'Format d’email invalide.';
+    }
+    if (!password) {
+      errors.password = 'Indiquez votre mot de passe.';
+    }
+    setFieldErrors(errors);
+    return !errors.email && !errors.password;
+  };
 
   const resetMfaState = () => {
     setMfaMode(MFA_MODES.totp);
@@ -89,12 +107,14 @@ export const LoginPage = () => {
       toast.error(result.message || 'Trop de tentatives. Réessayez dans quelques minutes.');
     } else {
       setFailedAttempts((value) => value + 1);
-      toast.error('Connexion impossible. Vérifiez vos identifiants ou réessayez dans quelques instants.');
+      setFieldErrors({ email: '', password: 'Connexion impossible. Vérifiez vos identifiants ou réessayez dans quelques instants.' });
     }
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (!validateCredentials()) return;
+    setFieldErrors({ email: '', password: '' });
     await openSession(email, password, 'email');
   };
 
@@ -199,19 +219,39 @@ export const LoginPage = () => {
                   <Label htmlFor="email">Email ou identifiant</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required className={`pl-9 ${authInputClass}`} placeholder="vous@entreprise.fr" />
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(event) => {
+                        setEmail(event.target.value);
+                        if (fieldErrors.email) setFieldErrors((current) => ({ ...current, email: '' }));
+                      }}
+                      required
+                      aria-invalid={Boolean(fieldErrors.email)}
+                      aria-describedby={fieldErrors.email ? 'login-email-error' : undefined}
+                      className={`pl-9 ${authInputClass}`}
+                      placeholder="vous@entreprise.fr"
+                    />
                   </div>
+                  <FieldError id="login-email-error">{fieldErrors.email}</FieldError>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Mot de passe</Label>
                   <PasswordInput
                     id="password"
                     value={password}
-                    onChange={(event) => setPassword(event.target.value)}
+                    onChange={(event) => {
+                      setPassword(event.target.value);
+                      if (fieldErrors.password) setFieldErrors((current) => ({ ...current, password: '' }));
+                    }}
                     placeholder="Votre mot de passe"
                     required
+                    aria-invalid={Boolean(fieldErrors.password)}
+                    aria-describedby={fieldErrors.password ? 'login-password-error' : undefined}
                     className={authInputClass}
                   />
+                  <FieldError id="login-password-error">{fieldErrors.password}</FieldError>
                 </div>
 
                 <div className="flex items-center justify-between text-sm">

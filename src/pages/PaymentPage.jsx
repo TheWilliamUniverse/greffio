@@ -9,7 +9,8 @@ import { checkoutDossierPayment } from '@/api/payments.js';
 import { inferCustomerType, isB2B } from '@/utils/customerType.js';
 import { checkoutResourceOrder, getResourceOrder } from '@/api/resources.js';
 import { formatResourcePrice, getCatalogItemById, getProcessingLabel } from '@/config/resourceServices.js';
-import { WalletPaymentTerminal } from '@/components/payments/WalletPaymentTerminal.jsx';
+import { GreffioPaymentTerminal } from '@/components/payments/GreffioPaymentTerminal.jsx';
+import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
 import { formatEuroCents, resolveOfferAmountCents } from '@/config/paymentOffers.js';
 import { TotalCostSimulator } from '@/components/TotalCostSimulator.jsx';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
@@ -236,13 +237,16 @@ export const PaymentPage = () => {
               </section>
 
               {currentUser && amountCents > 0 ? (
-                <WalletPaymentTerminal
+                <GreffioPaymentTerminal
                   amountCents={amountCents}
                   amountLabel={amountLabel}
                   offerLabel={resourceOrder?.serviceTitle || resourceLanding?.title || selectedOffer.title}
                   dossierId={!resourceOrderId ? getCurrentDossierId() : undefined}
                   resourceOrderId={resourceOrderId || undefined}
                   offerCode={offerName}
+                  onPayByCard={handleCheckout}
+                  isCreatingPayment={isCreatingPayment}
+                  cardButtonLabel="Payer par carte bancaire"
                 />
               ) : null}
             </>
@@ -297,7 +301,12 @@ export const PaymentPage = () => {
                 <p className="text-sm font-bold uppercase text-primary">Commande document</p>
                 <h2 className="mt-1 text-2xl font-extrabold">{resourceOrder.serviceTitle}</h2>
                 {loadingResourceOrder ? (
-                  <p className="mt-3 text-sm text-muted-foreground">Chargement…</p>
+                  <PageLoadingState
+                    compact
+                    className="mt-3"
+                    label="Chargement de la commande…"
+                    description="Préparation du terminal de paiement."
+                  />
                 ) : (
                   <>
                     <p className="mt-3 text-4xl font-extrabold">{resourcePriceLabel}</p>
@@ -363,16 +372,19 @@ export const PaymentPage = () => {
               </Button>
             )}
             {!isResourceFlow && currentUser && !showB2BProviders && amountCents > 0 ? (
-              <WalletPaymentTerminal
+              <GreffioPaymentTerminal
                 className="mt-5"
                 amountCents={amountCents}
                 amountLabel={amountLabel}
                 offerLabel={selectedOffer.title}
                 dossierId={getCurrentDossierId()}
                 offerCode={offerName}
+                onPayByCard={handleCheckout}
+                isCreatingPayment={isCreatingPayment}
+                cardButtonLabel="Payer maintenant"
               />
             ) : null}
-            {(showB2BProviders || resourceOrder) && !resourceLanding ? (
+            {(showB2BProviders || (resourceOrder && !currentUser)) && !resourceLanding ? (
             <Button
               type="button"
               className="mt-3 w-full justify-between"

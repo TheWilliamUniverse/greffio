@@ -34,16 +34,16 @@ const parseChangelog = (value) => {
     .filter(Boolean);
 };
 
-const DEFAULT_LATEST_VERSION_CODE = 261510008;
+const DEFAULT_LATEST_VERSION_CODE = 261510009;
 const DEFAULT_MIN_VERSION_CODE = 261422041;
-const DEFAULT_LATEST_VERSION_NAME = '1.2.9';
+const DEFAULT_LATEST_VERSION_NAME = '1.2.10';
 
 const DEFAULT_CHANGELOG = [
-  'Simulateur mobile fluide, questionnaire sticky, reprise vs nouveau dossier clarifiés',
-  'Auth résiliente pendant les mises à jour serveur — plus de session invalide intempestive',
-  'Upload documents : erreurs lisibles, scanner PDF natif avec retour visuel',
-  'Validation questionnaire → statuts avec dossierId, purge auto des brouillons fantômes',
-  'Cockpit Ops enrichi, relances 2 j, version visible dans le profil',
+  'Mon profil et Paramètres accessibles sur mobile web et dans l’app',
+  'Terminal de paiement unifié aligné avec le site (Amazon Pay, Google Pay TEST, carte)',
+  'Chargements et états vides plus clairs sur Documents, Dossiers et connexion',
+  'Drawer mobile structuré — pilotage, boutique et compte plus faciles à trouver',
+  'Corrections de confort sur le parcours authentifié et les formulaires',
 ];
 
 export const getAppVersionConfig = () => ({

@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useState } from 'react';
-import { Loader2, ShieldCheck } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { createAmazonPaySession, getAmazonPayConfig } from '@/api/payments.js';
 import { cn } from '@/lib/utils.js';
 
@@ -20,14 +20,6 @@ const loadAmazonPayScript = (scriptUrl) => {
   return amazonPayScriptPromise;
 };
 
-const AmazonPayMark = () => (
-  <svg viewBox="0 0 120 36" aria-hidden="true" className="h-7 w-auto">
-    <rect width="120" height="36" rx="6" fill="#FF9900" />
-    <text x="12" y="23" fill="#111827" fontSize="11" fontWeight="700" fontFamily="Arial, sans-serif">amazon</text>
-    <text x="68" y="23" fill="#111827" fontSize="11" fontWeight="700" fontFamily="Arial, sans-serif">pay</text>
-  </svg>
-);
-
 export const AmazonPayCheckoutPanel = ({
   amountCents = 0,
   amountLabel,
@@ -37,6 +29,8 @@ export const AmazonPayCheckoutPanel = ({
   offerCode,
   className,
   hideWhenUnavailable = false,
+  embedded = false,
+  active = true,
 }) => {
   const buttonContainerId = useId().replace(/:/g, '');
   const buttonSelector = `#${buttonContainerId}`;
@@ -46,6 +40,7 @@ export const AmazonPayCheckoutPanel = ({
   const [config, setConfig] = useState(null);
 
   useEffect(() => {
+    if (!active) return undefined;
     let cancelled = false;
     const renderAmazonPay = async () => {
       setLoading(true);
@@ -132,9 +127,56 @@ export const AmazonPayCheckoutPanel = ({
     return () => {
       cancelled = true;
     };
-  }, [amountCents, buttonContainerId, buttonSelector, dossierId, offerCode, resourceOrderId]);
+  }, [active, amountCents, buttonContainerId, buttonSelector, dossierId, offerCode, resourceOrderId]);
 
+  if (!active) return null;
   if (hideWhenUnavailable && error && !loading && !buttonReady) return null;
+
+  const body = (
+    <>
+      {!embedded ? (
+        <div className="mb-4 rounded-xl border border-white/80 bg-white/90 px-4 py-3">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">Montant</p>
+          <p className="mt-0.5 text-2xl font-extrabold text-[hsl(var(--greffio-blue-900))]">{amountLabel || 'Montant TTC'}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{offerLabel}</p>
+        </div>
+      ) : (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          {config?.sandbox ? (
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+              Sandbox
+            </span>
+          ) : (
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+              Live
+            </span>
+          )}
+          <p className="text-sm text-muted-foreground">
+            Session signée Greffio · retour sécurisé après validation Amazon.
+          </p>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex h-12 items-center justify-center gap-2 rounded-xl bg-[#fffaf0] text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          Préparation du bouton Amazon Pay…
+        </div>
+      ) : null}
+      {error ? (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{error}</p>
+      ) : null}
+      <div
+        id={buttonContainerId}
+        className={cn(
+          'mx-auto flex min-h-[48px] w-full max-w-[340px] items-center justify-center',
+          error && 'hidden',
+        )}
+      />
+    </>
+  );
+
+  if (embedded) return body;
 
   return (
     <section
@@ -143,57 +185,7 @@ export const AmazonPayCheckoutPanel = ({
         className,
       )}
     >
-      <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:text-left">
-        <AmazonPayMark />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-            <p className="text-xs font-bold uppercase tracking-wide text-primary">Recommandé</p>
-            {config?.sandbox ? (
-              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
-                Sandbox
-              </span>
-            ) : (
-              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
-                Live
-              </span>
-            )}
-          </div>
-          <h3 className="mt-0.5 text-lg font-extrabold text-[hsl(var(--greffio-blue-900))]">Amazon Pay</h3>
-          <p className="mt-1 text-sm leading-6 text-muted-foreground">
-            Payez avec votre compte Amazon. Session signée par Greffio, sans stockage de vos données de paiement.
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-4 rounded-xl border border-white/80 bg-white/90 px-4 py-3 text-center sm:text-left">
-        <p className="text-xs font-semibold uppercase text-muted-foreground">Montant</p>
-        <p className="mt-0.5 text-2xl font-extrabold text-[hsl(var(--greffio-blue-900))]">{amountLabel || 'Montant TTC'}</p>
-        <p className="mt-1 text-xs text-muted-foreground">{offerLabel}</p>
-      </div>
-
-      <div className="mt-4">
-        {loading ? (
-          <div className="flex h-12 items-center justify-center gap-2 rounded-xl bg-white text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            Préparation Amazon Pay…
-          </div>
-        ) : null}
-        {error ? (
-          <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-900 sm:text-left">{error}</p>
-        ) : null}
-        <div
-          id={buttonContainerId}
-          className={cn(
-            'mx-auto flex min-h-[48px] w-full max-w-[320px] items-center justify-center',
-            error && 'hidden',
-          )}
-        />
-      </div>
-
-      <div className="mt-4 flex items-start justify-center gap-2 text-center text-xs leading-5 text-muted-foreground sm:justify-start sm:text-left">
-        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-        <span>Paiement chiffré TLS — retour sécurisé vers Greffio après validation Amazon.</span>
-      </div>
+      {body}
     </section>
   );
 };

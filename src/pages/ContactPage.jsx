@@ -10,7 +10,7 @@ import { runtimeConfig } from '@/config/runtime.js';
 import { submitAppointmentRequest } from '@/api/contact.js';
 import { mapSecurityApiError } from '@/config/security.js';
 import { SecurityChallengeWidget } from '@/components/security/SecurityChallengeWidget.jsx';
-import { useSecurityConfig } from '@/hooks/useSecurityConfig.js';
+import { PublicPageLayout } from '@/components/layout/PublicPageLayout.jsx';
 
 export const ContactPage = () => {
   const [form, setForm] = useState({
@@ -72,6 +72,7 @@ export const ContactPage = () => {
   };
 
   return (
+    <PublicPageLayout>
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-white px-6 py-4">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
@@ -187,5 +188,6 @@ export const ContactPage = () => {
         </aside>
       </main>
     </div>
+    </PublicPageLayout>
   );
 };

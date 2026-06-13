@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { CalendarClock } from 'lucide-react';
 import { getOpsDossiers } from '@/api/ops.js';
 import { formatDateTime } from '@/components/ops/opsLabels.js';
+import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
 
 export const OpsAuditPage = () => {
   const [events, setEvents] = useState([]);
@@ -53,7 +54,7 @@ export const OpsAuditPage = () => {
 
       <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white shadow-sm">
         {loading ? (
-          <p className="px-5 py-10 text-sm text-slate-500">Chargement du journal…</p>
+          <PageLoadingState compact className="px-5 py-10" label="Chargement du journal…" />
         ) : events.length ? events.map((event) => (
           <div key={event.id} className="flex gap-3 px-5 py-4">
             <CalendarClock className="mt-0.5 h-4 w-4 text-slate-500" />

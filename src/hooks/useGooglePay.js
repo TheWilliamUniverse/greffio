@@ -30,14 +30,17 @@ const loadGooglePayScript = () => {
   return scriptPromise;
 };
 
-export const useGooglePay = ({ amountCents = 0, label = 'Greffio' } = {}) => {
+export const useGooglePay = ({ amountCents = 0, label = 'Greffio', active = true } = {}) => {
   const [ready, setReady] = useState(false);
   const [config, setConfig] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (!active) return undefined;
     let cancelled = false;
     const boot = async () => {
+      setReady(false);
+      setError('');
       try {
         const [PaymentsClient, serverConfig] = await Promise.all([
           loadGooglePayScript(),
@@ -48,8 +51,8 @@ export const useGooglePay = ({ amountCents = 0, label = 'Greffio' } = {}) => {
           ...googlePayConfig,
           ...(serverConfig?.config || {}),
         };
-        if (!merged.enabled && !merged.merchantId) {
-          setError('Google Pay non configuré.');
+        if (!merged.readyForPayment && !merged.enabled) {
+          setError('Google Pay sera disponible dès branchement complet du prestataire carte.');
           return;
         }
         setConfig(merged);
@@ -60,21 +63,31 @@ export const useGooglePay = ({ amountCents = 0, label = 'Greffio' } = {}) => {
     };
     void boot();
     return () => { cancelled = true; };
-  }, []);
+  }, [active]);
 
   const client = useMemo(() => {
-    if (!ready || !config || typeof window === 'undefined') return null;
+    if (!ready || !config || !active || typeof window === 'undefined') return null;
     const PaymentsClient = window.google?.payments?.api?.PaymentsClient;
     if (!PaymentsClient) return null;
     return new PaymentsClient({ environment: config.environment || 'TEST' });
-  }, [ready, config]);
+  }, [active, ready, config]);
 
   const paymentRequest = useMemo(() => {
-    if (!config || !amountCents) return null;
-    const gateway = config.environment === 'TEST' ? 'example' : (config.gateway || 'cawl');
-    const gatewayMerchantId = config.environment === 'TEST'
+    if (!config || !amountCents || !active) return null;
+    const isTest = config.environment !== 'PRODUCTION';
+    const gateway = isTest ? 'example' : String(config.gateway || 'cawl').toLowerCase();
+    const gatewayMerchantId = isTest
       ? 'exampleGatewayMerchantId'
-      : (config.gatewayMerchantId || config.merchantId || 'greffio_pending');
+      : String(config.gatewayMerchantId || '').trim();
+
+    if (!isTest && !gatewayMerchantId) return null;
+
+    const merchantInfo = {
+      merchantName: config.merchantName || 'Greffio',
+    };
+    if (!isTest && config.merchantId) {
+      merchantInfo.merchantId = config.merchantId;
+    }
 
     return {
       apiVersion: 2,
@@ -91,10 +104,7 @@ export const useGooglePay = ({ amountCents = 0, label = 'Greffio' } = {}) => {
           parameters: { gateway, gatewayMerchantId },
         },
       }],
-      merchantInfo: {
-        merchantId: config.merchantId || 'BCR2DN4TZ4F2QR3B',
-        merchantName: config.merchantName || 'Greffio',
-      },
+      merchantInfo,
       transactionInfo: {
         totalPriceStatus: 'FINAL',
         totalPrice: (amountCents / 100).toFixed(2),
@@ -107,7 +117,7 @@ export const useGooglePay = ({ amountCents = 0, label = 'Greffio' } = {}) => {
         }],
       },
     };
-  }, [amountCents, config, label]);
+  }, [active, amountCents, config, label]);
 
   const isReadyToPay = useCallback(async () => {
     if (!client || !paymentRequest) return false;

@@ -10,6 +10,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
+import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
 import { OpsKpiCard } from '@/components/ops/OpsKpiCard.jsx';
 import { OpsCompletionBadge, OpsRiskBadge, OpsSlaBadge } from '@/components/ops/OpsBadges.jsx';
 import { formatRelativeTime } from '@/components/ops/opsLabels.js';
@@ -57,7 +58,7 @@ export const OpsCockpitPage = () => {
           </div>
           <div className="divide-y divide-slate-100">
             {refreshing && !actionNow.length ? (
-              <p className="px-5 py-8 text-sm text-slate-500">Chargement du cockpit…</p>
+              <PageLoadingState compact className="px-5 py-8" label="Chargement du cockpit…" />
             ) : actionNow.length ? actionNow.map((item) => (
               <button
                 key={item.dossier.id}

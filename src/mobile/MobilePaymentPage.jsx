@@ -8,13 +8,14 @@ import { checkoutDossierPayment } from '@/api/payments.js';
 import { inferCustomerType, isB2B } from '@/utils/customerType.js';
 import { checkoutResourceOrder, getResourceOrder } from '@/api/resources.js';
 import { formatResourcePrice, getCatalogItemById } from '@/config/resourceServices.js';
-import { WalletPaymentTerminal } from '@/components/payments/WalletPaymentTerminal.jsx';
+import { GreffioPaymentTerminal } from '@/components/payments/GreffioPaymentTerminal.jsx';
 import { formatEuroCents, resolveOfferAmountCents } from '@/config/paymentOffers.js';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
 import { MobilePageSkeleton } from '@/mobile/ui/MobilePageSkeleton.jsx';
 import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
+import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
 import { OfflineDataBanner } from '@/components/system/OfflineDataBanner.jsx';
 
 const offers = {
@@ -213,18 +214,29 @@ export const MobilePaymentPage = () => {
         </div>
       ) : null}
 
-      {currentUser && (resourceOrder || !showB2BProviders) && amountCents > 0 ? (
-        <WalletPaymentTerminal
+      {loadingResourceOrder && resourceOrderId ? (
+        <PageLoadingState
+          compact
+          label="Chargement de la commande…"
+          description="Préparation du terminal de paiement."
+        />
+      ) : null}
+
+      {currentUser && (resourceOrder || !showB2BProviders) && amountCents > 0 && !loadingResourceOrder ? (
+        <GreffioPaymentTerminal
           amountCents={amountCents}
           amountLabel={amountLabel}
           offerLabel={resourceOrder?.serviceTitle || selectedOffer.title}
           dossierId={!resourceOrderId ? getCurrentDossierId() : undefined}
           resourceOrderId={resourceOrderId || undefined}
           offerCode={offerName}
+          onPayByCard={handleCheckout}
+          isCreatingPayment={isCreatingPayment}
+          cardButtonLabel={resourceOrder ? 'Payer par carte bancaire' : 'Payer maintenant'}
         />
       ) : null}
 
-      {(showB2BProviders || resourceOrder) && !resourceLanding ? (
+      {(showB2BProviders || (resourceOrder && !currentUser)) && !resourceLanding ? (
       <Button
         type="button"
         variant="default"

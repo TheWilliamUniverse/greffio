@@ -8,6 +8,14 @@ import { isInternalUser } from '@/utils/roles.js';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
+import { Progress } from '@/components/ui/progress.jsx';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select.jsx';
 import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 import { resolveDossierDisplayName } from '@/utils/dossierBootstrap.js';
 import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
@@ -281,11 +289,16 @@ export const DossiersPage = () => {
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input className="pl-9" placeholder="Rechercher dossier, étape, équipe ou action..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
               </div>
-              <select className="h-9 rounded-md border border-input bg-background px-3 text-sm" value={status} onChange={(event) => setStatus(event.target.value)}>
-                {statuses.map((item) => (
-                  <option key={item} value={item}>{item}</option>
-                ))}
-              </select>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger className="h-9 w-full md:w-[180px]">
+                  <SelectValue placeholder="Statut" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statuses.map((item) => (
+                    <SelectItem key={item} value={item}>{item}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button variant="outline" className="bg-white">
                 <Filter className="h-4 w-4" />
                 Filtrer
@@ -340,9 +353,7 @@ export const DossiersPage = () => {
                       <span>Étape {dossier.currentStep || 0}/{dossier.totalSteps || dossier.steps?.length || 0}</span>
                       <span>{dossier.progress || 0}%</span>
                     </div>
-                    <div className="h-2 rounded-full bg-muted">
-                      <div className="h-2 rounded-full bg-primary" style={{ width: `${dossier.progress || 0}%` }} />
-                    </div>
+                      <Progress value={dossier.progress || 0} className="h-2" />
                   </div>
 
                   <div className="mt-5 flex flex-wrap gap-2">

@@ -410,7 +410,9 @@ export const isStepComplete = (step, formData) => {
   if (step.condition && !step.condition(formData)) return true;
   const visibleFields = step.fields.filter((field) => !field.condition || field.condition(formData));
   if (!visibleFields.length) return true;
-  if (step.id === 'recap') return true;
+  if (step.id === 'recap') {
+    return formData.recapAcknowledged === true || formData.validationConfirmed === true;
+  }
   return visibleFields.every((field) => isFieldValueValid(field, formData[field.key], formData));
 };
 
@@ -423,12 +425,29 @@ export const inferDemarcheCategory = (typeFormalite = '') => {
 
 export const resolveResumePosition = (formData = {}, resume = {}) => {
   const applicable = getApplicableFlowSteps(formData);
+  const sharedMeta = {
+    demarcheCategory: resume?.demarcheCategory || inferDemarcheCategory(formData.typeFormalite),
+    categoryConfirmed: resume?.categoryConfirmed ?? Boolean(formData.typeFormalite),
+  };
+
+  if (formData.validationConfirmed === true) {
+    return {
+      stepIndex: Math.max(applicable.length - 1, 0),
+      fieldIndex: 0,
+      ...sharedMeta,
+      questionnaireAlreadyValidated: true,
+    };
+  }
+
   let stepIndex = 0;
   let fieldIndex = 0;
 
   if (resume?.stepId) {
     const savedIndex = applicable.findIndex((entry) => entry.id === resume.stepId);
-    if (savedIndex >= 0) stepIndex = savedIndex;
+    if (savedIndex >= 0) {
+      const firstIncomplete = applicable.findIndex((entry) => !isStepComplete(entry, formData));
+      stepIndex = firstIncomplete >= 0 ? firstIncomplete : savedIndex;
+    }
   } else {
     for (let index = 0; index < applicable.length; index += 1) {
       if (!isStepComplete(applicable[index], formData)) {
@@ -456,8 +475,7 @@ export const resolveResumePosition = (formData = {}, resume = {}) => {
   return {
     stepIndex,
     fieldIndex,
-    demarcheCategory: resume?.demarcheCategory || inferDemarcheCategory(formData.typeFormalite),
-    categoryConfirmed: resume?.categoryConfirmed ?? Boolean(formData.typeFormalite),
+    ...sharedMeta,
   };
 };
 

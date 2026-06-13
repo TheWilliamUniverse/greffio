@@ -1,6 +1,9 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { BarChart3, Clock, FileCheck2, TrendingUp } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar.jsx';
+import { EmptyState } from '@/components/patterns/EmptyState.jsx';
+import { Progress } from '@/components/ui/progress.jsx';
 import { useEffect, useState } from 'react';
 import { listDossiers, getDossierById } from '@/api/dossiers.js';
 
@@ -68,22 +71,20 @@ export const AnalyticsPage = () => {
           </section>
 
           {dossiers.length === 0 ? (
-            <section className="rounded-md border border-dashed border-primary/30 bg-white p-8 text-center shadow-elevation-sm">
-              <BarChart3 className="mx-auto h-10 w-10 text-primary" />
-              <h2 className="mt-4 text-2xl font-extrabold">Aucune donnée de pilotage</h2>
-              <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                Les graphiques et indicateurs apparaîtront uniquement lorsqu’un dossier réel sera ouvert. Aucun événement fictif n’est affiché dans l’espace client.
-              </p>
-            </section>
+            <EmptyState
+              icon={BarChart3}
+              title="Aucune donnée de pilotage"
+              description="Les graphiques et indicateurs apparaîtront uniquement lorsqu’un dossier réel sera ouvert. Aucun événement fictif n’est affiché dans l’espace client."
+              cta={{ to: '/simulateur', label: 'Créer une démarche' }}
+              secondaryCta={{ to: '/dashboard', label: 'Retour au tableau de bord' }}
+            />
           ) : (
             <section className="grid gap-4 lg:grid-cols-3">
               {dossiers.map((dossier) => (
                 <div key={dossier.id} className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
                   <p className="text-sm font-bold text-muted-foreground">{dossier.expert}</p>
                   <h3 className="mt-2 font-extrabold">{dossier.name}</h3>
-                  <div className="mt-5 h-2 rounded-full bg-muted">
-                    <div className="h-2 rounded-full bg-primary" style={{ width: `${dossier.progress || 0}%` }} />
-                  </div>
+                  <Progress value={dossier.progress || 0} className="mt-5 h-2" />
                   <p className="mt-3 text-sm text-muted-foreground">{dossier.nextAction}</p>
                 </div>
               ))}

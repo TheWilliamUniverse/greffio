@@ -81,11 +81,11 @@ export const CredentialsUnlockPage = () => {
           {loading ? <p className="text-sm text-muted-foreground">Chargement...</p> : null}
 
           {!loading && !token ? (
-            <p className="text-sm text-red-600">Lien invalide ou incomplet.</p>
+            <p className="text-sm text-destructive">Lien invalide ou incomplet.</p>
           ) : null}
 
           {!loading && token && !meta?.ok && !result ? (
-            <p className="text-sm text-red-600">Ce lien n’est plus valide ou a déjà été utilisé.</p>
+            <p className="text-sm text-destructive">Ce lien n’est plus valide ou a déjà été utilisé.</p>
           ) : null}
 
           {!loading && meta?.ok && !result ? (

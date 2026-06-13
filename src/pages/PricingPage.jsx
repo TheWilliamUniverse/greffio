@@ -7,12 +7,13 @@ import { PricingClarityBlock } from '@/components/pricing/PricingClarityBlock.js
 import { PricingFaqSection } from '@/components/pricing/PricingFaqSection.jsx';
 import { LandingPricingSection } from '@/components/pricing/LandingPricingSection.jsx';
 import { motion } from 'framer-motion';
-import { usePricingMotion } from '@/components/pricing/usePricingMotion.js';
+import { PublicPageLayout } from '@/components/layout/PublicPageLayout.jsx';
 
 export const PricingPage = () => {
   const { reveal } = usePricingMotion();
 
   return (
+    <PublicPageLayout>
     <div className="min-h-screen bg-background text-foreground">
       <NavbarDropdown />
 
@@ -46,6 +47,7 @@ export const PricingPage = () => {
         </motion.div>
       </main>
     </div>
+    </PublicPageLayout>
   );
 };
 

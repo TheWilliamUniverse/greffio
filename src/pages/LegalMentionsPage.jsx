@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { BadgeEuro, CreditCard, FileCheck2, Scale, ShieldCheck } from 'lucide-react';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
+import { PublicPageLayout } from '@/components/layout/PublicPageLayout.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { runtimeConfig } from '@/config/runtime.js';
 import { PAYMENT_METHODS } from '@/config/businessCatalog.js';
@@ -15,6 +16,7 @@ const Section = ({ title, children }) => (
 );
 
 export const LegalMentionsPage = () => (
+  <PublicPageLayout>
   <main className="min-h-screen bg-background px-4 py-10 sm:px-6 lg:px-8">
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -120,4 +122,5 @@ export const LegalMentionsPage = () => (
       </Section>
     </div>
   </main>
+  </PublicPageLayout>
 );

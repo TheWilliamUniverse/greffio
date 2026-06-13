@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowLeft, CalendarClock, CheckCircle2, Clock3, FileText
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
+import { Progress } from '@/components/ui/progress.jsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.jsx';
 import { fetchDossierDetail } from '@/api/dossiers.js';
 import { fetchDossierMessages, fetchOpsDossierMessages, postDossierMessage, postOpsDossierMessage } from '@/api/dossierMessages.js';
@@ -274,9 +275,7 @@ export const DossierDetailPage = () => {
                 <div className="mb-2 text-sm font-bold text-primary">
                   {dossier.nextAction}
                 </div>
-                <div className="h-3 rounded-full bg-muted">
-                  <div className="h-3 rounded-full bg-primary" style={{ width: `${dossier.progress || 0}%` }} />
-                </div>
+                <Progress value={dossier.progress || 0} className="h-3" />
                 {dossier.blockers.length > 0 && (
                   <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
                     <div className="flex items-center gap-2 font-bold">

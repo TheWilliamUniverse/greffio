@@ -40,9 +40,11 @@ const PAGE_TITLES = {
   '/services': 'Services',
 };
 
-const resolveTitle = (pathname) => {
+export const resolveMobileShellTitle = (pathname) => {
   if (pathname.startsWith('/dossier/')) return 'Dossier';
-  if (pathname.startsWith('/mobile/account') || pathname.startsWith('/profil')) return 'Compte';
+  if (pathname.startsWith('/mobile/account')) return 'Compte';
+  if (pathname.startsWith('/profil')) return 'Mon profil';
+  if (pathname.startsWith('/settings')) return 'Paramètres';
   if (pathname.startsWith('/mobile/search') || pathname.startsWith('/chat')) return 'Assistant';
   if (pathname.startsWith('/ressources/comparateur')) return 'Forme juridique';
   if (pathname.startsWith('/ressources/guides/')) return 'Guide';
@@ -56,7 +58,7 @@ export const MobileWebShell = ({ children }) => {
   const scrollRef = useRef(null);
   const { currentUser } = useAuth();
   const isLanding = location.pathname === '/';
-  const title = isLanding ? '' : resolveTitle(location.pathname);
+  const title = isLanding ? '' : resolveMobileShellTitle(location.pathname);
   const showAuthenticatedNav = Boolean(currentUser) && !isLanding;
 
   if (!shouldUseMobileWebShell(location.pathname)) {

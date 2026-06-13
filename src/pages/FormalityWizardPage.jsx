@@ -59,8 +59,9 @@ import { useMobileKeyboardOffset } from '@/hooks/useMobileKeyboardOffset.js';
 import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 import { cn } from '@/lib/utils.js';
+import { LegalFormComparatorPromoCard } from '@/components/comparator/LegalFormComparatorPromoCard.jsx';
 
-const mobileFieldClass = 'box-border h-12 min-w-0 w-full max-w-full rounded-xl border-2 border-[#d4e2f5] bg-white px-3.5 text-base font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/12';
+const mobileFieldClass = 'box-border h-12 min-w-0 w-full max-w-full rounded-xl border-2 border-border bg-white px-3.5 text-base font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/12';
 
 const resolveAutoComplete = (key) => ({
   firstName: 'given-name',
@@ -909,7 +910,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
         >
           <div className={cn(
             isMobilePresentation
-              ? 'border-b border-[#e2ebf8]/90 bg-[var(--we-bg)]/95 px-4 py-2.5 backdrop-blur-sm'
+              ? 'border-b border-border/90 bg-[var(--we-bg)]/95 px-4 py-2.5 backdrop-blur-sm'
               : 'border-b border-[var(--we-border)] bg-white px-6 py-4',
           )}
           >
@@ -919,7 +920,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
             )}
             >
               {!isMobilePresentation ? <span>Simulation Greffio</span> : <span className="text-primary/80">Étape</span>}
-              <span className={isMobilePresentation ? 'rounded-full bg-white px-2 py-0.5 text-[10px] ring-1 ring-[#d4e2f5]' : ''}>
+              <span className={isMobilePresentation ? 'rounded-full bg-white px-2 py-0.5 text-[10px] ring-1 ring-border' : ''}>
                 {showOffers ? 'Offres' : `${step + 1}/${steps.length}`}
               </span>
             </div>
@@ -1034,7 +1035,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                       Simulation gratuite, sans engagement.
                     </p>
                     {journeyStepError ? (
-                      <p className="text-sm text-red-600" role="alert">{journeyStepError}</p>
+                      <p className="text-sm text-destructive" role="alert">{journeyStepError}</p>
                     ) : null}
                   </div>
                 )}
@@ -1089,7 +1090,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                             {existingCompanyState === 'loading' ? 'Recherche…' : 'Rechercher'}
                           </Button>
                         </div>
-                        {existingCompanyError ? <p className="mt-2 text-xs text-red-600">{existingCompanyError}</p> : null}
+                        {existingCompanyError ? <p className="mt-2 text-xs text-destructive">{existingCompanyError}</p> : null}
                         {existingCompany ? (
                           <div className="mt-4">
                             <CompanyLookupCard
@@ -1147,7 +1148,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                                 className={cn(isMobilePresentation ? mobileFieldClass : 'min-w-0 w-full rounded-xl')}
                               />
                               {accountError ? (
-                                <p className="text-xs font-semibold text-red-600" role="alert">{accountError}</p>
+                                <p className="text-xs font-semibold text-destructive" role="alert">{accountError}</p>
                               ) : null}
                               {showAccountChallenge ? (
                                 <SecurityChallengeWidget action="signup" onTokens={setAccountCaptcha} />
@@ -1281,6 +1282,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                                 <span className="mt-1 block text-xs text-muted-foreground">{group.forms.length} formes disponibles</span>
                               </motion.button>
                             ))}
+                            <LegalFormComparatorPromoCard variant="gridTile" />
                           </div>
                         )}
 
@@ -1372,7 +1374,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
 
                     {step2Phase === 'profile' ? (
                     <>
-                    <div className="rounded-md border border-border bg-[#fafcff] p-5">
+                    <div className="rounded-md border border-border bg-muted/30 p-5">
                       <p className="text-xs font-bold uppercase text-primary">
                         {eiLike ? 'Identité et coordonnées' : 'Dirigeants et capital'}
                       </p>
@@ -1479,7 +1481,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                         {!questionnaireFinished ? (
                           <motion.div
                             key="question-panel-active"
-                            className="relative mt-5 overflow-hidden rounded-[1.35rem] border border-[#d4e2f5] bg-white p-6 shadow-[0_14px_40px_rgba(15,31,61,0.07)] md:p-7"
+                            className="relative mt-5 overflow-hidden rounded-[1.35rem] border border-border bg-white p-6 shadow-[0_14px_40px_rgba(15,31,61,0.07)] md:p-7"
                             initial={{ opacity: 1, scale: 1, y: 0 }}
                             animate={
                               questionExitPhase
@@ -1494,7 +1496,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
                           >
                             <QuestionPanelSuccessOverlay phase={questionExitPhase} />
-                            <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-[#e2ebf8] pb-5">
+                            <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
                               <div className="flex items-center gap-4">
                                 <ProgressCircle percent={completion} size="lg" />
                                 <div>
@@ -1528,7 +1530,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                                   title={activeQuestion.sectionTitle}
                                   note={activeQuestion.sectionNote}
                                 />
-                                <div className="rounded-2xl border border-[#e2ebf8] bg-[#fafcff] p-5">
+                                <div className="rounded-2xl border border-border bg-muted/30 p-5">
                                   <Label className="text-base font-extrabold text-[hsl(var(--greffio-blue-900))]">
                                     {activeQuestion.label}
                                     {activeQuestion.required ? <span className="text-primary"> *</span> : null}
@@ -1739,7 +1741,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
             <div
               ref={wizardNavRef}
               className={cn(
-                'z-30 border-t border-[#e2ebf8] bg-white/96 backdrop-blur-sm',
+                'z-30 border-t border-border bg-white/96 backdrop-blur-sm',
                 isMobilePresentation
                   ? cn('fixed inset-x-0 px-3.5 py-2.5 shadow-[0_-4px_18px_rgba(15,23,42,0.05)]', mobileActionBarPosition)
                   : 'sticky bottom-0 px-4 py-4 shadow-[0_-10px_28px_rgba(15,23,42,0.06)] sm:px-6 sm:py-5 supports-[padding:max(0px)]:pb-[max(1rem,env(safe-area-inset-bottom))]',
@@ -1787,7 +1789,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
             <div
               ref={wizardNavRef}
               className={cn(
-                'z-30 border-t border-[#e2ebf8] bg-white/96 backdrop-blur-sm',
+                'z-30 border-t border-border bg-white/96 backdrop-blur-sm',
                 isMobilePresentation
                   ? cn('fixed inset-x-0 px-5 py-3 shadow-[0_-4px_18px_rgba(15,23,42,0.05)]', mobileActionBarPosition)
                   : 'sticky bottom-0 px-4 py-4 shadow-[0_-10px_28px_rgba(15,23,42,0.06)] sm:px-6 sm:py-5 supports-[padding:max(0px)]:pb-[max(1rem,env(safe-area-inset-bottom))]',

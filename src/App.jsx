@@ -119,10 +119,13 @@ const Layout = ({ children }) => {
     || (isCapacitorNative() && shouldUseMobileShell(location.pathname))
     || mobileWebShellActive;
 
-  const content = shouldUseMobileShell(location.pathname) ? (
+  const useNativeShell = isCapacitorNative() && shouldUseMobileShell(location.pathname);
+  const content = useNativeShell ? (
     <MobileAppShell>{children}</MobileAppShell>
-  ) : (
+  ) : mobileWebShellActive ? (
     <MobileWebShell>{children}</MobileWebShell>
+  ) : (
+    children
   );
 
   return (
@@ -195,7 +198,7 @@ function AppRoutes() {
               <Route path="audit" element={withSuspense(LazyOpsAuditPage, 'Chargement audit…')} />
               <Route path="settings" element={withSuspense(LazyOpsSettingsPage, 'Chargement paramètres ops…')} />
             </Route>
-            <Route path="/ops-legacy" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}>{withSuspense(LazyOpsDashboardPage, 'Chargement ops…')}</ProtectedRoute>} />
+            <Route path="/ops-legacy" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><Navigate to="/ops/cockpit" replace /></ProtectedRoute>} />
             <Route path="/ops-observability" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}>{withSuspense(LazyOpsLookupObservabilityPage, 'Chargement observabilité…')}</ProtectedRoute>} />
             <Route path="/paiement/verification" element={<PaymentVerificationPage />} />
             <Route path="/paiement/amazon-pay/retour" element={<PaymentVerificationPage />} />

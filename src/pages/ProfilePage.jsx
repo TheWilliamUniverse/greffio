@@ -23,6 +23,8 @@ import { Label } from '@/components/ui/label.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 import { GreffioVersionCard } from '@/components/system/GreffioVersionCard.jsx';
 import { fetchUserProfile, updateUserProfileApi } from '@/api/profile.js';
+import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
+import { cn } from '@/lib/utils.js';
 import {
   CIVILITY_OPTIONS,
   CONTACT_CHANNEL_OPTIONS,
@@ -85,6 +87,10 @@ export const ProfilePage = () => {
     () => getCivilityAvatar(form.profile.civility),
     [form.profile.civility],
   );
+  const mobileShell = isCapacitorNative() || isMobileBrowserViewport();
+  const stickySaveBottomClass = isCapacitorNative()
+    ? 'bottom-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom))]'
+    : 'bottom-[calc(var(--bottom-nav-height-web)+env(safe-area-inset-bottom))]';
 
   const patchProfile = (patch) => {
     setForm((current) => ({
@@ -139,9 +145,15 @@ export const ProfilePage = () => {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] overflow-x-hidden bg-[var(--we-bg)]">
+    <div className={cn(
+      'flex overflow-x-hidden bg-[var(--we-bg)]',
+      mobileShell ? 'min-h-0 flex-1 flex-col' : 'min-h-[calc(100vh-4rem)]',
+    )}>
       <Sidebar />
-      <main className="flex-1 overflow-y-auto pb-28 md:pb-10">
+      <main className={cn(
+        'flex-1 overflow-y-auto',
+        mobileShell ? 'px-4 py-5 pb-36' : 'pb-28 md:pb-10',
+      )}>
         <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 md:px-8 md:py-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -378,7 +390,10 @@ export const ProfilePage = () => {
           )}
         </div>
 
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--we-border)] bg-white/95 p-4 shadow-[0_-8px_30px_rgba(10,18,32,0.08)] sm:hidden">
+        <div className={cn(
+          'fixed inset-x-0 z-40 border-t border-[var(--we-border)] bg-white/95 p-4 shadow-[0_-8px_30px_rgba(10,18,32,0.08)] sm:hidden',
+          stickySaveBottomClass,
+        )}>
           <Button type="button" size="lg" className="w-full" onClick={() => void handleSave()} disabled={loading || saving}>
             <Save className="mr-2 h-4 w-4" />
             {saving ? 'Enregistrement…' : 'Enregistrer les modifications'}

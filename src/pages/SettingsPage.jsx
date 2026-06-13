@@ -18,6 +18,8 @@ import {
   isLoginAlertsConfigured,
   rememberLoginAlertsChoice,
 } from '@/utils/userProfile.js';
+import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
+import { cn } from '@/lib/utils.js';
 import {
   disableTotp,
   enableTotp,
@@ -250,11 +252,18 @@ export const SettingsPage = () => {
     { label: 'Espace équipe Greffio', text: 'Back-office de traitement, contrôle et assignation.', active: currentUser?.role === 'TEAM' || currentUser?.role === 'ADMIN' },
     { label: 'Espace professionnel', text: 'Suivi multi-clients pour partenaires et pros autorisés.', active: currentUser?.role === 'PRO' },
   ];
+  const mobileShell = isCapacitorNative() || isMobileBrowserViewport();
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background">
+    <div className={cn(
+      'flex bg-background',
+      mobileShell ? 'min-h-0 flex-1 flex-col' : 'h-[calc(100vh-4rem)] overflow-hidden',
+    )}>
       <Sidebar />
-      <main className="flex-1 overflow-y-auto p-5 md:p-8">
+      <main className={cn(
+        'flex-1 overflow-y-auto',
+        mobileShell ? 'p-4 pb-28' : 'p-5 md:p-8',
+      )}>
         <div className="mx-auto max-w-5xl space-y-6">
           <div>
             <p className="text-sm font-bold uppercase text-primary">Sécurité et compte</p>

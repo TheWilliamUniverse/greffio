@@ -7,18 +7,24 @@ import { handleResourceOrderPaymentPaid } from './resourcePaymentWebhook.js';
 
 export const getGooglePayPublicConfig = () => {
   const environment = process.env.GOOGLE_PAY_ENVIRONMENT === 'PRODUCTION' ? 'PRODUCTION' : 'TEST';
-  const hasMerchant = Boolean(process.env.GOOGLE_PAY_API_KEY || process.env.GOOGLE_PAY_MERCHANT_ID);
+  const merchantId = process.env.GOOGLE_PAY_MERCHANT_ID || '';
+  const gatewayMerchantId = process.env.GOOGLE_PAY_GATEWAY_MERCHANT_ID || process.env.CAWL_MERCHANT_ID || '';
+  const gateway = String(process.env.GOOGLE_PAY_GATEWAY || 'cawl').toLowerCase();
+  const cawlReady = Boolean(process.env.CAWL_API_BASE_URL && process.env.CAWL_API_KEY);
+  const productionReady = environment === 'PRODUCTION' && Boolean(merchantId && gatewayMerchantId && cawlReady);
+  const testReady = environment === 'TEST';
+
   return {
-    // En attendant CAWL : le mode TEST Google Pay fonctionne sans compte marchand
-    // (gateway "example"), donc on l'active par défaut hors PRODUCTION.
-    enabled: hasMerchant || environment === 'TEST',
+    enabled: productionReady || testReady,
+    readyForPayment: productionReady || testReady,
     environment,
-    merchantId: process.env.GOOGLE_PAY_MERCHANT_ID || '',
+    merchantId,
     merchantName: process.env.GOOGLE_PAY_MERCHANT_NAME || 'Greffio',
-    gateway: process.env.GOOGLE_PAY_GATEWAY || 'cawl',
-    gatewayMerchantId: process.env.GOOGLE_PAY_GATEWAY_MERCHANT_ID || process.env.CAWL_MERCHANT_ID || '',
+    gateway,
+    gatewayMerchantId,
     countryCode: 'FR',
     currencyCode: 'EUR',
+    mode: productionReady ? 'live' : testReady ? 'test' : 'unavailable',
   };
 };
 
@@ -85,7 +91,8 @@ export const processGooglePayCharge = async ({
 
   // TODO[CAWL-API]: transmettre `token` à CAWL pour capture réelle.
   const cawlReady = Boolean(process.env.CAWL_API_BASE_URL && process.env.CAWL_API_KEY);
-  const markPaid = !cawlReady && process.env.NODE_ENV !== 'production';
+  const isTestEnvironment = process.env.GOOGLE_PAY_ENVIRONMENT !== 'PRODUCTION';
+  const markPaid = !cawlReady && (process.env.NODE_ENV !== 'production' || isTestEnvironment);
 
   const payment = await upsertPayment({
     dossierId: dossierId || order?.dossierId || null,

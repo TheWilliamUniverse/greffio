@@ -8,6 +8,12 @@ const formatValue = (value) => {
   return String(value);
 };
 
+const formatSectionValue = (section, key, value) => {
+  if (section.format) return section.format(key, value);
+  if (key === 'initiatorType') return formatInitiatorType(value);
+  return formatValue(value);
+};
+
 const SECTIONS = [
   {
     title: 'Déclarant',
@@ -59,7 +65,7 @@ export const QuestionnaireRecapPanel = ({ formData = {}, onEditStep }) => (
         .map((key) => ({
           key,
           label: section.labels[key] || key,
-          value: section.format ? section.format(key, formData[key]) : formatValue(formData[key]),
+          value: formatSectionValue(section, key, formData[key]),
         }))
         .filter((row) => row.value !== '—');
       if (!rows.length) return null;

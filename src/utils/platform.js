@@ -38,22 +38,28 @@ export const isMobileBrowserViewport = () => {
   return !isCapacitorNative() && window.innerWidth < MOBILE_BREAKPOINT;
 };
 
-const MOBILE_WEB_SHELL_EXCLUDED_PREFIXES = [
+/** Routes sans shell mobile (web <768px et app native Capacitor). */
+export const MOBILE_SHELL_EXCLUDED_PREFIXES = [
   '/ops',
   '/ops-legacy',
   '/ops-observability',
   '/signature/',
 ];
 
-export const shouldUseMobileWebShell = (pathname) => {
-  if (isCapacitorNative() || typeof window === 'undefined') return false;
-  if (window.innerWidth >= MOBILE_BREAKPOINT) return false;
+const isMobileShellExcluded = (pathname) => {
   const path = String(pathname || '');
-  return !MOBILE_WEB_SHELL_EXCLUDED_PREFIXES.some(
+  return MOBILE_SHELL_EXCLUDED_PREFIXES.some(
     (prefix) => path === prefix || path.startsWith(prefix),
   );
 };
 
+export const shouldUseMobileWebShell = (pathname) => {
+  if (isCapacitorNative() || typeof window === 'undefined') return false;
+  if (window.innerWidth >= MOBILE_BREAKPOINT) return false;
+  return !isMobileShellExcluded(pathname);
+};
+
+/** @deprecated Préfixes historiques — le shell natif couvre désormais toutes les routes hors exclusions. */
 export const MOBILE_SHELL_PREFIXES = [
   '/dashboard',
   '/dossiers',
@@ -76,10 +82,10 @@ export const MOBILE_SHELL_PREFIXES = [
   '/contact',
 ];
 
+/** App native Capacitor : shell sur toutes les routes sauf ops / signature publique. */
 export const shouldUseMobileShell = (pathname) => {
   if (!isCapacitorNative()) return false;
-  const path = String(pathname || '');
-  return MOBILE_SHELL_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+  return !isMobileShellExcluded(pathname);
 };
 
 /** Log dev : route × shell natif (Natif Android — dev uniquement). */

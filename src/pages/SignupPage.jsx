@@ -15,6 +15,9 @@ import { PUBLISHER_LEGAL_NAME } from '@/config/publisher.js';
 import { LoginAlertsToggle } from '@/components/security/LoginAlertsToggle.jsx';
 import { SecurityChallengeWidget } from '@/components/security/SecurityChallengeWidget.jsx';
 import { useSecurityConfig } from '@/hooks/useSecurityConfig.js';
+import { FieldError } from '@/components/patterns/FieldError.jsx';
+import { getAuthInputClass } from '@/lib/authFormStyles.js';
+import { isMobileBrowserViewport } from '@/utils/platform.js';
 import { getProjectDraft, saveProjectDraft } from '@/utils/localStorage.js';
 import { createDossier } from '@/api/dossiers.js';
 import { saveCurrentDossierId } from '@/utils/sessionStore.js';
@@ -62,6 +65,8 @@ export const SignupPage = () => {
   const security = useSecurityConfig();
   const hasCaptchaToken = Boolean(captcha.turnstileToken || captcha.recaptchaToken);
   const showSignupChallenge = security.turnstileOnSignup && security.captchaProvider !== 'none';
+  const mobileAuth = isMobileBrowserViewport();
+  const authInputClass = getAuthInputClass(mobileAuth);
   const { register, watch, trigger, getValues, setValue, formState: { errors } } = useForm({
     shouldUnregister: false,
     defaultValues: {
@@ -285,12 +290,33 @@ export const SignupPage = () => {
                       <Input {...register('lastName', { required: true })} placeholder="Votre nom" />
                     </div>
                     <div className="space-y-2">
-                      <Label>Email</Label>
-                      <Input type="email" {...register('email', { required: true })} placeholder="vous@entreprise.fr" />
+                      <Label htmlFor="signup-email">Email</Label>
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        className={authInputClass}
+                        aria-invalid={Boolean(errors.email)}
+                        aria-describedby={errors.email ? 'signup-email-error' : undefined}
+                        {...register('email', { required: 'Indiquez votre email.' })}
+                        placeholder="vous@entreprise.fr"
+                      />
+                      <FieldError id="signup-email-error">{errors.email?.message}</FieldError>
                     </div>
                     <div className="space-y-2">
-                      <Label>Mot de passe</Label>
-                      <Input type="password" {...register('password', { required: true, minLength: 8 })} placeholder="Minimum 8 caractères" />
+                      <Label htmlFor="signup-password">Mot de passe</Label>
+                      <Input
+                        id="signup-password"
+                        type="password"
+                        className={authInputClass}
+                        aria-invalid={Boolean(errors.password)}
+                        aria-describedby={errors.password ? 'signup-password-error' : undefined}
+                        {...register('password', {
+                          required: 'Indiquez un mot de passe.',
+                          minLength: { value: 8, message: 'Minimum 8 caractères.' },
+                        })}
+                        placeholder="Minimum 8 caractères"
+                      />
+                      <FieldError id="signup-password-error">{errors.password?.message}</FieldError>
                     </div>
                     <div className="space-y-2 md:col-span-2">
                       <Label>Nom de l’entreprise ou du client</Label>

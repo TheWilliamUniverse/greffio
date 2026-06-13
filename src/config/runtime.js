@@ -1,15 +1,28 @@
+import { Capacitor } from '@capacitor/core';
+
 const toBool = (value, fallback = false) => {
   if (typeof value === 'boolean') return value;
   if (typeof value !== 'string') return fallback;
   return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase());
 };
 
+const PRODUCTION_API_BASE = 'https://api.greffio.willentreprises.com';
+
+const isNativeCapacitorShell = () => {
+  try {
+    return Capacitor.isNativePlatform();
+  } catch (_error) {
+    return false;
+  }
+};
+
 const resolveApiBaseUrl = () => {
   if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
   if (typeof window !== 'undefined') {
     const { hostname, origin } = window.location;
+    if (isNativeCapacitorShell()) return PRODUCTION_API_BASE;
     if (hostname === 'greffio.willentreprises.com' || hostname === 'www.greffio.willentreprises.com') {
-      return 'https://api.greffio.willentreprises.com';
+      return PRODUCTION_API_BASE;
     }
     return origin;
   }
