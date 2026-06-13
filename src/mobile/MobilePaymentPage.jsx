@@ -61,7 +61,7 @@ export const MobilePaymentPage = () => {
     if (showB2BProviders) {
       return methods.filter((method) => ['gocardless-checkout', 'sepa-transfer', 'sepa-debit'].includes(method.id));
     }
-    return methods.filter((method) => ['google-pay', 'amazon-pay', 'cards'].includes(method.id));
+    return methods.filter((method) => ['google-pay', 'cards'].includes(method.id));
   }, [showB2BProviders]);
 
   useEffect(() => {
@@ -198,7 +198,7 @@ export const MobilePaymentPage = () => {
         Le statut est vérifié côté serveur avant confirmation du dossier.
         <div className="mt-3 flex items-center gap-2 text-xs">
           <LockKeyhole className="h-4 w-4 text-primary" />
-          {showB2BProviders ? 'Paiement professionnel SEPA / virement.' : 'Amazon Pay / Google Pay — chiffrement TLS.'}
+          {showB2BProviders ? 'Paiement professionnel SEPA / virement.' : 'Google Pay / carte bancaire — chiffrement TLS.'}
         </div>
       </section>
 

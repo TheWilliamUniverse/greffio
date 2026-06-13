@@ -10,15 +10,8 @@ import {
   WalletCards,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
-import { AmazonPayCheckoutPanel } from '@/components/payments/AmazonPayCheckoutPanel.jsx';
 import { GooglePayCheckoutPanel } from '@/components/payments/GooglePayCheckoutPanel.jsx';
 import { cn } from '@/lib/utils.js';
-
-const AmazonMark = () => (
-  <span className="inline-flex h-8 min-w-[88px] items-center justify-center rounded-lg bg-[#FF9900] px-2 text-[11px] font-extrabold tracking-wide text-[#111827]">
-    amazon pay
-  </span>
-);
 
 const GoogleMark = () => (
   <span className="inline-flex h-8 min-w-[72px] items-center justify-center rounded-lg bg-black px-2 text-[11px] font-bold text-white">
@@ -44,23 +37,15 @@ export const GreffioPaymentTerminal = ({
   cardButtonLabel = 'Payer par carte bancaire',
   className,
 }) => {
-  const [activeMethod, setActiveMethod] = useState('amazon-pay');
+  const [activeMethod, setActiveMethod] = useState('google-pay');
 
   const methods = useMemo(() => ([
-    {
-      id: 'amazon-pay',
-      title: 'Amazon Pay',
-      subtitle: 'Paiement express avec votre compte Amazon',
-      badge: 'Recommandé',
-      badgeTone: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-      mark: <AmazonMark />,
-    },
     {
       id: 'google-pay',
       title: 'Google Pay',
       subtitle: 'Cartes enregistrées dans Google Wallet',
-      badge: 'Express',
-      badgeTone: 'bg-sky-100 text-sky-800 border-sky-200',
+      badge: 'Recommandé',
+      badgeTone: 'bg-emerald-100 text-emerald-800 border-emerald-200',
       mark: <GoogleMark />,
     },
     {
@@ -99,7 +84,7 @@ export const GreffioPaymentTerminal = ({
                 Choisissez votre mode de règlement
               </h2>
               <p className="mt-2 max-w-lg text-sm leading-6 text-muted-foreground">
-                Un seul terminal, trois chemins. Cliquez sur un mode pour afficher le détail et finaliser le paiement.
+                Un seul terminal, deux chemins. Cliquez sur un mode pour afficher le détail et finaliser le paiement.
               </p>
             </div>
           </div>
@@ -154,19 +139,6 @@ export const GreffioPaymentTerminal = ({
                     className="overflow-hidden"
                   >
                     <div className="border-t border-[#eef3fb] px-4 pb-5 pt-4 sm:px-5">
-                      {method.id === 'amazon-pay' ? (
-                        <AmazonPayCheckoutPanel
-                          embedded
-                          active
-                          amountCents={amountCents}
-                          amountLabel={amountLabel}
-                          offerLabel={offerLabel}
-                          dossierId={dossierId}
-                          resourceOrderId={resourceOrderId}
-                          offerCode={offerCode}
-                        />
-                      ) : null}
-
                       {method.id === 'google-pay' ? (
                         <GooglePayCheckoutPanel
                           embedded

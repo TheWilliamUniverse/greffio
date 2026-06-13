@@ -4,6 +4,7 @@ export const GREFFIO_FOOTER_COLUMNS = [
     id: 'utilitaire',
     title: 'Utilitaire',
     links: [
+      { to: '/a-propos', label: 'À propos de Greffio' },
       { to: '/contact', label: 'Contact & support' },
       { to: '/tarifs', label: 'Tarifs & offres' },
       { to: '/app', label: 'Application mobile' },
@@ -57,7 +58,6 @@ export const GREFFIO_FOOTER_COLUMNS = [
 ];
 
 export const GREFFIO_FOOTER_PAYMENT_LABELS = [
-  'Amazon Pay',
   'Google Pay',
   'Visa · Mastercard',
   'Prélèvement SEPA · GoCardless (pro)',

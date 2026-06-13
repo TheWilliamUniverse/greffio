@@ -16,7 +16,7 @@ export const CUSTOMER_TYPES = Object.freeze({
  * - gocardless          : SEPA / virement, autorisé uniquement en B2B
  * - qonto               : rapprochement bancaire, jamais PSP B2C
  * - manual_bank_transfer: virement manuel B2B
- * - amazon_pay          : wallet Amazon Pay B2C
+ * - amazon_pay          : valeur historique en base uniquement (intégration retirée)
  * - stripe / payplug : providers futurs (non actifs)
  */
 export const PAYMENT_PROVIDERS = Object.freeze({
@@ -24,7 +24,6 @@ export const PAYMENT_PROVIDERS = Object.freeze({
   GOCARDLESS: 'gocardless',
   QONTO: 'qonto',
   MANUAL_BANK_TRANSFER: 'manual_bank_transfer',
-  AMAZON_PAY: 'amazon_pay',
   STRIPE: 'stripe',
   PAYPLUG: 'payplug',
 });

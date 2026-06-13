@@ -3,12 +3,6 @@ import { cn } from '@/lib/utils.js';
 
 const BRANDS = [
   {
-    id: 'amazonpay',
-    label: 'Amazon Pay',
-    className: 'bg-[#ff9900] text-[#111827]',
-    mark: 'amazon pay',
-  },
-  {
     id: 'googlepay',
     label: 'Google Pay',
     className: 'bg-[#000] text-white',

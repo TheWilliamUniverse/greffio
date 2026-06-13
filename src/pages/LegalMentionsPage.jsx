@@ -6,6 +6,7 @@ import { PublicPageLayout } from '@/components/layout/PublicPageLayout.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { runtimeConfig } from '@/config/runtime.js';
 import { PAYMENT_METHODS } from '@/config/businessCatalog.js';
+import { PublisherLegalBlock } from '@/components/legal/PublisherLegalBlock.jsx';
 import { PUBLISHER_LEGAL_NAME, PUBLISHER_RCS } from '@/config/publisher.js';
 
 const Section = ({ title, children }) => (
@@ -38,7 +39,7 @@ export const LegalMentionsPage = () => (
         {[
           { icon: Scale, title: 'Éditeur', text: `${PUBLISHER_LEGAL_NAME} · ${PUBLISHER_RCS}` },
           { icon: ShieldCheck, title: 'Marque', text: `Greffio est une marque déposée détenue par ${PUBLISHER_LEGAL_NAME}.` },
-          { icon: CreditCard, title: 'Paiements', text: 'Amazon Pay, Google Pay, carte bancaire et prélèvement SEPA professionnel.' },
+          { icon: CreditCard, title: 'Paiements', text: 'Google Pay, carte bancaire et prélèvement SEPA professionnel.' },
         ].map((item) => (
           <div key={item.title} className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
             <item.icon className="mb-4 h-6 w-6 text-primary" />
@@ -49,8 +50,7 @@ export const LegalMentionsPage = () => (
       </div>
 
       <Section title="Éditeur du service">
-        <p><strong className="text-foreground">{PUBLISHER_LEGAL_NAME}</strong>, immatriculée au RCS de Nice sous le numéro 102 230 414.</p>
-        <p>SIRET : 10223041400017 · TVA intracommunautaire : FR49102230414.</p>
+        <PublisherLegalBlock showDisclaimer={false} />
         <p>Greffio est une marque déposée et détenue par {PUBLISHER_LEGAL_NAME}. Toute reproduction non autorisée du nom, du logo, de l’identité visuelle ou des contenus Greffio est interdite.</p>
       </Section>
 
@@ -77,7 +77,7 @@ export const LegalMentionsPage = () => (
         <div className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
           <BadgeEuro className="mb-4 h-6 w-6 text-primary" />
           <h2 className="text-lg font-extrabold">Moyens de paiement</h2>
-          <p className="mt-3 text-sm leading-7 text-muted-foreground">Les paiements B2C peuvent être traités via Amazon Pay, Google Pay ou carte bancaire, avec confirmation serveur avant validation du dossier. Les paiements professionnels peuvent utiliser le prélèvement SEPA via GoCardless.</p>
+          <p className="mt-3 text-sm leading-7 text-muted-foreground">Les paiements B2C peuvent être traités via Google Pay ou carte bancaire, avec confirmation serveur avant validation du dossier. Les paiements professionnels peuvent utiliser le prélèvement SEPA via GoCardless.</p>
           <div className="mt-4 grid gap-2">
             {PAYMENT_METHODS.map((method) => (
               <div key={method.id} className="rounded-md bg-muted p-3 text-sm">

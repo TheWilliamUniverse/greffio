@@ -47,7 +47,7 @@ export const PaymentPage = () => {
     if (showB2BProviders) {
       return methods.filter((method) => ['gocardless-checkout', 'sepa-transfer', 'sepa-debit'].includes(method.id));
     }
-    return methods.filter((method) => ['google-pay', 'amazon-pay', 'cards'].includes(method.id));
+    return methods.filter((method) => ['google-pay', 'cards'].includes(method.id));
   }, [showB2BProviders]);
 
   const catalogService = resourceOrder?.serviceId
@@ -176,8 +176,8 @@ export const PaymentPage = () => {
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-white/92">
               {isResourceFlow
-                ? 'Paiement express par Amazon Pay, Google Pay ou carte, avec confirmation serveur. Dès validation, l’équipe Greffio traite votre commande et dépose le document dans votre espace.'
-                : 'Paiement sécurisé par Amazon Pay, Google Pay ou carte, avec vérification serveur avant validation du dossier.'}
+                ? 'Paiement express par Google Pay ou carte, avec confirmation serveur. Dès validation, l’équipe Greffio traite votre commande et dépose le document dans votre espace.'
+                : 'Paiement sécurisé par Google Pay ou carte bancaire, avec vérification serveur avant validation du dossier.'}
             </p>
           </div>
 
@@ -224,7 +224,7 @@ export const PaymentPage = () => {
 
               <section className="grid gap-3 md:grid-cols-3">
                 {[
-                  { title: '1. Paiement express', text: 'Amazon Pay, Google Pay ou carte bancaire — montant TTC, sans frais cachés.' },
+                  { title: '1. Paiement express', text: 'Google Pay ou carte bancaire — montant TTC, sans frais cachés.' },
                   { title: '2. Traitement Greffio', text: 'Notre équipe lance la demande auprès du greffe ou de l’organisme concerné.' },
                   { title: '3. Document dans votre espace', text: 'Vous le retrouvez dans « Documents », avec une notification par email.' },
                 ].map((step) => (
@@ -345,7 +345,7 @@ export const PaymentPage = () => {
                 <LockKeyhole className="mt-0.5 h-4 w-4 text-primary" />
                 <span>
                   {isResourceFlow || !showB2BProviders
-                    ? 'Paiement Amazon Pay / Google Pay — chiffrement TLS et confirmation serveur.'
+                    ? 'Paiement Google Pay / carte — chiffrement TLS et confirmation serveur.'
                     : 'Paiement sécurisé professionnel (SEPA / virement).'}
                 </span>
               </div>

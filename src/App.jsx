@@ -53,6 +53,7 @@ import { ResourceGuidePage } from '@/pages/ResourceGuidePage.jsx';
 import { LegalFormComparatorPage } from '@/pages/LegalFormComparatorPage.jsx';
 import { AppInstallPage } from '@/pages/AppInstallPage.jsx';
 import { ContactPage } from '@/pages/ContactPage.jsx';
+import { AboutPage } from '@/pages/AboutPage.jsx';
 import { GuidePage } from '@/pages/GuidePage.jsx';
 import { MandatePage } from '@/pages/MandatePage.jsx';
 import { PaymentVerificationPage } from '@/pages/PaymentVerificationPage.jsx';
@@ -111,7 +112,7 @@ const NotFound = () => <NotFoundPage />;
 
 const Layout = ({ children }) => {
   const location = useLocation();
-  const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/services', '/paiement', '/ressources', '/app', '/app/welcome', '/app/home', '/guide', '/procuration', '/contact', '/credentials-unlock', '/login', '/password-reset', '/auth/app-bridge', '/tarifs', '/creation-entreprise', '/modification-entreprise', '/annonce-legale', '/guichet-unique-inpi', '/kbis', '/guides', '/glossaire', '/faq'];
+  const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/services', '/paiement', '/ressources', '/app', '/app/welcome', '/app/home', '/guide', '/procuration', '/contact', '/a-propos', '/credentials-unlock', '/login', '/password-reset', '/auth/app-bridge', '/tarifs', '/creation-entreprise', '/modification-entreprise', '/annonce-legale', '/guichet-unique-inpi', '/kbis', '/guides', '/glossaire', '/faq'];
   const mobileWebShellActive = isMobileBrowserViewport()
     && shouldUseMobileWebShell(location.pathname);
   const shouldHideHeader = hideHeaderRoutes.some((route) => location.pathname === route || location.pathname.startsWith('/service/'))
@@ -192,6 +193,7 @@ function AppRoutes() {
             <Route path="/app/welcome" element={<NativeAppWelcomePage />} />
             <Route path="/app/home" element={<NativeAppHomePage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/a-propos" element={<AboutPage />} />
             <Route path="/guide" element={<GuidePage />} />
             <Route path="/procuration" element={<MandatePage />} />
             <Route path="/ops" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}>{withSuspense(LazyOpsShell, 'Chargement ops…')}</ProtectedRoute>}>
@@ -210,7 +212,6 @@ function AppRoutes() {
             <Route path="/ops-legacy" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><Navigate to="/ops/cockpit" replace /></ProtectedRoute>} />
             <Route path="/ops-observability" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}>{withSuspense(LazyOpsLookupObservabilityPage, 'Chargement observabilité…')}</ProtectedRoute>} />
             <Route path="/paiement/verification" element={<PaymentVerificationPage />} />
-            <Route path="/paiement/amazon-pay/retour" element={<PaymentVerificationPage />} />
 
             <Route path="/dashboard" element={<ProtectedRoute><DashboardEntry /></ProtectedRoute>} />
             <Route path="/mobile/search" element={<ProtectedRoute><MobileSearchPage /></ProtectedRoute>} />

@@ -58,7 +58,7 @@ export const GooglePayCheckoutPanel = ({
       if (err?.statusCode === 'CANCELED') return;
       const code = String(err?.statusCode || err?.message || '');
       if (code.includes('OR_BIBED')) {
-        toast.error('Google Pay n’est pas encore configuré pour encaisser en live. Utilisez Amazon Pay ou la carte.');
+        toast.error('Google Pay n’est pas encore configuré pour encaisser en live. Utilisez la carte bancaire.');
       } else {
         toast.error(err?.message || 'Le paiement Google Pay a échoué.');
       }
@@ -147,7 +147,7 @@ export const GooglePayCheckoutPanel = ({
 
       {ready && !canPay && !error ? (
         <p className="rounded-xl border border-border bg-white px-4 py-3 text-sm text-muted-foreground">
-          Google Pay n&apos;est pas disponible sur cet appareil. Utilisez Amazon Pay ou la carte bancaire.
+          Google Pay n&apos;est pas disponible sur cet appareil. Utilisez la carte bancaire.
         </p>
       ) : null}
     </>

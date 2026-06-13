@@ -101,13 +101,6 @@ export const PAYMENT_METHODS = [
     recommended: true,
   },
   {
-    id: 'amazon-pay',
-    name: 'Amazon Pay',
-    type: 'Wallet sécurisé',
-    description: 'Payez avec votre compte Amazon, session signée par Greffio et retour sécurisé dans votre espace.',
-    recommended: true,
-  },
-  {
     id: 'cards',
     name: 'Visa · Mastercard',
     type: 'Carte bancaire',

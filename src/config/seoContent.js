@@ -299,7 +299,7 @@ export const SEO_FAQ_ITEMS = [
   { question: 'Greffio est-il un service officiel de l\'État ?', answer: 'Non. Greffio est un service privé d\'accompagnement aux formalités administratives.' },
   { question: 'Greffio crée-t-il mon entreprise à ma place ?', answer: 'Greffio aide à préparer, structurer et suivre le dossier. L\'immatriculation est prononcée par le greffe compétent.' },
   { question: 'Puis-je reprendre mon dossier plus tard ?', answer: 'Oui. Votre parcours est sauvegardé dans votre espace client.' },
-  { question: 'Quels moyens de paiement acceptez-vous ?', answer: 'Amazon Pay, carte bancaire, Google Pay et prélèvement SEPA selon les parcours.' },
+  { question: 'Quels moyens de paiement acceptez-vous ?', answer: 'Carte bancaire, Google Pay et prélèvement SEPA selon les parcours.' },
   { question: 'Combien de temps pour une création ?', answer: 'Le délai dépend de la complétude du dossier et des délais d\'instruction du greffe.' },
   { question: 'Proposez-vous un conseil juridique personnalisé ?', answer: 'Greffio fournit un accompagnement administratif structuré, pas un conseil juridique au sens strict.' },
 ];
@@ -335,6 +335,7 @@ export const SEO_SITEMAP_PATHS = [
   '/tarifs',
   '/services',
   '/contact',
+  '/a-propos',
   '/guide',
   '/app',
   '/mentions-legales',
