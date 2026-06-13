@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
@@ -42,17 +42,19 @@ export const LoginPage = () => {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [fieldErrors, setFieldErrors] = useState({ email: '', password: '' });
   const [captcha, setCaptcha] = useState({ provider: 'turnstile', turnstileToken: '', recaptchaToken: '' });
+  const mfaAutoSubmitLockRef = useRef(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const mobileAuth = isCapacitorNative() || isMobileBrowserViewport();
+  const nativeApp = isCapacitorNative();
+  const redirectTarget = location.state?.from?.pathname || '/dashboard';
   const { login, completeMfaLogin } = useAuth();
   const security = useSecurityConfig();
   const hasCaptchaToken = Boolean(captcha.turnstileToken || captcha.recaptchaToken);
-  const showLoginChallenge = security.turnstileOnLoginRisky
+  const showLoginChallenge = !nativeApp
+    && security.turnstileOnLoginRisky
     && failedAttempts >= 2
     && security.captchaProvider !== 'none';
-  const navigate = useNavigate();
-  const location = useLocation();
-  const redirectTarget = location.state?.from?.pathname || '/dashboard';
-  const mobileAuth = isCapacitorNative() || isMobileBrowserViewport();
-  const nativeApp = isCapacitorNative();
   const authInputClass = getAuthInputClass(mobileAuth);
 
   const validateCredentials = () => {
@@ -65,6 +67,8 @@ export const LoginPage = () => {
     }
     if (!password) {
       errors.password = 'Indiquez votre mot de passe.';
+    } else if (password.length < 8) {
+      errors.password = 'Le mot de passe doit contenir au moins 8 caractères.';
     }
     setFieldErrors(errors);
     return !errors.email && !errors.password;
@@ -189,9 +193,37 @@ export const LoginPage = () => {
     ? Boolean(recoveryCode.trim())
     : otpCode.length === 6;
 
+  useEffect(() => {
+    if (!nativeApp || step !== 'mfa' || isLoading || mfaAutoSubmitLockRef.current) return undefined;
+    if (mfaMode === MFA_MODES.recovery) return undefined;
+    if (mfaMode === MFA_MODES.email && !emailCodeSent) return undefined;
+    if (otpCode.length !== 6) {
+      mfaAutoSubmitLockRef.current = false;
+      return undefined;
+    }
+    mfaAutoSubmitLockRef.current = true;
+    const timer = window.setTimeout(() => {
+      void handleMfaSubmit({ preventDefault: () => {} }).finally(() => {
+        mfaAutoSubmitLockRef.current = false;
+      });
+    }, 180);
+    return () => window.clearTimeout(timer);
+  }, [nativeApp, step, isLoading, mfaMode, emailCodeSent, otpCode]);
+
   return (
-    <div className={`grid min-h-[calc(100vh-4rem)] bg-background ${nativeApp ? '' : 'lg:grid-cols-[1.05fr_0.95fr]'}`}>
-      {!nativeApp ? (
+    <div className={`grid bg-background ${nativeApp ? 'min-h-[100dvh] grid-rows-[auto_1fr]' : 'min-h-[calc(100vh-4rem)] lg:grid-cols-[1.05fr_0.95fr]'}`}>
+      {nativeApp ? (
+        <section className="bg-[hsl(var(--greffio-blue))] px-5 pb-7 pt-[calc(env(safe-area-inset-top)+1.25rem)] text-white">
+          <GreffioLogo variant="inverse" to="/app/home" />
+          <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-bold">
+            <ShieldCheck className="h-4 w-4" />
+            Accès sécurisé client
+          </p>
+          <h1 className="mt-4 text-2xl font-extrabold leading-tight">
+            Retrouvez vos dossiers, vos messages et vos prochaines actions.
+          </h1>
+        </section>
+      ) : (
       <section className="hidden bg-[hsl(var(--greffio-blue))] p-10 text-white lg:flex lg:flex-col lg:justify-between">
         <GreffioLogo variant="inverse" to="/" />
         <div className="max-w-xl">
@@ -208,20 +240,22 @@ export const LoginPage = () => {
         </div>
         <p className="text-sm text-white/60"><BrandName /> est une marque déposée de {PUBLISHER_LEGAL_NAME}.</p>
       </section>
-      ) : null}
+      )}
 
-      <section className={`flex items-center justify-center px-4 py-12 sm:px-6 ${nativeApp ? 'min-h-[100dvh] pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom))]' : 'lg:px-8'}`}>
+      <section className={`flex items-center justify-center px-4 sm:px-6 ${nativeApp ? 'py-8 pb-[calc(env(safe-area-inset-bottom)+1rem)]' : 'py-12 lg:px-8'}`}>
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
-          className="w-full max-w-md rounded-md border border-border bg-white p-8 shadow-elevation-md"
+          className={`w-full max-w-md ${nativeApp ? 'rounded-2xl border border-border bg-white p-6 shadow-elevation-md' : 'rounded-md border border-border bg-white p-8 shadow-elevation-md'}`}
         >
           {step === 'credentials' ? (
             <>
+              {!nativeApp ? (
               <div className="mb-6 lg:hidden">
                 <GreffioLogo variant="full" to="/" />
               </div>
+              ) : null}
               <div>
                 <LockKeyhole className="mb-5 h-9 w-9 text-primary" />
                 <h2 className="text-3xl font-extrabold">Connexion</h2>
@@ -363,10 +397,20 @@ export const LoginPage = () => {
                   ) : null}
                 </div>
 
-                <Button type="submit" className="h-11 w-full justify-between" disabled={isLoading || !canSubmitMfa || (mfaMode === MFA_MODES.email && !emailCodeSent)}>
-                  {isLoading ? 'Vérification...' : 'Valider et accéder'}
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
+                {(!nativeApp || mfaMode === MFA_MODES.recovery) ? (
+                  <Button
+                    type="submit"
+                    className="h-11 w-full justify-between"
+                    disabled={isLoading || !canSubmitMfa || (mfaMode === MFA_MODES.email && !emailCodeSent)}
+                  >
+                    {isLoading ? 'Vérification...' : 'Valider et accéder'}
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <p className="text-center text-xs text-muted-foreground">
+                    Le code est validé automatiquement une fois les 6 chiffres saisis.
+                  </p>
+                )}
 
                 <Button
                   type="button"

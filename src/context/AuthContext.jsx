@@ -23,12 +23,11 @@ import { clearLoginAlertsConfiguredLocal } from '@/utils/loginAlertsStorage.js';
 import { rememberLoginAlertsChoice } from '@/utils/userProfile.js';
 import { disableBiometricUnlock, syncBiometricRefreshToken } from '@/utils/biometricAuth.js';
 import { isCapacitorNative } from '@/utils/platform.js';
+import { markFreshNativePasswordLogin } from '@/utils/nativeAppStorage.js';
 import { initializeClientDataCache, purgeEphemeralClientData } from '@/utils/clientDataCache.js';
 import { setActiveSessionUserId } from '@/utils/sessionStore.js';
 import { setApiUnauthorizedHandler } from '@/api/client.js';
 import { clearAuthenticatedQueries } from '@/lib/queryClient.js';
-import { AppBootSplash } from '@/components/system/AppBootSplash.jsx';
-
 export const AuthContext = createContext(null);
 
 const makeSession = (email, provider = 'email') => ({
@@ -79,7 +78,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const payload = await withTransientRetry(
           () => refreshAccessToken({ refreshToken }),
-          { retries: 3, delays: [500, 1500, 3000] },
+          { retries: 1, delays: [600] },
         );
         if (payload?.accessToken) {
           saveToken(payload.accessToken);
@@ -90,7 +89,7 @@ export const AuthProvider = ({ children }) => {
         try {
           const profilePayload = await withTransientRetry(
             () => fetchUserProfile(),
-            { retries: 2, delays: [600, 1800] },
+            { retries: 1, delays: [600] },
           );
           const user = profilePayload?.user || storedUser;
           setActiveSessionUserId(user?.id || null);
@@ -167,6 +166,7 @@ export const AuthProvider = ({ children }) => {
       }
       toast.success('Bienvenue dans votre espace Greffio');
       if (isCapacitorNative()) {
+        markFreshNativePasswordLogin();
         try {
           await syncBiometricRefreshToken({
             email: user?.email || email,
@@ -221,6 +221,7 @@ export const AuthProvider = ({ children }) => {
       }
       toast.success('Authentification multifacteur validée');
       if (isCapacitorNative()) {
+        markFreshNativePasswordLogin();
         try {
           await syncBiometricRefreshToken({
             email: user?.email,
@@ -338,7 +339,7 @@ export const AuthProvider = ({ children }) => {
         updateProfile,
       }}
     >
-      {loading ? <AppBootSplash /> : children}
+      {children}
     </AuthContext.Provider>
   );
 };
