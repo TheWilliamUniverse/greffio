@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { MobileMenuButton } from '@/mobile/MobileAuthenticatedNav.jsx';
 import { MobileCockpitHeaderActions } from '@/mobile/ui/MobileCockpitHeaderActions.jsx';
+import { isCapacitorNative } from '@/utils/platform.js';
 
 const headerRowClass = 'mx-auto flex min-h-[4.75rem] max-w-lg items-center gap-2 px-4 py-2.5';
 
 export const MobileWebHeader = ({ title, onMenuClick }) => {
   const isAuthenticatedCockpit = Boolean(onMenuClick);
+  const homePath = isCapacitorNative() ? '/app/home' : '/';
 
   return (
     <header className="border-b border-border/70 pt-[env(safe-area-inset-top)]">
@@ -26,7 +28,7 @@ export const MobileWebHeader = ({ title, onMenuClick }) => {
           </>
         ) : (
           <>
-            <Link to="/" className="flex min-w-0 flex-1 items-center gap-2" aria-label="Accueil Greffio">
+            <Link to={homePath} className="flex min-w-0 flex-1 items-center gap-2" aria-label="Accueil Greffio">
               <GreffioLogo className="text-2xl md:text-3xl" />
             </Link>
             {title ? (

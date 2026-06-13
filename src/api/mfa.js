@@ -1,8 +1,12 @@
 import { runtimeConfig } from '@/config/runtime.js';
 import { apiGet, apiPost, parseApiResponse } from '@/api/client.js';
 import { mfaDeviceAuthHeaders } from '@/utils/mfaDevice.js';
+import { nativeClientAuthHeaders } from '@/utils/nativeClient.js';
 
-const mfaHeaders = () => mfaDeviceAuthHeaders();
+const mfaHeaders = () => ({
+  ...nativeClientAuthHeaders(),
+  ...mfaDeviceAuthHeaders(),
+});
 
 export const fetchMfaStatus = async () => apiGet('/api/auth/mfa/status', { headers: mfaHeaders() });
 
@@ -17,7 +21,10 @@ export const regenerateRecoveryCodes = async ({ password, code }) => apiPost('/a
 export const sendMfaEmailCode = async ({ mfaToken }) => {
   const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/auth/mfa/email/send`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...mfaHeaders(),
+    },
     body: JSON.stringify({ mfaToken }),
   });
   return parseApiResponse(response);
@@ -30,7 +37,10 @@ export const trustMfaDevice = async () => apiPost('/api/auth/mfa/trust-device', 
 export const verifyMfaLogin = async ({ mfaToken, code, recoveryCode, method = 'totp' }) => {
   const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/auth/mfa/verify-login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...mfaHeaders(),
+    },
     body: JSON.stringify({ mfaToken, code, recoveryCode, method }),
   });
   return parseApiResponse(response);

@@ -7,9 +7,13 @@ export const nativeClientAuthHeaders = () => {
   const headers = {
     'X-Greffio-Client': `greffio-native-${platform}`,
   };
-  const secret = import.meta.env.VITE_GREFFIO_NATIVE_CLIENT_SECRET;
+  const secret = String(import.meta.env.VITE_GREFFIO_NATIVE_CLIENT_SECRET || '').trim();
   if (secret) {
     headers['X-Greffio-Client-Token'] = secret;
   }
   return headers;
 };
+
+export const isNativeClientSecretConfigured = () => Boolean(
+  String(import.meta.env.VITE_GREFFIO_NATIVE_CLIENT_SECRET || '').trim(),
+);

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { getBiometryLabel } from '@/utils/biometricAuth.js';
 
-export const BiometricUnlockScreen = ({ onUnlock, error, user }) => {
+export const BiometricUnlockScreen = ({ onUnlock, onUsePassword, error, user }) => {
   const [label, setLabel] = useState('Biométrie');
 
   useEffect(() => {
@@ -30,6 +30,11 @@ export const BiometricUnlockScreen = ({ onUnlock, error, user }) => {
           <Fingerprint className="h-4 w-4" />
           Déverrouiller
         </Button>
+        {onUsePassword ? (
+          <Button type="button" variant="ghost" className="mt-2 w-full rounded-2xl" onClick={() => void onUsePassword?.()}>
+            Se connecter avec mon mot de passe
+          </Button>
+        ) : null}
       </div>
     </div>
   );

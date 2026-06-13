@@ -47,6 +47,7 @@ import { BirthDateMinorEncouragement } from '@/components/BirthDateMinorEncourag
 import { validateDirectorEligibility } from '@/config/minorAssociateRules.js';
 import { syncDirigeantFromAssociates } from '@/utils/officerFromAssociates.js';
 import { useAuth } from '@/hooks/useAuth.js';
+import { isCapacitorNative } from '@/utils/platform.js';
 import { fetchUserProfile } from '@/api/profile.js';
 import { contactDetailsFromUser } from '@/utils/userProfile.js';
 import { getIntelligentPrefill } from '@/api/intelligentIntake.js';
@@ -138,6 +139,13 @@ export const QuestionnairePage = () => {
   const [demarcheCategory, setDemarcheCategory] = useState('');
   const [demarcheCategoryConfirmed, setDemarcheCategoryConfirmed] = useState(false);
   const [touchedFields, setTouchedFields] = useState({});
+  const pendingTapAdvanceRef = useRef(null);
+
+  const isNativeTapToAdvanceField = (field) => (
+    isCapacitorNative()
+    && field
+    && ((field.type === 'select' && field.key !== 'typeFormalite') || field.type === 'checkbox')
+  );
 
   const step = QUESTIONNAIRE_FLOW[stepIndex];
   const visibleStepFields = useMemo(
@@ -565,6 +573,21 @@ export const QuestionnairePage = () => {
     wizardTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [stepIndex, safeFieldIndex]);
 
+  useEffect(() => {
+    const pendingKey = pendingTapAdvanceRef.current;
+    if (!pendingKey || !isCapacitorNative()) return undefined;
+    if (activeField?.key !== pendingKey) return undefined;
+    if (!canAdvanceCurrentField) {
+      pendingTapAdvanceRef.current = null;
+      return undefined;
+    }
+    pendingTapAdvanceRef.current = null;
+    const timer = window.setTimeout(() => {
+      void goNext();
+    }, 180);
+    return () => window.clearTimeout(timer);
+  }, [formData, activeField?.key, canAdvanceCurrentField]);
+
   const updateField = (field, value) => {
     if ((field.key === 'companySiren' || field.key === 'existingBusinessSiren') && String(value || '').trim() !== String(formData[field.key] || '').trim()) {
       setFoundCompany(null);
@@ -582,6 +605,16 @@ export const QuestionnairePage = () => {
       }
       return next;
     });
+  };
+
+  const requestNativeTapAdvance = (fieldKey) => {
+    if (!isCapacitorNative()) return;
+    pendingTapAdvanceRef.current = fieldKey;
+  };
+
+  const handleTapFieldUpdate = (field, value) => {
+    updateField(field, value);
+    requestNativeTapAdvance(field.key);
   };
 
   const goNext = async () => {
@@ -786,7 +819,7 @@ export const QuestionnairePage = () => {
               <SegmentedChoice
                 options={options}
                 value={formData[field.key]}
-                onChange={(nextValue) => updateField(field, nextValue)}
+                onChange={(nextValue) => handleTapFieldUpdate(field, nextValue)}
               />
             ) : normalizedOptions.map((option) => (
               <ChoiceCard
@@ -794,7 +827,7 @@ export const QuestionnairePage = () => {
                 compact
                 selected={String(formData[field.key] || '') === String(option.value)}
                 title={option.label}
-                onClick={() => updateField(field, option.value)}
+                onClick={() => handleTapFieldUpdate(field, option.value)}
               />
             ))}
           </div>
@@ -808,7 +841,7 @@ export const QuestionnairePage = () => {
           <input
             type="checkbox"
             checked={Boolean(formData[field.key])}
-            onChange={(event) => updateField(field, event.target.checked)}
+            onChange={(event) => handleTapFieldUpdate(field, event.target.checked)}
             className="mt-1"
           />
           <span className="text-sm leading-6 text-muted-foreground">{field.label}</span>
@@ -984,6 +1017,7 @@ export const QuestionnairePage = () => {
         canGoBack={stepIndex > 0 || safeFieldIndex > 0}
         canGoNext={canContinue}
         continueLabel={continueLabel}
+        hideContinueButton={isNativeTapToAdvanceField(activeField)}
       >
         {stepError ? (
           <QuestionnaireNotice variant="error" title="Enregistrement">
@@ -1059,9 +1093,14 @@ export const QuestionnairePage = () => {
       <div className="mt-4 rounded-md border border-border bg-white p-4 text-xs text-muted-foreground">
         Contact Greffio: {runtimeConfig.supportPhone} — {runtimeConfig.supportEmail}
       </div>
-      {!canContinue && !stepError ? (
+      {!canContinue && !stepError && !isNativeTapToAdvanceField(activeField) ? (
         <QuestionnaireNotice variant="vigilance" title="Pour continuer" className="mt-3">
           Répondez à la question ci-dessus, puis cliquez sur « {continueLabel} ».
+        </QuestionnaireNotice>
+      ) : null}
+      {!canContinue && !stepError && isNativeTapToAdvanceField(activeField) ? (
+        <QuestionnaireNotice variant="vigilance" title="Pour continuer" className="mt-3">
+          Touchez votre réponse pour passer à la suite.
         </QuestionnaireNotice>
       ) : null}
       <div className="mt-3 rounded-md border border-border bg-muted p-3 text-xs text-muted-foreground">

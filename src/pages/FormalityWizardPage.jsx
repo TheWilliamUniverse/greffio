@@ -257,6 +257,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
   const wizardNavRef = useRef(null);
   const keyboardOffset = useMobileKeyboardOffset();
   const questionAnimationTimersRef = useRef([]);
+  const wizardNextRef = useRef(() => {});
   const draft = getProjectDraft();
   const requestedType = String(searchParams.get('type') || 'statuts').toLowerCase();
   const formalityPreset = resolveSimulatorFormFromQuery(searchParams.get('formality'));
@@ -526,6 +527,9 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     update('journey', journeyId);
     setJourneyChosen(true);
     setJourneyStepError('');
+    if (isCapacitorNative()) {
+      window.setTimeout(() => wizardNextRef.current(), 220);
+    }
   };
 
   const updateAnswer = (key, value) => {
@@ -554,6 +558,15 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
       return;
     }
     setActiveQuestionIndex((current) => Math.min(flattenedQuestions.length - 1, current + 1));
+  };
+
+  const handleSelectQuestionAnswer = (key, value) => {
+    updateAnswer(key, value);
+    if (!isCapacitorNative() || !String(value || '').trim() || questionExitPhase) return;
+    window.setTimeout(() => {
+      if (isLastQuestion) completeLastQuestion();
+      else advanceActiveQuestion();
+    }, 220);
   };
 
   const completeLastQuestion = () => {
@@ -798,6 +811,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     }
     setStep((value) => value + 1);
   };
+  wizardNextRef.current = next;
 
   const previous = () => {
     if (showOffers) {
@@ -893,6 +907,10 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
   const mobileActionBarPosition = isCapacitorNative()
     ? 'bottom-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom))]'
     : 'bottom-[calc(var(--bottom-nav-height-web)+env(safe-area-inset-bottom))]';
+  const nativeTapAdvanceWizard = isCapacitorNative() && (
+    step === 0
+    || (step === 2 && step2Phase === 'questionnaire' && activeQuestion?.type === 'select' && !questionnaireFinished && !questionExitPhase)
+  );
 
   return (
     <div className={cn('min-h-screen w-full min-w-0 max-w-[100vw] overflow-x-hidden', isMobilePresentation ? 'bg-[var(--we-bg)]' : 'bg-[var(--we-bg)]')}>
@@ -990,7 +1008,9 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                         Greffio adapte automatiquement les pièces, les statuts, les relances et les offres selon votre démarche.
                       </p>
                       <p className={cn('font-medium text-primary/90', isMobilePresentation ? 'mt-2 text-xs' : 'mt-3 text-sm')}>
-                        Sélectionnez une démarche pour continuer.
+                        {isCapacitorNative()
+                          ? 'Touchez une démarche pour continuer.'
+                          : 'Sélectionnez une démarche pour continuer.'}
                       </p>
                     </div>
                     <div
@@ -1540,7 +1560,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                                       value={answers[activeQuestion.key] || ''}
                                       disabled={Boolean(questionExitPhase)}
                                       options={activeQuestion.options}
-                                      onChange={(event) => updateAnswer(activeQuestion.key, event.target.value)}
+                                      onChange={(event) => handleSelectQuestionAnswer(activeQuestion.key, event.target.value)}
                                     />
                                   ) : activeQuestion.type === 'textarea' ? (
                                     <textarea
@@ -1761,7 +1781,10 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                   || (step === 2 && step2Phase === 'questionnaire' && Boolean(questionExitPhase) && questionExitPhase !== 'done')
                   || (step === 2 && step2Phase === 'questionnaire' && !questionnaireFinished && !questionExitPhase && !canAdvanceActiveQuestion())
                 }
-                showContinue={!(step === 1 && (projectSubStep === 2 || projectSubStep === 3))}
+                showContinue={
+                  !nativeTapAdvanceWizard
+                  && !(step === 1 && (projectSubStep === 2 || projectSubStep === 3))
+                }
                 continueLabel={
                   step === steps.length - 1
                     ? 'Voir les offres'

@@ -18,6 +18,7 @@ export const StepLayout = ({
   canGoNext,
   continueLabel = 'Continuer',
   onEnterNext,
+  hideContinueButton = false,
   children,
 }) => {
   const nativeApp = isCapacitorNative();
@@ -73,7 +74,9 @@ export const StepLayout = ({
 
     <div className={cn(actionBarClass, 'flex flex-wrap items-center justify-between gap-3')} style={stickyBottomStyle}>
       <QuestionBackButton type="button" onClick={onBack} disabled={!canGoBack} />
-      <QuestionContinueButton type="button" label={continueLabel} onClick={onNext} disabled={!canGoNext} />
+      {!hideContinueButton ? (
+        <QuestionContinueButton type="button" label={continueLabel} onClick={onNext} disabled={!canGoNext} />
+      ) : null}
     </div>
   </section>
   );

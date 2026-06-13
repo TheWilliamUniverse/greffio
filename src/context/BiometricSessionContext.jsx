@@ -10,6 +10,10 @@ import {
   isBiometricUnlockEnabled,
   unlockWithBiometric,
 } from '@/utils/biometricAuth.js';
+import {
+  clearFreshNativePasswordLogin,
+  hasFreshNativePasswordLogin,
+} from '@/utils/nativeAppStorage.js';
 import { isCapacitorNative } from '@/utils/platform.js';
 import { BiometricUnlockScreen } from '@/mobile/BiometricUnlockScreen.jsx';
 
@@ -55,12 +59,9 @@ export const BiometricSessionProvider = ({ children }) => {
         setError('Mise à jour serveur en cours. Réessayez dans quelques instants.');
         return;
       }
-      setError('Déverrouillage impossible. Connectez-vous avec votre mot de passe.');
-      await disableBiometricUnlock();
-      logout();
-      navigate('/login', { replace: true });
+      setError('Déverrouillage impossible. Réessayez ou reconnectez-vous avec votre mot de passe.');
     }
-  }, [logout, navigate]);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -73,6 +74,14 @@ export const BiometricSessionProvider = ({ children }) => {
         return;
       }
       if (!isAuthenticated) {
+        if (mounted) {
+          setUnlocked(true);
+          setChecking(false);
+        }
+        return;
+      }
+      if (hasFreshNativePasswordLogin()) {
+        clearFreshNativePasswordLogin();
         if (mounted) {
           setUnlocked(true);
           setChecking(false);
@@ -120,17 +129,22 @@ export const BiometricSessionProvider = ({ children }) => {
   const showGate = isCapacitorNative()
     && isAuthenticated
     && !checking
-    && !unlocked;
-
-  useEffect(() => {
-    if (!showGate) return;
-    void performUnlock();
-  }, [showGate, performUnlock]);
+    && !unlocked
+    && !hasFreshNativePasswordLogin();
 
   return (
     <BiometricSessionContext.Provider value={value}>
       {showGate ? (
-        <BiometricUnlockScreen onUnlock={() => void performUnlock()} error={error} user={currentUser} />
+        <BiometricUnlockScreen
+          onUnlock={() => void performUnlock()}
+          onUsePassword={async () => {
+            await disableBiometricUnlock();
+            await logout();
+            navigate('/login', { replace: true });
+          }}
+          error={error}
+          user={currentUser}
+        />
       ) : (
         children
       )}

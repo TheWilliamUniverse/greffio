@@ -1,4 +1,4 @@
-import { listDossiers } from '@/api/dossiers.js';
+import { apiGet } from '@/api/client.js';
 import { resolveDossierContinueUrl } from '@/utils/dossierContinueUrl.js';
 
 const TERMINAL_STATUSES = new Set(['completed', 'cancelled', 'archived', 'closed']);
@@ -16,7 +16,7 @@ const pickPrimaryDossier = (dossiers = []) => {
 /** Prochaine action métier après connexion ou cold start natif. */
 export const resolveNativePostLoginPath = async () => {
   try {
-    const payload = await listDossiers();
+    const payload = await apiGet('/api/dossiers', { retryOnUnauthorized: false });
     const primary = pickPrimaryDossier(payload?.dossiers || []);
     if (!primary?.id) return '/dashboard';
     return resolveDossierContinueUrl(primary);

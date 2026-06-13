@@ -34,16 +34,16 @@ const parseChangelog = (value) => {
     .filter(Boolean);
 };
 
-const DEFAULT_LATEST_VERSION_CODE = 261510010;
+const DEFAULT_LATEST_VERSION_CODE = 261510012;
 const DEFAULT_MIN_VERSION_CODE = 261422041;
-const DEFAULT_LATEST_VERSION_NAME = '1.2.11';
+const DEFAULT_LATEST_VERSION_NAME = '1.2.13';
 
 const DEFAULT_CHANGELOG = [
-  'Accueil app natif au 1er lancement — plus de landing marketing par défaut',
-  'Reprise automatique du dossier actif après connexion ou ouverture',
-  'Connexion native optimisée, biométrie et notifications séquencées',
-  'Coachmarks navigation + raccourcis Android (formalité, dossiers)',
-  'Notifications push ouvrent directement la bonne action',
+  'Correction connexion native (écran login plus réactif)',
+  'Tarifs et services mobile refondus (style Qonto/Legalstart)',
+  'Signature électronique renforcée avec preuve et certificat',
+  'Parcours signature public clarifié (OTP si activé côté serveur)',
+  'Stabilité générale et corrections diverses',
 ];
 
 export const getAppVersionConfig = () => ({
