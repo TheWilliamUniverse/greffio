@@ -29,3 +29,7 @@ cd android && ./gradlew.bat bundleRelease
 ## AAB
 
 `releases/android/greffio-1.2.11-261510010.aab`
+
+- **SHA256** : `6CB27863A7EC6F0705844430789AD54FDA06A65CBC138AAA37D26F9D8D27091E`
+- **Taille** : 10 002 216 octets
+- **Build** : 13 juin 2026

@@ -86,6 +86,27 @@
       "builtAt": "2026-06-08",
       "notesFile": "../MOBILE_RELEASE_1.2.9.md",
       "archivedAt": "2026-06-08"
+    },
+    {
+      "versionName": "1.2.10",
+      "versionCode": 261510009,
+      "artifact": "greffio-1.2.10-261510009.aab",
+      "sha256": null,
+      "sizeBytes": 10121410,
+      "builtAt": "2026-06-13",
+      "notesFile": "../MOBILE_RELEASE_1.2.10.md",
+      "archivedAt": "2026-06-13"
+    },
+    {
+      "versionName": "1.2.11",
+      "versionCode": 261510010,
+      "artifact": "greffio-1.2.11-261510010.aab",
+      "sha256": "6CB27863A7EC6F0705844430789AD54FDA06A65CBC138AAA37D26F9D8D27091E",
+      "sizeBytes": 10002216,
+      "builtAt": "2026-06-13",
+      "gitCommit": "910e759",
+      "notesFile": "../MOBILE_RELEASE_1.2.11.md",
+      "archivedAt": "2026-06-13"
     }
   ],
   "package": "com.greffio.app"
