@@ -19,9 +19,13 @@ export const GreffioLogo = ({ variant = 'full', className = '', to }) => {
       aria-hidden={Boolean(to)}
     >
       {isIconOnly ? (
-        <span className="logo-sheen notranslate inline-flex h-11 w-11 items-center justify-center rounded-md bg-[hsl(var(--greffio-blue))] text-xl font-extrabold text-white shadow-elevation-sm" translate="no" lang="fr">
-          G
-        </span>
+        <img
+          src="/icons/greffio-icon.svg"
+          alt=""
+          className={cn('h-11 w-11 rounded-md shadow-elevation-sm', className)}
+          width={44}
+          height={44}
+        />
       ) : (
         <span
           className={cn(

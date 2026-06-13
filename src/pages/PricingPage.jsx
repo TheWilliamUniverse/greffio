@@ -14,7 +14,7 @@ export const PricingPage = () => {
   const { reveal } = usePricingMotion();
 
   return (
-    <PublicPageLayout>
+    <PublicPageLayout footer="minimal">
     <div className="min-h-screen bg-background text-foreground">
       <NavbarDropdown />
 

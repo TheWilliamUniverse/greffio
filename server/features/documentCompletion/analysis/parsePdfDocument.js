@@ -48,27 +48,36 @@ export const parsePdfDocument = async (pdfBytes) => {
   }
 
   const pagesRaw = Array.isArray(pdf2json?.Pages) ? pdf2json.Pages : [];
+  const pdfLibPages = pdfDoc?.getPages?.() || [];
   const pageCount = pdfDoc?.getPageCount?.() || pagesRaw.length || 0;
 
   const pages = pagesRaw.map((page, pageIndex) => {
-    const width = Number(page.Width || page.width || 595.28);
-    const height = Number(page.Height || page.height || 841.89);
+    const pdfLibPage = pdfLibPages[pageIndex];
+    const width = Number(pdfLibPage?.getWidth?.() || page.Width || page.width || 595.28);
+    const height = Number(pdfLibPage?.getHeight?.() || page.Height || page.height || 841.89);
+    const jsonWidth = Number(page.Width || page.width || width);
+    const jsonHeight = Number(page.Height || page.height || height);
+    const scaleX = jsonWidth > 0 ? width / jsonWidth : 1;
+    const scaleY = jsonHeight > 0 ? height / jsonHeight : 1;
     const texts = Array.isArray(page.Texts) ? page.Texts : [];
     const blocks = texts.flatMap((item, blockIndex) => {
       const runs = Array.isArray(item.R) ? item.R : [];
       const text = runs.map((run) => safeDecodePdfRun(run.T)).join('').trim();
       if (!text) return [];
-      const x = Number(item.x || 0) * width;
-      const y = Number(item.y || 0) * height;
-      const w = Number(item.w || 0.01) * width;
-      const h = Number(item.sw || 0.012) * height;
+      const x = Number(item.x || 0) * scaleX;
+      const yFromTop = Number(item.y || 0) * scaleY;
+      const w = Number(item.w || 0.01) * scaleX;
+      const h = Math.max(Number(item.sw || 0.012) * scaleY, 10);
+      const charWidth = text.length > 0 ? Math.max(w / text.length, 3) : 4;
+      const estimatedWidth = Math.max(w, charWidth * text.length);
+      const cappedWidth = Math.min(Math.max(estimatedWidth, 4), Math.max(4, width - x));
       return [{
         id: `p${pageIndex}-b${blockIndex}`,
         text,
         x,
-        y: height - y - h,
-        width: Math.max(w, text.length * 4),
-        height: Math.max(h, 10),
+        y: height - yFromTop - h,
+        width: cappedWidth,
+        height: h,
         rawX: item.x,
         rawY: item.y,
       }];
@@ -125,7 +134,7 @@ export const buildTextLayerBlocks = (pages = []) => pages.flatMap((page) => (
       y: block.y,
       width: block.width,
       height: block.height,
-      coordinateSystem: 'pdf_points',
+      coordinateSystem: 'pdf_points_bottom_left',
     },
   }))
 ));

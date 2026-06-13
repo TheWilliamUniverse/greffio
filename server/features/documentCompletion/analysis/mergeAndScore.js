@@ -14,6 +14,7 @@ export const scoreFieldCandidate = (candidate) => {
   if (source === 'text_underscore_line') score = Math.max(score, 0.85);
   if (source === 'text_label_after_colon') score = Math.max(score, 0.75);
   if (source === 'text_keyword_near_empty_space') score = Math.max(score, 0.72);
+  if (source === 'text_grid_form_row') score = Math.max(score, 0.8);
   if (source === 'ocr_text_block') {
     const ocr = Number(candidate.detection?.ocrConfidence || 0);
     score = Math.max(score, 0.55 + (ocr / 200));

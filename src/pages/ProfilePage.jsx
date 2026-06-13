@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 import { GreffioVersionCard } from '@/components/system/GreffioVersionCard.jsx';
+import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
 import { fetchUserProfile, updateUserProfileApi } from '@/api/profile.js';
 import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 import { cn } from '@/lib/utils.js';
@@ -144,17 +145,12 @@ export const ProfilePage = () => {
     }
   };
 
-  return (
-    <div className={cn(
-      'flex overflow-x-hidden bg-[var(--we-bg)]',
-      mobileShell ? 'min-h-0 flex-1 flex-col' : 'min-h-[calc(100vh-4rem)]',
-    )}>
-      <Sidebar />
-      <main className={cn(
-        'flex-1 overflow-y-auto',
-        mobileShell ? 'px-4 py-5 pb-36' : 'pb-28 md:pb-10',
+  const pageBody = (
+    <>
+      <div className={cn(
+        'mx-auto max-w-4xl space-y-6',
+        mobileShell ? '' : 'px-4 py-6 md:px-8 md:py-8',
       )}>
-        <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 md:px-8 md:py-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-sm font-bold uppercase text-primary">Compte</p>
@@ -390,6 +386,17 @@ export const ProfilePage = () => {
           )}
         </div>
 
+      {mobileShell ? (
+        <div className={cn(
+          'fixed inset-x-0 z-40 border-t border-[var(--we-border)] bg-white/95 p-4 shadow-[0_-8px_30px_rgba(10,18,32,0.08)]',
+          stickySaveBottomClass,
+        )}>
+          <Button type="button" size="lg" className="w-full" onClick={() => void handleSave()} disabled={loading || saving}>
+            <Save className="mr-2 h-4 w-4" />
+            {saving ? 'Enregistrement…' : 'Enregistrer les modifications'}
+          </Button>
+        </div>
+      ) : (
         <div className={cn(
           'fixed inset-x-0 z-40 border-t border-[var(--we-border)] bg-white/95 p-4 shadow-[0_-8px_30px_rgba(10,18,32,0.08)] sm:hidden',
           stickySaveBottomClass,
@@ -399,7 +406,21 @@ export const ProfilePage = () => {
             {saving ? 'Enregistrement…' : 'Enregistrer les modifications'}
           </Button>
         </div>
-      </main>
+      )}
+    </>
+  );
+
+  return (
+    <div className={cn(
+      'flex overflow-x-hidden bg-[var(--we-bg)]',
+      mobileShell ? 'min-h-0 flex-1 flex-col' : 'min-h-[calc(100vh-4rem)]',
+    )}>
+      {!mobileShell ? <Sidebar /> : null}
+      {mobileShell ? (
+        <MobilePageContainer className="pb-36">{pageBody}</MobilePageContainer>
+      ) : (
+        <main className="flex-1 overflow-y-auto pb-28 md:pb-10">{pageBody}</main>
+      )}
     </div>
   );
 };

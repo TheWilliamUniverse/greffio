@@ -4,13 +4,16 @@ import { PageHeader } from '@/components/patterns/PageHeader.jsx';
 import { DocumentUploadDropzone } from './DocumentUploadDropzone.jsx';
 import { DocumentAnalysisProgress } from './DocumentAnalysisProgress.jsx';
 import { DocumentCompletionResult } from './DocumentCompletionResult.jsx';
+import { DocumentCompletionDossierBanner } from './DocumentCompletionDossierBanner.jsx';
 import { useDocumentUpload } from '../hooks/useDocumentUpload.js';
 import { useDocumentAnalysisStatus } from '../hooks/useDocumentAnalysisStatus.js';
-import { useDocumentCompletionDownload } from '../hooks/useDocumentCompletionDownload.js';
+import { useDocumentCompletionDossierContext } from '../hooks/useDocumentCompletionDossierContext.js';
+import { useDocumentCompletionDossierActions } from '../hooks/useDocumentCompletionDossierActions.js';
 import { TERMINAL_STATUSES } from '../config.js';
 
 export const DocumentCompletionPage = () => {
   const [documentId, setDocumentId] = useState('');
+  const { dossierId, dossier, loading: dossierLoading, error: dossierError } = useDocumentCompletionDossierContext();
   const { upload, uploading, error: uploadError, setError: setUploadError } = useDocumentUpload();
   const {
     document,
@@ -18,7 +21,16 @@ export const DocumentCompletionPage = () => {
     isProcessing,
     error: statusError,
   } = useDocumentAnalysisStatus(documentId);
-  const { download, downloading, error: downloadError } = useDocumentCompletionDownload();
+  const {
+    handleDownload,
+    handleAttachToDossier,
+    downloading,
+    attaching,
+    downloadError,
+    attachError,
+    exportDone,
+    attached,
+  } = useDocumentCompletionDossierActions(dossierId);
 
   const handleUpload = async (file) => {
     setUploadError('');
@@ -26,13 +38,17 @@ export const DocumentCompletionPage = () => {
     if (result?.documentId) setDocumentId(result.documentId);
   };
 
-  const handleDownload = async () => {
+  const generatedFileName = document?.generatedFile?.name
+    || `${document?.originalFile?.name?.replace(/\.pdf$/i, '') || 'document'}-greffio-completion.pdf`;
+
+  const onDownload = async () => {
     if (!documentId || !document) return;
-    await download({
-      documentId,
-      fileName: document.generatedFile?.name,
-      ensureExport: true,
-    });
+    await handleDownload({ documentId, fileName: generatedFileName });
+  };
+
+  const onAttachToDossier = async () => {
+    if (!documentId || !document || !dossierId) return;
+    await handleAttachToDossier({ documentId, fileName: generatedFileName });
   };
 
   const showResult = document && TERMINAL_STATUSES.has(document.status);
@@ -49,6 +65,13 @@ export const DocumentCompletionPage = () => {
         />
 
         <div className="mx-auto mt-6 max-w-5xl space-y-6">
+          <DocumentCompletionDossierBanner
+            dossierId={dossierId}
+            dossier={dossier}
+            loading={dossierLoading}
+            error={dossierError}
+          />
+
           {!documentId ? (
             <DocumentUploadDropzone
               onFileSelected={handleUpload}
@@ -66,7 +89,13 @@ export const DocumentCompletionPage = () => {
               document={document}
               fields={fields}
               downloading={downloading}
-              onDownload={handleDownload}
+              onDownload={onDownload}
+              dossierId={dossierId}
+              exportDone={exportDone}
+              attached={attached}
+              attaching={attaching}
+              attachError={attachError}
+              onAttachToDossier={dossierId ? onAttachToDossier : undefined}
             />
           ) : null}
 

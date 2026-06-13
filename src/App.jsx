@@ -59,7 +59,7 @@ import { MandatePage } from '@/pages/MandatePage.jsx';
 import { PaymentVerificationPage } from '@/pages/PaymentVerificationPage.jsx';
 import { SubscribersListPage } from '@/pages/SubscribersListPage.jsx';
 import { FormalityPowersPage } from '@/pages/FormalityPowersPage.jsx';
-import { DocumentCompletionPage } from '@/pages/DocumentCompletionPage.jsx';
+import { DocumentCompletionEntry } from '@/mobile/entries/DocumentCompletionEntry.jsx';
 import { SignaturePublicPage } from '@/pages/SignaturePublicPage.jsx';
 import { SignWellCallbackPage } from '@/pages/SignWellCallbackPage.jsx';
 import { InterfacesPage } from '@/pages/InterfacesPage.jsx';
@@ -68,6 +68,7 @@ import { ServicesEntry } from '@/mobile/entries/ServicesEntry.jsx';
 import { NotFoundPage } from '@/pages/NotFoundPage.jsx';
 import { HomePage } from '@/pages/HomePage.jsx';
 import { SERVICE_PAGE_SLUGS } from '@/config/serviceLandingPages.js';
+import { OpsMobileEntry } from '@/components/ops/OpsMobileEntry.jsx';
 import { CookieConsentBanner } from '@/components/CookieConsentBanner.jsx';
 import { MobileAppShell } from '@/mobile/MobileAppShell.jsx';
 import { MobileWebShell } from '@/mobile/MobileWebShell.jsx';
@@ -196,7 +197,7 @@ function AppRoutes() {
             <Route path="/a-propos" element={<AboutPage />} />
             <Route path="/guide" element={<GuidePage />} />
             <Route path="/procuration" element={<MandatePage />} />
-            <Route path="/ops" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}>{withSuspense(LazyOpsShell, 'Chargement ops…')}</ProtectedRoute>}>
+            <Route path="/ops" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><OpsMobileEntry>{withSuspense(LazyOpsShell, 'Chargement ops…')}</OpsMobileEntry></ProtectedRoute>}>
               <Route index element={<Navigate to="cockpit" replace />} />
               <Route path="cockpit" element={withSuspense(LazyOpsCockpitPage, 'Chargement cockpit…')} />
               <Route path="dossiers" element={withSuspense(LazyOpsDossiersPage, 'Chargement dossiers ops…')} />
@@ -210,7 +211,7 @@ function AppRoutes() {
               <Route path="settings" element={withSuspense(LazyOpsSettingsPage, 'Chargement paramètres ops…')} />
             </Route>
             <Route path="/ops-legacy" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><Navigate to="/ops/cockpit" replace /></ProtectedRoute>} />
-            <Route path="/ops-observability" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}>{withSuspense(LazyOpsLookupObservabilityPage, 'Chargement observabilité…')}</ProtectedRoute>} />
+            <Route path="/ops-observability" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><OpsMobileEntry>{withSuspense(LazyOpsLookupObservabilityPage, 'Chargement observabilité…')}</OpsMobileEntry></ProtectedRoute>} />
             <Route path="/paiement/verification" element={<PaymentVerificationPage />} />
 
             <Route path="/dashboard" element={<ProtectedRoute><DashboardEntry /></ProtectedRoute>} />
@@ -219,7 +220,7 @@ function AppRoutes() {
             <Route path="/dossiers" element={<ProtectedRoute><DossiersEntry /></ProtectedRoute>} />
             <Route path="/dossier/:id" element={<ProtectedRoute><DossierDetailEntry /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><DocumentsEntry /></ProtectedRoute>} />
-            <Route path="/assistant-documents" element={<ProtectedRoute><DocumentCompletionPage /></ProtectedRoute>} />
+            <Route path="/assistant-documents" element={<ProtectedRoute><DocumentCompletionEntry /></ProtectedRoute>} />
             <Route path="/boutique" element={<ProtectedRoute><ClientShopPage /></ProtectedRoute>} />
             <Route path="/dossier/:dossierId/declaration-non-condamnation" element={<ProtectedRoute>{withSuspense(LazyNonConvictionDeclarationPage, 'Chargement déclaration…')}</ProtectedRoute>} />
             <Route path="/dossier/:dossierId/liste-souscripteurs" element={<ProtectedRoute><SubscribersListPage /></ProtectedRoute>} />

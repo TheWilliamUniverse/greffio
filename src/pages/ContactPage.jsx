@@ -10,7 +10,9 @@ import { runtimeConfig } from '@/config/runtime.js';
 import { submitAppointmentRequest } from '@/api/contact.js';
 import { mapSecurityApiError } from '@/config/security.js';
 import { SecurityChallengeWidget } from '@/components/security/SecurityChallengeWidget.jsx';
+import { PublisherLegalBlock } from '@/components/legal/PublisherLegalBlock.jsx';
 import { PublicPageLayout } from '@/components/layout/PublicPageLayout.jsx';
+import { useSecurityConfig } from '@/hooks/useSecurityConfig.js';
 
 export const ContactPage = () => {
   const [form, setForm] = useState({
@@ -72,7 +74,7 @@ export const ContactPage = () => {
   };
 
   return (
-    <PublicPageLayout>
+    <PublicPageLayout footer="minimal">
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-white px-6 py-4">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
@@ -154,6 +156,12 @@ export const ContactPage = () => {
         </section>
 
         <aside className="space-y-4">
+          <div className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
+            <p className="font-extrabold">Éditeur du site</p>
+            <div className="mt-3">
+              <PublisherLegalBlock variant="compact" showDisclaimer={false} />
+            </div>
+          </div>
           <div className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
             <Mail className="mb-4 h-5 w-5 text-primary" />
             <p className="font-extrabold">Support email</p>

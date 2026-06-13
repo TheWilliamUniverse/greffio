@@ -10,6 +10,7 @@ import {
 } from '@/config/siteFooter.js';
 import {
   PUBLISHER_CONTACT_EMAIL,
+  PUBLISHER_ADDRESS_FULL,
   PUBLISHER_LEGAL_NAME,
   PUBLISHER_RCS,
 } from '@/config/publisher.js';
@@ -151,7 +152,10 @@ export const GreffioUltraFooter = ({
                 © {year} {PUBLISHER_LEGAL_NAME} — Greffio. Tous droits réservés.
               </p>
               <p className="mt-1">
-                {PUBLISHER_RCS} · greffio@willentreprises.com · 04 11 81 86 70
+                {PUBLISHER_RCS} · {PUBLISHER_ADDRESS_FULL}
+              </p>
+              <p className="mt-1">
+                greffio@willentreprises.com · 04 11 81 86 70
               </p>
               <p className="mt-1">
                 Les contenus ne constituent pas un conseil juridique personnalisé sans validation professionnelle.
@@ -163,6 +167,9 @@ export const GreffioUltraFooter = ({
               <Globe className="h-3.5 w-3.5" />
               Français
             </span>
+            <FooterLink to="/a-propos" className="min-h-0 text-xs font-semibold text-white/80">
+              À propos
+            </FooterLink>
             <FooterLink to="/mentions-legales" className="min-h-0 text-xs font-semibold text-white/80">
               Mentions légales
             </FooterLink>

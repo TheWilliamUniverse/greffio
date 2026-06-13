@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Archive, CheckCircle2, Eye, FilePlus2, FileText, Search, ShieldCheck, Trash2, Upload } from 'lucide-react';
+import { Archive, CheckCircle2, Eye, FilePlus2, FileText, FormInput, Search, ShieldCheck, Trash2, Upload } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
@@ -395,6 +395,12 @@ export const DocumentsPage = () => {
               <p className="mt-2 text-sm text-muted-foreground">Centralisez uniquement les pièces, documents générés, justificatifs tiers et signatures de vos dossiers.</p>
             </div>
             <div className="flex gap-3">
+              <Button asChild variant="outline" className="bg-white">
+                <Link to={resolvedDossierId ? `/assistant-documents?dossierId=${resolvedDossierId}` : '/assistant-documents'}>
+                  <FormInput className="h-4 w-4" />
+                  Compléter un PDF
+                </Link>
+              </Button>
               <Button asChild variant="outline" className="bg-white">
                 <Link to="/statuts">
                   <FilePlus2 className="h-4 w-4" />

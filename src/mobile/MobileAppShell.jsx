@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { App as CapApp } from '@capacitor/app';
 import { Files, FolderKanban, Home, Plus, UserRound } from 'lucide-react';
 import { MOBILE_AUTH_TABS_NATIVE } from '@/config/mobileNavigation.js';
-import { MobileTopBar } from '@/mobile/MobileTopBar.jsx';
 import { MobileWebHeader } from '@/mobile/MobileWebHeader.jsx';
 import { MobilePublicBottomNav } from '@/mobile/MobilePublicBottomNav.jsx';
 import { resolveMobileShellTitle } from '@/mobile/MobileWebShell.jsx';
@@ -66,8 +65,6 @@ const MobileAppShellInner = ({ children }) => {
   const {
     drawerOpen,
     setDrawerOpen,
-    notificationsOpen,
-    setNotificationsOpen,
     closeTopOverlay,
     getTopOverlayName,
   } = useMobileShellOverlay();
@@ -164,10 +161,9 @@ const MobileAppShellInner = ({ children }) => {
         {showPublicHeader ? (
           <MobileStickyHeaderGroup showConnectedStrip={showAuthenticatedNav}>
             {showAuthenticatedNav ? (
-              <MobileTopBar
+              <MobileWebHeader
+                title={title}
                 onMenuClick={() => setDrawerOpen(true)}
-                notificationsOpen={notificationsOpen}
-                onNotificationsOpenChange={setNotificationsOpen}
               />
             ) : (
               <MobileWebHeader title={title} />
@@ -182,7 +178,7 @@ const MobileAppShellInner = ({ children }) => {
         </main>
         {showBottomNav ? (
           showAuthenticatedNav ? (
-            <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md">
+            <nav aria-label="Navigation cockpit mobile" className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md">
               <ul className="mx-auto grid max-w-lg grid-cols-5">
                 {MOBILE_AUTH_TABS_NATIVE.map((tab) => {
                   const Icon = tabIcons[tab.icon] || Home;

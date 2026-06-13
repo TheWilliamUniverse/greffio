@@ -6,6 +6,7 @@ import {
   FileSignature,
   FileText,
   FolderKanban,
+  FormInput,
   HelpCircle,
   Home,
   LayoutDashboard,
@@ -54,6 +55,7 @@ export const MOBILE_DRAWER_NAV_ITEMS = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
   { to: '/dossiers', icon: FolderKanban, label: 'Dossiers' },
   { to: '/documents', icon: FileText, label: 'Documents' },
+  { to: '/assistant-documents', icon: FormInput, label: 'Compléter un PDF' },
   { to: '/boutique', icon: ShoppingBag, label: 'Boutique' },
   { to: '/team', icon: MessageSquareText, label: 'Messages' },
   { to: '/simulateur', icon: FileSignature, label: 'Nouvelle démarche' },
@@ -72,6 +74,7 @@ export const MOBILE_DRAWER_NAV_GROUPS = [
       { to: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
       { to: '/dossiers', icon: FolderKanban, label: 'Dossiers' },
       { to: '/documents', icon: FileText, label: 'Documents' },
+      { to: '/assistant-documents', icon: FormInput, label: 'Compléter un PDF' },
       { to: '/boutique', icon: ShoppingBag, label: 'Boutique' },
       { to: '/team', icon: MessageSquareText, label: 'Messages' },
     ],
@@ -128,6 +131,8 @@ export const isMobileDrawerNavActive = (pathname, to) => {
       return path === '/dossiers' || path.startsWith('/dossier/');
     case '/documents':
       return path === '/documents' || path.startsWith('/documents/');
+    case '/assistant-documents':
+      return path.startsWith('/assistant-documents');
     case '/team':
       return path === '/team' || path.startsWith('/team/');
     case '/simulateur':

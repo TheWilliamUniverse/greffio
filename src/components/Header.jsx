@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, LogOut, MessageSquareText, User } from 'lucide-react';
+import { LogOut, MessageSquareText, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth.js';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
@@ -18,7 +18,6 @@ export const Header = () => {
   const firstName = currentUser?.firstName || 'Greffio';
   const lastName = currentUser?.lastName || '';
   const companyName = currentUser?.company?.name || 'Projet à créer';
-  const notificationCount = 0;
 
   const handleLogout = () => {
     logout();
@@ -45,12 +44,6 @@ export const Header = () => {
                   <MessageSquareText className="h-4 w-4" />
                   Équipe
                 </Link>
-              </Button>
-              <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground" aria-label="Notifications">
-                <Bell className="h-5 w-5" />
-                {notificationCount > 0 ? (
-                  <span className="absolute right-2.5 top-2 h-2 w-2 rounded-full bg-destructive" />
-                ) : null}
               </Button>
 
               <DropdownMenu>

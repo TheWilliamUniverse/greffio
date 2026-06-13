@@ -16,3 +16,9 @@ export const googlePayConfig = {
 };
 
 export const isGooglePayEnabled = () => googlePayConfig.enabled;
+
+/** Exposé aux clients uniquement si Google Pay est réellement en production. */
+export const isGooglePayLiveForUsers = (config) => (
+  config?.environment === 'PRODUCTION'
+  && Boolean(config?.readyForPayment ?? config?.enabled)
+);

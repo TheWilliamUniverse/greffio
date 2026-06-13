@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { isPlausibleAcroFormRect } from './bboxHelpers.js';
 
 const mapPdfFieldType = (field) => {
   const name = String(field?.constructor?.name || field?.name || '').toLowerCase();
@@ -29,7 +30,9 @@ export const detectExistingPdfFields = async ({ pdfDoc, pages = [] }) => {
       const pageRef = widget.P?.();
       const pageIndex = Math.max(0, pdfDoc.getPages().findIndex((page) => page.ref === pageRef));
       const page = pages[pageIndex] || pages[0];
+      const pageWidth = page?.width || 595.28;
       const pageHeight = page?.height || 841.89;
+      if (!isPlausibleAcroFormRect(rect, pageWidth, pageHeight)) continue;
       const x = Number(rect.x || 0);
       const y = Number(rect.y || 0);
       const width = Math.max(20, Number(rect.width || rect.w || 80));
@@ -46,7 +49,7 @@ export const detectExistingPdfFields = async ({ pdfDoc, pages = [] }) => {
           y,
           width,
           height,
-          coordinateSystem: 'pdf_points',
+          coordinateSystem: 'pdf_points_bottom_left',
         },
         detection: {
           source: 'existing_pdf_form_field',

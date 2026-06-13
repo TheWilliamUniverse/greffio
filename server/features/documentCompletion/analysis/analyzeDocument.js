@@ -1,6 +1,8 @@
 import { parsePdfDocument, buildTextLayerBlocks } from './parsePdfDocument.js';
 import { detectExistingPdfFields } from './detectExistingPdfFields.js';
 import { detectTextBasedFields } from './detectTextBasedFields.js';
+import { detectGridFormFields } from './detectGridFormFields.js';
+import { normalizeFieldBbox } from './bboxHelpers.js';
 import { runOcrAnalysis } from './runOcrAnalysis.js';
 import { runAiFieldDetection } from './runAiFieldDetection.js';
 import { buildAnalysisSummary, mergeAndDeduplicateCandidates } from './mergeAndScore.js';
@@ -54,6 +56,8 @@ export const analyzeDocumentForCompletion = async ({
   if (options.enableTextHeuristics !== false && parsed.hasTextLayer) {
     const textFields = detectTextBasedFields({ pages: parsed.pages });
     candidates.push(...textFields);
+    const gridFields = detectGridFormFields({ pages: parsed.pages });
+    candidates.push(...gridFields);
     if (textFields.length) {
       detectionMethodsUsed.push(
         'text_underscore_line',
@@ -64,6 +68,7 @@ export const analyzeDocumentForCompletion = async ({
         'text_signature_keyword',
       );
     }
+    if (gridFields.length) detectionMethodsUsed.push('text_grid_form_row');
   }
 
   let ocrResult = { warnings: [], candidates: [], pages: [] };
@@ -101,10 +106,20 @@ export const analyzeDocumentForCompletion = async ({
 
   const fields = mergeAndDeduplicateCandidates(candidates, {
     minConfidence: options.minConfidence ?? documentCompletionConfig.minConfidence,
-  }).map((field) => ({
-    ...field,
-    documentId,
-  }));
+  })
+    .map((field) => {
+      const page = parsed.pages[field.pageIndex] || parsed.pages[0];
+      const normalizedBbox = page
+        ? normalizeFieldBbox(field.bbox, page.width, page.height)
+        : null;
+      if (!normalizedBbox) return null;
+      return {
+        ...field,
+        documentId,
+        bbox: normalizedBbox,
+      };
+    })
+    .filter(Boolean);
 
   if (!fields.length) {
     warnings.push({

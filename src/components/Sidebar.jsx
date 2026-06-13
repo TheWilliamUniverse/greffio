@@ -14,6 +14,7 @@ import {
   Network,
   Activity,
   ClipboardList,
+  ScrollText,
   Settings,
   ShieldCheck,
   ShoppingBag,
@@ -26,7 +27,6 @@ import { useEffect, useState } from 'react';
 import { listDossiers } from '@/api/dossiers.js';
 
 export const Sidebar = ({ className }) => {
-  if (isCapacitorNative()) return null;
   const { currentUser } = useAuth();
   const [dossiersCount, setDossiersCount] = useState(0);
   const company = currentUser?.company || {};
@@ -65,10 +65,13 @@ export const Sidebar = ({ className }) => {
       { to: '/ops-observability', icon: Activity, label: 'Ops observabilité' },
     ] : []),
     { to: '/analytics', icon: BarChart3, label: 'Pilotage' },
+    { to: '/statuts', icon: ScrollText, label: 'Statuts' },
     { to: '/chat', icon: Bot, label: 'Assistant Greffio' },
     { to: '/profil', icon: UserRound, label: 'Mon profil' },
     { to: '/settings', icon: Settings, label: 'Paramètres' },
   ];
+
+  if (isCapacitorNative()) return null;
 
   return (
     <aside className={cn('hidden h-full w-72 flex-col border-r border-border bg-white md:flex', className)}>

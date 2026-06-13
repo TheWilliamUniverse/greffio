@@ -1,8 +1,10 @@
 import React from 'react';
-import { Sparkles } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, FolderPlus, Sparkles } from 'lucide-react';
 import { DocumentDetectedFieldsSummary } from './DocumentDetectedFieldsSummary.jsx';
 import { DocumentDownloadCard } from './DocumentDownloadCard.jsx';
 import { DocumentWarningsPanel } from './DocumentWarningsPanel.jsx';
+import { Button } from '@/components/ui/button.jsx';
 import { STATUS_LABELS } from '../config.js';
 
 export const DocumentCompletionResult = ({
@@ -10,6 +12,12 @@ export const DocumentCompletionResult = ({
   fields = [],
   downloading = false,
   onDownload,
+  dossierId = null,
+  exportDone = false,
+  attached = false,
+  attaching = false,
+  attachError = '',
+  onAttachToDossier,
 }) => {
   if (!document) return null;
   const summary = document.analysisSummary || {};
@@ -50,6 +58,41 @@ export const DocumentCompletionResult = ({
         downloading={downloading}
         onDownload={onDownload}
       />
+
+      {dossierId ? (
+        <div className="rounded-xl border border-[#dbe7f7] bg-[#f8fbff] p-5">
+          <p className="text-sm font-semibold text-[hsl(var(--greffio-blue-900))]">
+            {attached ? 'PDF ajouté au dossier' : exportDone ? 'Prochaine étape' : 'Rattachement dossier'}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {attached
+              ? 'Retrouvez le document dans l’espace Documents de votre dossier.'
+              : 'Après téléchargement, vous pouvez ajouter le PDF complété directement au dossier.'}
+          </p>
+          {attachError ? (
+            <p className="mt-2 text-sm text-destructive">{attachError}</p>
+          ) : null}
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            {!attached && onAttachToDossier ? (
+              <Button
+                type="button"
+                className="gap-2"
+                disabled={!ready || attaching || downloading}
+                onClick={onAttachToDossier}
+              >
+                <FolderPlus className="h-4 w-4" />
+                {attaching ? 'Ajout en cours…' : 'Ajouter au dossier'}
+              </Button>
+            ) : null}
+            <Button type="button" variant="outline" className="gap-2 bg-white" asChild>
+              <Link to={`/dossier/${encodeURIComponent(dossierId)}`}>
+                Retourner au dossier
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

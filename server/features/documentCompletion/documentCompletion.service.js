@@ -135,12 +135,12 @@ export const getDocumentCompletionStatus = async (documentId, userId) => {
   };
 };
 
-export const exportDocumentCompletion = async (documentId, userId) => {
+export const exportDocumentCompletion = async (documentId, userId, { force = false } = {}) => {
   const access = await assertDocumentAccess(documentId, userId);
   if (!access.ok) return access;
   const { document } = access;
 
-  if (document.generatedFile?.storagePath && document.status === 'exported') {
+  if (!force && document.generatedFile?.storagePath && document.status === 'exported') {
     return { ok: true, document, fields: await listDocumentCompletionFields(documentId) };
   }
 
@@ -183,14 +183,11 @@ export const exportDocumentCompletion = async (documentId, userId) => {
 export const downloadDocumentCompletionFile = async (documentId, userId) => {
   const access = await assertDocumentAccess(documentId, userId);
   if (!access.ok) return access;
-  const { document } = access;
 
-  if (!document.generatedFile?.storagePath) {
-    const exportResult = await exportDocumentCompletion(documentId, userId);
-    if (!exportResult.ok) return exportResult;
-    return downloadDocumentCompletionFile(documentId, userId);
-  }
+  const exportResult = await exportDocumentCompletion(documentId, userId, { force: true });
+  if (!exportResult.ok) return exportResult;
 
+  const { document } = exportResult;
   const buffer = await downloadGeneratedDocumentBuffer(document.generatedFile.storagePath);
   return {
     ok: true,

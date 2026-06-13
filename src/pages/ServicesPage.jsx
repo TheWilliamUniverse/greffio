@@ -11,6 +11,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { NavbarDropdown } from '@/components/NavbarDropdown.jsx';
+import { PublicPageLayout } from '@/components/layout/PublicPageLayout.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { LegalFormComparatorPromoCard } from '@/components/comparator/LegalFormComparatorPromoCard.jsx';
 import { LEGAL_SERVICES } from '@/config/businessCatalog.js';
@@ -37,6 +38,7 @@ const pillars = [
 const categories = [...new Set(LEGAL_SERVICES.map((service) => service.category))];
 
 export const ServicesPage = () => (
+  <PublicPageLayout footer="minimal">
   <div className="min-h-screen bg-background text-foreground">
     <NavbarDropdown />
 
@@ -168,4 +170,5 @@ export const ServicesPage = () => (
 
     <LegalFormComparatorPromoCard variant="section" />
   </div>
+  </PublicPageLayout>
 );

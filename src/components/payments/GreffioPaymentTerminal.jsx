@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowRight,
@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { GooglePayCheckoutPanel } from '@/components/payments/GooglePayCheckoutPanel.jsx';
+import { useGooglePay } from '@/hooks/useGooglePay.js';
+import { isGooglePayLiveForUsers } from '@/config/googlePay.js';
 import { cn } from '@/lib/utils.js';
 
 const GoogleMark = () => (
@@ -37,26 +39,38 @@ export const GreffioPaymentTerminal = ({
   cardButtonLabel = 'Payer par carte bancaire',
   className,
 }) => {
-  const [activeMethod, setActiveMethod] = useState('google-pay');
+  const { config } = useGooglePay({ amountCents, label: offerLabel, active: true });
+  const showGooglePay = isGooglePayLiveForUsers(config);
+  const [activeMethod, setActiveMethod] = useState(showGooglePay ? 'google-pay' : 'card');
 
-  const methods = useMemo(() => ([
-    {
-      id: 'google-pay',
-      title: 'Google Pay',
-      subtitle: 'Cartes enregistrées dans Google Wallet',
-      badge: 'Recommandé',
-      badgeTone: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-      mark: <GoogleMark />,
-    },
-    {
+  useEffect(() => {
+    if (!showGooglePay && activeMethod === 'google-pay') {
+      setActiveMethod('card');
+    }
+  }, [activeMethod, showGooglePay]);
+
+  const methods = useMemo(() => {
+    const items = [];
+    if (showGooglePay) {
+      items.push({
+        id: 'google-pay',
+        title: 'Google Pay',
+        subtitle: 'Cartes enregistrées dans Google Wallet',
+        badge: 'Recommandé',
+        badgeTone: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+        mark: <GoogleMark />,
+      });
+    }
+    items.push({
       id: 'card',
       title: 'Carte bancaire',
       subtitle: 'Visa, Mastercard — confirmation serveur Greffio',
-      badge: 'Sécurisé',
+      badge: showGooglePay ? 'Sécurisé' : 'Recommandé',
       badgeTone: 'bg-secondary text-primary border-[#cfe0f5]',
       mark: <CardMark />,
-    },
-  ]), []);
+    });
+    return items;
+  }, [showGooglePay]);
 
   return (
     <section
@@ -84,7 +98,9 @@ export const GreffioPaymentTerminal = ({
                 Choisissez votre mode de règlement
               </h2>
               <p className="mt-2 max-w-lg text-sm leading-6 text-muted-foreground">
-                Un seul terminal, deux chemins. Cliquez sur un mode pour afficher le détail et finaliser le paiement.
+                {showGooglePay
+                  ? 'Un seul terminal, deux chemins. Cliquez sur un mode pour afficher le détail et finaliser le paiement.'
+                  : 'Paiement sécurisé par carte bancaire avec confirmation serveur Greffio.'}
               </p>
             </div>
           </div>

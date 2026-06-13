@@ -2,6 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
+import { PublisherLegalBlock } from '@/components/legal/PublisherLegalBlock.jsx';
+import { PublicPageLayout } from '@/components/layout/PublicPageLayout.jsx';
 import { runtimeConfig } from '@/config/runtime.js';
 
 const Section = ({ title, children }) => (
@@ -12,6 +14,7 @@ const Section = ({ title, children }) => (
 );
 
 export const PrivacyPolicyPage = () => (
+  <PublicPageLayout>
   <main className="min-h-screen bg-background px-4 py-10 sm:px-6 lg:px-8">
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -29,6 +32,10 @@ export const PrivacyPolicyPage = () => (
           dans l&apos;application Greffio.
         </p>
       </section>
+
+      <Section title="Responsable du traitement / Éditeur">
+        <PublisherLegalBlock showDisclaimer={false} showLinks />
+      </Section>
 
       <Section title="Données collectées">
         <p>Greffio collecte les données nécessaires à la création de compte, à la gestion des dossiers et à la communication de support.</p>
@@ -72,4 +79,5 @@ export const PrivacyPolicyPage = () => (
       </Section>
     </div>
   </main>
+  </PublicPageLayout>
 );

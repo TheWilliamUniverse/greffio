@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { KeyRound, LockKeyhole, Mail, MonitorCheck, ShieldCheck, Smartphone, Bell } from 'lucide-react';
 import { toast } from 'sonner';
 import { Sidebar } from '@/components/Sidebar.jsx';
+import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
@@ -254,17 +255,8 @@ export const SettingsPage = () => {
   ];
   const mobileShell = isCapacitorNative() || isMobileBrowserViewport();
 
-  return (
-    <div className={cn(
-      'flex bg-background',
-      mobileShell ? 'min-h-0 flex-1 flex-col' : 'h-[calc(100vh-4rem)] overflow-hidden',
-    )}>
-      <Sidebar />
-      <main className={cn(
-        'flex-1 overflow-y-auto',
-        mobileShell ? 'p-4 pb-28' : 'p-5 md:p-8',
-      )}>
-        <div className="mx-auto max-w-5xl space-y-6">
+  const settingsContent = (
+    <div className="mx-auto max-w-5xl space-y-6">
           <div>
             <p className="text-sm font-bold uppercase text-primary">Sécurité et compte</p>
             <h1 className="mt-2 text-3xl font-extrabold text-foreground">Paramètres</h1>
@@ -499,8 +491,20 @@ export const SettingsPage = () => {
               ))}
             </div>
           </section>
-        </div>
-      </main>
+    </div>
+  );
+
+  return (
+    <div className={cn(
+      'flex bg-background',
+      mobileShell ? 'min-h-0 flex-1 flex-col' : 'h-[calc(100vh-4rem)] overflow-hidden',
+    )}>
+      {!mobileShell ? <Sidebar /> : null}
+      {mobileShell ? (
+        <MobilePageContainer className="pb-8">{settingsContent}</MobilePageContainer>
+      ) : (
+        <main className="flex-1 overflow-y-auto p-5 md:p-8">{settingsContent}</main>
+      )}
     </div>
   );
 };

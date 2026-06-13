@@ -13,8 +13,11 @@ const pickPrimaryDossier = (dossiers = []) => {
   return sorted.find((entry) => !TERMINAL_STATUSES.has(String(entry?.status || '').toLowerCase())) || sorted[0];
 };
 
-/** Prochaine action métier après connexion ou cold start natif. */
-export const resolveNativePostLoginPath = async () => {
+/** Après connexion ou cold start natif : toujours l’accueil cockpit. */
+export const resolveNativePostLoginPath = async () => '/dashboard';
+
+/** Reprise dossier depuis l’accueil (carte action) — distinct du post-login. */
+export const resolveNativeDossierContinuePath = async () => {
   try {
     const payload = await apiGet('/api/dossiers', { retryOnUnauthorized: false });
     const primary = pickPrimaryDossier(payload?.dossiers || []);

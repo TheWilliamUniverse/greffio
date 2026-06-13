@@ -158,7 +158,7 @@ export const MobileCockpitHeaderActions = ({
           </button>
         ) : null}
 
-        {showNotifications ? (
+        {showNotifications && isCapacitorNative() ? (
           <button
             type="button"
             onClick={() => setNotifOpen(true)}

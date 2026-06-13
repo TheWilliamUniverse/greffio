@@ -6,6 +6,7 @@ import { LEGAL_SERVICES } from '@/config/businessCatalog.js';
 import { getServiceRoute } from '@/config/serviceLandingPages.js';
 import { getServiceCatalogIcon } from '@/config/demarcheVisuals.js';
 import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
+import { PublicMinimalLegalFooter } from '@/components/layout/PublicMinimalLegalFooter.jsx';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
 
 const pillars = [
@@ -25,6 +26,7 @@ export const MobileServicesPage = () => {
   const categories = [...new Set(LEGAL_SERVICES.map((s) => s.category))];
 
   return (
+    <>
     <MobilePageContainer className="pb-8">
       <MobileAnimatedSection delay={0}>
         <div className="rounded-2xl bg-[hsl(var(--greffio-blue))] px-5 py-6 text-white">
@@ -110,5 +112,7 @@ export const MobileServicesPage = () => {
         </Button>
       </MobileAnimatedSection>
     </MobilePageContainer>
+    <PublicMinimalLegalFooter />
+    </>
   );
 };

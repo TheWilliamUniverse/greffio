@@ -38,6 +38,9 @@ export const isMobileBrowserViewport = () => {
   return !isCapacitorNative() && window.innerWidth < MOBILE_BREAKPOINT;
 };
 
+/** Ops cockpit : bloquer le layout desktop compressé sur mobile natif ou web <768px. */
+export const isOpsMobileViewport = () => isCapacitorNative() || isMobileBrowserViewport();
+
 /** Routes sans shell mobile (web <768px et app native Capacitor). */
 export const MOBILE_SHELL_EXCLUDED_PREFIXES = [
   '/ops',

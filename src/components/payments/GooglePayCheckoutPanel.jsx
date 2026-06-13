@@ -25,7 +25,6 @@ export const GooglePayCheckoutPanel = ({
     label: offerLabel,
     active,
   });
-  const isTestEnvironment = config?.environment !== 'PRODUCTION';
   const [canPay, setCanPay] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -101,19 +100,8 @@ export const GooglePayCheckoutPanel = ({
         </div>
       ) : (
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          {isTestEnvironment ? (
-            <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
-              Mode test Google
-            </span>
-          ) : (
-            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
-              Live
-            </span>
-          )}
           <p className="text-sm text-muted-foreground">
-            {isTestEnvironment
-              ? 'En mode test, seul le flux de démonstration Google Pay est actif tant que CAWL n’est pas branché.'
-              : 'Paiement tokenisé puis confirmation serveur Greffio.'}
+            Paiement tokenisé puis confirmation serveur Greffio.
           </p>
         </div>
       )}

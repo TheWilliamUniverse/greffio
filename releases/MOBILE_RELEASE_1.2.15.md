@@ -3,6 +3,7 @@
 - **versionName** : `1.2.15`
 - **versionCode** : `261510014`
 - **package** : `com.greffio.app`
+- **Canal Play** : **production** (pas test ouvert / pas bêta fermée)
 - **Mode Capacitor** : **remote** (`server.url` → site live)
 
 > Première release « shell remote » : l’UI charge `https://greffio.willentreprises.com/?nativeApp=1`. Les petites évolutions web se déploient sans resoumettre d’AAB (comme Shopfun).

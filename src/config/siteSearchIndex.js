@@ -9,6 +9,7 @@ const staticPages = [
   { title: 'Ressources', description: 'Guides, outils et estimations.', to: '/ressources', keywords: ['ressources', 'kbis', 'siren', 'documents'] },
   { title: 'Guide', description: 'Questions fréquentes et bonnes pratiques dossier.', to: '/guide', keywords: ['guide', 'faq', 'aide'] },
   { title: 'Contact', description: 'Contacter l’équipe Greffio.', to: '/contact', keywords: ['contact', 'support', 'équipe'] },
+  { title: 'À propos', description: 'Greffio et WILLIAM ESTABLISHMENTS.', to: '/a-propos', keywords: ['à propos', 'about', 'éditeur', 'société'] },
   { title: 'Application mobile', description: 'Greffio sur Android et iOS.', to: '/app', keywords: ['app', 'mobile', 'android', 'play store'] },
   { title: 'Connexion', description: 'Accéder à votre espace client.', to: '/login', keywords: ['login', 'connexion', 'compte'] },
   { title: 'Inscription', description: 'Créer votre espace Greffio.', to: '/signup', keywords: ['inscription', 'signup', 'compte'] },
@@ -20,7 +21,7 @@ const staticPages = [
   { title: 'Assistant Greffio', description: 'Chat d’assistance sur vos démarches.', to: '/chat', keywords: ['assistant', 'chat', 'aide'] },
   { title: 'Mon profil', description: 'Informations personnelles et sécurité.', to: '/profil', keywords: ['profil', 'compte', 'paramètres'] },
   { title: 'Mentions légales', description: 'Informations légales Greffio.', to: '/mentions-legales', keywords: ['mentions', 'légal'] },
-  { title: 'Politique de confidentialité', description: 'Protection des données personnelles.', to: '/politique-confidentialite', keywords: ['rgpd', 'confidentialité', 'données'] },
+  { title: 'Politique de confidentialité', description: 'Protection des données personnelles.', to: '/confidentialite', keywords: ['rgpd', 'confidentialité', 'données'] },
 ];
 
 const serviceEntries = (LEGAL_SERVICES || []).map((service) => ({
