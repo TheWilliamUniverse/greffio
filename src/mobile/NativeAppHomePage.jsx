@@ -1,37 +1,68 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, FolderKanban, LogIn, Sparkles, UserPlus } from 'lucide-react';
+import { ArrowRight, LayoutGrid, LogIn, Receipt, Sparkles, UserPlus } from 'lucide-react';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
+import { LEGAL_SERVICES } from '@/config/businessCatalog.js';
+import { getServiceRoute } from '@/config/serviceLandingPages.js';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
 import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
 
+const quickLinks = [
+  { to: '/services', label: 'Services', icon: LayoutGrid, hint: 'Catalogue formalités' },
+  { to: '/tarifs', label: 'Tarifs', icon: Receipt, hint: 'Offres & FAQ' },
+  { to: '/simulateur', label: 'Simuler', icon: Sparkles, hint: 'Estimation rapide' },
+];
+
+const featured = LEGAL_SERVICES.filter((s) => s.badge === 'Populaire' || s.price === '0€').slice(0, 4);
+
 export const NativeAppHomePage = () => (
-  <MobilePageContainer>
+  <MobilePageContainer className="pb-6">
     <MobileAnimatedSection delay={0}>
-      <GreffioLogo variant="full" className="text-2xl" />
-      <h1 className="mt-6 text-2xl font-extrabold tracking-tight text-[hsl(var(--greffio-blue-900))]">
-        Vos formalités d&apos;entreprise, simplifiées
-      </h1>
-      <p className="mt-3 text-sm leading-7 text-muted-foreground">
-        Créez un dossier, déposez vos pièces, signez et suivez l&apos;avancement avec l&apos;équipe Greffio.
-      </p>
+      <div className="overflow-hidden rounded-3xl bg-[hsl(var(--greffio-blue))] text-white shadow-elevation-md">
+        <div className="px-5 pb-6 pt-5">
+          <GreffioLogo variant="inverse" className="text-xl" />
+          <h1 className="mt-6 text-[1.65rem] font-extrabold leading-tight tracking-tight">
+            Vos formalités, simplifiées.
+          </h1>
+          <p className="mt-2 max-w-sm text-sm leading-6 text-white/85">
+            Reprenez un dossier ou démarrez une création — même expérience que Legalstart, avec votre équipe Greffio.
+          </p>
+        </div>
+        <div className="grid grid-cols-3 gap-px bg-white/10">
+          {['Dossier', 'Signature', 'Kbis'].map((label) => (
+            <div key={label} className="bg-white/5 px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-white/90">
+              {label}
+            </div>
+          ))}
+        </div>
+      </div>
     </MobileAnimatedSection>
 
-    <MobileAnimatedSection delay={0.05} className="mt-6 space-y-3">
-      <Button asChild size="lg" className="h-12 w-full justify-between rounded-2xl">
-        <Link to="/simulateur">
-          Simuler une formalité
-          <Sparkles className="h-5 w-5" />
+    <MobileAnimatedSection delay={0.04} className="mt-5 grid grid-cols-3 gap-2">
+      {quickLinks.map(({ to, label, icon: Icon, hint }) => (
+        <Link
+          key={to}
+          to={to}
+          className="flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-white px-2 py-4 text-center shadow-elevation-sm active:bg-secondary/40"
+        >
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-primary">
+            <Icon className="h-5 w-5" />
+          </span>
+          <span className="text-xs font-extrabold">{label}</span>
+          <span className="text-[10px] leading-4 text-muted-foreground">{hint}</span>
         </Link>
-      </Button>
-      <Button asChild size="lg" variant="outline" className="h-12 w-full justify-between rounded-2xl bg-white">
+      ))}
+    </MobileAnimatedSection>
+
+    <MobileAnimatedSection delay={0.06} className="mt-6 space-y-3">
+      <Button asChild size="lg" className="h-12 w-full justify-between rounded-2xl text-base font-bold">
         <Link to="/login">
           Me connecter
           <LogIn className="h-5 w-5" />
         </Link>
       </Button>
-      <Button asChild size="lg" variant="outline" className="h-12 w-full justify-between rounded-2xl bg-white">
+      <Button asChild size="lg" variant="outline" className="h-12 w-full justify-between rounded-2xl bg-white text-base font-bold">
         <Link to="/signup">
           Créer mon espace
           <UserPlus className="h-5 w-5" />
@@ -39,23 +70,25 @@ export const NativeAppHomePage = () => (
       </Button>
     </MobileAnimatedSection>
 
-    <MobileAnimatedSection delay={0.1} className="mt-8">
-      <div className="rounded-3xl border border-primary/20 bg-gradient-to-br from-white via-secondary/30 to-white p-5 shadow-elevation-sm">
-        <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
-            <FolderKanban className="h-5 w-5 text-primary" />
-          </span>
-          <div>
-            <p className="text-sm font-extrabold text-foreground">Déjà client ?</p>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              Connectez-vous pour reprendre votre dossier là où vous l&apos;avez laissé.
-            </p>
-            <Link to="/login" className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-primary">
-              Accéder à mon espace
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </div>
+    <MobileAnimatedSection delay={0.08} className="mt-8">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-extrabold uppercase tracking-wide text-muted-foreground">Formalités populaires</h2>
+        <Link to="/services" className="text-xs font-bold text-primary">Tout voir</Link>
+      </div>
+      <div className="space-y-2">
+        {featured.map((service) => (
+          <Link
+            key={service.id}
+            to={getServiceRoute(service.id)}
+            className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-white px-4 py-3.5 shadow-elevation-sm"
+          >
+            <div className="min-w-0">
+              <p className="truncate text-sm font-extrabold">{service.title}</p>
+              <p className="text-xs font-bold text-primary">{service.price}{service.time ? ` · ${service.time}` : ''}</p>
+            </div>
+            <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+          </Link>
+        ))}
       </div>
     </MobileAnimatedSection>
   </MobilePageContainer>

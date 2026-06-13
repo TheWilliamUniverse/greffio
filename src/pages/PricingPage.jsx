@@ -8,6 +8,7 @@ import { PricingFaqSection } from '@/components/pricing/PricingFaqSection.jsx';
 import { LandingPricingSection } from '@/components/pricing/LandingPricingSection.jsx';
 import { motion } from 'framer-motion';
 import { PublicPageLayout } from '@/components/layout/PublicPageLayout.jsx';
+import { usePricingMotion } from '@/components/pricing/usePricingMotion.js';
 
 export const PricingPage = () => {
   const { reveal } = usePricingMotion();

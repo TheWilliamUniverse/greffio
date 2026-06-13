@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { FileSignature, PenLine, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
@@ -96,60 +97,76 @@ export const SignatureAdoptPanel = ({
   };
 
   return (
-    <div className="flex max-h-[min(92dvh,760px)] flex-col overflow-hidden rounded-2xl border border-[#d4e2f5] bg-[#0f172a] text-white shadow-xl">
-      <div className="flex-1 overflow-y-auto px-6 pb-4 pt-6">
-        <p className="text-lg font-bold">Adopter votre signature</p>
-        <p className="mt-1 text-sm text-white/70">
-          Consentement simple dans Greffio pour formaliser votre accord sur ce document.
-        </p>
-
-        <div className="mt-5 space-y-3">
+    <div className="flex max-h-[min(92dvh,760px)] flex-col overflow-hidden rounded-3xl border border-border bg-white shadow-elevation-md">
+      <div className="border-b border-border bg-[#f6f8fc] px-5 py-4">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-white">
+            <FileSignature className="h-5 w-5" />
+          </span>
           <div>
-            <Label className="text-white/80">Votre nom complet *</Label>
+            <p className="text-base font-extrabold text-foreground">Signer ce document</p>
+            <p className="text-xs text-muted-foreground">Signature électronique simple Greffio (SES)</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 pb-4 pt-5">
+        <div className="space-y-3">
+          <div>
+            <Label htmlFor="sig-name">Nom complet *</Label>
             <Input
-              className="mt-1 h-11 border-white/20 bg-white/10 text-base text-white"
+              id="sig-name"
+              className="mt-1 h-11 rounded-xl text-base"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
             />
           </div>
           <div>
-            <Label className="text-white/80">Email du signataire *</Label>
+            <Label htmlFor="sig-email">Email *</Label>
             <Input
+              id="sig-email"
               type="email"
               inputMode="email"
               autoComplete="email"
-              className="mt-1 h-11 border-white/20 bg-white/10 text-base text-white"
+              className="mt-1 h-11 rounded-xl text-base"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-4 flex gap-2">
           {[
-            { key: 'generated', label: 'Généré automatiquement' },
-            { key: 'drawn', label: 'Dessiner' },
-          ].map((tab) => (
+            { key: 'generated', label: 'Automatique', icon: Sparkles },
+            { key: 'drawn', label: 'Dessiner', icon: PenLine },
+          ].map(({ key, label, icon: Icon }) => (
             <button
-              key={tab.key}
+              key={key}
               type="button"
-              className={`min-h-[44px] rounded-lg px-3 py-2 text-sm ${mode === tab.key ? 'bg-white font-semibold text-[#0f172a]' : 'bg-white/10 text-white/80'}`}
-              onClick={() => setMode(tab.key)}
+              className={`flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition-colors ${
+                mode === key
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border bg-white text-muted-foreground'
+              }`}
+              onClick={() => setMode(key)}
             >
-              {tab.label}
+              <Icon className="h-4 w-4" />
+              {label}
             </button>
           ))}
         </div>
 
-        <div className="mt-4 min-h-[100px] rounded-xl border border-white/20 bg-black/40 p-4">
-          <p className="text-xs uppercase tracking-wide text-white/50">Aperçu de la signature</p>
+        <div className="mt-4 rounded-2xl border border-dashed border-primary/30 bg-[#f6f8fc] p-4">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Aperçu</p>
           {mode === 'generated' ? (
-            <p className="mt-3 text-3xl text-white" style={{ fontFamily: SIGNATURE_FONT }}>{previewName}</p>
+            <p className="mt-3 text-3xl text-[hsl(var(--greffio-blue-900))]" style={{ fontFamily: SIGNATURE_FONT }}>
+              {previewName}
+            </p>
           ) : (
             <canvas
               ref={canvasRef}
               height={90}
-              className="mt-2 h-[90px] w-full cursor-crosshair touch-none rounded-lg bg-white"
+              className="mt-2 h-[90px] w-full cursor-crosshair touch-none rounded-xl border border-border bg-white"
               onMouseDown={startDraw}
               onMouseMove={draw}
               onMouseUp={endDraw}
@@ -161,33 +178,33 @@ export const SignatureAdoptPanel = ({
           )}
         </div>
 
-        <label className="mt-4 flex items-start gap-2 text-sm text-white/80">
+        <label className="mt-4 flex items-start gap-3 rounded-2xl border border-border bg-white p-3 text-sm leading-6 text-muted-foreground">
           <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1" />
           <span>
-            En cliquant sur « Signer », je reconnais avoir vérifié les informations du document et j&apos;accepte que mon consentement simple soit enregistré dans Greffio pour ce document.
+            J&apos;ai lu le document, mes informations sont exactes et j&apos;accepte que ma signature simple soit enregistrée dans Greffio avec horodatage et preuve d&apos;intégrité.
           </span>
         </label>
 
         {errorMessage ? (
-          <p className="mt-3 rounded-lg border border-red-400/40 bg-red-950/40 p-3 text-sm text-red-200">{errorMessage}</p>
+          <p className="mt-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{errorMessage}</p>
         ) : null}
       </div>
 
       <MobileStickyFormActions
         fixed={false}
-        className="border-white/15 bg-[#0f172a] shadow-[0_-12px_32px_rgba(0,0,0,0.35)]"
-        innerClassName="[&_button]:h-11 [&_button]:flex-1 sm:[&_button]:flex-none"
+        className="border-t border-border bg-white"
+        innerClassName="[&_button]:h-12 [&_button]:flex-1 [&_button]:rounded-2xl sm:[&_button]:flex-none"
       >
-        <Button type="button" variant="outline" className="border-white/30 bg-transparent text-white" onClick={onCancel}>
+        <Button type="button" variant="outline" className="bg-white" onClick={onCancel}>
           Annuler
         </Button>
         <Button
           type="button"
-          className="h-11"
+          className="font-bold"
           disabled={loading || !consent || !fullName.trim() || !email.includes('@')}
           onClick={handleConfirm}
         >
-          {loading ? 'Signature…' : 'Adopter et signer'}
+          {loading ? 'Signature…' : 'Signer le document'}
         </Button>
       </MobileStickyFormActions>
     </div>

@@ -44,6 +44,7 @@ export const MOBILE_SHELL_EXCLUDED_PREFIXES = [
   '/ops-legacy',
   '/ops-observability',
   '/signature/',
+  '/callback',
 ];
 
 const isMobileShellExcluded = (pathname) => {

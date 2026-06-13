@@ -18,3 +18,11 @@ export const resolveSignatureProvider = () => {
 export const shouldUseSignwellForSignature = () => resolveSignatureProvider() === 'signwell';
 
 export const isGreffioInternalSignature = () => resolveSignatureProvider() === GREFFIO_INTERNAL_PROVIDER;
+
+/** Mention légale affichée dans les panneaux de signature. */
+export const getSignatureLegalNotice = () => (
+  'Signature électronique simple (SES) enregistrée par Greffio avec horodatage, identité du signataire et empreinte documentaire.'
+);
+
+/** Ligne de preuve estampillée sur le PDF signé. */
+export const getSignatureProofLine = () => 'Greffio — signature électronique simple (SES)';

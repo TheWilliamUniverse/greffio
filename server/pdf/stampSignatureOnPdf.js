@@ -166,6 +166,7 @@ export const stampSignatureOnPdf = async ({
 
   const footerLines = [
     `Document signé le ${signedLabel}`,
+    'Greffio — signature électronique simple (SES)',
     ...(proofLines || []).slice(0, 2),
   ];
   if (footerLines.length) {

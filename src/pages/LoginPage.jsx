@@ -211,18 +211,23 @@ export const LoginPage = () => {
   }, [nativeApp, step, isLoading, mfaMode, emailCodeSent, otpCode]);
 
   return (
-    <div className={`grid bg-background ${nativeApp ? 'min-h-[100dvh] grid-rows-[auto_1fr]' : 'min-h-[calc(100vh-4rem)] lg:grid-cols-[1.05fr_0.95fr]'}`}>
-      {nativeApp ? (
-        <section className="bg-[hsl(var(--greffio-blue))] px-5 pb-7 pt-[calc(env(safe-area-inset-top)+1.25rem)] text-white">
-          <GreffioLogo variant="inverse" to="/app/home" />
-          <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-bold">
-            <ShieldCheck className="h-4 w-4" />
-            Accès sécurisé client
-          </p>
-          <h1 className="mt-4 text-2xl font-extrabold leading-tight">
-            Retrouvez vos dossiers, vos messages et vos prochaines actions.
-          </h1>
-        </section>
+    <div className={`bg-background ${mobileAuth ? 'flex min-h-[100dvh] flex-col' : `grid min-h-[calc(100vh-4rem)] lg:grid-cols-[1.05fr_0.95fr]`}`}>
+      {mobileAuth ? (
+        nativeApp ? (
+          <section className="bg-[hsl(var(--greffio-blue))] px-5 pb-6 pt-[calc(env(safe-area-inset-top)+1rem)] text-white">
+            <GreffioLogo variant="inverse" to="/app/home" />
+            <h1 className="mt-5 text-[1.65rem] font-extrabold leading-tight tracking-tight">
+              Bon retour sur Greffio
+            </h1>
+            <p className="mt-2 text-sm leading-6 text-white/80">
+              Connectez-vous pour reprendre vos dossiers et signatures.
+            </p>
+          </section>
+        ) : (
+          <div className="px-5 pb-2 pt-[calc(env(safe-area-inset-top)+1.25rem)]">
+            <GreffioLogo variant="full" to="/" className="text-xl" />
+          </div>
+        )
       ) : (
       <section className="hidden bg-[hsl(var(--greffio-blue))] p-10 text-white lg:flex lg:flex-col lg:justify-between">
         <GreffioLogo variant="inverse" to="/" />
@@ -242,27 +247,34 @@ export const LoginPage = () => {
       </section>
       )}
 
-      <section className={`flex items-center justify-center px-4 sm:px-6 ${nativeApp ? 'py-8 pb-[calc(env(safe-area-inset-bottom)+1rem)]' : 'py-12 lg:px-8'}`}>
+      <section className={`flex flex-1 items-start justify-center px-4 sm:px-6 ${mobileAuth ? 'py-6 pb-[calc(env(safe-area-inset-bottom)+1rem)]' : 'items-center py-12 lg:px-8'}`}>
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
-          className={`w-full max-w-md ${nativeApp ? 'rounded-2xl border border-border bg-white p-6 shadow-elevation-md' : 'rounded-md border border-border bg-white p-8 shadow-elevation-md'}`}
+          className={`w-full max-w-md ${mobileAuth ? 'rounded-3xl border-0 bg-white p-6 shadow-elevation-md sm:border sm:border-border' : 'rounded-md border border-border bg-white p-8 shadow-elevation-md'}`}
         >
           {step === 'credentials' ? (
             <>
-              {!nativeApp ? (
-              <div className="mb-6 lg:hidden">
-                <GreffioLogo variant="full" to="/" />
-              </div>
+              {!mobileAuth ? (
+                <div className="mb-6 lg:hidden">
+                  <GreffioLogo variant="full" to="/" />
+                </div>
+              ) : !nativeApp ? (
+                <div className="mb-5">
+                  <h2 className="text-2xl font-extrabold tracking-tight">Connexion</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">Accédez à votre espace client Greffio.</p>
+                </div>
               ) : null}
-              <div>
-                <LockKeyhole className="mb-5 h-9 w-9 text-primary" />
-                <h2 className="text-3xl font-extrabold">Connexion</h2>
-                <p className="mt-2 text-sm text-muted-foreground">Connexion sécurisée par email et mot de passe.</p>
-              </div>
+              {!mobileAuth ? (
+                <div>
+                  <LockKeyhole className="mb-5 h-9 w-9 text-primary" />
+                  <h2 className="text-3xl font-extrabold">Connexion</h2>
+                  <p className="mt-2 text-sm text-muted-foreground">Connexion sécurisée par email et mot de passe.</p>
+                </div>
+              ) : null}
 
-              <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
+              <form className={`space-y-5 ${mobileAuth ? 'mt-2' : 'mt-6'}`} onSubmit={handleSubmit}>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email ou identifiant</Label>
                   <div className="relative">
@@ -312,7 +324,7 @@ export const LoginPage = () => {
 
                 <Button
                   type="submit"
-                  className="h-11 w-full justify-between"
+                  className={`w-full justify-between ${mobileAuth ? 'h-12 rounded-2xl text-base font-bold' : 'h-11'}`}
                   disabled={isLoading || (showLoginChallenge && !hasCaptchaToken)}
                 >
                   {isLoading ? 'Ouverture de l’espace...' : 'Continuer'}

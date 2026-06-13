@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Download, FileSignature } from 'lucide-react';
+import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { SignatureAdoptPanel } from '@/components/signature/SignatureAdoptPanel.jsx';
 import { SignatureDocumentAcknowledge } from '@/components/signature/SignatureDocumentAcknowledge.jsx';
 import { SignwellPublicSigningPanel } from '@/components/signature/SignwellPublicSigningPanel.jsx';
@@ -100,38 +101,57 @@ export const SignaturePublicPage = () => {
   };
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center bg-[#0f172a] text-white">Chargement…</div>;
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center bg-[#f6f8fc] text-sm text-muted-foreground">
+        Chargement du document…
+      </div>
+    );
   }
 
   if (error && !session) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0f172a] p-6 text-center text-white">
-        <p>{error}</p>
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#f6f8fc] p-6 text-center">
+        <p className="max-w-sm text-sm text-destructive">{error}</p>
       </div>
     );
   }
 
   if (done) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#0f172a] p-6 text-center text-white">
-        <CheckCircle2 className="h-14 w-14 text-emerald-400" />
-        <h1 className="mt-4 text-2xl font-bold">Signature effectuée</h1>
-        <p className="mt-2 max-w-md text-white/75">
-          Vous avez signé ce document. Vous recevrez un exemplaire signé par e-mail.
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#f6f8fc] px-6 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+          <CheckCircle2 className="h-9 w-9" />
+        </div>
+        <h1 className="mt-5 text-2xl font-extrabold text-foreground">Document signé</h1>
+        <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+          Votre signature a été enregistrée. Un exemplaire signé vous sera envoyé par e-mail.
+        </p>
+        <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-bold text-primary shadow-elevation-sm">
+          <Download className="h-3.5 w-3.5" />
+          Preuve Greffio archivée
         </p>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-[#0f172a]">
-      <header className="border-b border-white/10 px-5 py-4 text-white">
-        <p className="text-xs uppercase tracking-wide text-amber-300/90">Signature en attente</p>
-        <h1 className="text-lg font-bold">{session?.documentTitle}</h1>
-        <p className="text-sm text-white/60">{session?.companyName}</p>
+    <div className="flex min-h-[100dvh] flex-col bg-[#f6f8fc]">
+      <header className="border-b border-border bg-white px-4 py-4">
+        <GreffioLogo variant="full" className="text-lg" />
+        <div className="mt-4 flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-white">
+            <FileSignature className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-primary">Signature en attente</p>
+            <h1 className="text-base font-extrabold leading-snug text-foreground">{session?.documentTitle}</h1>
+            <p className="text-xs text-muted-foreground">{session?.companyName}</p>
+          </div>
+        </div>
       </header>
-      <div className="grid flex-1 lg:grid-cols-2">
-        <div className="min-h-[50vh] border-b border-white/10 px-4 pb-4 lg:min-h-0 lg:border-b-0 lg:border-r lg:border-white/10">
+
+      <div className="flex flex-1 flex-col lg:grid lg:grid-cols-2">
+        <div className="border-b border-border px-4 py-4 lg:border-b-0 lg:border-r">
           <PdfPreviewPanel
             title="Document à signer"
             blobUrl={previewBlobUrl}
@@ -143,7 +163,7 @@ export const SignaturePublicPage = () => {
             onChange={setPreviewAcknowledged}
           />
         </div>
-        <div className="flex items-center justify-center p-6">
+        <div className="flex items-start justify-center p-4 lg:p-6">
           {isSignwellSession ? (
             <SignwellPublicSigningPanel
               signerFullName={session?.signerFullName}

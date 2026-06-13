@@ -5,7 +5,7 @@ import { AuthProvider } from '@/context/AuthContext.jsx';
 import { ProtectedRoute } from '@/components/ProtectedRoute.jsx';
 import { Header } from '@/components/Header.jsx';
 import { LandingPage } from '@/pages/LandingPage.jsx';
-import { PricingPage } from '@/pages/PricingPage.jsx';
+import { PricingEntry } from '@/mobile/entries/PricingEntry.jsx';
 import { FormalityWizardEntry } from '@/mobile/entries/FormalityWizardEntry.jsx';
 import { DossiersEntry } from '@/mobile/entries/DossiersEntry.jsx';
 import { DossierDetailEntry } from '@/mobile/entries/DossierDetailEntry.jsx';
@@ -62,7 +62,7 @@ import { SignaturePublicPage } from '@/pages/SignaturePublicPage.jsx';
 import { SignWellCallbackPage } from '@/pages/SignWellCallbackPage.jsx';
 import { InterfacesPage } from '@/pages/InterfacesPage.jsx';
 import { ServiceLandingPage } from '@/pages/ServiceLandingPage.jsx';
-import { ServicesPage } from '@/pages/ServicesPage.jsx';
+import { ServicesEntry } from '@/mobile/entries/ServicesEntry.jsx';
 import { NotFoundPage } from '@/pages/NotFoundPage.jsx';
 import { HomePage } from '@/pages/HomePage.jsx';
 import { SERVICE_PAGE_SLUGS } from '@/config/serviceLandingPages.js';
@@ -151,9 +151,9 @@ function AppRoutes() {
         <RouteErrorBoundary resetKey={location.pathname}>
           <Routes>
             <Route path="/" element={<LandingPage />} />
-            <Route path="/tarifs" element={<PricingPage />} />
+            <Route path="/tarifs" element={<PricingEntry />} />
             <Route path="/home" element={<HomePage />} />
-            <Route path="/services" element={<ServicesPage />} />
+            <Route path="/services" element={<ServicesEntry />} />
             <Route path="/simulateur" element={<FormalityWizardEntry />} />
             <Route path="/questionnaire" element={<ProtectedRoute><QuestionnaireEntry /></ProtectedRoute>} />
             <Route path="/statuts-gratuits" element={<ProtectedRoute><QuestionnaireEntry /></ProtectedRoute>} />
