@@ -30,6 +30,7 @@ import {
 } from '@/routes/lazyPages.jsx';
 import { SignupPage } from '@/pages/SignupPage.jsx';
 import { LoginPage } from '@/pages/LoginPage.jsx';
+import { AppAuthBridgePage } from '@/pages/AppAuthBridgePage.jsx';
 import { PasswordResetPage } from '@/pages/PasswordResetPage.jsx';
 import { CredentialsUnlockPage } from '@/pages/CredentialsUnlockPage.jsx';
 import { DocumentsEntry } from '@/mobile/entries/DocumentsEntry.jsx';
@@ -110,7 +111,7 @@ const NotFound = () => <NotFoundPage />;
 
 const Layout = ({ children }) => {
   const location = useLocation();
-  const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/services', '/paiement', '/ressources', '/app', '/app/welcome', '/app/home', '/guide', '/procuration', '/contact', '/credentials-unlock', '/login', '/password-reset', '/tarifs', '/creation-entreprise', '/modification-entreprise', '/annonce-legale', '/guichet-unique-inpi', '/kbis', '/guides', '/glossaire', '/faq'];
+  const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/services', '/paiement', '/ressources', '/app', '/app/welcome', '/app/home', '/guide', '/procuration', '/contact', '/credentials-unlock', '/login', '/password-reset', '/auth/app-bridge', '/tarifs', '/creation-entreprise', '/modification-entreprise', '/annonce-legale', '/guichet-unique-inpi', '/kbis', '/guides', '/glossaire', '/faq'];
   const mobileWebShellActive = isMobileBrowserViewport()
     && shouldUseMobileWebShell(location.pathname);
   const shouldHideHeader = hideHeaderRoutes.some((route) => location.pathname === route || location.pathname.startsWith('/service/'))
@@ -159,6 +160,7 @@ function AppRoutes() {
             <Route path="/statuts-gratuits" element={<ProtectedRoute><QuestionnaireEntry /></ProtectedRoute>} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/auth/app-bridge" element={<AppAuthBridgePage />} />
             <Route path="/password-reset" element={<PasswordResetPage />} />
             <Route path="/credentials-unlock" element={<CredentialsUnlockPage />} />
             <Route path="/service/:id" element={<ServiceDetailPage />} />

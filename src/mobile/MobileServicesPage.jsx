@@ -4,6 +4,7 @@ import { ArrowRight, BadgeCheck, Clock3, FileCheck2, Sparkles } from 'lucide-rea
 import { Button } from '@/components/ui/button.jsx';
 import { LEGAL_SERVICES } from '@/config/businessCatalog.js';
 import { getServiceRoute } from '@/config/serviceLandingPages.js';
+import { getServiceCatalogIcon } from '@/config/demarcheVisuals.js';
 import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
 
@@ -75,9 +76,11 @@ export const MobileServicesPage = () => {
                   to={getServiceRoute(service.id)}
                   className="flex items-center gap-3 rounded-2xl border border-border bg-white p-4 shadow-elevation-sm transition-colors active:bg-secondary/30"
                 >
-                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${service.accent || 'bg-secondary'} text-sm font-extrabold text-[hsl(var(--greffio-blue-900))]`}>
-                    {service.title.slice(0, 2).toUpperCase()}
-                  </div>
+                  <img
+                    src={getServiceCatalogIcon(service.id)}
+                    alt=""
+                    className="h-11 w-11 shrink-0 rounded-xl object-contain"
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="truncate text-sm font-extrabold">{service.title}</p>

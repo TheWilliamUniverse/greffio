@@ -5,6 +5,7 @@ import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { LEGAL_SERVICES } from '@/config/businessCatalog.js';
 import { getServiceRoute } from '@/config/serviceLandingPages.js';
+import { getServiceCatalogIcon } from '@/config/demarcheVisuals.js';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
 import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
 
@@ -26,7 +27,7 @@ export const NativeAppHomePage = () => (
             Vos formalités, simplifiées.
           </h1>
           <p className="mt-2 max-w-sm text-sm leading-6 text-white/85">
-            Reprenez un dossier ou démarrez une création — même expérience que Legalstart, avec votre équipe Greffio.
+            Reprenez un dossier ou démarrez une création — questionnaire, signatures et suivi greffe au même endroit.
           </p>
         </div>
         <div className="grid grid-cols-3 gap-px bg-white/10">
@@ -80,9 +81,14 @@ export const NativeAppHomePage = () => (
           <Link
             key={service.id}
             to={getServiceRoute(service.id)}
-            className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-white px-4 py-3.5 shadow-elevation-sm"
+            className="flex items-center gap-3 rounded-2xl border border-border bg-white px-4 py-3.5 shadow-elevation-sm"
           >
-            <div className="min-w-0">
+            <img
+              src={getServiceCatalogIcon(service.id)}
+              alt=""
+              className="h-11 w-11 shrink-0 rounded-xl object-contain"
+            />
+            <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-extrabold">{service.title}</p>
               <p className="text-xs font-bold text-primary">{service.price}{service.time ? ` · ${service.time}` : ''}</p>
             </div>

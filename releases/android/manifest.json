@@ -128,6 +128,16 @@
       "builtAt": "2026-06-13",
       "notesFile": "../MOBILE_RELEASE_1.2.13.md",
       "archivedAt": "2026-06-13"
+    },
+    {
+      "versionName": "1.2.14",
+      "versionCode": 261510013,
+      "artifact": "greffio-1.2.14-261510013.aab",
+      "sha256": "03698565BB3BB18D862E2858A7B061DCFF832917E38117A327924FC31B7BDA45",
+      "sizeBytes": 10012030,
+      "builtAt": "2026-06-13",
+      "notesFile": "../MOBILE_RELEASE_1.2.14.md",
+      "archivedAt": "2026-06-13"
     }
   ],
   "package": "com.greffio.app"

@@ -34,15 +34,15 @@ const parseChangelog = (value) => {
     .filter(Boolean);
 };
 
-const DEFAULT_LATEST_VERSION_CODE = 261510012;
+const DEFAULT_LATEST_VERSION_CODE = 261510013;
 const DEFAULT_MIN_VERSION_CODE = 261422041;
-const DEFAULT_LATEST_VERSION_NAME = '1.2.13';
+const DEFAULT_LATEST_VERSION_NAME = '1.2.14';
 
 const DEFAULT_CHANGELOG = [
-  'Correction connexion native (écran login plus réactif)',
-  'Tarifs et services mobile refondus (style Qonto/Legalstart)',
-  'Signature électronique renforcée avec preuve et certificat',
-  'Parcours signature public clarifié (OTP si activé côté serveur)',
+  'Connexion via la page web Greffio (MFA et récupération mot de passe)',
+  'Création d\'espace simulateur : validation au tap et sans captcha bloquant',
+  'Catalogue formalités : icônes du site, textes sans mention concurrente',
+  'Tarifs et accueil app : copy Greffio uniquement',
   'Stabilité générale et corrections diverses',
 ];
 

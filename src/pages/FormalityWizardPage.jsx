@@ -329,7 +329,9 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     && !isCompanyLookupStep
     && projectSubStep === 0
     && (accountPhase === 'offer' || accountPhase === 'creating');
-  const showAccountChallenge = security.turnstileOnSignup && security.captchaProvider !== 'none';
+  const showAccountChallenge = !isCapacitorNative()
+    && security.turnstileOnSignup
+    && security.captchaProvider !== 'none';
   const hasAccountCaptchaToken = Boolean(accountCaptcha.turnstileToken || accountCaptcha.recaptchaToken);
   const visibleProjectSubSteps = useMemo(() => {
     let subSteps = skipContactStep
@@ -907,8 +909,37 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
   const mobileActionBarPosition = isCapacitorNative()
     ? 'bottom-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom))]'
     : 'bottom-[calc(var(--bottom-nav-height-web)+env(safe-area-inset-bottom))]';
+  useEffect(() => {
+    if (!isCapacitorNative() || step !== 1 || projectSubStep !== 0 || isAccountCreationStep || skipContactStep) return undefined;
+    if (!canContinueContact()) return undefined;
+    const timer = window.setTimeout(() => {
+      advanceProjectFlow();
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [
+    step,
+    projectSubStep,
+    isAccountCreationStep,
+    skipContactStep,
+    activeContactField?.key,
+    data.firstName,
+    data.lastName,
+    data.email,
+    data.phone,
+    data.companyName,
+  ]);
+
+  useEffect(() => {
+    if (!canContinueAccountCreation()) return undefined;
+    const timer = window.setTimeout(() => {
+      void createAccountSpace();
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [accountPassword, isAccountCreationStep, accountPhase, showAccountChallenge, hasAccountCaptchaToken]);
+
   const nativeTapAdvanceWizard = isCapacitorNative() && (
     step === 0
+    || isAccountCreationStep
     || (step === 2 && step2Phase === 'questionnaire' && activeQuestion?.type === 'select' && !questionnaireFinished && !questionExitPhase)
   );
 
@@ -1172,6 +1203,16 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                               ) : null}
                               {showAccountChallenge ? (
                                 <SecurityChallengeWidget action="signup" onTokens={setAccountCaptcha} />
+                              ) : null}
+                              {isMobilePresentation ? (
+                                <Button
+                                  type="button"
+                                  className="mt-4 h-12 w-full rounded-2xl text-base font-bold"
+                                  disabled={!canContinueAccountCreation() || accountPhase === 'creating'}
+                                  onClick={() => void createAccountSpace()}
+                                >
+                                  {accountPhase === 'creating' ? 'Création…' : 'Créer mon espace'}
+                                </Button>
                               ) : null}
                             </form>
                             <ul className="mt-4 space-y-1.5 text-xs leading-5 text-muted-foreground">

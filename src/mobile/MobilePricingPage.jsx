@@ -22,7 +22,7 @@ export const MobilePricingPage = () => {
             Payez au bon moment, sans surprise.
           </h1>
           <p className="mt-2 text-sm leading-6 text-white/85">
-            Frais Greffio, greffe et annonces légales affichés avant validation — comme Legalstart ou Qonto.
+            Frais Greffio, greffe et annonces légales affichés avant validation — sans surprise.
           </p>
         </div>
       </MobileAnimatedSection>

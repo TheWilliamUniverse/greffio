@@ -19,6 +19,8 @@ import { MobileShellOverlayProvider, useMobileShellOverlay } from '@/mobile/cont
 import { useAuth } from '@/hooks/useAuth.js';
 import { isCapacitorNative, logMobileShellRoute, isNativeAuthRoute } from '@/utils/platform.js';
 import { mobileDevLog } from '@/utils/mobileDevLog.js';
+import { isNativeAppAuthCallbackUrl, parseNativeAuthCallbackUrl } from '@/utils/nativeWebAuth.js';
+import { resolveNativePostLoginPath } from '@/utils/nativeColdStart.js';
 
 const AUTH_BOTTOM_NAV_HIDE_PREFIXES = [
   '/paiement',
@@ -52,7 +54,7 @@ const MobileAppShellInner = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const scrollRef = useRef(null);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, applyNativeAuthHandoff } = useAuth();
   const isLanding = location.pathname === '/';
   const isAuthScreen = isNativeAuthRoute(location.pathname);
   const showAuthenticatedNav = isAuthenticated && !isLanding && !isAuthScreen;
@@ -80,6 +82,16 @@ const MobileAppShellInner = ({ children }) => {
     const sub = CapApp.addListener('appUrlOpen', (event) => {
       const raw = String(event?.url || '');
       if (!raw) return;
+      if (isNativeAppAuthCallbackUrl(raw)) {
+        const session = parseNativeAuthCallbackUrl(raw);
+        if (session) {
+          void applyNativeAuthHandoff(session).then(async () => {
+            const target = await resolveNativePostLoginPath();
+            navigate(target || '/dashboard', { replace: true });
+          });
+        }
+        return;
+      }
       try {
         const url = new URL(raw);
         const path = `${url.pathname}${url.search}${url.hash}`;
@@ -93,7 +105,7 @@ const MobileAppShellInner = ({ children }) => {
     return () => {
       void sub.then((handle) => handle.remove());
     };
-  }, [location.pathname, navigate]);
+  }, [applyNativeAuthHandoff, location.pathname, navigate]);
 
   useEffect(() => {
     if (!isCapacitorNative() || !CapApp?.addListener) return undefined;

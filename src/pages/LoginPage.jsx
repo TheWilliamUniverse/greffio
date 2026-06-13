@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
 import { PasswordInput } from '@/components/PasswordInput.jsx';
@@ -15,6 +15,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 import { runtimeConfig } from '@/config/runtime.js';
 import { PUBLISHER_LEGAL_NAME } from '@/config/publisher.js';
 import { isMobileBrowserViewport, isCapacitorNative } from '@/utils/platform.js';
+import { NativeWebLoginPage } from '@/pages/NativeWebLoginPage.jsx';
 import { resolveNativePostLoginPath } from '@/utils/nativeColdStart.js';
 import { SecurityChallengeWidget } from '@/components/security/SecurityChallengeWidget.jsx';
 import { useSecurityConfig } from '@/hooks/useSecurityConfig.js';
@@ -45,8 +46,11 @@ export const LoginPage = () => {
   const mfaAutoSubmitLockRef = useRef(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const mobileAuth = isCapacitorNative() || isMobileBrowserViewport();
   const nativeApp = isCapacitorNative();
+  const nativeAppHandoff = searchParams.get('nativeApp') === '1';
+  const nativeAppReturnPath = searchParams.get('return') || '/auth/app-bridge';
   const redirectTarget = location.state?.from?.pathname || '/dashboard';
   const { login, completeMfaLogin } = useAuth();
   const security = useSecurityConfig();
@@ -103,6 +107,10 @@ export const LoginPage = () => {
     if (result.success) {
       setFailedAttempts(0);
       setCaptcha({ provider: 'turnstile', turnstileToken: '', recaptchaToken: '' });
+      if (nativeAppHandoff && !nativeApp) {
+        navigate(nativeAppReturnPath, { replace: true });
+        return;
+      }
       if (nativeApp) {
         const target = await resolveNativePostLoginPath();
         navigate(target || '/dashboard', { replace: true });
@@ -170,6 +178,10 @@ export const LoginPage = () => {
     setIsLoading(false);
 
     if (result.success) {
+      if (nativeAppHandoff && !nativeApp) {
+        navigate(nativeAppReturnPath, { replace: true });
+        return;
+      }
       if (nativeApp) {
         const target = await resolveNativePostLoginPath();
         navigate(target || '/dashboard', { replace: true });
@@ -209,6 +221,10 @@ export const LoginPage = () => {
     }, 180);
     return () => window.clearTimeout(timer);
   }, [nativeApp, step, isLoading, mfaMode, emailCodeSent, otpCode]);
+
+  if (nativeApp) {
+    return <NativeWebLoginPage />;
+  }
 
   return (
     <div className={`bg-background ${mobileAuth ? 'flex min-h-[100dvh] flex-col' : `grid min-h-[calc(100vh-4rem)] lg:grid-cols-[1.05fr_0.95fr]`}`}>

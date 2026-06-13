@@ -247,3 +247,20 @@ export const getDemarcheVisual = (item) => {
 export const getCategoryVisual = (categoryId) => (
   defaultsByCategory[categoryId] || defaultsByCategory.autres
 );
+
+const SERVICE_CATALOG_ICONS = {
+  'creation-sas': ICONS.creation,
+  'creation-sa': ICONS.creation,
+  'creation-sarl': ICONS.creation,
+  'micro-entreprise': ICONS.creation,
+  'creation-sci': ICONS.creation,
+  modification: ICONS.modification,
+  fermeture: ICONS.etablissementClose,
+  'transfert-siege': ICONS.siegeTransfer,
+  'changement-dirigeant': ICONS.dirigeant,
+};
+
+/** Icône PNG catalogue services (alignée site web). */
+export const getServiceCatalogIcon = (serviceId) => (
+  SERVICE_CATALOG_ICONS[serviceId] || ICONS.creation
+);

@@ -24,6 +24,7 @@ import { rememberLoginAlertsChoice } from '@/utils/userProfile.js';
 import { disableBiometricUnlock, syncBiometricRefreshToken } from '@/utils/biometricAuth.js';
 import { isCapacitorNative } from '@/utils/platform.js';
 import { markFreshNativePasswordLogin } from '@/utils/nativeAppStorage.js';
+import { persistNativeAuthSession } from '@/utils/nativeWebAuth.js';
 import { initializeClientDataCache, purgeEphemeralClientData } from '@/utils/clientDataCache.js';
 import { setActiveSessionUserId } from '@/utils/sessionStore.js';
 import { setApiUnauthorizedHandler } from '@/api/client.js';
@@ -326,6 +327,28 @@ export const AuthProvider = ({ children }) => {
     return { success: true, user: updated };
   };
 
+  const applyNativeAuthHandoff = async (session) => {
+    if (!session?.accessToken || !session?.refreshToken || !session?.user) {
+      return { success: false, error: 'Session invalide.' };
+    }
+    persistNativeAuthSession(session);
+    setActiveSessionUserId(session.user?.id || null);
+    initializeClientDataCache(session.user?.id || null);
+    setCurrentUser(session.user);
+    saveSessions([makeSession(session.user.email || session.user.id)]);
+    markFreshNativePasswordLogin();
+    try {
+      await syncBiometricRefreshToken({
+        email: session.user?.email,
+        refreshToken: session.refreshToken,
+      });
+    } catch (_biometricError) {
+      // non-blocking
+    }
+    toast.success('Connexion réussie');
+    return { success: true, user: session.user };
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -337,6 +360,7 @@ export const AuthProvider = ({ children }) => {
         signup,
         logout,
         updateProfile,
+        applyNativeAuthHandoff,
       }}
     >
       {children}
