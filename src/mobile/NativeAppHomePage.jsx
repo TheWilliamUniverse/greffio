@@ -20,9 +20,9 @@ const featured = LEGAL_SERVICES.filter((s) => s.badge === 'Populaire' || s.price
 export const NativeAppHomePage = () => (
   <MobilePageContainer className="pb-6">
     <MobileAnimatedSection delay={0}>
-      <div className="overflow-hidden rounded-3xl bg-[hsl(var(--greffio-blue))] text-white shadow-elevation-md">
+      <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-[hsl(var(--greffio-blue-900))] via-[hsl(var(--greffio-blue))] to-[hsl(var(--greffio-blue))] text-white shadow-elevation-md">
         <div className="px-5 pb-6 pt-5">
-          <GreffioLogo variant="inverse" className="text-xl" />
+          <GreffioLogo variant="wordmark-on-blue" className="text-xl" />
           <h1 className="mt-6 text-[1.65rem] font-extrabold leading-tight tracking-tight">
             Vos formalités, simplifiées.
           </h1>

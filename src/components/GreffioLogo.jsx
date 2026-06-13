@@ -3,9 +3,41 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils.js';
 
+const WORDMARK_FONT = "'Plus Jakarta Sans', sans-serif";
+
+const resolveVariant = (variant) => {
+  if (variant === 'icon-only' || variant === 'mark') return 'mark';
+  if (variant === 'tile' || variant === 'inverse') return 'tile';
+  if (variant === 'wordmark-on-blue' || variant === 'on-blue') return 'wordmark-on-blue';
+  if (variant === 'wordmark' || variant === 'full') return 'wordmark';
+  return 'wordmark';
+};
+
 export const GreffioLogo = ({ variant = 'full', className = '', to }) => {
-  const isIconOnly = variant === 'icon-only' || variant === 'mark';
-  const isTile = variant === 'tile' || variant === 'inverse';
+  const resolved = resolveVariant(variant);
+  const isIconOnly = resolved === 'mark';
+  const isTile = resolved === 'tile';
+  const isOnBlue = resolved === 'wordmark-on-blue';
+
+  const wordmark = (
+    <span
+      className={cn(
+        'logo-sheen inline-flex items-center font-extrabold leading-none',
+        isTile
+          ? 'rounded-md bg-[hsl(var(--greffio-blue))] px-5 py-3 text-3xl text-white shadow-elevation-md md:text-4xl'
+          : isOnBlue
+            ? 'text-2xl text-white md:text-3xl'
+            : 'text-3xl text-[hsl(var(--greffio-blue))] md:text-4xl',
+        !isOnBlue && 'rounded-md',
+        className,
+      )}
+      style={{ fontFamily: WORDMARK_FONT }}
+      translate="no"
+      lang="fr"
+    >
+      Greffio
+    </span>
+  );
 
   const logo = (
     <motion.span
@@ -13,7 +45,11 @@ export const GreffioLogo = ({ variant = 'full', className = '', to }) => {
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -1 }}
       transition={{ duration: 0.25 }}
-      className={cn('notranslate inline-flex items-center select-none', !to && className)}
+      className={cn(
+        'notranslate inline-flex items-center select-none',
+        isOnBlue &&
+          'rounded-lg bg-white/10 px-3.5 py-2 ring-1 ring-inset ring-white/15 shadow-[0_2px_14px_rgba(10,18,32,0.2)] backdrop-blur-[1px]',
+      )}
       translate="no"
       lang="fr"
       aria-hidden={Boolean(to)}
@@ -22,24 +58,12 @@ export const GreffioLogo = ({ variant = 'full', className = '', to }) => {
         <img
           src="/icons/greffio-icon.svg"
           alt=""
-          className={cn('h-11 w-11 rounded-md shadow-elevation-sm', className)}
+          className={cn('h-11 w-11 rounded-md shadow-elevation-sm', !to && className)}
           width={44}
           height={44}
         />
       ) : (
-        <span
-          className={cn(
-            'logo-sheen inline-flex items-center rounded-md font-extrabold leading-none',
-            isTile ?
-               'bg-[hsl(var(--greffio-blue))] px-5 py-3 text-3xl text-white shadow-elevation-md md:text-4xl'
-              : 'text-3xl text-[hsl(var(--greffio-blue))] md:text-4xl'
-          )}
-          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-          translate="no"
-          lang="fr"
-        >
-          Greffio
-        </span>
+        wordmark
       )}
     </motion.span>
   );
@@ -50,7 +74,8 @@ export const GreffioLogo = ({ variant = 'full', className = '', to }) => {
         to={to}
         className={cn(
           'inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
-          className,
+          isOnBlue &&
+            'rounded-lg focus-visible:ring-offset-[hsl(var(--greffio-blue))]',
         )}
         aria-label="Greffio — Retour à l’accueil"
         translate="no"

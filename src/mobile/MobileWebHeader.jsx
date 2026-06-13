@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BrandName } from '@/components/BrandName.jsx';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { MobileMenuButton } from '@/mobile/MobileAuthenticatedNav.jsx';
 import { MobileCockpitHeaderActions } from '@/mobile/ui/MobileCockpitHeaderActions.jsx';
@@ -28,11 +27,8 @@ export const MobileWebHeader = ({ title, onMenuClick }) => {
           </>
         ) : (
           <>
-            <Link to={homePath} className="flex min-w-0 flex-1 items-center gap-2.5" aria-label="Accueil Greffio">
-              <GreffioLogo variant="mark" className="h-9 w-9 shrink-0" />
-              <span className="truncate text-lg font-extrabold tracking-tight text-[hsl(var(--greffio-blue-900))]">
-                <BrandName />
-              </span>
+            <Link to={homePath} className="flex min-w-0 flex-1 items-center" aria-label="Accueil Greffio">
+              <GreffioLogo variant="full" className="text-xl" />
             </Link>
             {title ? (
               <p className="truncate text-sm font-bold text-[hsl(var(--greffio-blue-900))]">{title}</p>

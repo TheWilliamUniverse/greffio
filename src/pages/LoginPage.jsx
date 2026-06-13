@@ -231,8 +231,8 @@ export const LoginPage = () => {
     <div className={`bg-background ${mobileAuth ? 'flex min-h-[100dvh] flex-col' : `grid min-h-[calc(100vh-4rem)] lg:grid-cols-[1.05fr_0.95fr]`}`}>
       {mobileAuth ? (
         nativeApp ? (
-          <section className="bg-[hsl(var(--greffio-blue))] px-5 pb-6 pt-[calc(env(safe-area-inset-top)+1rem)] text-white">
-            <GreffioLogo variant="inverse" to="/app/home" />
+          <section className="bg-gradient-to-b from-[hsl(var(--greffio-blue-900))] via-[hsl(var(--greffio-blue))] to-[hsl(var(--greffio-blue))] px-5 pb-7 pt-[calc(env(safe-area-inset-top)+1rem)] text-white">
+            <GreffioLogo variant="wordmark-on-blue" to="/app/home" className="text-xl" />
             <h1 className="mt-5 text-[1.65rem] font-extrabold leading-tight tracking-tight">
               Bon retour sur Greffio
             </h1>

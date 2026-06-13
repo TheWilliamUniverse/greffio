@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BrandName } from '@/components/BrandName.jsx';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { MobileMenuButton } from '@/mobile/MobileAuthenticatedNav.jsx';
 import { MobileCockpitHeaderActions } from '@/mobile/ui/MobileCockpitHeaderActions.jsx';
@@ -14,13 +13,10 @@ export const MobileTopBar = ({
     <div className="flex min-h-[4.75rem] items-center justify-between gap-2 px-4 py-2.5">
       <div className="flex min-w-0 flex-1 items-center gap-2">
         {onMenuClick ? <MobileMenuButton onClick={onMenuClick} className="shrink-0" /> : null}
-        <Link to="/dashboard" className="flex min-w-0 items-center gap-2">
-          <GreffioLogo variant="mark" className="h-8 w-auto" />
+        <Link to="/dashboard" className="flex min-w-0 items-center">
           <div className="min-w-0">
-            <span className="block truncate text-sm font-extrabold tracking-tight text-[hsl(var(--greffio-blue-900))]">
-              <BrandName />
-            </span>
-            <span className="block truncate text-[11px] font-medium text-muted-foreground">Espace client</span>
+            <GreffioLogo variant="full" className="text-lg leading-none" />
+            <span className="mt-0.5 block truncate text-[11px] font-medium text-muted-foreground">Espace client</span>
           </div>
         </Link>
       </div>
