@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, LayoutGrid, LogIn, Receipt, Sparkles, UserPlus } from 'lucide-react';
+import { COMPARATOR_PAGE_PATH } from '@/components/comparator/LegalFormComparatorPromoCard.jsx';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { LEGAL_SERVICES } from '@/config/businessCatalog.js';
@@ -20,9 +21,9 @@ const featured = LEGAL_SERVICES.filter((s) => s.badge === 'Populaire' || s.price
 export const NativeAppHomePage = () => (
   <MobilePageContainer className="pb-6">
     <MobileAnimatedSection delay={0}>
-      <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-[hsl(var(--greffio-blue-900))] via-[hsl(var(--greffio-blue))] to-[hsl(var(--greffio-blue))] text-white shadow-elevation-md">
+      <div className="overflow-hidden rounded-3xl bg-[hsl(var(--greffio-blue))] text-white shadow-elevation-md">
         <div className="px-5 pb-6 pt-5">
-          <GreffioLogo variant="wordmark-on-blue" className="text-xl" />
+          <GreffioLogo variant="inverse" className="text-xl" />
           <h1 className="mt-6 text-[1.65rem] font-extrabold leading-tight tracking-tight">
             Vos formalités, simplifiées.
           </h1>
@@ -96,6 +97,24 @@ export const NativeAppHomePage = () => (
           </Link>
         ))}
       </div>
+    </MobileAnimatedSection>
+
+    <MobileAnimatedSection delay={0.1} className="mt-6">
+      <Link
+        to={COMPARATOR_PAGE_PATH}
+        className="group flex flex-col gap-3 rounded-2xl bg-[hsl(var(--greffio-blue))] p-5 text-white shadow-[0_12px_32px_rgba(30,77,140,0.18)] active:scale-[0.99]"
+      >
+        <div>
+          <p className="text-base font-extrabold leading-snug">Comparer les formes juridiques</p>
+          <p className="mt-1 text-sm font-medium leading-6 text-white/90">
+            SAS, SARL, EI, SCI… simulez et choisissez la forme adaptée à votre projet.
+          </p>
+        </div>
+        <span className="inline-flex items-center gap-1.5 text-sm font-bold text-[hsl(var(--greffio-citron))]">
+          Lancer le comparateur
+          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+        </span>
+      </Link>
     </MobileAnimatedSection>
   </MobilePageContainer>
 );

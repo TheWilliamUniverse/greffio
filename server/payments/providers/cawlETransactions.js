@@ -233,6 +233,7 @@ export function renderHostedCheckoutHtml(payload) {
   const inputs = Object.entries(payload.fields)
     .map(([name, value]) => `<input type="hidden" name="${escapeHtml(name)}" value="${escapeHtml(value)}">`)
     .join('\n');
+  const actionUrl = escapeHtml(payload.actionUrl);
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -240,16 +241,47 @@ export function renderHostedCheckoutHtml(payload) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Redirection paiement sécurisé…</title>
-  <style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f8fbff;color:#1e4d8c}main{text-align:center;padding:2rem}</style>
+  <style>
+    body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f8fbff;color:#1e4d8c}
+    main{text-align:center;padding:2rem;max-width:28rem}
+    button{margin-top:1rem;padding:0.75rem 1.25rem;border:0;border-radius:0.75rem;background:#1e4d8c;color:#fff;font:inherit;font-weight:700;cursor:pointer}
+    #cawl-fallback{display:none;margin-top:1rem}
+  </style>
+  <script>
+    (function () {
+      function submitCheckout() {
+        var form = document.getElementById('cawl-checkout');
+        if (form) form.submit();
+      }
+      function showFallback() {
+        var el = document.getElementById('cawl-fallback');
+        if (el) el.style.display = 'block';
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', submitCheckout);
+      } else {
+        submitCheckout();
+      }
+      window.addEventListener('load', submitCheckout);
+      setTimeout(submitCheckout, 50);
+      setTimeout(submitCheckout, 250);
+      setTimeout(showFallback, 2500);
+    })();
+  </script>
 </head>
-<body>
+<body onload="(function(){var f=document.getElementById('cawl-checkout');if(f)f.submit();})();">
   <main>
     <p>Redirection vers la page de paiement sécurisée CAWL…</p>
-    <form id="cawl-checkout" method="POST" action="${escapeHtml(payload.actionUrl)}">
+    <form id="cawl-checkout" method="POST" action="${actionUrl}">
       ${inputs}
+      <noscript>
+        <p><button type="submit">Continuer vers le paiement sécurisé</button></p>
+      </noscript>
+      <p id="cawl-fallback">
+        <button type="submit">Continuer vers le paiement sécurisé</button>
+      </p>
     </form>
   </main>
-  <script>document.getElementById('cawl-checkout').submit();</script>
 </body>
 </html>`;
 }

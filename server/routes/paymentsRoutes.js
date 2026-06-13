@@ -235,6 +235,11 @@ export const registerPaymentsRoutes = (app, deps) => {
       const html = await adapter.buildHostedCheckoutPage(payment);
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.setHeader('Cache-Control', 'no-store');
+      // Page intermédiaire : autoriser les scripts inline (auto-POST) et la cible e-Transactions.
+      res.setHeader(
+        'Content-Security-Policy',
+        "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action https:",
+      );
       return res.send(html);
     } catch (error) {
       console.error('[payments/cawl/checkout]', error);

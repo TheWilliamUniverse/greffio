@@ -8,6 +8,7 @@ import {
   isCawlETransactionsConfigured,
   mapETransactionsErrorCode,
   parseETransactionsIpn,
+  renderHostedCheckoutHtml,
   resolveCawlETransactionsConfig,
 } from '../providers/cawlETransactions.js';
 import { PAYMENT_STATUSES } from '../types.js';
@@ -77,4 +78,18 @@ test('parseETransactionsIpn maps success code 00000 to paid', () => {
 
 test('mapETransactionsErrorCode treats non-zero as failed', () => {
   assert.equal(mapETransactionsErrorCode('00001'), PAYMENT_STATUSES.FAILED);
+});
+
+test('renderHostedCheckoutHtml auto-submits form with fallbacks', () => {
+  const html = renderHostedCheckoutHtml({
+    actionUrl: 'https://recette-tpeweb.e-transactions.fr/php/',
+    fields: { PBX_CMD: 'pay-1', PBX_TOTAL: '9900' },
+  });
+  assert.match(html, /method="POST"/);
+  assert.match(html, /id="cawl-checkout"/);
+  assert.match(html, /action="https:\/\/recette-tpeweb\.e-transactions\.fr\/php\/"/);
+  assert.match(html, /submitCheckout/);
+  assert.match(html, /onload=/);
+  assert.match(html, /id="cawl-fallback"/);
+  assert.match(html, /Continuer vers le paiement sécurisé/);
 });
