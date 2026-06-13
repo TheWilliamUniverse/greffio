@@ -42,7 +42,7 @@ const FormSlide = ({ formKey, index, total }) => {
     <article
       data-comparator-slide
       className="flex w-[86%] max-w-[380px] shrink-0 snap-center flex-col rounded-2xl border border-border bg-white p-5 shadow-elevation-sm sm:w-[380px]"
-      aria-label={`${form.label} — fiche ${index + 1} sur ${total}`}
+      aria-label={`${form.label} – fiche ${index + 1} sur ${total}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -133,7 +133,7 @@ export const LegalFormComparisonTable = () => {
             Synthèse des principales formes
           </h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Faites défiler les fiches pour comparer. Vue indicative — le choix doit être confirmé selon votre situation.
+            Faites défiler les fiches pour comparer. Vue indicative – le choix doit être confirmé selon votre situation.
           </p>
         </div>
         <div className="hidden items-center gap-2 sm:flex">

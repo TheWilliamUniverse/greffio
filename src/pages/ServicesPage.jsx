@@ -16,6 +16,8 @@ import { Button } from '@/components/ui/button.jsx';
 import { LegalFormComparatorPromoCard } from '@/components/comparator/LegalFormComparatorPromoCard.jsx';
 import { LEGAL_SERVICES } from '@/config/businessCatalog.js';
 import { SERVICE_LANDING_PAGES, getServiceRoute } from '@/config/serviceLandingPages.js';
+import { SeoHead } from '@/components/seo/SeoHead.jsx';
+import { SEO_PAGE_META } from '@/config/seoContent.js';
 
 const pillars = [
   {
@@ -37,7 +39,12 @@ const pillars = [
 
 const categories = [...new Set(LEGAL_SERVICES.map((service) => service.category))];
 
-export const ServicesPage = () => (
+export const ServicesPage = () => {
+  const meta = SEO_PAGE_META.services;
+
+  return (
+  <>
+    <SeoHead title={meta.title} description={meta.description} path={meta.path} jsonLdId="services" />
   <PublicPageLayout footer="minimal">
   <div className="min-h-screen bg-background text-foreground">
     <NavbarDropdown />
@@ -171,4 +178,6 @@ export const ServicesPage = () => (
     <LegalFormComparatorPromoCard variant="section" />
   </div>
   </PublicPageLayout>
-);
+  </>
+  );
+};

@@ -32,7 +32,12 @@ export const searchResourceCatalog = (query) => searchResources(query);
 
 export const getResourceConfig = () => {
   const hasGoCardless = Boolean(process.env.GOCARDLESS_ACCESS_TOKEN || process.env.GOCARDLESS_API_KEY);
-  const hasCawl = Boolean(process.env.CAWL_API_BASE_URL && process.env.CAWL_API_KEY);
+  const hasCawl = Boolean(
+    (process.env.CAWL_PBX_SITE || process.env.CAWL_MERCHANT_ID)
+    && process.env.CAWL_PBX_RANG
+    && (process.env.CAWL_PBX_IDENTIFIANT || process.env.CAWL_API_KEY_ID)
+    && (process.env.CAWL_HMAC_KEY || process.env.CAWL_API_KEY),
+  );
   const hasGooglePay = Boolean(process.env.GOOGLE_PAY_API_KEY || process.env.GOOGLE_PAY_MERCHANT_ID);
   return {
     paymentEnabled: hasGoCardless || hasCawl || hasGooglePay || process.env.NODE_ENV !== 'production',

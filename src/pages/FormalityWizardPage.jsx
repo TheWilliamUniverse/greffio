@@ -48,6 +48,8 @@ import { getFormalityRule, isEiLikeFormality } from '@/config/formalities.js';
 import { lookupCompanyBySiren } from '@/api/company.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { SecurityChallengeWidget } from '@/components/security/SecurityChallengeWidget.jsx';
+import { SeoHead } from '@/components/seo/SeoHead.jsx';
+import { SEO_PAGE_META } from '@/config/seoContent.js';
 import { useSecurityConfig } from '@/hooks/useSecurityConfig.js';
 import {
   contactDetailsFromUser,
@@ -944,6 +946,13 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
   );
 
   return (
+    <>
+      <SeoHead
+        title={SEO_PAGE_META.simulateur.title}
+        description={SEO_PAGE_META.simulateur.description}
+        path={SEO_PAGE_META.simulateur.path}
+        jsonLdId="simulateur"
+      />
     <div className={cn('min-h-screen w-full min-w-0 max-w-[100vw] overflow-x-hidden', isMobilePresentation ? 'bg-[var(--we-bg)]' : 'bg-[var(--we-bg)]')}>
       {!isMobilePresentation ? <NavbarDropdown /> : null}
 
@@ -1109,7 +1118,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                       <p className={cn('text-muted-foreground', isMobilePresentation ? 'simulator-step-subtitle mt-1.5' : 'mt-2')}>
                         {isCompanyLookupStep && 'Signature électronique qualifiée nécessaire pour modifier, cesser ou corriger une société existante.'}
                         {!isCompanyLookupStep && isAccountCreationStep && 'Un mot de passe suffit : votre dossier, vos documents et votre suivi seront réunis au même endroit.'}
-                        {!isCompanyLookupStep && !isAccountCreationStep && projectSubStep === 0 && 'Une question à la fois — vos coordonnées servent au dossier et aux relances Greffio.'}
+                        {!isCompanyLookupStep && !isAccountCreationStep && projectSubStep === 0 && 'Une question à la fois – vos coordonnées servent au dossier et aux relances Greffio.'}
                         {!isCompanyLookupStep && projectSubStep === 1 && 'Une personne physique ou morale peut porter la demande, y compris une société qui crée une filiale.'}
                         {!isCompanyLookupStep && projectSubStep === 2 && 'Sélectionnez la catégorie la plus proche de votre situation, puis continuez.'}
                         {!isCompanyLookupStep && projectSubStep === 3 && 'Comparez les formes disponibles dans cette catégorie.'}
@@ -1244,7 +1253,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                               <div className="min-w-0 flex-1">
                                 <p className="text-xs font-bold uppercase text-primary sm:text-sm">Réf. : {dossierReference}</p>
                                 <p className="text-[11px] text-muted-foreground sm:text-xs">
-                                  {contactStep + 1}/{contactFields.length} — {contactCompletion}%
+                                  {contactStep + 1}/{contactFields.length} – {contactCompletion}%
                                 </p>
                               </div>
                               <div className={cn('relative shrink-0 self-end', isMobilePresentation ? 'h-12 w-12' : 'h-16 w-16')}>
@@ -1419,7 +1428,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                       <p className="text-sm font-bold uppercase text-primary">Questionnaire intelligent</p>
                       <h1 className="mt-2 text-3xl font-extrabold">
                         {step2Phase === 'profile' && (eiLike
-                          ? `Coordonnées — ${data.legalForm}`
+                          ? `Coordonnées – ${data.legalForm}`
                           : 'Dirigeants, capital et coordonnées')}
                         {step2Phase === 'questionnaire' && `Clauses adaptées à ${data.legalForm}`}
                       </h1>
@@ -1428,7 +1437,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                           ? 'Complétez d’abord vos coordonnées. Le questionnaire ciblé s’affichera ensuite, une question à la fois.'
                           : 'Complétez les informations de dirigeants et de capital. Les clauses statutaires suivront, une question à la fois.')}
                         {step2Phase === 'questionnaire' && (eiLike
-                          ? 'Greffio n’affiche que les questions utiles à votre forme — pas de statuts ni de capital social.'
+                          ? 'Greffio n’affiche que les questions utiles à votre forme – pas de statuts ni de capital social.'
                           : `${flattenedQuestions.length} questions pour ${data.legalForm}. Répondez puis validez pour passer à la synthèse.`)}
                       </p>
                     </div>
@@ -1488,7 +1497,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                     <div className="rounded-md border border-border bg-white p-5">
                       <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
                         <div>
-                          <h2 className="text-lg font-extrabold">Clauses et informations — {data.legalForm}</h2>
+                          <h2 className="text-lg font-extrabold">Clauses et informations – {data.legalForm}</h2>
                           <p className="mt-1 text-sm text-muted-foreground">
                             {flattenedQuestions.length} question{flattenedQuestions.length > 1 ? 's' : ''} pour cette forme
                             {eiLike ? ' (parcours allégé).' : '.'}
@@ -1712,7 +1721,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                             <p className="font-extrabold">{documentPreview.subtitle}</p>
                             <p className="text-xs text-muted-foreground">
                               {documentPreview.isFullStatutes
-                                ? (documentPreview.previewMetaLine || `${documentPreview.clauseCount || 0} articles rédigés — document prêt à relire et exporter.`)
+                                ? (documentPreview.previewMetaLine || `${documentPreview.clauseCount || 0} articles rédigés – document prêt à relire et exporter.`)
                                 : 'Document structuré et prêt à compléter dans l’espace sécurisé.'}
                             </p>
                           </div>
@@ -1910,5 +1919,6 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
         ) : null}
       </main>
     </div>
+    </>
   );
 };

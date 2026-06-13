@@ -19,6 +19,9 @@ import {
   INPI_UPLOAD_RULES,
   MODIFICATION_REQUIRED_DOCUMENTS,
 } from '@/config/legalFlow.js';
+import { SeoHead, buildFaqJsonLd } from '@/components/seo/SeoHead.jsx';
+import { SEO_PAGE_META } from '@/config/seoContent.js';
+import { runtimeConfig } from '@/config/runtime.js';
 
 const processTimeline = [
   {
@@ -101,7 +104,24 @@ const faqSections = [
   },
 ];
 
+const guideMeta = SEO_PAGE_META.guide;
+const guideFaqJsonLd = buildFaqJsonLd(
+  faqSections.map((section) => ({
+    question: section.title,
+    answer: section.points.join(' '),
+  })),
+  `${runtimeConfig.appUrl}${guideMeta.path}`,
+);
+
 export const GuidePage = () => (
+  <>
+    <SeoHead
+      title={guideMeta.title}
+      description={guideMeta.description}
+      path={guideMeta.path}
+      jsonLd={guideFaqJsonLd}
+      jsonLdId="guide-faq"
+    />
   <div className="min-h-screen bg-background">
     <header className="border-b border-border bg-white px-6 py-4">
       <div className="mx-auto flex max-w-7xl items-center justify-between">
@@ -120,7 +140,7 @@ export const GuidePage = () => (
     <main className="mx-auto max-w-7xl space-y-7 px-4 py-10 sm:px-6 lg:px-8">
       <section className="rounded-md bg-[hsl(var(--greffio-citron))] p-7 md:p-10">
         <p className="text-sm font-bold uppercase text-primary">Guide complet Greffio</p>
-        <h1 className="mt-2 text-3xl font-extrabold sm:text-4xl">FAQ complète — création et modification d&apos;entreprise</h1>
+        <h1 className="mt-2 text-3xl font-extrabold sm:text-4xl">FAQ complète – création et modification d&apos;entreprise</h1>
         <p className="mt-4 max-w-4xl text-sm leading-7 text-muted-foreground">
           Ce guide rassemble les questions essentielles, les exigences documentaires et les points de vigilance pratiques pour préparer un dossier propre, déposé sans incohérence et suivi jusqu&apos;à l&apos;issue.
         </p>
@@ -207,4 +227,5 @@ export const GuidePage = () => (
       </section>
     </main>
   </div>
+  </>
 );

@@ -3,8 +3,8 @@ import { DEMARCHE_CATALOG } from '@/lib/questionnaireFlow.js';
 import { formatInitiatorType } from '@/utils/initiatorLabels.js';
 
 const formatValue = (value) => {
-  if (value == null || value === '') return '—';
-  if (Array.isArray(value)) return value.length ? `${value.length} élément(s)` : '—';
+  if (value == null || value === '') return '–';
+  if (Array.isArray(value)) return value.length ? `${value.length} élément(s)` : '–';
   return String(value);
 };
 
@@ -67,7 +67,7 @@ export const QuestionnaireRecapPanel = ({ formData = {}, onEditStep }) => (
           label: section.labels[key] || key,
           value: formatSectionValue(section, key, formData[key]),
         }))
-        .filter((row) => row.value !== '—');
+        .filter((row) => row.value !== '–');
       if (!rows.length) return null;
       return (
         <section key={section.title} className="rounded-2xl border border-[#d4e2f5] bg-white p-4 shadow-sm">

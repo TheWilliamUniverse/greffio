@@ -13,6 +13,8 @@ import { SecurityChallengeWidget } from '@/components/security/SecurityChallenge
 import { PublisherLegalBlock } from '@/components/legal/PublisherLegalBlock.jsx';
 import { PublicPageLayout } from '@/components/layout/PublicPageLayout.jsx';
 import { useSecurityConfig } from '@/hooks/useSecurityConfig.js';
+import { SeoHead } from '@/components/seo/SeoHead.jsx';
+import { SEO_PAGE_META } from '@/config/seoContent.js';
 
 export const ContactPage = () => {
   const [form, setForm] = useState({
@@ -73,7 +75,11 @@ export const ContactPage = () => {
     }
   };
 
+  const meta = SEO_PAGE_META.contact;
+
   return (
+    <>
+      <SeoHead title={meta.title} description={meta.description} path={meta.path} jsonLdId="contact" />
     <PublicPageLayout footer="minimal">
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-white px-6 py-4">
@@ -197,5 +203,6 @@ export const ContactPage = () => {
       </main>
     </div>
     </PublicPageLayout>
+    </>
   );
 };

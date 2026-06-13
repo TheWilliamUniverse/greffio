@@ -9,12 +9,17 @@ import { LandingPricingSection } from '@/components/pricing/LandingPricingSectio
 import { motion } from 'framer-motion';
 import { PublicPageLayout } from '@/components/layout/PublicPageLayout.jsx';
 import { usePricingMotion } from '@/components/pricing/usePricingMotion.js';
+import { SeoHead } from '@/components/seo/SeoHead.jsx';
+import { SEO_PAGE_META } from '@/config/seoContent.js';
 
 export const PricingPage = () => {
   const { reveal } = usePricingMotion();
+  const meta = SEO_PAGE_META.tarifs;
 
   return (
-    <PublicPageLayout footer="minimal">
+    <>
+      <SeoHead title={meta.title} description={meta.description} path={meta.path} jsonLdId="tarifs" />
+      <PublicPageLayout footer="minimal">
     <div className="min-h-screen bg-background text-foreground">
       <NavbarDropdown />
 
@@ -48,7 +53,8 @@ export const PricingPage = () => {
         </motion.div>
       </main>
     </div>
-    </PublicPageLayout>
+      </PublicPageLayout>
+    </>
   );
 };
 

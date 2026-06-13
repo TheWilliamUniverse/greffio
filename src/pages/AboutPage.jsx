@@ -6,6 +6,8 @@ import { PublicPageLayout } from '@/components/layout/PublicPageLayout.jsx';
 import { PublisherLegalBlock } from '@/components/legal/PublisherLegalBlock.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { PUBLISHER_BRAND, PUBLISHER_LEGAL_NAME } from '@/config/publisher.js';
+import { SeoHead } from '@/components/seo/SeoHead.jsx';
+import { SEO_PAGE_META } from '@/config/seoContent.js';
 
 const Section = ({ title, children }) => (
   <section className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
@@ -14,7 +16,12 @@ const Section = ({ title, children }) => (
   </section>
 );
 
-export const AboutPage = () => (
+export const AboutPage = () => {
+  const meta = SEO_PAGE_META['a-propos'];
+
+  return (
+  <>
+    <SeoHead title={meta.title} description={meta.description} path={meta.path} jsonLdId="a-propos" />
   <PublicPageLayout footer="minimal">
     <main className="min-h-screen bg-background px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl space-y-6">
@@ -90,4 +97,6 @@ export const AboutPage = () => (
       </div>
     </main>
   </PublicPageLayout>
-);
+  </>
+  );
+};

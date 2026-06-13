@@ -13,7 +13,7 @@ export const STATUS_LABELS = {
   queued: 'En file d’attente',
   processing: 'Analyse en cours',
   analyzed: 'Analyse terminée',
-  needs_review: 'Analyse terminée — relecture conseillée',
+  needs_review: 'Analyse terminée – relecture conseillée',
   exporting: 'Génération du PDF',
   exported: 'PDF prêt',
   failed: 'Échec',

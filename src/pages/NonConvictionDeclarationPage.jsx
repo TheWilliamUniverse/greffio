@@ -305,19 +305,19 @@ export const NonConvictionDeclarationPage = () => {
                 <Input className="mt-1" value={fields.city || ''} onChange={(e) => updateField('city', e.target.value)} />
               </div>
               <div className="sm:col-span-2">
-                <Label>Père — nom et prénom(s)</Label>
+                <Label>Père – nom et prénom(s)</Label>
                 <Input className="mt-1" value={fields.parent1FullName || ''} onChange={(e) => updateField('parent1FullName', e.target.value)} />
               </div>
               <div>
-                <Label>Parent 2 — prénom(s)</Label>
+                <Label>Parent 2 – prénom(s)</Label>
                 <Input className="mt-1" value={fields.parent2FirstNames || ''} onChange={(e) => updateField('parent2FirstNames', e.target.value)} />
               </div>
               <div>
-                <Label>Parent 2 — nom de naissance</Label>
+                <Label>Parent 2 – nom de naissance</Label>
                 <Input className="mt-1" value={fields.parent2BirthName || ''} onChange={(e) => updateField('parent2BirthName', e.target.value)} />
               </div>
               <div className="sm:col-span-2">
-                <Label>Parent 2 — nom d&apos;usage, le cas échéant</Label>
+                <Label>Parent 2 – nom d&apos;usage, le cas échéant</Label>
                 <Input
                   className="mt-1"
                   value={fields.parent2UsageName || ''}
@@ -451,19 +451,19 @@ export const NonConvictionDeclarationPage = () => {
                   <Input className="mt-1" value={fields.city || ''} onChange={(e) => updateField('city', e.target.value)} />
                 </div>
                 <div className="sm:col-span-2">
-                  <Label>Père — nom et prénom(s)</Label>
+                  <Label>Père – nom et prénom(s)</Label>
                   <Input className="mt-1" value={fields.parent1FullName || ''} onChange={(e) => updateField('parent1FullName', e.target.value)} />
                 </div>
                 <div>
-                  <Label>Parent 2 — prénom(s)</Label>
+                  <Label>Parent 2 – prénom(s)</Label>
                   <Input className="mt-1" value={fields.parent2FirstNames || ''} onChange={(e) => updateField('parent2FirstNames', e.target.value)} />
                 </div>
                 <div>
-                  <Label>Parent 2 — nom de naissance</Label>
+                  <Label>Parent 2 – nom de naissance</Label>
                   <Input className="mt-1" value={fields.parent2BirthName || ''} onChange={(e) => updateField('parent2BirthName', e.target.value)} />
                 </div>
                 <div className="sm:col-span-2">
-                  <Label>Parent 2 — nom d&apos;usage, le cas échéant</Label>
+                  <Label>Parent 2 – nom d&apos;usage, le cas échéant</Label>
                   <Input
                     className="mt-1"
                     value={fields.parent2UsageName || ''}

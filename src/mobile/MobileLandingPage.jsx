@@ -245,7 +245,7 @@ export const MobileLandingPage = () => {
           </div>
           <Link to="/services" className="text-sm font-semibold text-primary">Tout voir</Link>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">6 formalités phares — 27 démarches disponibles.</p>
+        <p className="mt-2 text-xs text-muted-foreground">6 formalités phares – 27 démarches disponibles.</p>
         <div className="mt-5 space-y-5">
           {Object.entries(
             featuredServices.reduce((groups, service) => {

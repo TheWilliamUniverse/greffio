@@ -679,7 +679,7 @@ export const QuestionnairePage = () => {
 
     if (stepIndex >= QUESTIONNAIRE_FLOW.length - 1) {
       const resolvedDossierId = dossierId || getCurrentDossierId();
-      toast.success('Questionnaire validé — vos données sont enregistrées.');
+      toast.success('Questionnaire validé – vos données sont enregistrées.');
       const form = String(formData.formeJuridique || '').toUpperCase();
       if (!eiLike && isStatutesSupportedForm(form) && resolvedDossierId) {
         navigate(`/statuts?dossierId=${encodeURIComponent(resolvedDossierId)}`);
@@ -1091,7 +1091,7 @@ export const QuestionnairePage = () => {
       </StepLayout>
 
       <div className="mt-4 rounded-md border border-border bg-white p-4 text-xs text-muted-foreground">
-        Contact Greffio: {runtimeConfig.supportPhone} — {runtimeConfig.supportEmail}
+        Contact Greffio: {runtimeConfig.supportPhone} – {runtimeConfig.supportEmail}
       </div>
       {!canContinue && !stepError && !isNativeTapToAdvanceField(activeField) ? (
         <QuestionnaireNotice variant="vigilance" title="Pour continuer" className="mt-3">

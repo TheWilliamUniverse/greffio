@@ -3,6 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button.jsx';
 import { SERVICE_LANDING_PAGES, SERVICE_LANDING_ROUTES } from '@/config/serviceLandingPages.js';
 import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
+import { SeoHead } from '@/components/seo/SeoHead.jsx';
+import { SEO_SERVICE_META } from '@/config/seoContent.js';
 
 export const ServiceLandingPage = () => {
   const location = useLocation();
@@ -11,6 +13,7 @@ export const ServiceLandingPage = () => {
     : location.pathname;
   const slug = SERVICE_LANDING_ROUTES[normalizedPath];
   const page = slug ? SERVICE_LANDING_PAGES[slug] : null;
+  const seoMeta = slug ? SEO_SERVICE_META[slug] : null;
 
   if (!page) {
     return (
@@ -22,6 +25,23 @@ export const ServiceLandingPage = () => {
   }
 
   return (
+    <>
+      {seoMeta ? (
+        <SeoHead
+          title={seoMeta.title}
+          description={seoMeta.description}
+          path={normalizedPath}
+          jsonLd={{
+            '@context': 'https://schema.org',
+            '@type': 'Service',
+            name: page.title,
+            description: seoMeta.description,
+            provider: { '@type': 'Organization', name: 'Greffio' },
+            areaServed: { '@type': 'Country', name: 'France' },
+          }}
+          jsonLdId={`service-${slug}`}
+        />
+      ) : null}
     <main className="min-h-screen bg-background">
       <section className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
         <div className="rounded-md bg-[hsl(var(--greffio-citron))] p-6">
@@ -89,5 +109,6 @@ export const ServiceLandingPage = () => {
         </div>
       </section>
     </main>
+    </>
   );
 };

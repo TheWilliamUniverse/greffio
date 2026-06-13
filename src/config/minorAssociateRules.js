@@ -140,9 +140,9 @@ export const getMinorAssociateWarnings = (questionnaire = {}) => {
   const { needsEmancipation, needsAuthorization, associates } = getMinorDocumentRequirements(questionnaire);
   associates.filter((a) => a.isMinor).forEach((associate) => {
     if (associate.isMinorEmancipated) {
-      warnings.push(`${associate.label} : mineur émancipé — ordonnance d'émancipation à déposer dans votre espace.`);
+      warnings.push(`${associate.label} : mineur émancipé – ordonnance d'émancipation à déposer dans votre espace.`);
     } else {
-      warnings.push(`${associate.label} : mineur non émancipé — associé possible avec autorisation parentale/tuteur ; pas de fonction de direction.`);
+      warnings.push(`${associate.label} : mineur non émancipé – associé possible avec autorisation parentale/tuteur ; pas de fonction de direction.`);
       if (!associate.legalRepresentatives) {
         warnings.push(`Indiquez les représentants légaux de ${associate.label}.`);
       }

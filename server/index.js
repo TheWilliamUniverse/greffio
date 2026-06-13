@@ -2677,20 +2677,16 @@ registerSignwellRoutes(app, {
   createSignatureRecord,
 });
 
-// Webhook CAWL : on accepte le corps brut (texte) pour permettre la
-// vérification HMAC à venir. Doit être enregistré AVANT le router générique
-// JSON afin de ne pas perdre le payload.
-app.post('/api/webhooks/cawl', express.text({ type: '*/*' }), async (req, res, next) => {
-  if (typeof req.body === 'string') {
-    try {
-      req.rawBody = req.body;
-      req.body = JSON.parse(req.body || '{}');
-    } catch (_error) {
-      req.body = {};
-    }
-  }
-  return next();
-});
+// Webhook CAWL e-Transactions (IPN urlencoded). Corps brut conservé pour
+// vérification RSA de la signature (champ Sign). Avant le parser JSON global.
+app.post(
+  '/api/webhooks/cawl',
+  express.urlencoded({ extended: false }),
+  (req, _res, next) => {
+    req.rawBody = new URLSearchParams(req.body || {}).toString();
+    return next();
+  },
+);
 
 registerOpsRoutes(app, {
   requireAuth,

@@ -33,7 +33,7 @@ export const PRICING_PLANS = [
     name: 'Cabinet partenaire',
     price: 'Sur devis',
     subtitle: 'Multi-clients',
-    text: 'Gestion multi-dossiers, équipe, reporting et marque blanche — ouverture progressive sur candidature.',
+    text: 'Gestion multi-dossiers, équipe, reporting et marque blanche – ouverture progressive sur candidature.',
     cta: 'Nous contacter',
     ctaLink: '/contact?sujet=cabinet-partenaire',
     highlight: false,

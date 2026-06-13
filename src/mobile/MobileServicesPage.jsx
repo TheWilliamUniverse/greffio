@@ -8,6 +8,8 @@ import { getServiceCatalogIcon } from '@/config/demarcheVisuals.js';
 import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
 import { PublicMinimalLegalFooter } from '@/components/layout/PublicMinimalLegalFooter.jsx';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
+import { SeoHead } from '@/components/seo/SeoHead.jsx';
+import { SEO_PAGE_META } from '@/config/seoContent.js';
 
 const pillars = [
   { icon: FileCheck2, title: 'Parcours guidé', text: 'Questionnaire, pièces et contrôles avant dépôt.' },
@@ -24,9 +26,11 @@ const GROUP_LABELS = {
 
 export const MobileServicesPage = () => {
   const categories = [...new Set(LEGAL_SERVICES.map((s) => s.category))];
+  const meta = SEO_PAGE_META.services;
 
   return (
     <>
+      <SeoHead title={meta.title} description={meta.description} path={meta.path} jsonLdId="services-mobile" />
     <MobilePageContainer className="pb-8">
       <MobileAnimatedSection delay={0}>
         <div className="rounded-2xl bg-[hsl(var(--greffio-blue))] px-5 py-6 text-white">
@@ -38,7 +42,7 @@ export const MobileServicesPage = () => {
             Toutes vos formalités, au même endroit.
           </h1>
           <p className="mt-2 text-sm leading-6 text-white/85">
-            Création, modification, fermeture — chaque service mène au simulateur puis à votre dossier.
+            Création, modification, fermeture – chaque service mène au simulateur puis à votre dossier.
           </p>
           <Button asChild className="mt-5 h-11 w-full rounded-2xl bg-white font-bold text-[hsl(var(--greffio-blue-900))] hover:bg-white/95">
             <Link to="/simulateur?type=statuts">

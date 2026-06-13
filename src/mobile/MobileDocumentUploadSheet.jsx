@@ -71,7 +71,7 @@ export const MobileDocumentUploadSheet = ({
               Envoyer un document
             </Drawer.Title>
             <Drawer.Description className="mt-1 text-sm text-muted-foreground">
-              PDF uniquement — conversion automatique depuis photo ou image si nécessaire.
+              PDF uniquement – conversion automatique depuis photo ou image si nécessaire.
             </Drawer.Description>
 
             <div className="mt-5 space-y-2">

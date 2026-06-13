@@ -20,6 +20,7 @@ import { LEGAL_FORM_COMPARATOR_QUESTIONS, LEGAL_FORM_FAQ } from '@/config/legalF
 import { computeRecommendations } from '@/utils/legalFormComparatorEngine.js';
 import { isMobileBrowserViewport } from '@/utils/platform.js';
 import { runtimeConfig } from '@/config/runtime.js';
+import { SEO_PAGE_META } from '@/config/seoContent.js';
 import { cn } from '@/lib/utils';
 
 const PAGE_PATH = '/ressources/comparateur-forme-juridique';
@@ -118,8 +119,8 @@ export const LegalFormComparatorPage = () => {
     )}
     >
       <SeoHead
-        title="Comparateur de forme juridique — SAS, SARL, EI, SCI | Greffio"
-        description="Comparez SASU, SAS, SARL, EURL, micro-entreprise, EI et SCI selon votre projet. Questionnaire guidé, recommandation indicative et parcours Greffio adapté."
+        title={SEO_PAGE_META.comparateur.title}
+        description={SEO_PAGE_META.comparateur.description}
         path={PAGE_PATH}
         jsonLd={faqJsonLd}
         jsonLdId="comparator-faq"

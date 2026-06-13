@@ -190,7 +190,7 @@ export const FormalityPowersPage = () => {
           <MobileSignableDocumentHeader
             eyebrow="Annexe distincte des statuts"
             title="Pouvoirs pour formalités"
-            intro="Document séparé des statuts — confère les pouvoirs au mandataire pour le dépôt guichet unique et les formalités d’immatriculation."
+            intro="Document séparé des statuts – confère les pouvoirs au mandataire pour le dépôt guichet unique et les formalités d’immatriculation."
           />
         ) : (
           <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--we-border)] bg-white px-5 py-4">
@@ -208,7 +208,7 @@ export const FormalityPowersPage = () => {
           <section className={cn('overflow-y-auto bg-white p-5', !nativeApp && 'border-r border-[var(--we-border)]')}>
             {!nativeApp ? (
               <p className="text-sm text-muted-foreground">
-                Document séparé des statuts — confère les pouvoirs au mandataire pour le dépôt guichet unique et les formalités d’immatriculation.
+                Document séparé des statuts – confère les pouvoirs au mandataire pour le dépôt guichet unique et les formalités d’immatriculation.
               </p>
             ) : null}
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -284,7 +284,7 @@ export const FormalityPowersPage = () => {
           <SignatureAdoptPanel
             defaultName={fields.signatureFullName || fields.signatoryName || ''}
             defaultEmail={fields.signerEmail || ''}
-            subtitle="Signature électronique Greffio — horodatée et traçable"
+            subtitle="Signature électronique Greffio – horodatée et traçable"
             loading={saving}
             onCancel={() => setSignMode(null)}
             onConfirm={(payload) => {

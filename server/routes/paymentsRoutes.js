@@ -1,12 +1,12 @@
 import { computePaymentAmounts, computeResourcePaymentAmounts } from '../pricing.js';
 import { getPaymentService } from '../payments/paymentServiceFactory.js';
+import { isCawlETransactionsConfigured } from '../payments/providers/cawlETransactions.js';
 import {
   CUSTOMER_TYPES,
   PAYMENT_PROVIDERS,
   PAYMENT_STATUSES,
   PaymentError,
 } from '../payments/types.js';
-import { rejectIfWebhookSecretMissing } from '../utils/webhookSecurity.js';
 
 const handlePaymentError = (res, error, fallbackCode = 'PAYMENT_ERROR') => {
   if (error instanceof PaymentError) {
@@ -194,18 +194,54 @@ export const registerPaymentsRoutes = (app, deps) => {
   });
 
   /**
-   * Webhook CAWL (B2C). Le corps brut est nécessaire pour la vérification
-   * de signature ; on monte donc un parser texte dédié sur cette route.
+   * Page intermédiaire hosted checkout CAWL (POST auto-submit vers e-Transactions).
+   * Le frontend redirige ici via checkoutUrl ; PBX_HMAC est recalculé à la volée.
    */
-  app.post('/api/webhooks/cawl', async (req, res) => {
-    if (rejectIfWebhookSecretMissing(res, process.env.CAWL_WEBHOOK_SECRET, 'CAWL_WEBHOOK')) return;
+  app.get('/api/payments/:id/cawl/checkout', async (req, res) => {
+    try {
+      const payment = await store.getPaymentById(req.params.id);
+      if (!payment) return res.status(404).send('Paiement introuvable.');
+      if (payment.provider !== PAYMENT_PROVIDERS.CAWL) {
+        return res.status(409).send('Prestataire incompatible.');
+      }
+      if (payment.status !== PAYMENT_STATUSES.PENDING
+        && payment.status !== PAYMENT_STATUSES.REQUIRES_ACTION) {
+        return res.status(409).send('Ce paiement n\'est plus initialisable.');
+      }
+
+      const adapter = service.providers[PAYMENT_PROVIDERS.CAWL];
+      if (!adapter?.buildHostedCheckoutPage) {
+        return res.status(503).send('CAWL indisponible.');
+      }
+
+      const html = await adapter.buildHostedCheckoutPage(payment);
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store');
+      return res.send(html);
+    } catch (error) {
+      console.error('[payments/cawl/checkout]', error);
+      return res.status(502).send('Impossible d\'initialiser le paiement CAWL.');
+    }
+  });
+
+  const handleCawlWebhook = async (req, res) => {
+    if (!isCawlETransactionsConfigured() && process.env.NODE_ENV === 'production') {
+      return res.status(503).json({ ok: false, error: 'CAWL_NOT_CONFIGURED' });
+    }
     try {
       const adapter = service.providers[PAYMENT_PROVIDERS.CAWL];
       if (!adapter) {
         return res.status(503).json({ ok: false, error: 'CAWL_NOT_AVAILABLE' });
       }
-      const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {});
-      const result = await adapter.handleWebhook(req.body, req.headers, rawBody);
+
+      const payload = {
+        ...(req.query || {}),
+        ...(req.body && typeof req.body === 'object' ? req.body : {}),
+      };
+      const rawBody = req.rawBody
+        || (typeof req.body === 'string' ? req.body : new URLSearchParams(payload).toString());
+
+      const result = await adapter.handleWebhook(payload, req.headers, rawBody);
       if (!result.ok) {
         return res.status(401).json({ ok: false, error: result.error || 'CAWL_WEBHOOK_INVALID' });
       }
@@ -215,19 +251,22 @@ export const registerPaymentsRoutes = (app, deps) => {
         return res.status(400).json({ ok: false, error: 'CAWL_WEBHOOK_NO_PAYMENT_ID' });
       }
 
-      const payment = await store.getPaymentByProviderId(providerPaymentId);
+      let payment = await store.getPaymentByProviderId(providerPaymentId);
+      if (!payment && store.getPaymentById) {
+        payment = await store.getPaymentById(providerPaymentId);
+      }
       if (!payment) {
         return res.status(404).json({ ok: false, error: 'PAYMENT_NOT_FOUND' });
       }
 
-      const providerEventId = `cawl:${event?.id || providerPaymentId}:${status}`;
+      const providerEventId = `cawl:ipn:${providerPaymentId}:${event?.errorCode || status}:${event?.authNumber || 'na'}`;
       if (await store.hasPaymentEventProviderId(providerEventId)) {
-        return res.json({ ok: true, idempotent: true });
+        return res.send('OK');
       }
 
       await store.addPaymentEvent({
         paymentId: payment.id,
-        eventType: `cawl.${event?.type || status}`,
+        eventType: `cawl.${event?.type || 'ipn'}`,
         providerEventId,
         rawPayload: event,
       });
@@ -241,9 +280,15 @@ export const registerPaymentsRoutes = (app, deps) => {
         await store.upsertPayment(patch);
       }
 
-      return res.json({ ok: true, status });
+      return res.send('OK');
     } catch (error) {
       return handlePaymentError(res, error, 'CAWL_WEBHOOK_FAILED');
     }
-  });
+  };
+
+  /**
+   * IPN CAWL e-Transactions (PBX_REPONDRE_A). Répond "OK" comme attendu par Up2pay.
+   */
+  app.post('/api/webhooks/cawl', handleCawlWebhook);
+  app.get('/api/webhooks/cawl', handleCawlWebhook);
 };

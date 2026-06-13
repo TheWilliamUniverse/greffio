@@ -203,7 +203,7 @@ export const SubscribersListPage = () => {
           <MobileSignableDocumentHeader
             eyebrow="Annexe statutaire"
             title="Liste des souscripteurs"
-            intro="Modèle conforme au greffe — prérempli depuis votre dossier. Vérifiez chaque souscripteur avant signature par le Président."
+            intro="Modèle conforme au greffe – prérempli depuis votre dossier. Vérifiez chaque souscripteur avant signature par le Président."
           />
         ) : (
           <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--we-border)] bg-white px-5 py-4">
@@ -221,7 +221,7 @@ export const SubscribersListPage = () => {
           <section className={cn('overflow-y-auto bg-white p-5', !nativeApp && 'border-r border-[var(--we-border)]')}>
             {!nativeApp ? (
               <p className="text-sm text-muted-foreground">
-                Modèle conforme au greffe — prérempli depuis votre dossier. Vérifiez chaque souscripteur avant signature par le Président.
+                Modèle conforme au greffe – prérempli depuis votre dossier. Vérifiez chaque souscripteur avant signature par le Président.
               </p>
             ) : null}
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -240,7 +240,7 @@ export const SubscribersListPage = () => {
                 <p className="text-sm font-extrabold">{subscriber.sectionHeading || `${subscriber.roleTitle} – ${subscriber.fullName}`}</p>
                 {subscriber.isLegalEntity ? (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Personne morale — signataire : {subscriber.legalRepresentativeName || 'représentant à compléter'}
+                    Personne morale – signataire : {subscriber.legalRepresentativeName || 'représentant à compléter'}
                     {subscriber.legalRepresentativeQuality ? ` (${subscriber.legalRepresentativeQuality})` : ''}
                   </p>
                 ) : null}
@@ -306,7 +306,7 @@ export const SubscribersListPage = () => {
                 }} />
                 {fields.signatureIsLegalEntity ? (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Pour {fields.signatureCompanyName || fields.companyName} — qualité : {fields.signatureRepresentativeQuality || 'à compléter'}
+                    Pour {fields.signatureCompanyName || fields.companyName} – qualité : {fields.signatureRepresentativeQuality || 'à compléter'}
                   </p>
                 ) : null}
               </div>

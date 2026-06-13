@@ -43,7 +43,7 @@ export const PricingClarityBlock = ({ showCta = true, className = '' }) => {
             {...reveal(0.1)}
             className="max-w-3xl text-3xl font-extrabold text-[hsl(var(--greffio-blue-900))] sm:text-4xl"
           >
-            Ce que Greffio facture — et ce qu’il ne facture pas
+            Ce que Greffio facture – et ce qu’il ne facture pas
           </motion.h2>
 
           <div className="mt-8 grid grid-cols-2 gap-3 md:gap-4">

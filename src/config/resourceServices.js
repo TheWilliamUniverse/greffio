@@ -502,7 +502,7 @@ export const QUICK_TOOLS = [
     kind: 'tool',
     category: 'tool',
     title: 'Compléter un PDF',
-    description: 'Importez un Cerfa ou formulaire administratif — Greffio place des champs bleus remplissables.',
+    description: 'Importez un Cerfa ou formulaire administratif – Greffio place des champs bleus remplissables.',
     priceTtc: 0,
     actionLabel: 'Ouvrir l’assistant',
     processingMode: 'available',

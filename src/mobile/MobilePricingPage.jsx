@@ -6,11 +6,16 @@ import { LANDING_PRICING_PLANS, YOUNG_ENTREPRENEUR_LANDING_FOOTER } from '@/conf
 import { PRICING_FAQ } from '@/config/pricingPlans.js';
 import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
+import { SeoHead } from '@/components/seo/SeoHead.jsx';
+import { SEO_PAGE_META } from '@/config/seoContent.js';
 
 export const MobilePricingPage = () => {
   const [openFaq, setOpenFaq] = useState(0);
+  const meta = SEO_PAGE_META.tarifs;
 
   return (
+    <>
+      <SeoHead title={meta.title} description={meta.description} path={meta.path} jsonLdId="tarifs-mobile" />
     <MobilePageContainer className="pb-8">
       <MobileAnimatedSection delay={0}>
         <div className="rounded-2xl bg-[hsl(var(--greffio-blue))] px-5 py-6 text-white">
@@ -22,7 +27,7 @@ export const MobilePricingPage = () => {
             Payez au bon moment, sans surprise.
           </h1>
           <p className="mt-2 text-sm leading-6 text-white/85">
-            Frais Greffio, greffe et annonces légales affichés avant validation — sans surprise.
+            Frais Greffio, greffe et annonces légales affichés avant validation – sans surprise.
           </p>
         </div>
       </MobileAnimatedSection>
@@ -121,5 +126,6 @@ export const MobilePricingPage = () => {
         </Button>
       </MobileAnimatedSection>
     </MobilePageContainer>
+    </>
   );
 };

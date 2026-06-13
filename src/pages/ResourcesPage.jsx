@@ -22,6 +22,8 @@ import {
 import { searchResources } from '@/utils/resourceSearch.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { listDossiers } from '@/api/dossiers.js';
+import { SeoHead } from '@/components/seo/SeoHead.jsx';
+import { SEO_PAGE_META } from '@/config/seoContent.js';
 
 const transversal = [
   { title: 'Dépôt de capital', text: 'Préparation du dossier bancaire et suivi de l’attestation.', icon: Banknote },
@@ -123,6 +125,13 @@ export const ResourcesPage = () => {
   }, [handleResourceAction, openService]);
 
   return (
+    <>
+      <SeoHead
+        title={SEO_PAGE_META.ressources.title}
+        description={SEO_PAGE_META.ressources.description}
+        path={SEO_PAGE_META.ressources.path}
+        jsonLdId="ressources"
+      />
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-white px-6 py-4">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
@@ -155,7 +164,7 @@ export const ResourcesPage = () => {
         <ResourceSectionGrid
           id="gratuit"
           title="Gratuit pour démarrer"
-          subtitle="Guides, outils et vérifications accessibles sans frais — commencez ici."
+          subtitle="Guides, outils et vérifications accessibles sans frais – commencez ici."
           items={FREE_RESOURCE_HIGHLIGHTS}
           onAction={handleResourceAction}
           columns="md:grid-cols-2 xl:grid-cols-4"
@@ -254,5 +263,6 @@ export const ResourcesPage = () => {
         service={orderService}
       />
     </div>
+    </>
   );
 };

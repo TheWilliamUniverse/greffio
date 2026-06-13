@@ -74,7 +74,7 @@ export const NativePermissionOrchestrator = () => {
       await enableBiometricUnlock({ email: currentUser.email, refreshToken });
       toast.success(`${label} activé pour déverrouiller Greffio.`);
     } catch (_error) {
-      toast.message('Biométrie non activée — vous pourrez l’activer dans Paramètres.');
+      toast.message('Biométrie non activée – vous pourrez l\'activer dans Paramètres.');
     } finally {
       dismiss();
     }
@@ -86,7 +86,7 @@ export const NativePermissionOrchestrator = () => {
       icon={Fingerprint}
       title={`Déverrouiller avec ${label} ?`}
       description="Accédez plus vite à votre espace sans resaisir votre mot de passe à chaque ouverture."
-      benefit="Vous gardez le contrôle — désactivable dans Paramètres."
+      benefit="Vous gardez le contrôle – désactivable dans Paramètres."
       confirmLabel={`Activer ${label}`}
       onConfirm={() => { void confirm(); }}
       onCancel={dismiss}

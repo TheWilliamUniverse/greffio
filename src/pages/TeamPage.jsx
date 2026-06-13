@@ -65,7 +65,7 @@ export const TeamPage = () => {
                 <h1 className="mt-2 text-3xl font-extrabold">Équipe Greffio, clients et partenaires</h1>
                 <p className="mt-2 text-sm text-muted-foreground">Un espace partagé pour piloter les demandes, pièces, messages et validations de chaque formalité réelle.</p>
               </div>
-              <Button disabled title="Fonctionnalité à venir — contactez le support Greffio pour inviter un intervenant.">
+              <Button disabled title="Fonctionnalité à venir – contactez le support Greffio pour inviter un intervenant.">
                 <UserPlus className="h-4 w-4" />
                 Inviter un intervenant
               </Button>

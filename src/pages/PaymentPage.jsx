@@ -224,7 +224,7 @@ export const PaymentPage = () => {
 
               <section className="grid gap-3 md:grid-cols-3">
                 {[
-                  { title: '1. Paiement express', text: 'Google Pay ou carte bancaire — montant TTC, sans frais cachés.' },
+                  { title: '1. Paiement express', text: 'Google Pay ou carte bancaire – montant TTC, sans frais cachés.' },
                   { title: '2. Traitement Greffio', text: 'Notre équipe lance la demande auprès du greffe ou de l’organisme concerné.' },
                   { title: '3. Document dans votre espace', text: 'Vous le retrouvez dans « Documents », avec une notification par email.' },
                 ].map((step) => (
@@ -333,7 +333,7 @@ export const PaymentPage = () => {
             <div className="mt-5 space-y-3 text-sm text-muted-foreground">
               <div className="flex gap-2">
                 <ReceiptText className="mt-0.5 h-4 w-4 text-primary" />
-                <span>{isResourceFlow ? 'TVA incluse — document administratif' : selectedOffer.tax}</span>
+                <span>{isResourceFlow ? 'TVA incluse – document administratif' : selectedOffer.tax}</span>
               </div>
               {!isResourceFlow && (
                 <div className="flex gap-2">
@@ -345,7 +345,7 @@ export const PaymentPage = () => {
                 <LockKeyhole className="mt-0.5 h-4 w-4 text-primary" />
                 <span>
                   {isResourceFlow || !showB2BProviders
-                    ? 'Paiement Google Pay / carte — chiffrement TLS et confirmation serveur.'
+                    ? 'Paiement Google Pay / carte – chiffrement TLS et confirmation serveur.'
                     : 'Paiement sécurisé professionnel (SEPA / virement).'}
                 </span>
               </div>

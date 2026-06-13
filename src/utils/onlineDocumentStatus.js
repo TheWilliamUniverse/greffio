@@ -29,10 +29,10 @@ export const resolveOnlineDocumentState = (docKey, documents = [], fallbackHint 
   const isComplete = ['VALID', 'VALIDATED', 'SIGNED'].includes(normalized);
   const isPending = ['UPLOADED', 'PENDING_REVIEW', 'UNDER_REVIEW', 'GENERATED'].includes(normalized);
   let hint = fallbackHint;
-  if (isComplete) hint = 'Validé — document enregistré';
-  else if (isPending) hint = 'Envoyé — en cours de vérification';
+  if (isComplete) hint = 'Validé – document enregistré';
+  else if (isPending) hint = 'Envoyé – en cours de vérification';
   else if (['INVALID', 'REJECTED'].includes(normalized)) hint = 'À corriger puis renvoyer';
-  else if (hasFile) hint = 'Déposé — compléter ou signer si besoin';
+  else if (hasFile) hint = 'Déposé – compléter ou signer si besoin';
 
   const userAction = resolveDocumentUserAction(status, hasFile);
 
@@ -93,7 +93,7 @@ export const resolveDocumentUserAction = (status, hasFile = false) => {
   }
 
   return {
-    hint: 'Déposé — compléter ou signer si besoin.',
+    hint: 'Déposé – compléter ou signer si besoin.',
     cta: 'Voir',
     action: 'view',
   };

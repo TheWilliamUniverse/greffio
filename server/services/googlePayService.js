@@ -10,7 +10,12 @@ export const getGooglePayPublicConfig = () => {
   const merchantId = process.env.GOOGLE_PAY_MERCHANT_ID || '';
   const gatewayMerchantId = process.env.GOOGLE_PAY_GATEWAY_MERCHANT_ID || process.env.CAWL_MERCHANT_ID || '';
   const gateway = String(process.env.GOOGLE_PAY_GATEWAY || 'cawl').toLowerCase();
-  const cawlReady = Boolean(process.env.CAWL_API_BASE_URL && process.env.CAWL_API_KEY);
+  const cawlReady = Boolean(
+    (process.env.CAWL_PBX_SITE || process.env.CAWL_MERCHANT_ID)
+    && process.env.CAWL_PBX_RANG
+    && (process.env.CAWL_PBX_IDENTIFIANT || process.env.CAWL_API_KEY_ID)
+    && (process.env.CAWL_HMAC_KEY || process.env.CAWL_API_KEY),
+  );
   const productionReady = environment === 'PRODUCTION' && Boolean(merchantId && gatewayMerchantId && cawlReady);
   const testReady = environment === 'TEST';
 
@@ -90,7 +95,12 @@ export const processGooglePayCharge = async ({
   const providerPaymentId = `gpay_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
 
   // TODO[CAWL-API]: transmettre `token` à CAWL pour capture réelle.
-  const cawlReady = Boolean(process.env.CAWL_API_BASE_URL && process.env.CAWL_API_KEY);
+  const cawlReady = Boolean(
+    (process.env.CAWL_PBX_SITE || process.env.CAWL_MERCHANT_ID)
+    && process.env.CAWL_PBX_RANG
+    && (process.env.CAWL_PBX_IDENTIFIANT || process.env.CAWL_API_KEY_ID)
+    && (process.env.CAWL_HMAC_KEY || process.env.CAWL_API_KEY),
+  );
   const isTestEnvironment = process.env.GOOGLE_PAY_ENVIRONMENT !== 'PRODUCTION';
   const markPaid = !cawlReady && (process.env.NODE_ENV !== 'production' || isTestEnvironment);
 

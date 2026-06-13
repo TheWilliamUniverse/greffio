@@ -76,7 +76,7 @@ export const StatusBadge = ({ status, className, showGlossary = true }) => {
     >
       {label}
       {glossary ? (
-        <span className="sr-only"> — {glossary}</span>
+        <span className="sr-only"> – {glossary}</span>
       ) : null}
     </span>
   );

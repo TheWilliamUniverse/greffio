@@ -1,10 +1,120 @@
 export const SEO_DISCLAIMER =
   'Ces informations sont générales et ne remplacent pas un conseil adapté à votre situation. Greffio est un service privé d\'accompagnement aux formalités, distinct des services officiels de l\'État.';
 
+export const SEO_HOME = {
+  title: 'Greffio – Formalités d\'entreprise en ligne',
+  description:
+    'Créez, modifiez et suivez vos formalités d\'entreprise en ligne avec Greffio : SAS, entreprise individuelle, statuts, dépôt au greffe et accompagnement administratif.',
+};
+
+export const SEO_PAGE_META = {
+  simulateur: {
+    path: '/simulateur',
+    title: 'Simulateur formalités d\'entreprise – création et modification | Greffio',
+    description:
+      'Démarrez votre création d\'entreprise ou modification en ligne : questionnaire guidé, statuts, liste de pièces et estimation des formalités avec Greffio.',
+  },
+  guide: {
+    path: '/guide',
+    title: 'Guide formalités d\'entreprise – FAQ et documents | Greffio',
+    description:
+      'Guide pratique Greffio : pièces pour le greffe, procuration, dépôt guichet unique et bonnes pratiques pour créer ou modifier votre entreprise.',
+  },
+  tarifs: {
+    path: '/tarifs',
+    title: 'Tarifs Greffio – formalités d\'entreprise en ligne | Greffio',
+    description:
+      'Consultez les tarifs Greffio pour la création d\'entreprise, les statuts, le dépôt au greffe et l\'accompagnement administratif. Frais légaux affichés avant validation.',
+  },
+  services: {
+    path: '/services',
+    title: 'Catalogue formalités d\'entreprise – création, modification, greffe | Greffio',
+    description:
+      'Parcourez les formalités d\'entreprise proposées par Greffio : création SAS, SARL, micro-entreprise, transfert de siège, changement de dirigeant et plus.',
+  },
+  contact: {
+    path: '/contact',
+    title: 'Contact Greffio – accompagnement formalités d\'entreprise',
+    description:
+      'Contactez l\'équipe Greffio pour vos questions sur la création d\'entreprise, les modifications statutaires ou le suivi de dossier au greffe.',
+  },
+  'a-propos': {
+    path: '/a-propos',
+    title: 'À propos de Greffio – formalités d\'entreprise en ligne',
+    description:
+      'Greffio structure créations et modifications d\'entreprise avec traçabilité client-équipe, du questionnaire au dépôt au greffe.',
+  },
+  ressources: {
+    path: '/ressources',
+    title: 'Ressources Greffio – guides et outils formalités',
+    description:
+      'Guides, comparateurs et outils gratuits pour préparer vos formalités d\'entreprise avant de démarrer un dossier Greffio.',
+  },
+  comparateur: {
+    path: '/ressources/comparateur-forme-juridique',
+    title: 'Comparateur de forme juridique – SAS, SARL, EI, SCI | Greffio',
+    description:
+      'Comparez SASU, SAS, SARL, EURL, micro-entreprise, EI et SCI selon votre projet. Questionnaire guidé, recommandation indicative et parcours Greffio adapté.',
+  },
+};
+
+export const SEO_SERVICE_META = {
+  'creation-sasu': {
+    title: 'Création SASU en ligne – statuts et dépôt au greffe | Greffio',
+    description:
+      'Créez votre SASU en ligne avec Greffio : statuts, annonce légale, dossier guichet unique et accompagnement administratif jusqu\'à l\'immatriculation.',
+  },
+  'creation-sas': {
+    title: 'Création SAS en ligne – statuts et formalités | Greffio',
+    description:
+      'Création de SAS en ligne : rédaction des statuts, constitution du dossier, dépôt au greffe et suivi administratif avec Greffio.',
+  },
+  'creation-sarl': {
+    title: 'Création SARL en ligne – formalités et statuts | Greffio',
+    description:
+      'Créez votre SARL en ligne : statuts, pièces justificatives, annonce légale et dépôt au guichet unique avec accompagnement Greffio.',
+  },
+  'creation-eurl': {
+    title: 'Création EURL en ligne – formalités et statuts | Greffio',
+    description:
+      'Création d\'EURL en ligne : statuts, dossier d\'immatriculation et suivi du dépôt au greffe avec Greffio.',
+  },
+  'creation-sci': {
+    title: 'Création SCI en ligne – formalités patrimoniales | Greffio',
+    description:
+      'Créez votre SCI en ligne : statuts, pièces et dépôt au greffe avec un parcours guidé et un suivi administratif Greffio.',
+  },
+  'micro-entreprise': {
+    title: 'Création micro-entreprise en ligne – démarches simplifiées | Greffio',
+    description:
+      'Créez votre micro-entreprise en ligne : parcours guidé, déclaration d\'activité et accompagnement administratif avec Greffio.',
+  },
+  'transfert-siege': {
+    title: 'Transfert de siège social en ligne – formalités | Greffio',
+    description:
+      'Transférez le siège social de votre entreprise : annonce légale, mise à jour statutaire et dépôt au greffe avec Greffio.',
+  },
+  'changement-dirigeant': {
+    title: 'Changement de dirigeant en ligne – formalités RCS | Greffio',
+    description:
+      'Nomination ou départ d\'un dirigeant : constitution du dossier, dépôt au guichet unique et suivi greffe avec Greffio.',
+  },
+  'dissolution-liquidation': {
+    title: 'Dissolution et liquidation – formalités d\'entreprise | Greffio',
+    description:
+      'Accompagnement à la dissolution et liquidation de société : dossier, annonces légales et dépôt au greffe avec Greffio.',
+  },
+  'fermeture-entreprise': {
+    title: 'Fermeture d\'entreprise en ligne – formalités | Greffio',
+    description:
+      'Fermeture d\'entreprise : préparation du dossier, annonces et radiation avec un parcours guidé Greffio.',
+  },
+};
+
 export const SEO_PILLAR_PAGES = {
   'creation-entreprise': {
     path: '/creation-entreprise',
-    title: 'Création d\'entreprise en France — démarches, documents et étapes | Greffio',
+    title: 'Création d\'entreprise en France – démarches, documents et étapes | Greffio',
     description:
       'Comprendre les étapes de création d\'entreprise en France : choix de la forme juridique, documents, annonce légale, dépôt du dossier et suivi administratif.',
     h1: 'Création d\'entreprise en France : comprendre, préparer et suivre vos démarches',
@@ -83,12 +193,12 @@ export const SEO_PILLAR_PAGES = {
   },
   'modification-entreprise': {
     path: '/modification-entreprise',
-    title: 'Modification d\'entreprise — siège, dirigeant, statuts et formalités | Greffio',
+    title: 'Modification d\'entreprise – siège, dirigeant, statuts et formalités | Greffio',
     description:
       'Comprendre les formalités de modification d\'entreprise : transfert de siège, changement de dirigeant, modification statutaire, annonce légale et dépôt du dossier.',
     h1: 'Modification d\'entreprise : clarifier les démarches et éviter les oublis',
     intro:
-      'Modifier une entreprise existante — transfert de siège, changement de dirigeant, évolution des statuts ou du capital — déclenche des formalités spécifiques. Chaque modification doit être documentée, parfois annoncée légalement, puis déposée au guichet unique. Greffio structure le parcours pour limiter les retours administratifs.',
+      'Modifier une entreprise existante – transfert de siège, changement de dirigeant, évolution des statuts ou du capital – déclenche des formalités spécifiques. Chaque modification doit être documentée, parfois annoncée légalement, puis déposée au guichet unique. Greffio structure le parcours pour limiter les retours administratifs.',
     greffioBlock: 'Greffio identifie la formalité exacte, prépare le dossier, coordonne l\'annonce légale et suit le dépôt jusqu\'à la mise à jour du KBIS.',
     sections: [
       { title: 'Les modifications fréquentes', bullets: ['Transfert de siège social', 'Changement de dirigeant', 'Modification des statuts', 'Changement de dénomination', 'Augmentation ou réduction de capital'] },
@@ -111,7 +221,7 @@ export const SEO_PILLAR_PAGES = {
   },
   'annonce-legale': {
     path: '/annonce-legale',
-    title: 'Annonce légale d\'entreprise — création, modification et publication | Greffio',
+    title: 'Annonce légale d\'entreprise – création, modification et publication | Greffio',
     description:
       'Comprendre le rôle de l\'annonce légale lors d\'une création ou modification d\'entreprise : contenu, publication, attestation et dépôt du dossier.',
     h1: 'Annonce légale : comprendre son rôle dans vos formalités d\'entreprise',
@@ -139,7 +249,7 @@ export const SEO_PILLAR_PAGES = {
   },
   'guichet-unique-inpi': {
     path: '/guichet-unique-inpi',
-    title: 'Guichet unique INPI — comprendre le dépôt des formalités | Greffio',
+    title: 'Guichet unique INPI – comprendre le dépôt des formalités | Greffio',
     description:
       'Le guichet unique centralise les formalités d\'entreprise en France. Comprenez son rôle, les étapes de dépôt, les documents et les points de vigilance.',
     h1: 'Guichet unique INPI : comprendre le dépôt de vos formalités d\'entreprise',
@@ -167,7 +277,7 @@ export const SEO_PILLAR_PAGES = {
   },
   kbis: {
     path: '/kbis',
-    title: 'KBIS d\'entreprise — comprendre l\'extrait d\'immatriculation | Greffio',
+    title: 'KBIS d\'entreprise – comprendre l\'extrait d\'immatriculation | Greffio',
     description:
       'Comprendre ce qu\'est un KBIS, à quoi il sert, quelles informations il contient et comment il s\'inscrit dans le suivi administratif d\'une entreprise.',
     h1: 'KBIS : comprendre l\'extrait d\'immatriculation d\'une entreprise',
@@ -198,7 +308,7 @@ export const SEO_PILLAR_PAGES = {
 export const SEO_GUIDE_PAGES = {
   'creer-sasu': {
     path: '/guides/creer-sasu',
-    title: 'Créer une SASU en France — étapes et documents | Greffio',
+    title: 'Créer une SASU en France – étapes et documents | Greffio',
     description: 'Guide pratique pour comprendre les étapes, documents et formalités de création d\'une SASU en France.',
     h1: 'Créer une SASU : étapes, documents et points de vigilance',
     intro: 'La SASU permet à un associé unique de créer une société par actions avec un cadre juridique souple. Ce guide présente les grandes étapes sans substituer un conseil personnalisé.',
@@ -212,7 +322,7 @@ export const SEO_GUIDE_PAGES = {
   },
   'creer-sas': {
     path: '/guides/creer-sas',
-    title: 'Créer une SAS en France — guide des formalités | Greffio',
+    title: 'Créer une SAS en France – guide des formalités | Greffio',
     description: 'Comprendre la création d\'une SAS : statuts, gouvernance, capital et dépôt au guichet unique.',
     h1: 'Créer une SAS : formalités et organisation',
     intro: 'La SAS convient aux projets avec plusieurs associés et une gouvernance flexible. Voici les étapes générales de constitution.',
@@ -222,7 +332,7 @@ export const SEO_GUIDE_PAGES = {
   },
   'creer-sarl': {
     path: '/guides/creer-sarl',
-    title: 'Créer une SARL — guide des démarches | Greffio',
+    title: 'Créer une SARL – guide des démarches | Greffio',
     description: 'Étapes, documents et formalités pour créer une SARL en France.',
     h1: 'Créer une SARL : comprendre le parcours',
     intro: 'La SARL est une forme répandue pour les projets entre associés avec responsabilité limitée.',
@@ -232,7 +342,7 @@ export const SEO_GUIDE_PAGES = {
   },
   'creer-micro-entreprise': {
     path: '/guides/creer-micro-entreprise',
-    title: 'Créer une micro-entreprise — démarches | Greffio',
+    title: 'Créer une micro-entreprise – démarches | Greffio',
     description: 'Comprendre la création d\'une micro-entreprise : déclaration, plafonds et formalités.',
     h1: 'Créer une micro-entreprise : parcours simplifié',
     intro: 'La micro-entreprise suit un régime allégé avec déclaration en ligne et comptabilité simplifiée, sous conditions de plafonds de chiffre d\'affaires.',
@@ -242,7 +352,7 @@ export const SEO_GUIDE_PAGES = {
   },
   'deposer-annonce-legale': {
     path: '/guides/deposer-annonce-legale',
-    title: 'Déposer une annonce légale — guide pratique | Greffio',
+    title: 'Déposer une annonce légale – guide pratique | Greffio',
     description: 'Comment préparer et intégrer une annonce légale dans votre dossier de formalités.',
     h1: 'Déposer une annonce légale : mode d\'emploi',
     intro: 'L\'annonce légale doit contenir des mentions exactes et être publiée dans un support habilité.',
@@ -252,7 +362,7 @@ export const SEO_GUIDE_PAGES = {
   },
   'modifier-siege-social': {
     path: '/guides/modifier-siege-social',
-    title: 'Modifier le siège social — formalités | Greffio',
+    title: 'Modifier le siège social – formalités | Greffio',
     description: 'Transfert de siège : décision, statuts, annonce légale et dépôt.',
     h1: 'Modifier le siège social de votre entreprise',
     intro: 'Le transfert de siège implique une décision collective, une mise à jour des statuts et des formalités au greffe.',
@@ -262,7 +372,7 @@ export const SEO_GUIDE_PAGES = {
   },
   'changer-dirigeant': {
     path: '/guides/changer-dirigeant',
-    title: 'Changer de dirigeant — formalités | Greffio',
+    title: 'Changer de dirigeant – formalités | Greffio',
     description: 'Nomination ou départ d\'un dirigeant : documents et dépôt au greffe.',
     h1: 'Changer de dirigeant : démarches essentielles',
     intro: 'Tout changement de dirigeant doit être acté, déclaré et inscrit au RCS.',
@@ -272,7 +382,7 @@ export const SEO_GUIDE_PAGES = {
   },
   'comprendre-kbis': {
     path: '/guides/comprendre-kbis',
-    title: 'Comprendre le KBIS — guide | Greffio',
+    title: 'Comprendre le KBIS – guide | Greffio',
     description: 'Définition, usage et lien avec SIREN, SIRET et RCS.',
     h1: 'Comprendre le KBIS et son usage',
     intro: 'Le KBIS est la carte d\'identité officielle de votre société immatriculée au RCS.',
@@ -283,16 +393,16 @@ export const SEO_GUIDE_PAGES = {
 };
 
 export const SEO_GLOSSARY_PAGES = {
-  siren: { path: '/glossaire/siren', term: 'SIREN', title: 'SIREN — définition | Glossaire Greffio', description: 'Le SIREN identifie une entreprise en France à 9 chiffres.', definition: 'Numéro unique à 9 chiffres attribué par l\'INSEE à toute entreprise.', example: 'Présent sur le KBIS, les factures et les déclarations administratives.', related: [{ to: '/glossaire/siret', label: 'SIRET' }, { to: '/kbis', label: 'KBIS' }] },
-  siret: { path: '/glossaire/siret', term: 'SIRET', title: 'SIRET — définition | Glossaire Greffio', description: 'Le SIRET identifie un établissement : SIREN + NIC.', definition: 'Numéro à 14 chiffres composé du SIREN et d\'un numéro interne de classement (NIC).', example: 'Chaque étabissement possède son propre SIRET.', related: [{ to: '/glossaire/siren', label: 'SIREN' }] },
-  kbis: { path: '/glossaire/kbis', term: 'KBIS', title: 'KBIS — définition | Glossaire Greffio', description: 'Extrait d\'immatriculation au RCS.', definition: 'Document officiel attestant l\'immatriculation au registre du commerce.', example: 'Demandé par les banques et partenaires commerciaux.', related: [{ to: '/kbis', label: 'Page KBIS' }] },
-  rcs: { path: '/glossaire/rcs', term: 'RCS', title: 'RCS — définition | Glossaire Greffio', description: 'Registre du Commerce et des Sociétés.', definition: 'Registre tenu par le greffe du tribunal de commerce.', example: 'Toute société commerciale y est immatriculée.', related: [{ to: '/glossaire/kbis', label: 'KBIS' }] },
-  'guichet-unique': { path: '/glossaire/guichet-unique', term: 'Guichet unique', title: 'Guichet unique — définition | Glossaire Greffio', description: 'Portail INPI de dépôt des formalités.', definition: 'Plateforme numérique centralisant les formalités d\'entreprise.', example: 'Création, modification et cessation y sont déposées.', related: [{ to: '/guichet-unique-inpi', label: 'Guichet unique INPI' }] },
-  'annonce-legale': { path: '/glossaire/annonce-legale', term: 'Annonce légale', title: 'Annonce légale — définition | Glossaire Greffio', description: 'Publication obligatoire dans un JAL habilité.', definition: 'Publication rendant publiques les actes importants de la société.', example: 'Création ou transfert de siège.', related: [{ to: '/annonce-legale', label: 'Annonce légale' }] },
-  statuts: { path: '/glossaire/statuts', term: 'Statuts', title: 'Statuts — définition | Glossaire Greffio', description: 'Contrat constitutif de la société.', definition: 'Document définissant la forme, l\'objet, le capital et l\'organisation de la société.', example: 'Annexés au dossier d\'immatriculation.', related: [{ to: '/creation-entreprise', label: 'Création d\'entreprise' }] },
-  'siege-social': { path: '/glossaire/siege-social', term: 'Siège social', title: 'Siège social — définition | Glossaire Greffio', description: 'Adresse officielle de la société.', definition: 'Lieu où la société a son administration centrale.', example: 'Figurant sur le KBIS et les statuts.', related: [{ to: '/guides/modifier-siege-social', label: 'Modifier le siège' }] },
-  dirigeant: { path: '/glossaire/dirigeant', term: 'Dirigeant', title: 'Dirigeant — définition | Glossaire Greffio', description: 'Personne habilitée à représenter la société.', definition: 'Président, gérant ou directeur général selon la forme juridique.', example: 'Mentionné au RCS et sur le KBIS.', related: [{ to: '/guides/changer-dirigeant', label: 'Changer de dirigeant' }] },
-  immatriculation: { path: '/glossaire/immatriculation', term: 'Immatriculation', title: 'Immatriculation — définition | Glossaire Greffio', description: 'Inscription officielle de l\'entreprise.', definition: 'Acte administratif conférant l\'existence juridique au RCS ou au répertoire des métiers.', example: 'Suite à un dépôt accepté au guichet unique.', related: [{ to: '/guichet-unique-inpi', label: 'Guichet unique' }] },
+  siren: { path: '/glossaire/siren', term: 'SIREN', title: 'SIREN – définition | Glossaire Greffio', description: 'Le SIREN identifie une entreprise en France à 9 chiffres.', definition: 'Numéro unique à 9 chiffres attribué par l\'INSEE à toute entreprise.', example: 'Présent sur le KBIS, les factures et les déclarations administratives.', related: [{ to: '/glossaire/siret', label: 'SIRET' }, { to: '/kbis', label: 'KBIS' }] },
+  siret: { path: '/glossaire/siret', term: 'SIRET', title: 'SIRET – définition | Glossaire Greffio', description: 'Le SIRET identifie un établissement : SIREN + NIC.', definition: 'Numéro à 14 chiffres composé du SIREN et d\'un numéro interne de classement (NIC).', example: 'Chaque étabissement possède son propre SIRET.', related: [{ to: '/glossaire/siren', label: 'SIREN' }] },
+  kbis: { path: '/glossaire/kbis', term: 'KBIS', title: 'KBIS – définition | Glossaire Greffio', description: 'Extrait d\'immatriculation au RCS.', definition: 'Document officiel attestant l\'immatriculation au registre du commerce.', example: 'Demandé par les banques et partenaires commerciaux.', related: [{ to: '/kbis', label: 'Page KBIS' }] },
+  rcs: { path: '/glossaire/rcs', term: 'RCS', title: 'RCS – définition | Glossaire Greffio', description: 'Registre du Commerce et des Sociétés.', definition: 'Registre tenu par le greffe du tribunal de commerce.', example: 'Toute société commerciale y est immatriculée.', related: [{ to: '/glossaire/kbis', label: 'KBIS' }] },
+  'guichet-unique': { path: '/glossaire/guichet-unique', term: 'Guichet unique', title: 'Guichet unique – définition | Glossaire Greffio', description: 'Portail INPI de dépôt des formalités.', definition: 'Plateforme numérique centralisant les formalités d\'entreprise.', example: 'Création, modification et cessation y sont déposées.', related: [{ to: '/guichet-unique-inpi', label: 'Guichet unique INPI' }] },
+  'annonce-legale': { path: '/glossaire/annonce-legale', term: 'Annonce légale', title: 'Annonce légale – définition | Glossaire Greffio', description: 'Publication obligatoire dans un JAL habilité.', definition: 'Publication rendant publiques les actes importants de la société.', example: 'Création ou transfert de siège.', related: [{ to: '/annonce-legale', label: 'Annonce légale' }] },
+  statuts: { path: '/glossaire/statuts', term: 'Statuts', title: 'Statuts – définition | Glossaire Greffio', description: 'Contrat constitutif de la société.', definition: 'Document définissant la forme, l\'objet, le capital et l\'organisation de la société.', example: 'Annexés au dossier d\'immatriculation.', related: [{ to: '/creation-entreprise', label: 'Création d\'entreprise' }] },
+  'siege-social': { path: '/glossaire/siege-social', term: 'Siège social', title: 'Siège social – définition | Glossaire Greffio', description: 'Adresse officielle de la société.', definition: 'Lieu où la société a son administration centrale.', example: 'Figurant sur le KBIS et les statuts.', related: [{ to: '/guides/modifier-siege-social', label: 'Modifier le siège' }] },
+  dirigeant: { path: '/glossaire/dirigeant', term: 'Dirigeant', title: 'Dirigeant – définition | Glossaire Greffio', description: 'Personne habilitée à représenter la société.', definition: 'Président, gérant ou directeur général selon la forme juridique.', example: 'Mentionné au RCS et sur le KBIS.', related: [{ to: '/guides/changer-dirigeant', label: 'Changer de dirigeant' }] },
+  immatriculation: { path: '/glossaire/immatriculation', term: 'Immatriculation', title: 'Immatriculation – définition | Glossaire Greffio', description: 'Inscription officielle de l\'entreprise.', definition: 'Acte administratif conférant l\'existence juridique au RCS ou au répertoire des métiers.', example: 'Suite à un dépôt accepté au guichet unique.', related: [{ to: '/guichet-unique-inpi', label: 'Guichet unique' }] },
 };
 
 export const SEO_FAQ_ITEMS = [
@@ -323,7 +433,7 @@ export const SEO_HUBS = {
   },
   faq: {
     path: '/faq',
-    title: 'FAQ Greffio — questions fréquentes',
+    title: 'FAQ Greffio – questions fréquentes',
     description: 'Réponses aux questions fréquentes sur Greffio et les formalités d\'entreprise.',
     h1: 'Questions fréquentes',
     intro: 'Réponses courtes sur le fonctionnement de Greffio et les démarches administratives.',
@@ -332,11 +442,14 @@ export const SEO_HUBS = {
 
 export const SEO_SITEMAP_PATHS = [
   '/',
+  '/simulateur',
   '/tarifs',
   '/services',
   '/contact',
   '/a-propos',
   '/guide',
+  '/ressources',
+  '/ressources/comparateur-forme-juridique',
   '/app',
   '/mentions-legales',
   '/confidentialite',

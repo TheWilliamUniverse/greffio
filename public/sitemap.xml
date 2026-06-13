@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://greffio.willentreprises.com/</loc><priority>1.0</priority></url>
+  <url><loc>https://greffio.willentreprises.com/simulateur</loc><priority>0.95</priority></url>
   <url><loc>https://greffio.willentreprises.com/creation-entreprise</loc><priority>0.9</priority></url>
   <url><loc>https://greffio.willentreprises.com/modification-entreprise</loc><priority>0.9</priority></url>
   <url><loc>https://greffio.willentreprises.com/annonce-legale</loc><priority>0.8</priority></url>
@@ -27,15 +28,22 @@
   <url><loc>https://greffio.willentreprises.com/glossaire/dirigeant</loc><priority>0.6</priority></url>
   <url><loc>https://greffio.willentreprises.com/glossaire/immatriculation</loc><priority>0.6</priority></url>
   <url><loc>https://greffio.willentreprises.com/faq</loc><priority>0.6</priority></url>
+  <url><loc>https://greffio.willentreprises.com/guide</loc><priority>0.75</priority></url>
   <url><loc>https://greffio.willentreprises.com/tarifs</loc><priority>0.8</priority></url>
   <url><loc>https://greffio.willentreprises.com/services</loc><priority>0.8</priority></url>
+  <url><loc>https://greffio.willentreprises.com/ressources</loc><priority>0.75</priority></url>
+  <url><loc>https://greffio.willentreprises.com/ressources/comparateur-forme-juridique</loc><priority>0.75</priority></url>
   <url><loc>https://greffio.willentreprises.com/contact</loc><priority>0.7</priority></url>
-  <url><loc>https://greffio.willentreprises.com/guide</loc><priority>0.6</priority></url>
+  <url><loc>https://greffio.willentreprises.com/a-propos</loc><priority>0.6</priority></url>
+  <url><loc>https://greffio.willentreprises.com/app</loc><priority>0.5</priority></url>
   <url><loc>https://greffio.willentreprises.com/mentions-legales</loc><priority>0.3</priority></url>
   <url><loc>https://greffio.willentreprises.com/confidentialite</loc><priority>0.3</priority></url>
+  <url><loc>https://greffio.willentreprises.com/cookies</loc><priority>0.3</priority></url>
   <url><loc>https://greffio.willentreprises.com/creation-sasu</loc><priority>0.8</priority></url>
   <url><loc>https://greffio.willentreprises.com/creation-sas</loc><priority>0.8</priority></url>
   <url><loc>https://greffio.willentreprises.com/creation-sarl</loc><priority>0.8</priority></url>
+  <url><loc>https://greffio.willentreprises.com/creation-eurl</loc><priority>0.8</priority></url>
+  <url><loc>https://greffio.willentreprises.com/creation-sci</loc><priority>0.75</priority></url>
   <url><loc>https://greffio.willentreprises.com/micro-entreprise</loc><priority>0.8</priority></url>
   <url><loc>https://greffio.willentreprises.com/transfert-siege</loc><priority>0.8</priority></url>
   <url><loc>https://greffio.willentreprises.com/changement-dirigeant</loc><priority>0.8</priority></url>

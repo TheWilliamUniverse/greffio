@@ -104,7 +104,7 @@ export const PAYMENT_METHODS = [
     id: 'cards',
     name: 'Visa · Mastercard',
     type: 'Carte bancaire',
-    description: 'Cartes bancaires acceptées via les wallets et prestataires sécurisés — confirmation serveur avant validation du dossier.',
+    description: 'Cartes bancaires acceptées via les wallets et prestataires sécurisés – confirmation serveur avant validation du dossier.',
   },
   {
     id: 'gocardless-checkout',

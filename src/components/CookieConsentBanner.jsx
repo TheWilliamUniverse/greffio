@@ -76,7 +76,7 @@ export const CookieConsentBanner = () => {
             <div className="rounded-lg border border-border bg-muted/30 p-3">
               <p className="text-xs font-bold uppercase tracking-wide text-primary">Session technique</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Tokens de connexion et sécurité — indispensables au fonctionnement de Greffio. Non désactivables.
+                Tokens de connexion et sécurité – indispensables au fonctionnement de Greffio. Non désactivables.
               </p>
             </div>
             <div className="rounded-lg border border-border bg-white p-3">

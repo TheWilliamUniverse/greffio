@@ -28,6 +28,7 @@ import { LegalFormComparatorPromoCard } from '@/components/comparator/LegalFormC
 import { MobileLandingPage } from '@/mobile/MobileLandingPage.jsx';
 import { useNavigate } from 'react-router-dom';
 import { SeoHead, HOME_JSON_LD } from '@/components/seo/SeoHead.jsx';
+import { SEO_HOME } from '@/config/seoContent.js';
 
 const EASE_OUT = [0.22, 1, 0.36, 1];
 
@@ -135,8 +136,8 @@ export const LandingPage = () => {
   return (
     <>
       <SeoHead
-        title="Greffio — Simplifiez vos démarches d'entreprise en France"
-        description="Greffio aide les entrepreneurs français à comprendre, préparer et suivre leurs démarches d'entreprise : création, formalités, documents, modifications et suivi administratif."
+        title={SEO_HOME.title}
+        description={SEO_HOME.description}
         path="/"
         jsonLd={HOME_JSON_LD}
         jsonLdId="home"

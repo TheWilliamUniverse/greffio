@@ -149,7 +149,7 @@ export const GreffioUltraFooter = ({
             {compact ? <GreffioLogo variant="inverse" className="h-7" /> : null}
             <div className="text-xs leading-6 text-white/55">
               <p>
-                © {year} {PUBLISHER_LEGAL_NAME} — Greffio. Tous droits réservés.
+                © {year} {PUBLISHER_LEGAL_NAME} – Greffio. Tous droits réservés.
               </p>
               <p className="mt-1">
                 {PUBLISHER_RCS} · {PUBLISHER_ADDRESS_FULL}
