@@ -1,13 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CheckCircle2, Download, FileSignature } from 'lucide-react';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
+import { Button } from '@/components/ui/button.jsx';
 import { SignatureAdoptPanel } from '@/components/signature/SignatureAdoptPanel.jsx';
 import { SignatureDocumentAcknowledge } from '@/components/signature/SignatureDocumentAcknowledge.jsx';
+import { SignatureOtpStep } from '@/components/signature/SignatureOtpStep.jsx';
 import { SignwellPublicSigningPanel } from '@/components/signature/SignwellPublicSigningPanel.jsx';
 import {
   fetchPublicSignatureSession,
+  getPublicProofCertificateUrl,
   getPublicSignaturePdfUrl,
+  getPublicSignedDocumentUrl,
   submitPublicSignature,
 } from '@/api/nonConviction.js';
 import { mapSignaturePublicError } from '@/utils/signaturePublicErrors.js';
@@ -23,15 +27,22 @@ export const SignaturePublicPage = () => {
   const [error, setError] = useState('');
   const [previewAcknowledged, setPreviewAcknowledged] = useState(false);
   const [previewBlobUrl, setPreviewBlobUrl] = useState('');
+  const [step, setStep] = useState('adopt');
+  const [proofId, setProofId] = useState('');
+  const pendingSignRef = useRef(null);
 
   const isSignwellSession = session?.provider === 'signwell' && Boolean(session?.signwellSigningUrl);
+  const otpRequired = Boolean(session?.signature?.otpRequired) && !session?.signature?.otpVerified;
 
   useEffect(() => {
     const load = async () => {
       try {
         const payload = await fetchPublicSignatureSession(token);
         setSession(payload);
-        if (payload.status === 'signed') setDone(true);
+        if (payload.status === 'signed') {
+          setDone(true);
+          setProofId(payload.proofId || '');
+        }
       } catch (err) {
         setError(mapSignaturePublicError(err?.payload?.error || err?.code, err?.message));
       } finally {
@@ -73,20 +84,42 @@ export const SignaturePublicPage = () => {
     if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);
   }, [previewBlobUrl]);
 
+  const finalizeSign = async (payload) => {
+    setSigning(true);
+    setError('');
+    try {
+      const result = await submitPublicSignature(token, { ...payload, previewAcknowledged: true });
+      setProofId(result?.proofId || '');
+      setDone(true);
+      setStep('adopt');
+    } catch (err) {
+      const code = err?.payload?.error || err?.code;
+      if (code === 'SIGNATURE_OTP_REQUIRED') {
+        setStep('otp');
+      } else {
+        setError(mapSignaturePublicError(code, err?.message));
+      }
+    } finally {
+      setSigning(false);
+    }
+  };
+
   const onSignInternal = async (payload) => {
     if (!previewAcknowledged) {
       setError(mapSignaturePublicError('SIGNATURE_PREVIEW_REQUIRED'));
       return;
     }
-    setSigning(true);
-    setError('');
-    try {
-      await submitPublicSignature(token, { ...payload, previewAcknowledged: true });
-      setDone(true);
-    } catch (err) {
-      setError(mapSignaturePublicError(err?.payload?.error || err?.code, err?.message));
-    } finally {
-      setSigning(false);
+    pendingSignRef.current = payload;
+    if (otpRequired) {
+      setStep('otp');
+      return;
+    }
+    await finalizeSign(payload);
+  };
+
+  const onOtpVerified = async () => {
+    if (pendingSignRef.current) {
+      await finalizeSign(pendingSignRef.current);
     }
   };
 
@@ -118,18 +151,30 @@ export const SignaturePublicPage = () => {
 
   if (done) {
     return (
-      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#f6f8fc] px-6 text-center">
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#f6f8fc] px-6 py-10 text-center">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
           <CheckCircle2 className="h-9 w-9" />
         </div>
-        <h1 className="mt-5 text-2xl font-extrabold text-foreground">Document signé</h1>
+        <h1 className="mt-5 text-2xl font-extrabold text-foreground">Document signé avec succès</h1>
         <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-          Votre signature a été enregistrée. Un exemplaire signé vous sera envoyé par e-mail.
+          Votre document a été signé électroniquement via Greffio. Une preuve de signature a été générée et votre dossier a été mis à jour.
         </p>
-        <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-bold text-primary shadow-elevation-sm">
-          <Download className="h-3.5 w-3.5" />
-          Preuve Greffio archivée
-        </p>
+        {proofId ? (
+          <p className="mt-3 text-xs font-bold text-primary">Preuve {proofId}</p>
+        ) : null}
+        <div className="mt-6 flex w-full max-w-sm flex-col gap-3">
+          <Button asChild className="h-12 rounded-2xl">
+            <a href={getPublicSignedDocumentUrl(token)} target="_blank" rel="noreferrer">
+              Télécharger le document signé
+              <Download className="h-4 w-4" />
+            </a>
+          </Button>
+          <Button asChild variant="outline" className="h-12 rounded-2xl bg-white">
+            <a href={getPublicProofCertificateUrl(token)} target="_blank" rel="noreferrer">
+              Télécharger le certificat de preuve
+            </a>
+          </Button>
+        </div>
       </div>
     );
   }
@@ -158,13 +203,24 @@ export const SignaturePublicPage = () => {
             filename="document-a-signer.pdf"
             emptyMessage="Chargement du document…"
           />
-          <SignatureDocumentAcknowledge
-            checked={previewAcknowledged}
-            onChange={setPreviewAcknowledged}
-          />
+          {step === 'adopt' ? (
+            <SignatureDocumentAcknowledge
+              checked={previewAcknowledged}
+              onChange={setPreviewAcknowledged}
+            />
+          ) : null}
         </div>
         <div className="flex items-start justify-center p-4 lg:p-6">
-          {isSignwellSession ? (
+          {step === 'otp' ? (
+            <div className="w-full max-w-md">
+              <SignatureOtpStep
+                token={token}
+                maskedEmail={session?.signerEmailMasked || session?.signerEmail}
+                onVerified={() => void onOtpVerified()}
+                onBack={() => setStep('adopt')}
+              />
+            </div>
+          ) : isSignwellSession ? (
             <SignwellPublicSigningPanel
               signerFullName={session?.signerFullName}
               signerEmail={session?.signerEmail}
@@ -179,6 +235,7 @@ export const SignaturePublicPage = () => {
               <SignatureAdoptPanel
                 defaultName={session?.signerFullName || ''}
                 defaultEmail={session?.signerEmail || ''}
+                consentText={session?.signature?.consentText}
                 loading={signing}
                 onCancel={() => window.close()}
                 onConfirm={onSignInternal}

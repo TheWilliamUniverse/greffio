@@ -13,6 +13,21 @@ const createSignatureRecord = async ({
   ipAddress = null,
   userAgent = null,
   evidence = {},
+  signatureRequestId = null,
+  provider = 'greffio_internal',
+  signatureLevel = 'ses_reinforced',
+  signerName = null,
+  signerEmail = null,
+  originalHashSha256 = null,
+  signedHashSha256 = null,
+  proofId = null,
+  proofCertificatePath = null,
+  consentTextVersion = null,
+  consentTextSnapshot = null,
+  documentAcknowledged = false,
+  otpVerified = false,
+  visualSignatureMode = null,
+  greffioProofLine = null,
 }) => {
   const record = {
     id: randomUUID(),
@@ -26,34 +41,83 @@ const createSignatureRecord = async ({
     userAgent,
     evidenceJson: JSON.stringify(evidence || {}),
     createdAt: nowIso(),
+    signatureRequestId,
+    provider,
+    signatureLevel,
+    signerName,
+    signerEmail,
+    originalHashSha256,
+    signedHashSha256,
+    proofId,
+    proofCertificatePath,
+    consentTextVersion,
+    consentTextSnapshot,
+    documentAcknowledged: documentAcknowledged ? 1 : 0,
+    otpVerified: otpVerified ? 1 : 0,
+    visualSignatureMode,
+    greffioProofLine,
   };
+
+  const baseColumns = 'id, dossier_id, document_id, signer_user_id, signature_type, status, signed_at, ip_address, user_agent, evidence_json, created_at';
+  const baseValues = '@id, @dossierId, @documentId, @signerUserId, @signatureType, @status, @signedAt, @ipAddress, @userAgent, @evidenceJson, @createdAt';
+
   if (hasPostgres) {
     await query(`
       INSERT INTO signatures (
-        id, dossier_id, document_id, signer_user_id, signature_type, status, signed_at, ip_address, user_agent, evidence_json, created_at
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+        ${baseColumns.replace(/@/g, '').replace(/,/g, ', ')},
+        signature_request_id, provider, signature_level, signer_name, signer_email,
+        original_hash_sha256, signed_hash_sha256, proof_id, proof_certificate_path,
+        consent_text_version, consent_text_snapshot, document_acknowledged, otp_verified,
+        visual_signature_mode, greffio_proof_line
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
     `, [
-      record.id,
-      record.dossierId,
-      record.documentId,
-      record.signerUserId,
-      record.signatureType,
-      record.status,
-      record.signedAt,
-      record.ipAddress,
-      record.userAgent,
-      record.evidenceJson,
-      record.createdAt,
-    ]);
+      record.id, record.dossierId, record.documentId, record.signerUserId,
+      record.signatureType, record.status, record.signedAt, record.ipAddress,
+      record.userAgent, record.evidenceJson, record.createdAt,
+      record.signatureRequestId, record.provider, record.signatureLevel,
+      record.signerName, record.signerEmail, record.originalHashSha256,
+      record.signedHashSha256, record.proofId, record.proofCertificatePath,
+      record.consentTextVersion, record.consentTextSnapshot, record.documentAcknowledged,
+      record.otpVerified, record.visualSignatureMode, record.greffioProofLine,
+    ]).catch(async () => {
+      await query(`
+        INSERT INTO signatures (
+          id, dossier_id, document_id, signer_user_id, signature_type, status, signed_at, ip_address, user_agent, evidence_json, created_at
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      `, [
+        record.id, record.dossierId, record.documentId, record.signerUserId,
+        record.signatureType, record.status, record.signedAt, record.ipAddress,
+        record.userAgent, record.evidenceJson, record.createdAt,
+      ]);
+    });
     return record;
   }
-  sqlite.prepare(`
-    INSERT INTO signatures (
-      id, dossier_id, document_id, signer_user_id, signature_type, status, signed_at, ip_address, user_agent, evidence_json, created_at
-    ) VALUES (
-      @id, @dossierId, @documentId, @signerUserId, @signatureType, @status, @signedAt, @ipAddress, @userAgent, @evidenceJson, @createdAt
-    )
-  `).run(record);
+
+  try {
+    sqlite.prepare(`
+      INSERT INTO signatures (
+        id, dossier_id, document_id, signer_user_id, signature_type, status, signed_at, ip_address, user_agent, evidence_json, created_at,
+        signature_request_id, provider, signature_level, signer_name, signer_email,
+        original_hash_sha256, signed_hash_sha256, proof_id, proof_certificate_path,
+        consent_text_version, consent_text_snapshot, document_acknowledged, otp_verified,
+        visual_signature_mode, greffio_proof_line
+      ) VALUES (
+        @id, @dossierId, @documentId, @signerUserId, @signatureType, @status, @signedAt, @ipAddress, @userAgent, @evidenceJson, @createdAt,
+        @signatureRequestId, @provider, @signatureLevel, @signerName, @signerEmail,
+        @originalHashSha256, @signedHashSha256, @proofId, @proofCertificatePath,
+        @consentTextVersion, @consentTextSnapshot, @documentAcknowledged, @otpVerified,
+        @visualSignatureMode, @greffioProofLine
+      )
+    `).run(record);
+  } catch (_error) {
+    sqlite.prepare(`
+      INSERT INTO signatures (
+        id, dossier_id, document_id, signer_user_id, signature_type, status, signed_at, ip_address, user_agent, evidence_json, created_at
+      ) VALUES (
+        @id, @dossierId, @documentId, @signerUserId, @signatureType, @status, @signedAt, @ipAddress, @userAgent, @evidenceJson, @createdAt
+      )
+    `).run(record);
+  }
   return record;
 };
 

@@ -45,3 +45,23 @@ export const submitPublicSignature = async (token, payload) => apiPost(
   payload,
   { auth: false },
 );
+
+export const sendPublicSignatureOtp = async (token) => apiPost(
+  `/api/signature/public/${encodeURIComponent(token)}/otp/send`,
+  {},
+  { auth: false },
+);
+
+export const verifyPublicSignatureOtp = async (token, code) => apiPost(
+  `/api/signature/public/${encodeURIComponent(token)}/otp/verify`,
+  { code },
+  { auth: false },
+);
+
+export const getPublicSignedDocumentUrl = (token) => (
+  `${runtimeConfig.apiBaseUrl}/api/signature/public/${encodeURIComponent(token)}/signed-document`
+);
+
+export const getPublicProofCertificateUrl = (token) => (
+  `${runtimeConfig.apiBaseUrl}/api/signature/public/${encodeURIComponent(token)}/proof-certificate`
+);

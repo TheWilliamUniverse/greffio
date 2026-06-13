@@ -150,6 +150,30 @@ const addDocumentEvent = async ({
   return event;
 };
 
+const recordDossierSignatureTimelineEvent = async ({
+  dossierId,
+  documentTitle,
+  signerFullName,
+  proofId,
+  metadata = {},
+}) => {
+  const dossier = await getDossier(dossierId);
+  if (!dossier) return null;
+  return addStatusEvent({
+    dossierId,
+    fromStatus: dossier.status,
+    toStatus: dossier.status,
+    actorType: 'signer',
+    reason: 'Document signé électroniquement',
+    metadata: {
+      documentTitle,
+      signerFullName,
+      proofId,
+      ...metadata,
+    },
+  });
+};
+
 const ensureSeedDossier = async (dossierId = 'dos_seed_001') => {
   const existing = await getDossier(dossierId);
   if (existing) return existing;
@@ -1940,4 +1964,5 @@ export {
   addDossierMessage,
   markDossierMessageEmailSent,
   updateDossierOpsFields,
+  recordDossierSignatureTimelineEvent,
 };

@@ -145,6 +145,7 @@ import {
 } from './services/statutesPdfService.js';
 import { resolveDossierAccess } from './utils/dossierAccess.js';
 import { registerNonConvictionSignatureRoutes } from './routes/nonConvictionSignatureRoutes.js';
+import { registerSignaturePublicRoutes } from './routes/signaturePublicRoutes.js';
 import { registerDossierMessageRoutes } from './routes/dossierMessageRoutes.js';
 import { registerOpsRoutes } from './routes/opsRoutes.js';
 import { registerWebhookRoutes } from './routes/webhookRoutes.js';
@@ -2651,6 +2652,11 @@ registerEditableDocumentSignatureRoutes(app, {
   DOCUMENT_STATUSES,
   createSignatureRecord,
   appUrl,
+});
+
+registerSignaturePublicRoutes(app, {
+  getDossier,
+  strictPublicRateLimitMiddleware,
 });
 
 registerNonConvictionSignatureRoutes(app, {

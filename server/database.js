@@ -366,6 +366,72 @@ CREATE TABLE IF NOT EXISTS resource_orders (
 
 addColumnIfMissing('payments', 'resource_order_id', 'TEXT');
 
+[
+  ['signature_requests', 'provider', 'TEXT DEFAULT \'greffio_internal\''],
+  ['signature_requests', 'signature_level', 'TEXT DEFAULT \'ses_reinforced\''],
+  ['signature_requests', 'proof_id', 'TEXT'],
+  ['signature_requests', 'proof_certificate_path', 'TEXT'],
+  ['signature_requests', 'consent_text_version', 'TEXT'],
+  ['signature_requests', 'consent_text_snapshot', 'TEXT'],
+  ['signature_requests', 'document_acknowledged_at', 'TEXT'],
+  ['signature_requests', 'consent_accepted_at', 'TEXT'],
+  ['signature_requests', 'otp_required', 'INTEGER DEFAULT 0'],
+  ['signature_requests', 'otp_verified', 'INTEGER DEFAULT 0'],
+  ['signature_requests', 'otp_sent_at', 'TEXT'],
+  ['signature_requests', 'otp_verified_at', 'TEXT'],
+  ['signature_requests', 'otp_attempts', 'INTEGER DEFAULT 0'],
+  ['signature_requests', 'opened_at', 'TEXT'],
+  ['signature_requests', 'failed_attempts', 'INTEGER DEFAULT 0'],
+  ['signature_requests', 'max_attempts', 'INTEGER DEFAULT 8'],
+  ['signatures', 'signature_request_id', 'TEXT'],
+  ['signatures', 'provider', 'TEXT DEFAULT \'greffio_internal\''],
+  ['signatures', 'signature_level', 'TEXT DEFAULT \'ses_reinforced\''],
+  ['signatures', 'signer_name', 'TEXT'],
+  ['signatures', 'signer_email', 'TEXT'],
+  ['signatures', 'original_hash_sha256', 'TEXT'],
+  ['signatures', 'signed_hash_sha256', 'TEXT'],
+  ['signatures', 'proof_id', 'TEXT'],
+  ['signatures', 'proof_certificate_path', 'TEXT'],
+  ['signatures', 'consent_text_version', 'TEXT'],
+  ['signatures', 'consent_text_snapshot', 'TEXT'],
+  ['signatures', 'document_acknowledged', 'INTEGER DEFAULT 0'],
+  ['signatures', 'otp_verified', 'INTEGER DEFAULT 0'],
+  ['signatures', 'visual_signature_mode', 'TEXT'],
+  ['signatures', 'greffio_proof_line', 'TEXT'],
+].forEach(([table, column, type]) => addColumnIfMissing(table, column, type));
+
+sqlite.exec(`
+CREATE TABLE IF NOT EXISTS signature_audit_events (
+  id TEXT PRIMARY KEY,
+  signature_request_id TEXT NOT NULL,
+  signature_id TEXT,
+  event_type TEXT NOT NULL,
+  actor_type TEXT NOT NULL DEFAULT 'system',
+  actor_user_id TEXT,
+  actor_email TEXT,
+  ip_address TEXT,
+  user_agent TEXT,
+  origin TEXT,
+  referer TEXT,
+  metadata_json TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_signature_audit_events_request ON signature_audit_events(signature_request_id);
+
+CREATE TABLE IF NOT EXISTS signature_otps (
+  id TEXT PRIMARY KEY,
+  signature_request_id TEXT NOT NULL,
+  otp_hash TEXT NOT NULL,
+  purpose TEXT NOT NULL DEFAULT 'signature_email_verification',
+  attempts INTEGER NOT NULL DEFAULT 0,
+  max_attempts INTEGER NOT NULL DEFAULT 5,
+  expires_at TEXT NOT NULL,
+  consumed_at TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_signature_otps_request ON signature_otps(signature_request_id);
+`);
+
 sqlite.exec(`
 CREATE TABLE IF NOT EXISTS push_device_tokens (
   id TEXT PRIMARY KEY,

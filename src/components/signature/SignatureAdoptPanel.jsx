@@ -25,6 +25,7 @@ const setupCanvas = (canvas) => {
 export const SignatureAdoptPanel = ({
   defaultName = '',
   defaultEmail = '',
+  consentText = '',
   onCancel,
   onConfirm,
   loading = false,
@@ -181,7 +182,7 @@ export const SignatureAdoptPanel = ({
         <label className="mt-4 flex items-start gap-3 rounded-2xl border border-border bg-white p-3 text-sm leading-6 text-muted-foreground">
           <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1" />
           <span>
-            J&apos;ai lu le document, mes informations sont exactes et j&apos;accepte que ma signature simple soit enregistrée dans Greffio avec horodatage et preuve d&apos;intégrité.
+            {consentText || 'J\'ai lu le document, mes informations sont exactes et j\'accepte que ma signature simple soit enregistrée dans Greffio avec horodatage et preuve d\'intégrité.'}
           </span>
         </label>
 

@@ -1,5 +1,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { hasPostgres, query, sqlite } from './dbClient.js';
+import { isSignatureOtpRequired } from './services/signature/signatureConsent.js';
+import { generateSignatureProofId } from './services/signature/signatureUtils.js';
 
 const nowIso = () => new Date().toISOString();
 
@@ -13,12 +15,15 @@ export const hashSigningToken = (raw) => createHash('sha256').update(String(raw 
 
 const parseRow = (row) => {
   if (!row) return null;
-  return {
+  const parsed = {
     ...row,
     fields: row.fieldsJson ? JSON.parse(row.fieldsJson) : {},
     evidence: row.evidenceJson ? JSON.parse(row.evidenceJson) : {},
     auditTrail: row.auditJson ? JSON.parse(row.auditJson) : [],
   };
+  if (parsed.evidence?.proofCertificatePath) parsed.proofCertificatePath = parsed.evidence.proofCertificatePath;
+  if (parsed.evidence?.proofId) parsed.proofId = parsed.evidence.proofId;
+  return parsed;
 };
 
 export const createSignatureRequest = async ({
@@ -43,8 +48,12 @@ export const createSignatureRequest = async ({
     signerEmail,
     signerFullName,
     status: 'pending',
+    provider: 'greffio_internal',
+    signatureLevel: 'ses_reinforced',
+    proofId: generateSignatureProofId(),
     draftPdfPath,
     signedPdfPath: null,
+    proofCertificatePath: null,
     sha256Draft,
     sha256Signed: null,
     fieldsJson: JSON.stringify(fields || {}),
@@ -54,6 +63,15 @@ export const createSignatureRequest = async ({
     userAgent: null,
     evidenceJson: JSON.stringify({}),
     auditJson: JSON.stringify([{ at: createdAt, type: 'created' }]),
+    consentTextVersion: null,
+    consentTextSnapshot: null,
+    documentAcknowledgedAt: null,
+    consentAcceptedAt: null,
+    otpRequired: isSignatureOtpRequired() ? 1 : 0,
+    otpVerified: 0,
+    openedAt: null,
+    failedAttempts: 0,
+    maxAttempts: 8,
     createdAt,
     updatedAt: createdAt,
   };
@@ -84,7 +102,11 @@ export const createSignatureRequest = async ({
       )
     `).run(record);
   }
-  return parseRow(record);
+  await updateSignatureRequestFields(record.id, {
+    proofId: record.proofId,
+    otpRequired: record.otpRequired,
+  }).catch(() => {});
+  return parseRow({ ...record, fieldsJson: record.fieldsJson, evidenceJson: record.evidenceJson, auditJson: record.auditJson });
 };
 
 export const getSignatureRequestByTokenHash = async (tokenHash) => {
@@ -179,4 +201,46 @@ export const markSignatureRequestSigned = async ({
     });
   }
   await appendSignatureAudit(id, { type: 'signed', ipAddress, userAgent });
+};
+
+export const updateSignatureRequestFields = async (id, fields = {}) => {
+  const mapping = {
+    proofId: 'proof_id',
+    proofCertificatePath: 'proof_certificate_path',
+    consentTextVersion: 'consent_text_version',
+    consentTextSnapshot: 'consent_text_snapshot',
+    documentAcknowledgedAt: 'document_acknowledged_at',
+    consentAcceptedAt: 'consent_accepted_at',
+    otpVerified: 'otp_verified',
+    otpSentAt: 'otp_sent_at',
+    otpVerifiedAt: 'otp_verified_at',
+    otpRequired: 'otp_required',
+    openedAt: 'opened_at',
+  };
+  const entries = Object.entries(fields).filter(([key]) => mapping[key]);
+  if (!entries.length) return;
+  const updatedAt = nowIso();
+  if (hasPostgres) {
+    const sets = entries.map(([key], index) => `${mapping[key]} = $${index + 1}`);
+    sets.push(`updated_at = $${entries.length + 1}`);
+    const values = entries.map(([, value]) => value);
+    values.push(updatedAt, id);
+    await query(`UPDATE signature_requests SET ${sets.join(', ')} WHERE id = $${entries.length + 2}`, values).catch(() => {});
+    return;
+  }
+  const sets = entries.map(([key]) => `${mapping[key]} = @${key}`);
+  sets.push('updated_at = @updatedAt');
+  const params = { id, updatedAt };
+  entries.forEach(([key, value]) => { params[key] = value; });
+  try {
+    sqlite.prepare(`UPDATE signature_requests SET ${sets.join(', ')} WHERE id = @id`).run(params);
+  } catch (_error) {
+    // colonnes absentes en dev ancien schéma
+  }
+};
+
+export const markSignatureRequestOpened = async (id, ipAddress) => {
+  const openedAt = nowIso();
+  await updateSignatureRequestFields(id, { openedAt });
+  await appendSignatureAudit(id, { type: 'opened', ipAddress });
 };
