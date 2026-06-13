@@ -54,7 +54,7 @@ export const finalizeInternalSignature = async ({
     throw error;
   }
 
-  const otpRequired = isSignatureOtpRequired() || Boolean(request.otpRequired);
+  const otpRequired = Boolean(Number(request.otpRequired ?? 0));
   if (otpRequired) {
     const verified = await isSignatureOtpVerified(request.id);
     if (!verified) {

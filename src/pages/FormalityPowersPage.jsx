@@ -30,7 +30,7 @@ import { runtimeConfig } from '@/config/runtime.js';
 const DOC_KEY = 'formality_powers';
 
 const mapError = (error) => {
-  const code = error?.code || error?.message || '';
+  const code = error?.code || error?.payload?.error || error?.message || '';
   const fieldMessages = {
     DOCUMENT_EDITOR_COMPANY_REQUIRED: 'Indiquez la dénomination sociale.',
     DOCUMENT_EDITOR_MANDATAIRE_REQUIRED: 'Indiquez le mandataire.',
@@ -42,7 +42,7 @@ const mapError = (error) => {
     PDF_GENERATION_FAILED: 'La génération du document a échoué.',
     STORAGE_UPLOAD_FAILED: 'Le document n’a pas pu être enregistré.',
   };
-  return fieldMessages[code] || getDocumentEditorLoadErrorMessage(error);
+  return fieldMessages[code] || error?.payload?.message || getDocumentEditorLoadErrorMessage(error);
 };
 
 export const FormalityPowersPage = () => {

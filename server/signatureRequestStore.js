@@ -37,8 +37,12 @@ export const createSignatureRequest = async ({
   sha256Draft,
   fields = {},
   expiresAt,
+  otpRequired = null,
 }) => {
   const createdAt = nowIso();
+  const resolvedOtpRequired = otpRequired === null
+    ? (isSignatureOtpRequired() ? 1 : 0)
+    : (otpRequired ? 1 : 0);
   const record = {
     id: randomUUID(),
     dossierId,
@@ -67,7 +71,7 @@ export const createSignatureRequest = async ({
     consentTextSnapshot: null,
     documentAcknowledgedAt: null,
     consentAcceptedAt: null,
-    otpRequired: isSignatureOtpRequired() ? 1 : 0,
+    otpRequired: resolvedOtpRequired,
     otpVerified: 0,
     openedAt: null,
     failedAttempts: 0,

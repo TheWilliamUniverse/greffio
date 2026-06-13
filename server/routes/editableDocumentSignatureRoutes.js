@@ -1,9 +1,6 @@
 import fs from 'node:fs';
-import { createHash } from 'node:crypto';
-import { stampSignatureOnPdf } from '../pdf/stampSignatureOnPdf.js';
 import {
   persistEditableDocumentPdf,
-  persistSignedEditableDocumentPdf,
 } from '../services/editableDocumentService.js';
 import { EDITABLE_DOCUMENT_REGISTRY } from '../documents/editableDocumentRegistry.js';
 import {
@@ -19,6 +16,9 @@ import { getClientIp } from '../utils/loginContext.js';
 import { resolveDossierAccess } from '../utils/dossierAccess.js';
 import { isSignwellConfigured, sendDocumentForSignature, isSignwellStrictMode, formatSignwellApiError } from '../services/signature/signwellOrchestrator.js';
 import { shouldUseSignwellForSignature } from '../services/signature/signatureProvider.js';
+import { finalizeInternalSignature } from '../services/signature/finalizeInternalSignature.js';
+import { getSignatureConsentText } from '../services/signature/signatureConsent.js';
+import { getDeclarationErrorMessage } from '../documents/declarationNonCondamnation/formatters.js';
 
 export const registerEditableDocumentSignatureRoutes = (app, {
   requireAuth,
@@ -27,7 +27,6 @@ export const registerEditableDocumentSignatureRoutes = (app, {
   updateDossierDocument,
   listDossierDocuments,
   DOCUMENT_STATUSES,
-  createSignatureRecord,
   appUrl,
 }) => {
   const persistDraft = async ({ dossier, config, fields }) => {
@@ -205,6 +204,7 @@ export const registerEditableDocumentSignatureRoutes = (app, {
             sha256Draft,
             fields: { ...normalizedFields, signerEmail, signatureFullName: signerFullName },
             expiresAt,
+            otpRequired: false,
           });
           try {
             const signwellResult = await sendDocumentForSignature({
@@ -241,57 +241,65 @@ export const registerEditableDocumentSignatureRoutes = (app, {
           }
         }
 
-        const signedFilename = pdfPath.replace(/\.pdf$/i, '_signed.pdf');
-        await stampSignatureOnPdf({
-          inputPath: pdfPath,
-          outputPath: signedFilename,
-          signerFullName,
-          signedAtIso: new Date().toISOString(),
-          documentId: dossier.reference || dossier.id,
-          signatureImagePngBase64,
-          proofLines: [`Empreinte brouillon : ${sha256Draft.slice(0, 16)}…`],
-          layout: config.signatureLayout,
-        });
-        const { sha256Signed } = await persistSignedEditableDocumentPdf({
+        const consentMeta = getSignatureConsentText();
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+        const { hash } = createSigningToken();
+        const signatureRequest = await createSignatureRequest({
+          dossierId: dossier.id,
+          documentId: updated?.id || null,
           docKey,
-          schemaVersion: config.schemaVersion,
+          tokenHash: hash,
+          signerEmail,
+          signerFullName,
+          draftPdfPath: pdfPath,
+          sha256Draft,
+          fields: { ...normalizedFields, signerEmail, signatureFullName: signerFullName },
+          expiresAt,
+          otpRequired: false,
+        });
+
+        const result = await finalizeInternalSignature({
+          request: signatureRequest,
           dossier,
-          signedLocalPath: signedFilename,
-          fields: normalizedFields,
+          signerFullName,
+          signerEmail,
+          signatureImagePngBase64,
+          visualSignatureMode: signatureImagePngBase64 ? 'drawn' : 'typed',
+          consentAccepted: consent,
+          consentTextVersion: consentMeta.version,
+          consentTextSnapshot: consentMeta.text,
+          previewAcknowledged,
+          draftPdfPath: pdfPath,
+          ipAddress: getClientIp(req),
+          userAgent: req.headers['user-agent'] || '',
+          appUrl,
+          ensureDossierDocuments,
           updateDossierDocument,
           listDossierDocuments,
           DOCUMENT_STATUSES,
-          metadataExtra: {
-            signedAt: new Date().toISOString(),
-            sha256BeforeSignature: sha256Draft,
-            sha256AfterSignature: sha256Signed,
-            signerEmail,
-            signerFullName,
-          },
         });
-        try {
-          await createSignatureRecord({
-            dossierId: dossier.id,
-            documentId: updated?.id,
-            signerUserId: req.auth.sub,
-            evidence: { sha256Draft, sha256Signed, signerFullName, mode: 'immediate', docKey },
-            ipAddress: getClientIp(req),
-            userAgent: req.headers['user-agent'] || '',
-          });
-        } catch (auditError) {
-          console.error('SIGNATURE_AUDIT_FAILED', auditError);
-        }
-        return res.json({ ok: true, status: 'signed', sha256Signed, documents: await listDossierDocuments(dossier.id) });
+
+        return res.json({
+          ok: true,
+          status: 'signed',
+          sha256Signed: result.sha256Signed,
+          proofId: result.proofId,
+          documents: await listDossierDocuments(dossier.id),
+        });
       } catch (error) {
         console.error('SIGN_NOW_FAILED', error);
-        let errorCode = 'SIGN_NOW_FAILED';
-        if (error?.message === 'INVALID_SIGNATURE_FORMAT') errorCode = 'INVALID_SIGNATURE_FORMAT';
+        let errorCode = error?.code || error?.message || 'SIGN_NOW_FAILED';
+        if (errorCode === 'INVALID_SIGNATURE_FORMAT') errorCode = 'INVALID_SIGNATURE_FORMAT';
         else if (String(error?.message || '').includes('STORAGE') || String(error?.message || '').includes('S3')) {
           errorCode = 'STORAGE_UPLOAD_FAILED';
         } else if (String(error?.message || '').includes('PDF')) {
           errorCode = 'PDF_GENERATION_FAILED';
         }
-        return res.status(errorCode === 'INVALID_SIGNATURE_FORMAT' ? 400 : 500).json({ ok: false, error: errorCode });
+        return res.status(errorCode === 'INVALID_SIGNATURE_FORMAT' ? 400 : 500).json({
+          ok: false,
+          error: errorCode,
+          message: getDeclarationErrorMessage(errorCode),
+        });
       }
     });
   };

@@ -39,7 +39,7 @@ const drawWhiteTextBlock = (page, {
 
   let cursorY = y + blockHeight - padding - size;
   safeLines.forEach((line) => {
-    page.drawText(line, {
+    page.drawText(pdfSafeText(line), {
       x,
       y: cursorY,
       size,
@@ -57,10 +57,21 @@ const pdfSafeText = (value, fallback = '') => {
   const raw = String(value ?? fallback);
   return raw
     .normalize('NFC')
+    .replace(/\u202f/g, ' ')
     .replace(/[^\u0020-\u007E\u00A0-\u00FF]/g, (char) => {
       const ascii = char.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       return ascii || '?';
     });
+};
+
+const formatSignatureTimestampFr = (signedAtIso) => {
+  const date = new Date(signedAtIso);
+  if (Number.isNaN(date.getTime())) return pdfSafeText('');
+  const pad = (value) => String(value).padStart(2, '0');
+  return pdfSafeText(
+    `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} `
+    + `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`,
+  );
 };
 
 export const stampSignatureOnPdf = async ({
@@ -91,13 +102,13 @@ export const stampSignatureOnPdf = async ({
     ? marginH
     : (signatureOnRight ? width - marginH - signatureColWidth : marginH);
   const yBase = isFormalityPowersLayout
-    ? 108
+    ? 132
     : (isSubscribersLayout ? 118 : (isOfficialLayout ? 228 : 168));
 
   const safeSignerName = pdfSafeText(signerFullName, 'Signataire');
 
-  const proof = buildProofFingerprint(documentId);
-  const signedLabel = new Date(signedAtIso).toLocaleString('fr-FR');
+  const proof = pdfSafeText(buildProofFingerprint(documentId));
+  const signedLabel = formatSignatureTimestampFr(signedAtIso);
 
   // Empreinte GRF — position validée (bas de page, marge blanche).
   page.drawText(proof, {
@@ -150,8 +161,8 @@ export const stampSignatureOnPdf = async ({
   const metaX = signatureOnRight ? signatureX : Math.max(marginH, width - marginH - signatureColWidth);
   const metaWidth = signatureColWidth;
   const metaLines = [
-    `Signé électroniquement par ${safeSignerName}`,
-    `Le ${signedLabel}`,
+    pdfSafeText(`Signé électroniquement par ${safeSignerName}`),
+    pdfSafeText(`Le ${signedLabel}`),
   ];
   const metaBaseY = yBase - 42;
   drawWhiteTextBlock(page, {
@@ -165,9 +176,9 @@ export const stampSignatureOnPdf = async ({
   });
 
   const footerLines = [
-    `Document signé le ${signedLabel}`,
+    pdfSafeText(`Document signé le ${signedLabel}`),
     'Greffio — signature électronique simple (SES)',
-    ...(proofLines || []).slice(0, 2),
+    ...(proofLines || []).slice(0, 2).map((line) => pdfSafeText(line)),
   ];
   if (footerLines.length) {
     drawWhiteTextBlock(page, {
