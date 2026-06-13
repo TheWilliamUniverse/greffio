@@ -38,6 +38,7 @@ const item = (entry) => ({
 });
 
 export const QUICK_ACCESS = [
+  { id: 'qa-completion', toolId: 'tool-pdf-completion', label: 'Compléter un PDF', icon: 'file-pen' },
   { id: 'qa-guides', guideId: 'guide-kbis', label: 'Guides gratuits', icon: 'book' },
   { id: 'qa-verify', serviceId: 'company-verify', label: 'Vérifier une entreprise', icon: 'search' },
   { id: 'qa-siren', toolId: 'tool-siren', label: 'Vérifier un SIREN', icon: 'search' },
@@ -57,6 +58,7 @@ export const sortFreeFirst = (items) => [...items].sort((a, b) => {
 });
 
 export const POPULAR_SEARCHES = [
+  'Compléter un PDF',
   'Extrait Kbis',
   'Copie certifiée de statuts',
   'Bénéficiaires effectifs',
@@ -495,6 +497,20 @@ export const GUIDES = [
 ];
 
 export const QUICK_TOOLS = [
+  item({
+    id: 'tool-pdf-completion',
+    kind: 'tool',
+    category: 'tool',
+    title: 'Compléter un PDF',
+    description: 'Importez un Cerfa ou formulaire administratif — Greffio place des champs bleus remplissables.',
+    priceTtc: 0,
+    actionLabel: 'Ouvrir l’assistant',
+    processingMode: 'available',
+    available: true,
+    toolRoute: '/assistant-documents',
+    requiresCompany: false,
+    searchTerms: ['pdf', 'cerfa', 'formulaire', 'compléter', 'complétion', 'document', 'champs'],
+  }),
   item({
     id: 'tool-siren',
     kind: 'tool',

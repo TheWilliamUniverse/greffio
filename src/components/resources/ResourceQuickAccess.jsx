@@ -2,6 +2,7 @@ import React from 'react';
 import {
   BookOpen,
   FileBadge,
+  FilePenLine,
   FolderOpen,
   Search,
   Stamp,
@@ -11,6 +12,7 @@ import { cn } from '@/lib/utils';
 
 const ICONS = {
   'file-badge': FileBadge,
+  'file-pen': FilePenLine,
   stamp: Stamp,
   search: Search,
   folder: FolderOpen,

@@ -13,6 +13,7 @@ import {
   getCatalogItemById,
   OFFICIAL_DOCUMENTS,
   PACKS,
+  QUICK_TOOLS,
   sortFreeFirst,
 } from '@/config/resourceServices.js';
 import { searchResources } from '@/utils/resourceSearch.js';
@@ -127,6 +128,16 @@ export const ClientShopPage = () => {
               />
             </div>
           </section>
+
+          <ResourceSectionGrid
+            id="boutique-outils-gratuits"
+            title="Outils gratuits"
+            subtitle="Complétez vos formulaires et préparez vos pièces sans frais supplémentaires."
+            items={sortFreeFirst(QUICK_TOOLS.filter((tool) => tool.id === 'tool-pdf-completion'))}
+            onAction={handleResourceAction}
+            columns="md:grid-cols-1 lg:grid-cols-2"
+            highlight
+          />
 
           <ResourceSectionGrid
             id="boutique-documents-officiels"

@@ -23,6 +23,7 @@ import { getClientIp } from '../utils/loginContext.js';
 import { resolveDossierAccess } from '../utils/dossierAccess.js';
 import { ensureSignatureDraftPdf } from '../services/signatureDraftPdfService.js';
 import { isSignwellConfigured, sendDocumentForSignature, SIGNWELL_PROVIDER, isSignwellStrictMode, formatSignwellApiError } from '../services/signature/signwellOrchestrator.js';
+import { shouldUseSignwellForSignature } from '../services/signature/signatureProvider.js';
 import { getSignwellDocumentBySignatureRequestId } from '../signwellStore.js';
 
 export const registerNonConvictionSignatureRoutes = (app, {
@@ -100,7 +101,7 @@ export const registerNonConvictionSignatureRoutes = (app, {
         expiresAt,
       });
 
-      if (isSignwellConfigured()) {
+      if (shouldUseSignwellForSignature()) {
         try {
           const signwellResult = await sendDocumentForSignature({
             dossier,
@@ -211,7 +212,7 @@ export const registerNonConvictionSignatureRoutes = (app, {
         throw new Error('PDF_GENERATION_FAILED');
       }
 
-      if (isSignwellConfigured()) {
+      if (shouldUseSignwellForSignature()) {
         const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
         const { hash } = createSigningToken();
         const signatureRequest = await createSignatureRequest({

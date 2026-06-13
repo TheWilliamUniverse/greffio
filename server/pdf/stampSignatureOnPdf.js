@@ -53,6 +53,16 @@ const drawWhiteTextBlock = (page, {
   return y - padding;
 };
 
+const pdfSafeText = (value, fallback = '') => {
+  const raw = String(value ?? fallback);
+  return raw
+    .normalize('NFC')
+    .replace(/[^\u0020-\u007E\u00A0-\u00FF]/g, (char) => {
+      const ascii = char.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      return ascii || '?';
+    });
+};
+
 export const stampSignatureOnPdf = async ({
   inputPath,
   outputPath,
@@ -72,12 +82,19 @@ export const stampSignatureOnPdf = async ({
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
   const isSubscribersLayout = layout === 'subscribers_list_official';
+  const isFormalityPowersLayout = layout === 'formality_powers_official';
   const isOfficialLayout = layout === 'non_conviction_official';
-  const marginH = isSubscribersLayout ? 56 : 71;
+  const marginH = isSubscribersLayout || isFormalityPowersLayout ? 56 : 71;
   const signatureColWidth = 204;
   const signatureOnRight = isOfficialLayout;
-  const signatureX = signatureOnRight ? width - marginH - signatureColWidth : marginH;
-  const yBase = isSubscribersLayout ? 118 : (isOfficialLayout ? 228 : 168);
+  const signatureX = isFormalityPowersLayout
+    ? marginH
+    : (signatureOnRight ? width - marginH - signatureColWidth : marginH);
+  const yBase = isFormalityPowersLayout
+    ? 108
+    : (isSubscribersLayout ? 118 : (isOfficialLayout ? 228 : 168));
+
+  const safeSignerName = pdfSafeText(signerFullName, 'Signataire');
 
   const proof = buildProofFingerprint(documentId);
   const signedLabel = new Date(signedAtIso).toLocaleString('fr-FR');
@@ -121,7 +138,7 @@ export const stampSignatureOnPdf = async ({
       });
     }
   } else {
-    page.drawText(signerFullName, {
+    page.drawText(safeSignerName, {
       x: signatureX,
       y: yBase + 20,
       size: isOfficialLayout ? 16 : 18,
@@ -133,7 +150,7 @@ export const stampSignatureOnPdf = async ({
   const metaX = signatureOnRight ? signatureX : Math.max(marginH, width - marginH - signatureColWidth);
   const metaWidth = signatureColWidth;
   const metaLines = [
-    `Signé électroniquement par ${signerFullName}`,
+    `Signé électroniquement par ${safeSignerName}`,
     `Le ${signedLabel}`,
   ];
   const metaBaseY = yBase - 42;

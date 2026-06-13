@@ -17,7 +17,7 @@ import { MobileStickyHeaderGroup } from '@/mobile/ui/MobileStickyHeaderGroup.jsx
 import { MobileShellScrollProvider } from '@/mobile/context/MobileShellScrollContext.jsx';
 import { MobileShellOverlayProvider, useMobileShellOverlay } from '@/mobile/context/MobileShellOverlayContext.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
-import { isCapacitorNative, logMobileShellRoute } from '@/utils/platform.js';
+import { isCapacitorNative, logMobileShellRoute, isNativeAuthRoute } from '@/utils/platform.js';
 import { mobileDevLog } from '@/utils/mobileDevLog.js';
 
 const AUTH_BOTTOM_NAV_HIDE_PREFIXES = [
@@ -54,10 +54,12 @@ const MobileAppShellInner = ({ children }) => {
   const scrollRef = useRef(null);
   const { isAuthenticated } = useAuth();
   const isLanding = location.pathname === '/';
-  const showAuthenticatedNav = isAuthenticated && !isLanding;
-  const showBottomNav = showAuthenticatedNav
+  const isAuthScreen = isNativeAuthRoute(location.pathname);
+  const showAuthenticatedNav = isAuthenticated && !isLanding && !isAuthScreen;
+  const showBottomNav = !isAuthScreen && (showAuthenticatedNav
     ? !shouldHideAuthBottomNav(location.pathname)
-    : true;
+    : true);
+  const showPublicHeader = !isLanding && !isAuthScreen;
   const title = isLanding ? '' : resolveMobileShellTitle(location.pathname);
   const {
     drawerOpen,
@@ -147,7 +149,7 @@ const MobileAppShellInner = ({ children }) => {
         {showAuthenticatedNav ? (
           <MobileSidebarDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
         ) : null}
-        {!isLanding ? (
+        {showPublicHeader ? (
           <MobileStickyHeaderGroup showConnectedStrip={showAuthenticatedNav}>
             {showAuthenticatedNav ? (
               <MobileTopBar

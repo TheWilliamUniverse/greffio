@@ -1,0 +1,55 @@
+import React from 'react';
+import { Sparkles } from 'lucide-react';
+import { DocumentDetectedFieldsSummary } from './DocumentDetectedFieldsSummary.jsx';
+import { DocumentDownloadCard } from './DocumentDownloadCard.jsx';
+import { DocumentWarningsPanel } from './DocumentWarningsPanel.jsx';
+import { STATUS_LABELS } from '../config.js';
+
+export const DocumentCompletionResult = ({
+  document,
+  fields = [],
+  downloading = false,
+  onDownload,
+}) => {
+  if (!document) return null;
+  const summary = document.analysisSummary || {};
+  const ready = ['analyzed', 'needs_review', 'exported'].includes(document.status);
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-xl border border-border bg-white p-6 shadow-elevation-sm">
+        <div className="flex items-start gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-sm font-bold uppercase tracking-wide text-primary">
+              {ready ? 'Document prêt' : STATUS_LABELS[document.status] || document.status}
+            </p>
+            <h3 className="mt-1 text-2xl font-bold text-foreground">{document.originalFile?.name}</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {summary.totalFieldsDetected || fields.length || 0} champs détectés
+              {summary.highConfidenceFields != null ? `, dont ${summary.highConfidenceFields} avec une confiance élevée` : ''}.
+            </p>
+            {summary.globalConfidence != null ? (
+              <p className="mt-1 text-sm text-muted-foreground">
+                Confiance globale : {Math.round(summary.globalConfidence * 100)}%
+              </p>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      <DocumentWarningsPanel warnings={document.warnings || []} />
+      <DocumentDetectedFieldsSummary fields={fields} />
+      <DocumentDownloadCard
+        fileName={document.generatedFile?.name || `${document.originalFile?.name?.replace(/\.pdf$/i, '') || 'document'}-greffio-completion.pdf`}
+        sizeBytes={document.generatedFile?.sizeBytes}
+        generatedAt={document.exportedAt}
+        available={ready}
+        downloading={downloading}
+        onDownload={onDownload}
+      />
+    </div>
+  );
+};

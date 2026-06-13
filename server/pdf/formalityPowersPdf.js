@@ -80,10 +80,11 @@ export const generateFormalityPowersPdf = async ({ filename, fields = {} }) => {
   });
 
   y -= 10;
+  const signatureBlockTop = 188;
   const city = String(fields.statementCity || '______________________');
   const dateFr = formatFrenchDate(fields.statementDate) || '____ / ____ / ______';
-  page.drawText(`Fait à ${city}, le ${dateFr}.`, { x: MARGIN_H, y, size: 10.5, font, color: COLOR_TEXT });
-  y -= 32;
+  page.drawText(`Fait à ${city}, le ${dateFr}.`, { x: MARGIN_H, y: signatureBlockTop, size: 10.5, font, color: COLOR_TEXT });
+  let signY = signatureBlockTop - 32;
 
   if (fields.signatureIsLegalEntity) {
     const signatureLines = Array.isArray(fields.signatureLines) && fields.signatureLines.length
@@ -94,30 +95,30 @@ export const generateFormalityPowersPdf = async ({ filename, fields = {} }) => {
         `Qualité : ${fields.signatureRepresentativeQuality || 'à compléter'}`,
       ];
     signatureLines.forEach((line) => {
-      page.drawText(String(line), { x: MARGIN_H, y, size: 10.5, font, color: COLOR_TEXT });
-      y -= 14;
+      page.drawText(String(line), { x: MARGIN_H, y: signY, size: 10.5, font, color: COLOR_TEXT });
+      signY -= 14;
     });
   } else {
     page.drawText(`${fields.signatoryName || fields.signatureFullName || 'Le signataire'},`, {
       x: MARGIN_H,
-      y,
+      y: signY,
       size: 10.5,
       font,
       color: COLOR_TEXT,
     });
-    y -= 14;
+    signY -= 14;
   }
   page.drawText(String(fields.signatoryTitle || 'Le Président'), {
     x: MARGIN_H,
-    y,
+    y: signY,
     size: 10.5,
     font: fontBold,
     color: COLOR_TEXT,
   });
-  y -= 24;
+  signY -= 24;
   page.drawLine({
-    start: { x: MARGIN_H, y },
-    end: { x: MARGIN_H + 220, y },
+    start: { x: MARGIN_H, y: signY },
+    end: { x: MARGIN_H + 220, y: signY },
     thickness: 0.6,
     color: COLOR_TEXT,
   });

@@ -415,6 +415,74 @@ CREATE TABLE IF NOT EXISTS verification_profiles (
   updated_at TEXT NOT NULL,
   FOREIGN KEY (dossier_id) REFERENCES dossiers(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS document_completion_documents (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  organization_id TEXT,
+  original_file_name TEXT NOT NULL,
+  original_file_mime_type TEXT NOT NULL,
+  original_file_size_bytes INTEGER NOT NULL,
+  original_storage_driver TEXT NOT NULL,
+  original_storage_path TEXT NOT NULL,
+  generated_file_name TEXT,
+  generated_file_mime_type TEXT,
+  generated_file_size_bytes INTEGER,
+  generated_storage_driver TEXT,
+  generated_storage_path TEXT,
+  status TEXT NOT NULL,
+  source_type TEXT NOT NULL DEFAULT 'unknown',
+  page_count INTEGER,
+  has_text_layer INTEGER,
+  has_existing_form_fields INTEGER,
+  requires_ocr INTEGER,
+  is_encrypted INTEGER,
+  analysis_summary_json TEXT,
+  analysis_warnings_json TEXT,
+  error_code TEXT,
+  error_message TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  analyzed_at TEXT,
+  exported_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_document_completion_documents_user_id ON document_completion_documents(user_id);
+CREATE INDEX IF NOT EXISTS idx_document_completion_documents_status ON document_completion_documents(status);
+
+CREATE TABLE IF NOT EXISTS document_completion_fields (
+  id TEXT PRIMARY KEY,
+  document_id TEXT NOT NULL,
+  page_index INTEGER NOT NULL,
+  page_number INTEGER NOT NULL,
+  field_type TEXT NOT NULL,
+  name TEXT NOT NULL,
+  label TEXT,
+  placeholder TEXT,
+  help_text TEXT,
+  required INTEGER NOT NULL DEFAULT 0,
+  read_only INTEGER NOT NULL DEFAULT 0,
+  x REAL NOT NULL,
+  y REAL NOT NULL,
+  width REAL NOT NULL,
+  height REAL NOT NULL,
+  coordinate_system TEXT NOT NULL DEFAULT 'pdf_points',
+  confidence REAL NOT NULL,
+  confidence_label TEXT NOT NULL,
+  detection_sources_json TEXT NOT NULL,
+  detection_reason TEXT NOT NULL,
+  matched_text TEXT,
+  nearby_label TEXT,
+  original_pdf_field_name TEXT,
+  needs_human_review INTEGER NOT NULL DEFAULT 0,
+  validation_json TEXT,
+  metadata_json TEXT,
+  review_status TEXT NOT NULL DEFAULT 'auto_detected',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (document_id) REFERENCES document_completion_documents(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_document_completion_fields_document_id ON document_completion_fields(document_id);
 `);
 
 export {

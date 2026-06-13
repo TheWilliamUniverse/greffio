@@ -8,6 +8,7 @@ import {
   FileSignature,
   FileText,
   FolderKanban,
+  FormInput,
   LayoutDashboard,
   MessageSquareText,
   Network,
@@ -55,6 +56,7 @@ export const Sidebar = ({ className }) => {
     { to: '/simulateur', icon: FileSignature, label: 'Nouvelle démarche' },
     { to: '/dossiers', icon: FolderKanban, label: 'Dossiers', badge: dossiersCount },
     { to: '/documents', icon: FileText, label: 'Documents' },
+    { to: '/assistant-documents', icon: FormInput, label: 'Compléter un PDF' },
     { to: '/boutique', icon: ShoppingBag, label: 'Boutique' },
     { to: '/team', icon: MessageSquareText, label: 'Équipe & clients' },
     ...(internalView ? [

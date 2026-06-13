@@ -25,7 +25,7 @@ export const EDITABLE_DOCUMENT_REGISTRY = Object.freeze({
     buildInitialFields: buildFormalityPowersFields,
     validateFields: validateFormalityPowersFields,
     generatePdf: generateFormalityPowersPdf,
-    signatureLayout: 'subscribers_list_official',
+    signatureLayout: 'formality_powers_official',
     emailTemplateSend: 'editable_document_signature_request',
     emailTemplateDone: 'editable_document_signature_completed',
     publicDocumentTitle: 'Pouvoirs pour formalités',

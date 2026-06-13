@@ -158,6 +158,7 @@ import {
 import { persistEditableDocumentPdf } from './services/editableDocumentService.js';
 import { registerPaymentsRoutes } from './routes/paymentsRoutes.js';
 import { registerAppVersionRoutes } from './routes/appVersionRoutes.js';
+import { registerDocumentCompletionRoutes } from './routes/documentCompletionRoutes.js';
 import verificationRouter from './routes/verificationRoutes.js';
 import identityRouter, { createDiditWebhookHandler } from './routes/identityRoutes.js';
 import { startIdentityVerificationForDossier } from './services/identity/identity.provider.js';
@@ -2723,6 +2724,8 @@ registerPaymentsRoutes(app, {
 });
 
 registerAppVersionRoutes(app);
+
+registerDocumentCompletionRoutes(app, { requireAuth });
 
 const dossierMessageEvents = {
   notify: (_dossierId, _messages) => {},

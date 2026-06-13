@@ -18,6 +18,7 @@ import { sendTransactionalEmail } from '../services/emailService.js';
 import { getClientIp } from '../utils/loginContext.js';
 import { resolveDossierAccess } from '../utils/dossierAccess.js';
 import { isSignwellConfigured, sendDocumentForSignature, isSignwellStrictMode, formatSignwellApiError } from '../services/signature/signwellOrchestrator.js';
+import { shouldUseSignwellForSignature } from '../services/signature/signatureProvider.js';
 
 export const registerEditableDocumentSignatureRoutes = (app, {
   requireAuth,
@@ -85,7 +86,7 @@ export const registerEditableDocumentSignatureRoutes = (app, {
           expiresAt,
         });
 
-        if (isSignwellConfigured()) {
+        if (shouldUseSignwellForSignature()) {
           try {
             const signwellResult = await sendDocumentForSignature({
               dossier,
@@ -190,7 +191,7 @@ export const registerEditableDocumentSignatureRoutes = (app, {
           throw new Error('PDF_GENERATION_FAILED');
         }
 
-        if (isSignwellConfigured()) {
+        if (shouldUseSignwellForSignature()) {
           const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
           const { hash } = createSigningToken();
           const signatureRequest = await createSignatureRequest({

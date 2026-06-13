@@ -57,6 +57,7 @@ import { MandatePage } from '@/pages/MandatePage.jsx';
 import { PaymentVerificationPage } from '@/pages/PaymentVerificationPage.jsx';
 import { SubscribersListPage } from '@/pages/SubscribersListPage.jsx';
 import { FormalityPowersPage } from '@/pages/FormalityPowersPage.jsx';
+import { DocumentCompletionPage } from '@/pages/DocumentCompletionPage.jsx';
 import { SignaturePublicPage } from '@/pages/SignaturePublicPage.jsx';
 import { SignWellCallbackPage } from '@/pages/SignWellCallbackPage.jsx';
 import { InterfacesPage } from '@/pages/InterfacesPage.jsx';
@@ -215,6 +216,7 @@ function AppRoutes() {
             <Route path="/dossiers" element={<ProtectedRoute><DossiersEntry /></ProtectedRoute>} />
             <Route path="/dossier/:id" element={<ProtectedRoute><DossierDetailEntry /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><DocumentsEntry /></ProtectedRoute>} />
+            <Route path="/assistant-documents" element={<ProtectedRoute><DocumentCompletionPage /></ProtectedRoute>} />
             <Route path="/boutique" element={<ProtectedRoute><ClientShopPage /></ProtectedRoute>} />
             <Route path="/dossier/:dossierId/declaration-non-condamnation" element={<ProtectedRoute>{withSuspense(LazyNonConvictionDeclarationPage, 'Chargement déclaration…')}</ProtectedRoute>} />
             <Route path="/dossier/:dossierId/liste-souscripteurs" element={<ProtectedRoute><SubscribersListPage /></ProtectedRoute>} />

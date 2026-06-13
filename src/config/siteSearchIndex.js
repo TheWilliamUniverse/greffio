@@ -13,6 +13,7 @@ const staticPages = [
   { title: 'Connexion', description: 'Accéder à votre espace client.', to: '/login', keywords: ['login', 'connexion', 'compte'] },
   { title: 'Inscription', description: 'Créer votre espace Greffio.', to: '/signup', keywords: ['inscription', 'signup', 'compte'] },
   { title: 'Tableau de bord', description: 'Suivre vos dossiers et actions.', to: '/dashboard', keywords: ['dashboard', 'tableau de bord'] },
+  { title: 'Compléter un PDF', description: 'Assistant de complétion documentaire — champs bleus remplissables.', to: '/assistant-documents', keywords: ['pdf', 'cerfa', 'formulaire', 'complétion', 'document'] },
   { title: 'Dossiers', description: 'Liste de vos formalités en cours.', to: '/dossiers', keywords: ['dossiers', 'dossier', 'formalité'] },
   { title: 'Documents', description: 'Coffre documentaire et pièces justificatives.', to: '/documents', keywords: ['documents', 'pièces', 'coffre', 'pdf'] },
   { title: 'Statuts', description: 'Générer et exporter vos statuts société.', to: '/statuts', keywords: ['statuts', 'sas', 'sarl', 'docx', 'odt'] },
