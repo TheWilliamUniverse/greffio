@@ -24,6 +24,8 @@ const PAGE_TITLES = {
   '/simulateur': 'Simulation',
   '/contact': 'Contact',
   '/app': 'Application',
+  '/app/welcome': 'Bienvenue',
+  '/app/home': 'Accueil',
   '/mentions-legales': 'Mentions légales',
   '/confidentialite': 'Confidentialité',
   '/cookies': 'Cookies',

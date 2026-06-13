@@ -9,6 +9,8 @@ import { MobilePublicBottomNav } from '@/mobile/MobilePublicBottomNav.jsx';
 import { resolveMobileShellTitle } from '@/mobile/MobileWebShell.jsx';
 import { MobilePushRegistration } from '@/mobile/MobilePushRegistration.jsx';
 import { MobileNativeOfflineBanner } from '@/mobile/MobileNativeOfflineBanner.jsx';
+import { MobileNavCoachmarks } from '@/mobile/ui/MobileNavCoachmarks.jsx';
+import { NativePermissionOrchestrator } from '@/mobile/ui/NativePermissionOrchestrator.jsx';
 import { MobileSidebarDrawer } from '@/components/MobileSidebarDrawer.jsx';
 import { triggerMobileHaptic } from '@/utils/mobileHaptics.js';
 import { MobileStickyHeaderGroup } from '@/mobile/ui/MobileStickyHeaderGroup.jsx';
@@ -140,6 +142,8 @@ const MobileAppShellInner = ({ children }) => {
       <div className="flex min-h-[100dvh] flex-col bg-[#f6f8fc]">
         <MobilePushRegistration />
         <MobileNativeOfflineBanner />
+        <NativePermissionOrchestrator />
+        <MobileNavCoachmarks />
         {showAuthenticatedNav ? (
           <MobileSidebarDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
         ) : null}

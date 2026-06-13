@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { toast } from 'sonner';
@@ -6,15 +7,32 @@ import { registerPushToken } from '@/api/mobile.js';
 import { isCapacitorNative, getNativePlatform } from '@/utils/platform.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { MobilePermissionPrompt } from '@/mobile/ui/MobilePermissionPrompt.jsx';
+import { isNativePushPromptReady } from '@/utils/nativeAppStorage.js';
+import { resolveDossierContinueUrl } from '@/utils/dossierContinueUrl.js';
 
 const PUSH_PROMPT_KEY = 'greffio.mobile.pushPromptSeen';
 
 export const MobilePushRegistration = () => {
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [promptOpen, setPromptOpen] = useState(false);
+  const [pushReady, setPushReady] = useState(() => isNativePushPromptReady());
 
   useEffect(() => {
-    if (!isCapacitorNative() || !isAuthenticated || !PushNotifications?.requestPermissions) return undefined;
+    if (pushReady) return undefined;
+    const timer = window.setInterval(() => {
+      if (isNativePushPromptReady()) {
+        setPushReady(true);
+        window.clearInterval(timer);
+      }
+    }, 400);
+    return () => window.clearInterval(timer);
+  }, [pushReady]);
+
+  useEffect(() => {
+    if (!isCapacitorNative() || !isAuthenticated || !pushReady || !PushNotifications?.requestPermissions) {
+      return undefined;
+    }
 
     let registrationHandle;
     let registrationErrorHandle;
@@ -73,8 +91,21 @@ export const MobilePushRegistration = () => {
       if (body) toast.info(`${title} — ${body}`);
     });
 
-    pushActionHandle = PushNotifications.addListener('pushNotificationActionPerformed', () => {
-      // deep link routing handled separately later
+    pushActionHandle = PushNotifications.addListener('pushNotificationActionPerformed', (event) => {
+      const data = event?.notification?.data || {};
+      const route = data.route || data.path;
+      if (route) {
+        const target = String(route).startsWith('/') ? String(route) : `/${route}`;
+        navigate(target);
+        return;
+      }
+      if (data.dossierId) {
+        navigate(resolveDossierContinueUrl({
+          id: data.dossierId,
+          status: data.status,
+          progressPercent: data.progressPercent,
+        }));
+      }
     });
 
     void setup();
@@ -85,7 +116,7 @@ export const MobilePushRegistration = () => {
       void pushReceivedHandle?.then((handle) => handle.remove());
       void pushActionHandle?.then((handle) => handle.remove());
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, navigate, pushReady]);
 
   const confirmPush = async () => {
     try {

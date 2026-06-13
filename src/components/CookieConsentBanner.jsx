@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button.jsx';
 import { COOKIE_CONSENT_KEY } from '@/config/cookieCatalog.js';
+import { isCapacitorNative } from '@/utils/platform.js';
 
 const DEFAULT_CONSENT = {
   essential: true,
@@ -54,6 +55,7 @@ export const CookieConsentBanner = () => {
     setCustomize(false);
   };
 
+  if (isCapacitorNative()) return null;
   if (!visible) return null;
 
   return (

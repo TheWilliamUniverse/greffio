@@ -34,16 +34,16 @@ const parseChangelog = (value) => {
     .filter(Boolean);
 };
 
-const DEFAULT_LATEST_VERSION_CODE = 261510009;
+const DEFAULT_LATEST_VERSION_CODE = 261510010;
 const DEFAULT_MIN_VERSION_CODE = 261422041;
-const DEFAULT_LATEST_VERSION_NAME = '1.2.10';
+const DEFAULT_LATEST_VERSION_NAME = '1.2.11';
 
 const DEFAULT_CHANGELOG = [
-  'Mon profil et Paramètres accessibles sur mobile web et dans l’app',
-  'Terminal de paiement unifié aligné avec le site (Amazon Pay, Google Pay TEST, carte)',
-  'Chargements et états vides plus clairs sur Documents, Dossiers et connexion',
-  'Drawer mobile structuré — pilotage, boutique et compte plus faciles à trouver',
-  'Corrections de confort sur le parcours authentifié et les formulaires',
+  'Accueil app natif au 1er lancement — plus de landing marketing par défaut',
+  'Reprise automatique du dossier actif après connexion ou ouverture',
+  'Connexion native optimisée, biométrie et notifications séquencées',
+  'Coachmarks navigation + raccourcis Android (formalité, dossiers)',
+  'Notifications push ouvrent directement la bonne action',
 ];
 
 export const getAppVersionConfig = () => ({

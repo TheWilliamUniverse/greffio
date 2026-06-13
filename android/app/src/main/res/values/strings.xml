@@ -4,4 +4,8 @@
     <string name="title_activity_main">Greffio</string>
     <string name="package_name">com.greffio.app</string>
     <string name="custom_url_scheme">com.greffio.app</string>
+    <string name="shortcut_new_formality">Nouvelle formalité</string>
+    <string name="shortcut_new_formality_long">Simuler une formalité</string>
+    <string name="shortcut_my_dossiers">Mes dossiers</string>
+    <string name="shortcut_my_dossiers_long">Voir mes dossiers</string>
 </resources>

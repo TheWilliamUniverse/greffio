@@ -84,10 +84,16 @@ export const verifyCaptchaTokens = async ({
   return { ok: false, reason: 'MISSING_TOKEN' };
 };
 
+import { isTrustedNativeClient } from './nativeClient.js';
+
 export const createCaptchaMiddleware = (action, options = {}) => {
   const { mode = 'enforce' } = options;
 
   return async (req, res, next) => {
+    if (isTrustedNativeClient(req) && (action === 'login' || action === 'signup')) {
+      return next();
+    }
+
     const turnstileConfig = getTurnstileConfig();
     const recaptchaConfig = getRecaptchaConfig();
     const protectionEnabled = turnstileConfig.enabled || recaptchaConfig.enabled;

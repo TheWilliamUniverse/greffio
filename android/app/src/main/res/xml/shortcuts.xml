@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="new_formality"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_new_formality"
+        android:shortcutLongLabel="@string/shortcut_new_formality_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.greffio.app"
+            android:targetClass="com.greffio.app.MainActivity"
+            android:data="https://greffio.willentreprises.com/simulateur" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="my_dossiers"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_my_dossiers"
+        android:shortcutLongLabel="@string/shortcut_my_dossiers_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.greffio.app"
+            android:targetClass="com.greffio.app.MainActivity"
+            android:data="https://greffio.willentreprises.com/dossiers" />
+    </shortcut>
+</shortcuts>

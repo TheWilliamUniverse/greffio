@@ -71,6 +71,9 @@ import { MobileWebShell } from '@/mobile/MobileWebShell.jsx';
 import { MobileSearchPage } from '@/mobile/MobileSearchPage.jsx';
 import { MobileAccountPage } from '@/mobile/MobileAccountPage.jsx';
 import { DashboardEntry } from '@/mobile/DashboardEntry.jsx';
+import { NativeAppBootstrap } from '@/mobile/NativeAppBootstrap.jsx';
+import { NativeAppWelcomePage } from '@/mobile/NativeAppWelcomePage.jsx';
+import { NativeAppHomePage } from '@/mobile/NativeAppHomePage.jsx';
 import { BiometricSessionProvider } from '@/context/BiometricSessionContext.jsx';
 import { shouldUseMobileShell, shouldUseMobileWebShell, isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 import { AppUpdateGate } from '@/components/AppUpdateGate.jsx';
@@ -106,7 +109,7 @@ const NotFound = () => <NotFoundPage />;
 
 const Layout = ({ children }) => {
   const location = useLocation();
-  const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/services', '/paiement', '/ressources', '/app', '/guide', '/procuration', '/contact', '/credentials-unlock', '/login', '/password-reset', '/tarifs', '/creation-entreprise', '/modification-entreprise', '/annonce-legale', '/guichet-unique-inpi', '/kbis', '/guides', '/glossaire', '/faq'];
+  const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/services', '/paiement', '/ressources', '/app', '/app/welcome', '/app/home', '/guide', '/procuration', '/contact', '/credentials-unlock', '/login', '/password-reset', '/tarifs', '/creation-entreprise', '/modification-entreprise', '/annonce-legale', '/guichet-unique-inpi', '/kbis', '/guides', '/glossaire', '/faq'];
   const mobileWebShellActive = isMobileBrowserViewport()
     && shouldUseMobileWebShell(location.pathname);
   const shouldHideHeader = hideHeaderRoutes.some((route) => location.pathname === route || location.pathname.startsWith('/service/'))
@@ -142,6 +145,7 @@ function AppRoutes() {
   return (
     <>
       <ScrollToTop />
+      <NativeAppBootstrap />
       <Layout>
         <RouteErrorBoundary resetKey={location.pathname}>
           <Routes>
@@ -182,6 +186,8 @@ function AppRoutes() {
             <Route path="/ressources/comparateur-forme-juridique" element={<LegalFormComparatorPage />} />
             <Route path="/ressources/guides/:slug" element={<ResourceGuidePage />} />
             <Route path="/app" element={<AppInstallPage />} />
+            <Route path="/app/welcome" element={<NativeAppWelcomePage />} />
+            <Route path="/app/home" element={<NativeAppHomePage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/guide" element={<GuidePage />} />
             <Route path="/procuration" element={<MandatePage />} />

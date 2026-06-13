@@ -2,19 +2,30 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { CircleUserRound, Home, LayoutGrid, Receipt, Sparkles } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth.js';
+import { isCapacitorNative } from '@/utils/platform.js';
 
-const PUBLIC_ITEMS = [
-  { to: '/', label: 'Accueil', icon: Home, match: (path) => path === '/' },
-  { to: '/simulateur', label: 'Simuler', icon: Sparkles, match: (path) => path.startsWith('/simulateur') },
-  { to: '/services', label: 'Services', icon: LayoutGrid, match: (path) => path.startsWith('/services') || path.startsWith('/service/') },
-  { to: '/tarifs', label: 'Tarifs', icon: Receipt, match: (path) => path.startsWith('/tarifs') },
-  { to: '/login', label: 'Compte', icon: CircleUserRound, match: (path) => path.startsWith('/login') || path.startsWith('/signup') },
-];
+const buildPublicItems = () => {
+  const homePath = isCapacitorNative() ? '/app/home' : '/';
+  return [
+    {
+      to: homePath,
+      label: 'Accueil',
+      icon: Home,
+      match: (path) => path === '/' || path === '/app/home' || path === '/app/welcome',
+    },
+    { to: '/simulateur', label: 'Simuler', icon: Sparkles, match: (path) => path.startsWith('/simulateur') },
+    { to: '/services', label: 'Services', icon: LayoutGrid, match: (path) => path.startsWith('/services') || path.startsWith('/service/') },
+    { to: '/tarifs', label: 'Tarifs', icon: Receipt, match: (path) => path.startsWith('/tarifs') },
+    { to: '/login', label: 'Compte', icon: CircleUserRound, match: (path) => path.startsWith('/login') || path.startsWith('/signup') },
+  ];
+};
 
 export const MobilePublicBottomNav = () => {
   const location = useLocation();
   const { currentUser } = useAuth();
   if (currentUser) return null;
+
+  const publicItems = buildPublicItems();
 
   return (
     <nav
@@ -22,7 +33,7 @@ export const MobilePublicBottomNav = () => {
       aria-label="Navigation mobile publique"
     >
       <ul className="mx-auto grid max-w-lg grid-cols-5">
-        {PUBLIC_ITEMS.map((item) => {
+        {publicItems.map((item) => {
           const active = item.match(location.pathname);
           const Icon = item.icon;
           return (

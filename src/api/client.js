@@ -1,6 +1,7 @@
 import { runtimeConfig } from '@/config/runtime.js';
 import { getRefreshToken, getToken, saveRefreshToken, saveToken } from '@/utils/localStorage.js';
 import { refreshAccessToken } from '@/api/auth.js';
+import { nativeClientAuthHeaders } from '@/utils/nativeClient.js';
 import {
   isAuthSessionInvalidError,
   isTransientApiError,
@@ -100,6 +101,9 @@ export const apiFetch = async (path, options = {}) => {
 
   const headers = new Headers(fetchOptions.headers || {});
   const isFormData = fetchOptions.body instanceof FormData;
+  Object.entries(nativeClientAuthHeaders()).forEach(([key, value]) => {
+    if (value && !headers.has(key)) headers.set(key, value);
+  });
   if (!isFormData && fetchOptions.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }

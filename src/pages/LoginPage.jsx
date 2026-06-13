@@ -14,7 +14,8 @@ import { Label } from '@/components/ui/label.jsx';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp.jsx';
 import { runtimeConfig } from '@/config/runtime.js';
 import { PUBLISHER_LEGAL_NAME } from '@/config/publisher.js';
-import { isMobileBrowserViewport } from '@/utils/platform.js';
+import { isMobileBrowserViewport, isCapacitorNative } from '@/utils/platform.js';
+import { resolveNativePostLoginPath } from '@/utils/nativeColdStart.js';
 import { SecurityChallengeWidget } from '@/components/security/SecurityChallengeWidget.jsx';
 import { useSecurityConfig } from '@/hooks/useSecurityConfig.js';
 import { FieldError } from '@/components/patterns/FieldError.jsx';
@@ -50,7 +51,8 @@ export const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTarget = location.state?.from?.pathname || '/dashboard';
-  const mobileAuth = isMobileBrowserViewport();
+  const mobileAuth = isCapacitorNative() || isMobileBrowserViewport();
+  const nativeApp = isCapacitorNative();
   const authInputClass = getAuthInputClass(mobileAuth);
 
   const validateCredentials = () => {
@@ -97,7 +99,12 @@ export const LoginPage = () => {
     if (result.success) {
       setFailedAttempts(0);
       setCaptcha({ provider: 'turnstile', turnstileToken: '', recaptchaToken: '' });
-      navigate(redirectTarget, { replace: true });
+      if (nativeApp) {
+        const target = await resolveNativePostLoginPath();
+        navigate(target || '/dashboard', { replace: true });
+      } else {
+        navigate(redirectTarget, { replace: true });
+      }
     } else if (result.error === 'TEMP_ACCOUNT_EXPIRED') {
       toast.error('Ce compte temporaire a expiré (validité jusqu’à 10 h ce matin).');
     } else if (result.error === 'SECURITY_CHECK_REQUIRED') {
@@ -159,7 +166,12 @@ export const LoginPage = () => {
     setIsLoading(false);
 
     if (result.success) {
-      navigate(redirectTarget, { replace: true });
+      if (nativeApp) {
+        const target = await resolveNativePostLoginPath();
+        navigate(target || '/dashboard', { replace: true });
+      } else {
+        navigate(redirectTarget, { replace: true });
+      }
     } else {
       toast.error(result.error || 'Code invalide');
     }
@@ -178,7 +190,8 @@ export const LoginPage = () => {
     : otpCode.length === 6;
 
   return (
-    <div className="grid min-h-[calc(100vh-4rem)] bg-background lg:grid-cols-[1.05fr_0.95fr]">
+    <div className={`grid min-h-[calc(100vh-4rem)] bg-background ${nativeApp ? '' : 'lg:grid-cols-[1.05fr_0.95fr]'}`}>
+      {!nativeApp ? (
       <section className="hidden bg-[hsl(var(--greffio-blue))] p-10 text-white lg:flex lg:flex-col lg:justify-between">
         <GreffioLogo variant="inverse" to="/" />
         <div className="max-w-xl">
@@ -195,8 +208,9 @@ export const LoginPage = () => {
         </div>
         <p className="text-sm text-white/60"><BrandName /> est une marque déposée de {PUBLISHER_LEGAL_NAME}.</p>
       </section>
+      ) : null}
 
-      <section className="flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+      <section className={`flex items-center justify-center px-4 py-12 sm:px-6 ${nativeApp ? 'min-h-[100dvh] pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom))]' : 'lg:px-8'}`}>
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}

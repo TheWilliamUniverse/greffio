@@ -1,11 +1,12 @@
 import { runtimeConfig } from '@/config/runtime.js';
 import { apiPost } from '@/api/client.js';
-import { mfaDeviceAuthHeaders } from '@/utils/mfaDevice.js';
 import {
   isTransientHttpStatus,
   withTransientRetry,
 } from '@/api/networkResilience.js';
 import { buildCaptchaPayload } from '@/utils/captchaPayload.js';
+import { nativeClientAuthHeaders } from '@/utils/nativeClient.js';
+import { mfaDeviceAuthHeaders } from '@/utils/mfaDevice.js';
 
 const parseApi = async (response) => {
   const contentType = response.headers.get('content-type') || '';
@@ -48,6 +49,7 @@ const postAuth = async (path, body, options = {}) => withTransientRetry(async ()
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...nativeClientAuthHeaders(),
         ...(options.headers || {}),
       },
       body: JSON.stringify(body ?? {}),
