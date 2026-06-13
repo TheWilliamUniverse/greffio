@@ -38,7 +38,16 @@ const handlePaymentError = (res, error, fallbackCode = 'PAYMENT_ERROR') => {
  * @param {Function} [deps.getUserById]
  */
 export const registerPaymentsRoutes = (app, deps) => {
-  const { requireAuth, requireRole, store, getUserById } = deps;
+  const {
+    requireAuth,
+    requireRole,
+    store,
+    getUserById,
+    handleResourceOrderPaymentPaid,
+    transitionDossierStatus,
+    DOSSIER_STATUSES,
+    ROLE,
+  } = deps;
   const service = getPaymentService({
     upsertPayment: store.upsertPayment,
     getPaymentByProviderId: store.getPaymentByProviderId,
@@ -76,7 +85,8 @@ export const registerPaymentsRoutes = (app, deps) => {
     try {
       const {
         dossierId,
-        orderId,
+        orderId: orderIdRaw,
+        resourceOrderId,
         invoiceId,
         offerCode,
         amount: clientAmount,
@@ -88,6 +98,7 @@ export const registerPaymentsRoutes = (app, deps) => {
         metadata,
       } = req.body || {};
 
+      const orderId = orderIdRaw || resourceOrderId || null;
       const customerType = await resolveCustomerType(req, customerTypeHint);
 
       let amountTotalCents = null;
@@ -284,7 +295,23 @@ export const registerPaymentsRoutes = (app, deps) => {
         if (status === PAYMENT_STATUSES.FAILED) patch.failedAt = new Date().toISOString();
         if (status === PAYMENT_STATUSES.CANCELLED) patch.cancelledAt = new Date().toISOString();
         if (status === PAYMENT_STATUSES.REFUNDED) patch.refundedAt = new Date().toISOString();
-        await store.upsertPayment(patch);
+        const updated = await store.upsertPayment(patch);
+
+        if (status === PAYMENT_STATUSES.PAID) {
+          if (typeof handleResourceOrderPaymentPaid === 'function') {
+            await handleResourceOrderPaymentPaid(updated);
+          }
+          if (updated.dossierId && typeof transitionDossierStatus === 'function') {
+            await transitionDossierStatus({
+              dossierId: updated.dossierId,
+              nextStatus: DOSSIER_STATUSES?.PAYMENT_CONFIRMED || 'payment_confirmed',
+              actorType: 'webhook',
+              actorRole: ROLE?.WEBHOOK || 'webhook',
+              reason: 'cawl_paid',
+              metadata: { providerPaymentId, paymentConfirmed: true },
+            });
+          }
+        }
       }
 
       return res.send('OK');
@@ -362,7 +389,23 @@ export const registerPaymentsRoutes = (app, deps) => {
         if (parsed.status === PAYMENT_STATUSES.FAILED) patch.failedAt = new Date().toISOString();
         if (parsed.status === PAYMENT_STATUSES.CANCELLED) patch.cancelledAt = new Date().toISOString();
         if (parsed.status === PAYMENT_STATUSES.REFUNDED) patch.refundedAt = new Date().toISOString();
-        await store.upsertPayment(patch);
+        const updated = await store.upsertPayment(patch);
+
+        if (parsed.status === PAYMENT_STATUSES.PAID) {
+          if (typeof handleResourceOrderPaymentPaid === 'function') {
+            await handleResourceOrderPaymentPaid(updated);
+          }
+          if (updated.dossierId && typeof transitionDossierStatus === 'function') {
+            await transitionDossierStatus({
+              dossierId: updated.dossierId,
+              nextStatus: DOSSIER_STATUSES?.PAYMENT_CONFIRMED || 'payment_confirmed',
+              actorType: 'webhook',
+              actorRole: ROLE?.WEBHOOK || 'webhook',
+              reason: 'cawl_worldline_paid',
+              metadata: { providerPaymentId: parsed.providerPaymentId, paymentConfirmed: true },
+            });
+          }
+        }
       }
 
       return res.status(200).json({ ok: true });

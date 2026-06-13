@@ -17,6 +17,7 @@ import { MobilePageSkeleton } from '@/mobile/ui/MobilePageSkeleton.jsx';
 import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
 import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
 import { OfflineDataBanner } from '@/components/system/OfflineDataBanner.jsx';
+import { resolvePaymentCheckoutErrorMessage } from '@/utils/paymentErrors.js';
 
 const offers = {
   'Statuts gratuits': { title: 'Statuts gratuits', price: '0€', tax: 'Aucun paiement requis' },
@@ -112,19 +113,7 @@ export const MobilePaymentPage = () => {
       }
       throw new Error('CHECKOUT_URL_MISSING');
     } catch (error) {
-      const code = error?.payload?.error || error?.message;
-      if ([
-        'GOCARDLESS_FORBIDDEN_FOR_B2C',
-        'B2C_REQUIRES_CAWL',
-        'PAYMENT_PROVIDER_NOT_CONFIGURED',
-        'CAWL_NOT_CONFIGURED',
-      ].includes(code)) {
-        toast.error('Paiement carte indisponible : le prestataire serveur n’est pas encore configuré.');
-      } else if (code === 'API_TRANSIENT_UNAVAILABLE' || error?.status === 503) {
-        toast.error('Paiement momentanément indisponible. Réessayez dans quelques instants.');
-      } else {
-        toast.error('Impossible d’initialiser le paiement sécurisé.');
-      }
+      toast.error(resolvePaymentCheckoutErrorMessage(error));
     } finally {
       setIsCreatingPayment(false);
     }

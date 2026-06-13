@@ -106,6 +106,18 @@ test('currency != EUR → refus', async () => {
   );
 });
 
+test('customerId peut être dérivé de userId', async () => {
+  const { service, stored } = buildService();
+  const result = await service.createPayment({
+    userId: 'user_42',
+    customerType: CUSTOMER_TYPES.B2C,
+    amount: 490,
+  });
+  assert.equal(result.provider, PAYMENT_PROVIDERS.CAWL);
+  assert.equal(stored[0].customerId, 'user_42');
+  assert.equal(stored[0].userId, 'user_42');
+});
+
 test('echec adapter → PaymentError propre', async () => {
   const { service } = buildService({
     cawl: {

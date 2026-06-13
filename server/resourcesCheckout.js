@@ -1,15 +1,23 @@
-import { createGoCardlessCheckout, retrieveGoCardlessBillingRequest, isGoCardlessPaidStatus } from './gocardless.js';
 import { getPaymentService } from './payments/paymentServiceFactory.js';
-import { CUSTOMER_TYPES } from './payments/types.js';
+import { CUSTOMER_TYPES, PaymentError } from './payments/types.js';
 import { computeResourcePaymentAmounts } from './pricing.js';
 import { getResourceOrderById, updateResourceOrder } from './resourceOrderStore.js';
 import { upsertPayment } from './store.js';
+
+const rethrowPaymentError = (error) => {
+  if (error instanceof PaymentError) {
+    const wrapped = new Error(error.code);
+    wrapped.status = error.httpStatus || 503;
+    wrapped.paymentCode = error.code;
+    throw wrapped;
+  }
+  throw error;
+};
 
 export const createResourceOrderCheckout = async ({
   orderId,
   userId,
   appUrl,
-  gocardlessWebhookUrl,
 }) => {
   const order = await getResourceOrderById(orderId);
   if (!order) {
@@ -35,74 +43,44 @@ export const createResourceOrderCheckout = async ({
 
   const amounts = computeResourcePaymentAmounts(order.priceTtcCents);
   const redirectUrl = `${appUrl}/paiement/verification?resourceOrderId=${order.id}`;
-  const hasGoCardless = Boolean(process.env.GOCARDLESS_ACCESS_TOKEN || process.env.GOCARDLESS_API_KEY);
 
-  let created;
-  let paymentProvider = 'cawl';
-
-  if (hasGoCardless) {
-    paymentProvider = 'gocardless';
-    created = await createGoCardlessCheckout({
-      amountTotalCents: amounts.amountTotalCents,
-      currency: amounts.currency,
-      metadata: {
-        resource_order_id: order.id,
-        service_id: order.serviceId,
-        company_name: order.companyName || '',
-      },
-      redirectUrl,
-      exitUrl: `${appUrl}/paiement?resourceOrder=${order.id}&service=${order.serviceId}`,
-      description: `Greffio ${order.serviceTitle}`,
-    });
-  } else {
-    const service = getPaymentService({ upsertPayment });
-    const result = await service.createPayment({
+  const service = getPaymentService({ upsertPayment });
+  let result;
+  try {
+    result = await service.createPayment({
+      customerId: userId,
       customerType: CUSTOMER_TYPES.B2C,
       amount: amounts.amountTotalCents,
       currency: amounts.currency,
       orderId: order.id,
       description: `Greffio ${order.serviceTitle}`,
       returnUrl: redirectUrl,
-      cancelUrl: `${appUrl}/paiement?resourceOrder=${order.id}`,
+      cancelUrl: `${appUrl}/paiement?resourceOrder=${order.id}&service=${order.serviceId}`,
       userId,
       offerCode: `resource:${order.serviceId}`,
-      metadata: { resourceOrderId: order.id, paymentMethod: 'google_pay_preferred' },
+      metadata: { resourceOrderId: order.id, paymentMethod: 'card' },
     });
-    created = {
-      providerPaymentId: result.payment?.providerPaymentId,
-      status: result.status,
-      checkoutUrl: result.checkoutUrl,
-      raw: result.payment?.providerPayload,
-    };
-    paymentProvider = result.provider || 'cawl';
+  } catch (error) {
+    rethrowPaymentError(error);
   }
 
-  if (!created?.checkoutUrl && process.env.NODE_ENV !== 'production') {
-    created = {
-      providerPaymentId: created?.providerPaymentId || `resource_demo_${Date.now()}`,
-      status: created?.status || 'open',
-      checkoutUrl: `${redirectUrl}&mock=resource`,
-      raw: created?.raw || { provider: 'demo', mode: 'mock_fallback' },
-    };
-  } else if (!created?.checkoutUrl) {
-    const error = new Error('PAYMENT_PROVIDER_NOT_CONFIGURED');
-    error.status = 503;
-    throw error;
+  let checkoutUrl = result.checkoutUrl;
+  if (!checkoutUrl) {
+    if (process.env.NODE_ENV !== 'production') {
+      checkoutUrl = `${redirectUrl}&mock=resource`;
+    } else {
+      const error = new Error('PAYMENT_PROVIDER_NOT_CONFIGURED');
+      error.status = 503;
+      throw error;
+    }
   }
 
   const payment = await upsertPayment({
+    ...result.payment,
     dossierId: order.dossierId || null,
-    resourceOrderId: order.id,
-    userId,
-    offerCode: `resource:${order.serviceId}`,
-    amountTotalCents: amounts.amountTotalCents,
     amountServiceCents: amounts.amountServiceCents,
     amountLegalFeesCents: amounts.amountLegalFeesCents,
-    currency: amounts.currency,
-    status: created.status || 'open',
-    provider: paymentProvider,
-    providerPaymentId: created.providerPaymentId,
-    providerPayload: created.raw,
+    providerCheckoutUrl: checkoutUrl,
   });
 
   await updateResourceOrder(order.id, {
@@ -113,11 +91,6 @@ export const createResourceOrderCheckout = async ({
   return {
     order: await getResourceOrderById(order.id),
     payment,
-    checkoutUrl: created.checkoutUrl,
+    checkoutUrl,
   };
-};
-
-export {
-  isGoCardlessPaidStatus,
-  retrieveGoCardlessBillingRequest,
 };

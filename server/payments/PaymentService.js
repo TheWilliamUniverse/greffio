@@ -45,14 +45,18 @@ export class PaymentService {
    * @param {import('./types.js').CreatePaymentInput} input
    */
   async createPayment(input) {
-    this._validateInput(input);
+    const normalizedInput = {
+      ...input,
+      customerId: input.customerId || input.userId || null,
+    };
+    this._validateInput(normalizedInput);
 
     const internalPaymentId = randomUUID();
-    const providerName = input.providerOverride
-      ? input.providerOverride
-      : this.resolver.resolve(input.customerType);
+    const providerName = normalizedInput.providerOverride
+      ? normalizedInput.providerOverride
+      : this.resolver.resolve(normalizedInput.customerType);
 
-    this.resolver.assertProviderAllowedForCustomerType(providerName, input.customerType);
+    this.resolver.assertProviderAllowedForCustomerType(providerName, normalizedInput.customerType);
 
     const adapter = this.providers[providerName];
     if (!adapter) {
@@ -66,7 +70,7 @@ export class PaymentService {
     let creationResult;
     try {
       creationResult = await adapter.createPayment({
-        ...input,
+        ...normalizedInput,
         internalPaymentId,
       });
     } catch (error) {
@@ -80,24 +84,24 @@ export class PaymentService {
 
     const persisted = await this.upsertPayment({
       id: internalPaymentId,
-      customerId: input.customerId,
-      customerType: input.customerType,
-      dossierId: input.dossierId || null,
-      resourceOrderId: input.orderId || null,
-      invoiceId: input.invoiceId || null,
-      userId: input.userId || null,
-      offerCode: input.offerCode || input.description || null,
-      amountTotalCents: input.amount,
-      amountServiceCents: input.amount,
+      customerId: normalizedInput.customerId,
+      customerType: normalizedInput.customerType,
+      dossierId: normalizedInput.dossierId || null,
+      resourceOrderId: normalizedInput.orderId || null,
+      invoiceId: normalizedInput.invoiceId || null,
+      userId: normalizedInput.userId || null,
+      offerCode: normalizedInput.offerCode || normalizedInput.description || null,
+      amountTotalCents: normalizedInput.amount,
+      amountServiceCents: normalizedInput.amount,
       amountLegalFeesCents: 0,
-      currency: input.currency || 'EUR',
+      currency: normalizedInput.currency || 'EUR',
       status: creationResult.status || PAYMENT_STATUSES.PENDING,
       provider: providerName,
       providerPaymentId: creationResult.providerPaymentId || null,
       providerCheckoutUrl: creationResult.checkoutUrl || null,
       providerPayload: creationResult.raw || {},
       paymentMethod: null,
-      metadata: input.metadata || null,
+      metadata: normalizedInput.metadata || null,
     });
 
     return {

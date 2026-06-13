@@ -522,13 +522,14 @@ app.post('/api/resources/orders/:orderId/checkout', requireAuth, async (req, res
       orderId: req.params.orderId,
       userId: req.auth.sub,
       appUrl,
-      gocardlessWebhookUrl,
     });
     return res.json({ ok: true, ...payload });
   } catch (error) {
+    const code = error?.paymentCode || error?.message || 'CHECKOUT_ERROR';
     return res.status(error?.status || 500).json({
       ok: false,
-      error: error?.message || 'CHECKOUT_ERROR',
+      error: code,
+      message: error?.message,
     });
   }
 });
@@ -2726,6 +2727,10 @@ registerPaymentsRoutes(app, {
   requireAuth,
   requireRole,
   getUserById,
+  handleResourceOrderPaymentPaid,
+  transitionDossierStatus,
+  DOSSIER_STATUSES,
+  ROLE,
   store: {
     upsertPayment,
     getPaymentById,
