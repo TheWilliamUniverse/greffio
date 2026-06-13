@@ -82,6 +82,21 @@ export const MOBILE_SHELL_PREFIXES = [
   '/contact',
 ];
 
+/** Routes auth plein écran dans l'app native (sans barre basse / header public). */
+export const NATIVE_AUTH_ROUTE_PREFIXES = [
+  '/login',
+  '/signup',
+  '/password-reset',
+  '/credentials-unlock',
+];
+
+export const isNativeAuthRoute = (pathname) => {
+  const path = String(pathname || '');
+  return NATIVE_AUTH_ROUTE_PREFIXES.some(
+    (prefix) => path === prefix || path.startsWith(`${prefix}/`),
+  );
+};
+
 /** App native Capacitor : shell sur toutes les routes sauf ops / signature publique. */
 export const shouldUseMobileShell = (pathname) => {
   if (!isCapacitorNative()) return false;
