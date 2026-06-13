@@ -4,6 +4,7 @@ const KEYS = Object.freeze({
   biometricPromptDone: 'greffio.native.biometricPromptDone',
   pushPromptReady: 'greffio.native.pushPromptReady',
   coldStartRouted: 'greffio.native.coldStartRouted',
+  freshPasswordLogin: 'greffio.native.freshPasswordLogin',
 });
 
 const readFlag = (key) => {
@@ -53,3 +54,10 @@ export const markNativeColdStartRouted = () => {
     // ignore
   }
 };
+
+/** Connexion mot de passe réussie — évite le verrou biométrique immédiat. */
+export const markFreshNativePasswordLogin = () => writeFlag(KEYS.freshPasswordLogin);
+
+export const hasFreshNativePasswordLogin = () => readFlag(KEYS.freshPasswordLogin);
+
+export const clearFreshNativePasswordLogin = () => writeFlag(KEYS.freshPasswordLogin, false);
