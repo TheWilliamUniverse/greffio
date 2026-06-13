@@ -27,10 +27,10 @@ const STATUS_HINTS = Object.freeze({
   statutes_generated: 'Relisez les statuts générés avant signature.',
   payment_pending: 'Réglez les frais Greffio pour poursuivre.',
   client_validation_required: 'Validez le dossier avant dépôt.',
-  filed_to_guichet_unique: 'Votre dossier est déposé — suivi en cours par Greffio.',
+  filed_to_guichet_unique: 'Votre dossier est déposé – suivi en cours par Greffio.',
   under_administration_review: 'Instruction administrative en cours, aucune action urgente.',
   regularization_requested: 'Répondez à la demande de complément dans Messages ou Documents.',
-  accepted: 'Formalité acceptée — téléchargez vos documents officiels.',
+  accepted: 'Formalité acceptée – téléchargez vos documents officiels.',
   completed: 'Dossier clôturé, documents conservés dans votre coffre.',
 });
 

@@ -154,7 +154,7 @@ export const AppDownloadGatePage = () => {
             <p className="text-sm leading-6 text-muted-foreground">
               Cette page n’est pas référencée publiquement. Un code à 6 chiffres est envoyé uniquement à l’adresse autorisée
               {' '}
-              <strong>ibtissam@willentreprises.com</strong>.
+              <strong>{AUTHORIZED_RECIPIENT_MASKED}</strong>.
             </p>
 
             <Button
@@ -287,3 +287,5 @@ export const AppDownloadGatePage = () => {
 
       <PublicMinimalLegalFooter />
     </div>
+  );
+};

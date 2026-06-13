@@ -8,7 +8,7 @@ import {
 } from './appDownloadAccessStore.js';
 
 const buildCodeEmail = ({ code, appUrl }) => ({
-  subject: 'Code d’accès — téléchargement app Greffio',
+  subject: 'Code d’accès – téléchargement app Greffio',
   html: `
     <div style="font-family:Inter,Arial,sans-serif;line-height:1.6;color:#0f2750">
       <p>Bonjour,</p>
