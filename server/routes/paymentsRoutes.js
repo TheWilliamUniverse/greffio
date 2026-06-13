@@ -2,6 +2,13 @@ import { computePaymentAmounts, computeResourcePaymentAmounts } from '../pricing
 import { getPaymentService } from '../payments/paymentServiceFactory.js';
 import { isCawlETransactionsConfigured } from '../payments/providers/cawlETransactions.js';
 import {
+  handleWorldlineEndpointVerification,
+  isCawlWorldlineConfigured,
+  parseWorldlineWebhookEvent,
+  resolveCawlWorldlineConfig,
+  verifyWorldlineWebhookSignature,
+} from '../payments/providers/cawlWorldlineConnect.js';
+import {
   CUSTOMER_TYPES,
   PAYMENT_PROVIDERS,
   PAYMENT_STATUSES,
@@ -291,4 +298,83 @@ export const registerPaymentsRoutes = (app, deps) => {
    */
   app.post('/api/webhooks/cawl', handleCawlWebhook);
   app.get('/api/webhooks/cawl', handleCawlWebhook);
+
+  const handleCawlWorldlineWebhook = async (req, res) => {
+    const endpointCheck = handleWorldlineEndpointVerification(req.headers);
+    if (endpointCheck) {
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      return res.send(endpointCheck.body);
+    }
+
+    if (!isCawlWorldlineConfigured()) {
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(503).json({ ok: false, error: 'CAWL_WORLDLINE_NOT_CONFIGURED' });
+      }
+      return res.status(401).json({ ok: false, error: 'CAWL_WORLDLINE_NOT_CONFIGURED' });
+    }
+
+    try {
+      const cfg = resolveCawlWorldlineConfig();
+      const rawBody = req.rawBody
+        || (typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {}));
+
+      const verification = verifyWorldlineWebhookSignature({
+        rawBody,
+        headers: req.headers,
+        webhookSecret: cfg.webhookSecret,
+        expectedKeyId: cfg.webhookId,
+      });
+      if (!verification.ok) {
+        return res.status(401).json({ ok: false, error: verification.reason || 'CAWL_WORLDLINE_WEBHOOK_INVALID' });
+      }
+
+      const parsed = parseWorldlineWebhookEvent(
+        typeof req.body === 'object' && req.body !== null ? req.body : rawBody,
+      );
+
+      if (!parsed.providerPaymentId) {
+        return res.status(200).json({ ok: true, received: true, unmatched: true });
+      }
+
+      let payment = await store.getPaymentByProviderId(parsed.providerPaymentId);
+      if (!payment && store.getPaymentById) {
+        payment = await store.getPaymentById(parsed.providerPaymentId);
+      }
+      if (!payment) {
+        return res.status(200).json({ ok: true, received: true, unmatched: true });
+      }
+
+      const providerEventId = `cawl:worldline:${parsed.providerPaymentId}:${parsed.eventType}:${parsed.status}`;
+      if (await store.hasPaymentEventProviderId(providerEventId)) {
+        return res.status(200).json({ ok: true, duplicate: true });
+      }
+
+      await store.addPaymentEvent({
+        paymentId: payment.id,
+        eventType: `cawl.${parsed.eventType}`,
+        providerEventId,
+        rawPayload: parsed.raw,
+      });
+
+      if (parsed.status && parsed.status !== payment.status) {
+        const patch = { ...payment, status: parsed.status };
+        if (parsed.status === PAYMENT_STATUSES.PAID) patch.paidAt = new Date().toISOString();
+        if (parsed.status === PAYMENT_STATUSES.FAILED) patch.failedAt = new Date().toISOString();
+        if (parsed.status === PAYMENT_STATUSES.CANCELLED) patch.cancelledAt = new Date().toISOString();
+        if (parsed.status === PAYMENT_STATUSES.REFUNDED) patch.refundedAt = new Date().toISOString();
+        await store.upsertPayment(patch);
+      }
+
+      return res.status(200).json({ ok: true });
+    } catch (error) {
+      return handlePaymentError(res, error, 'CAWL_WORLDLINE_WEBHOOK_FAILED');
+    }
+  };
+
+  /**
+   * Webhooks Worldline Connect (Payment API). Signature X-GCS-Signature / X-GCS-KeyId.
+   * GET : vérification endpoint (header X-GCS-Webhooks-Endpoint-Verification).
+   */
+  app.post('/api/webhooks/cawl/worldline', handleCawlWorldlineWebhook);
+  app.get('/api/webhooks/cawl/worldline', handleCawlWorldlineWebhook);
 };

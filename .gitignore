@@ -32,6 +32,7 @@ Thumbs.db
 .idea/
 .vscode/
 .cursor/
+tmp/cawl-secrets.env
 [Content_Types].xml
 _rels/
 docProps/

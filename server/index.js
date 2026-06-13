@@ -2688,6 +2688,21 @@ app.post(
   },
 );
 
+// Webhook Worldline Connect — corps JSON brut pour X-GCS-Signature.
+app.post(
+  '/api/webhooks/cawl/worldline',
+  express.text({ type: '*/*' }),
+  (req, _res, next) => {
+    req.rawBody = typeof req.body === 'string' ? req.body : '';
+    try {
+      req.body = req.rawBody ? JSON.parse(req.rawBody) : {};
+    } catch (_error) {
+      req.body = {};
+    }
+    return next();
+  },
+);
+
 registerOpsRoutes(app, {
   requireAuth,
   requireRole,
