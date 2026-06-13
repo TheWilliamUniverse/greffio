@@ -15,6 +15,8 @@ export const ET_SERVERS_PRODUCTION = Object.freeze([
 
 const DEFAULT_SIGN_KEYSIZE = '2048';
 const DEFAULT_CURRENCY = '978'; // EUR ISO 4217 numeric
+/** Endpoint Paybox System hosted checkout (doc Verifone / Paybox, pas /php/). */
+export const DEFAULT_ET_CHECKOUT_PATH = '/cgi/MYchoix_pagepaiement.cgi';
 
 /**
  * Lit la configuration CAWL e-Transactions depuis les variables d'environnement.
@@ -41,8 +43,35 @@ export function resolveCawlETransactionsConfig(env = process.env) {
     cancelUrl: String(env.CAWL_CANCEL_URL || `${appUrl}/paiement`).trim(),
     refuseUrl: String(env.CAWL_REFUSE_URL || `${appUrl}/paiement/verification?status=refused`).trim(),
     pubkeyPath: String(env.CAWL_ETRANS_PUBKEY_PATH || '').trim(),
+    checkoutPath: normalizeETransactionsCheckoutPath(
+      env.CAWL_ETRANSACTIONS_CHECKOUT_PATH || env.CAWL_ETRANS_CHECKOUT_PATH,
+    ),
     servers: isTest ? [...ET_SERVERS_TEST] : [...ET_SERVERS_PRODUCTION],
   };
+}
+
+/**
+ * Normalise le chemin POST Paybox (doit commencer par /, ex. /cgi/MYchoix_pagepaiement.cgi).
+ * @param {string} [rawPath]
+ */
+export function normalizeETransactionsCheckoutPath(rawPath) {
+  const trimmed = String(rawPath || DEFAULT_ET_CHECKOUT_PATH).trim();
+  if (!trimmed) return DEFAULT_ET_CHECKOUT_PATH;
+  const withLeadingSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  if (withLeadingSlash === '/php/' || withLeadingSlash === '/php') {
+    return DEFAULT_ET_CHECKOUT_PATH;
+  }
+  return withLeadingSlash;
+}
+
+/**
+ * @param {string} serverHost
+ * @param {ReturnType<typeof resolveCawlETransactionsConfig>} config
+ */
+export function buildETransactionsCheckoutActionUrl(serverHost, config) {
+  const host = String(serverHost || '').trim();
+  const path = normalizeETransactionsCheckoutPath(config?.checkoutPath);
+  return `https://${host}${path}`;
 }
 
 /** @param {NodeJS.ProcessEnv} [env] */
@@ -218,7 +247,7 @@ export function buildHostedCheckoutFields(input, config, serverHost) {
   fields.PBX_HMAC = computeHmacSha512(msg, config.hmacKeyHex);
 
   return {
-    actionUrl: `https://${serverHost}/php/`,
+    actionUrl: buildETransactionsCheckoutActionUrl(serverHost, config),
     fields,
     mode: config.mode,
     serverHost,

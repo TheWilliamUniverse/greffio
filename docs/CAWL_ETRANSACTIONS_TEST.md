@@ -31,6 +31,7 @@ CAWL_PBX_SITE=
 CAWL_PBX_RANG=
 CAWL_PBX_IDENTIFIANT=
 CAWL_HMAC_KEY=
+CAWL_ETRANSACTIONS_CHECKOUT_PATH=/cgi/MYchoix_pagepaiement.cgi
 CAWL_IPN_URL=https://api.greffio.willentreprises.com/api/webhooks/cawl
 ```
 
@@ -67,7 +68,7 @@ Source : `Readme.txt` de l'exemple PHP CAWL (`tmp/cawl-example/`).
 ## Flux checkout (e-Transactions)
 
 1. `POST /api/payments` → `checkoutUrl` = `/api/payments/:id/cawl/checkout`
-2. Page intermédiaire Greffio → POST auto-submit vers `recette-tpeweb.e-transactions.fr/php/`
+2. Page intermédiaire Greffio → POST auto-submit vers `recette-tpeweb.e-transactions.fr/cgi/MYchoix_pagepaiement.cgi`
 3. Retour navigateur → `APP_URL/paiement/verification`
 4. IPN serveur → `/api/webhooks/cawl` (réponse `OK`)
 

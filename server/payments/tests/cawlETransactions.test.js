@@ -1,12 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  buildETransactionsCheckoutActionUrl,
   buildHmacMessage,
   buildHostedCheckoutFields,
   computeHmacSha512,
+  DEFAULT_ET_CHECKOUT_PATH,
   formatPbxTotal,
   isCawlETransactionsConfigured,
   mapETransactionsErrorCode,
+  normalizeETransactionsCheckoutPath,
   parseETransactionsIpn,
   renderHostedCheckoutHtml,
   resolveCawlETransactionsConfig,
@@ -43,7 +46,7 @@ test('buildHostedCheckoutFields produces ordered HMAC fields', () => {
     customerEmail: 'client@example.com',
   }, config, 'recette-tpeweb.e-transactions.fr');
 
-  assert.equal(hosted.actionUrl, 'https://recette-tpeweb.e-transactions.fr/php/');
+  assert.equal(hosted.actionUrl, 'https://recette-tpeweb.e-transactions.fr/cgi/MYchoix_pagepaiement.cgi');
   assert.equal(hosted.fields.PBX_CMD, 'pay-test-uuid');
   assert.equal(hosted.fields.PBX_TOTAL, '9900');
   assert.equal(hosted.fields.PBX_DEVISE, '978');
@@ -80,14 +83,32 @@ test('mapETransactionsErrorCode treats non-zero as failed', () => {
   assert.equal(mapETransactionsErrorCode('00001'), PAYMENT_STATUSES.FAILED);
 });
 
+test('normalizeETransactionsCheckoutPath defaults to Paybox CGI and remaps legacy /php/', () => {
+  assert.equal(normalizeETransactionsCheckoutPath(''), DEFAULT_ET_CHECKOUT_PATH);
+  assert.equal(normalizeETransactionsCheckoutPath('/php/'), DEFAULT_ET_CHECKOUT_PATH);
+  assert.equal(
+    buildETransactionsCheckoutActionUrl('recette-tpeweb.e-transactions.fr', {
+      checkoutPath: DEFAULT_ET_CHECKOUT_PATH,
+    }),
+    'https://recette-tpeweb.e-transactions.fr/cgi/MYchoix_pagepaiement.cgi',
+  );
+});
+
+test('resolveCawlETransactionsConfig accepts CAWL_ETRANSACTIONS_CHECKOUT_PATH override', () => {
+  const config = resolveCawlETransactionsConfig({
+    CAWL_ETRANSACTIONS_CHECKOUT_PATH: '/cgi/custom.cgi',
+  });
+  assert.equal(config.checkoutPath, '/cgi/custom.cgi');
+});
+
 test('renderHostedCheckoutHtml auto-submits form with fallbacks', () => {
   const html = renderHostedCheckoutHtml({
-    actionUrl: 'https://recette-tpeweb.e-transactions.fr/php/',
+    actionUrl: 'https://recette-tpeweb.e-transactions.fr/cgi/MYchoix_pagepaiement.cgi',
     fields: { PBX_CMD: 'pay-1', PBX_TOTAL: '9900' },
   });
   assert.match(html, /method="POST"/);
   assert.match(html, /id="cawl-checkout"/);
-  assert.match(html, /action="https:\/\/recette-tpeweb\.e-transactions\.fr\/php\/"/);
+  assert.match(html, /action="https:\/\/recette-tpeweb\.e-transactions\.fr\/cgi\/MYchoix_pagepaiement\.cgi"/);
   assert.match(html, /submitCheckout/);
   assert.match(html, /onload=/);
   assert.match(html, /id="cawl-fallback"/);
