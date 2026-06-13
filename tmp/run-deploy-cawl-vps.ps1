@@ -18,8 +18,7 @@ $pscp = 'C:\Program Files\PuTTY\pscp.exe'
 
 function Upload-Lf($localPath, $remotePath) {
   $tmp = Join-Path $env:TEMP ([IO.Path]::GetFileName($localPath) + '.lf')
-  $content = (Get-Content $localPath -Raw) -replace "`r`n", "`n"
-  [System.IO.File]::WriteAllText($tmp, $content, (New-Object System.Text.UTF8Encoding $false))
+  (Get-Content $localPath -Raw) -replace "`r`n", "`n" | Set-Content -NoNewline -Encoding UTF8 $tmp
   & $pscp -batch -hostkey $VpsHostKey -pw $VpsPassword $tmp "${VpsUser}@${VpsHost}:$remotePath"
   if ($LASTEXITCODE -ne 0) { throw "Upload failed for $localPath ($LASTEXITCODE)" }
 }
@@ -27,5 +26,17 @@ function Upload-Lf($localPath, $remotePath) {
 Upload-Lf (Join-Path $RepoRoot 'tmp\configure-cawl-vps.sh') '/tmp/configure-cawl-vps.sh'
 Upload-Lf (Join-Path $RepoRoot 'tmp\cawl-secrets.env') '/tmp/cawl-secrets.env'
 
-& $plink -batch -ssh -hostkey $VpsHostKey "${VpsUser}@${VpsHost}" -pw $VpsPassword "chmod +x /tmp/configure-cawl-vps.sh && bash /tmp/configure-cawl-vps.sh && rm -f /tmp/cawl-secrets.env"
-if ($LASTEXITCODE -ne 0) { throw "Remote configure failed ($LASTEXITCODE)" }
+$remoteCmd = @'
+set -e
+cd /opt/greffio
+git fetch origin main
+git reset --hard origin/main
+npm ci --omit=dev
+npm run db:migrate || true
+chmod +x /tmp/configure-cawl-vps.sh
+bash /tmp/configure-cawl-vps.sh
+rm -f /tmp/cawl-secrets.env
+'@ -replace "`r`n", "`n"
+
+& $plink -batch -ssh -hostkey $VpsHostKey "${VpsUser}@${VpsHost}" -pw $VpsPassword $remoteCmd
+if ($LASTEXITCODE -ne 0) { throw "Remote deploy/configure failed ($LASTEXITCODE)" }
