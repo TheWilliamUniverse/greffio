@@ -631,6 +631,7 @@ export const QuestionnairePage = () => {
       return;
     }
     if (!isLastFieldInStep) {
+      setTouchedFields({});
       setFieldIndex((current) => Math.min(current + 1, visibleStepFields.length - 1));
       return;
     }
@@ -700,6 +701,7 @@ export const QuestionnairePage = () => {
       if (visibleFields.length) break;
       nextIndex += 1;
     }
+    setTouchedFields({});
     setStepIndex(nextIndex);
     setFieldIndex(0);
   };
@@ -889,6 +891,7 @@ export const QuestionnairePage = () => {
 
     if (field.key === 'dirigeant') {
       const directorCheck = validateDirectorEligibility(formData);
+      const showDirectorError = touchedFields.dirigeant && !directorCheck.ok;
       return (
         <div key={field.key} className="space-y-3">
           <Label>{field.label}{field.required ? ' *' : ''}</Label>
@@ -896,9 +899,9 @@ export const QuestionnairePage = () => {
             value={formData.dirigeant || ''}
             onChange={(event) => setFormData((current) => ({ ...current, dirigeant: event.target.value }))}
             placeholder={field.placeholder || ''}
-            className={`${fieldClass} ${!directorCheck.ok ? 'border-red-400' : ''}`}
+            className={`${fieldClass} ${showDirectorError ? 'border-red-400' : ''}`}
           />
-          {!directorCheck.ok ? (
+          {showDirectorError ? (
             <QuestionnaireNotice variant="error" title="Fonction de direction">
               {directorCheck.message}
             </QuestionnaireNotice>
@@ -931,7 +934,6 @@ export const QuestionnairePage = () => {
     const invalid = field.required && !isFieldValueValid(field, value, formData);
     const showInlineError = touchedFields[field.key] && invalid;
     const inlineMessage = getFieldValidationMessage(field, value, formData);
-    const markTouched = () => setTouchedFields((current) => ({ ...current, [field.key]: true }));
 
     if (field.type === 'textarea') {
       return (
@@ -942,7 +944,6 @@ export const QuestionnairePage = () => {
             placeholder={field.placeholder || ''}
             rows={4}
             onChange={(event) => updateField(field, event.target.value)}
-            onBlur={markTouched}
             className={`${fieldClass} min-h-[110px] w-full ${showInlineError ? 'border-red-400' : ''}`}
           />
           {showInlineError ? <p className="text-xs text-destructive">{inlineMessage}</p> : null}
@@ -963,7 +964,6 @@ export const QuestionnairePage = () => {
               : event.target.value;
             updateField(field, nextValue);
           }}
-          onBlur={markTouched}
           className={`${fieldClass} ${showInlineError ? 'border-red-400' : ''}`}
         />
         {field.key === 'companySiren' && formData.initiatorType === 'personne_morale' ? (
@@ -1015,7 +1015,7 @@ export const QuestionnairePage = () => {
         onNext={goNext}
         onEnterNext={goNext}
         canGoBack={stepIndex > 0 || safeFieldIndex > 0}
-        canGoNext={canContinue}
+        canGoNext
         continueLabel={continueLabel}
         hideContinueButton={isNativeTapToAdvanceField(activeField)}
       >
