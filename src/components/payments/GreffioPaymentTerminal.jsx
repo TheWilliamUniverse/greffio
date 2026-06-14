@@ -5,6 +5,7 @@ import { PaymentBrandBadges } from '@/components/layout/PaymentBrandBadges.jsx';
 import { LegalAcceptanceCheckbox } from '@/components/payments/LegalAcceptanceCheckbox.jsx';
 import { MollieCardForm } from '@/components/payments/MollieCardForm.jsx';
 import { fetchMollieMethods, fetchPaymentTerminalConfig } from '@/api/mollie.js';
+import { MOLLIE_PROFILE_ID } from '@/config/mollie.js';
 import { cn } from '@/lib/utils.js';
 import { isCapacitorNative } from '@/utils/platform.js';
 import paymentBackground from '../../../assets/payments/greffio-payment-background.png';
@@ -57,7 +58,9 @@ export const GreffioPaymentTerminal = ({
         if (cancelled) return;
         const mollieConfig = terminalPayload?.terminal?.mollie
           || methodsPayload;
-        setProfileId(mollieConfig?.profileId || methodsPayload?.profileId || null);
+        setProfileId(
+          mollieConfig?.profileId || methodsPayload?.profileId || MOLLIE_PROFILE_ID,
+        );
         setTestmode(Boolean(mollieConfig?.testmode ?? methodsPayload?.testmode));
         const list = Array.isArray(methodsPayload?.methods) ? methodsPayload.methods : [];
         setMethods(list);
@@ -67,6 +70,7 @@ export const GreffioPaymentTerminal = ({
         if (preferred?.id) setSelectedMethodId(preferred.id);
       } catch (_error) {
         if (!cancelled) {
+          setProfileId(MOLLIE_PROFILE_ID);
           setMethods([{
             id: 'creditcard',
             description: 'Carte bancaire',
