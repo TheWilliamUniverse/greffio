@@ -7,13 +7,25 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString();
 
+const resolveContainerWidth = (container) => {
+  if (!container) return 0;
+  const direct = container.clientWidth;
+  if (direct > 0) return direct;
+  const parent = container.parentElement?.clientWidth || 0;
+  if (parent > 0) return parent - 24;
+  if (typeof window !== 'undefined') return Math.max(window.innerWidth - 32, 280);
+  return 280;
+};
+
 const resolveRenderScale = (page, containerWidth) => {
   const width = Math.max(containerWidth || 0, 280);
   const baseViewport = page.getViewport({ scale: 1 });
   const cssScale = width / baseViewport.width;
-  const pixelRatio = typeof window !== 'undefined'
-    ? Math.min(Math.max(window.devicePixelRatio || 1, 2.5), 3.5)
-    : 2.5;
+  const deviceRatio = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const pixelRatio = isMobile
+    ? Math.min(Math.max(deviceRatio * 1.35, 3), 4.5)
+    : Math.min(Math.max(deviceRatio * 1.15, 2.5), 4);
   const viewport = page.getViewport({ scale: cssScale });
   return { viewport, pixelRatio };
 };
@@ -27,6 +39,18 @@ export const PdfJsCanvasViewer = ({
   const containerRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [layoutTick, setLayoutTick] = useState(0);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || typeof ResizeObserver === 'undefined') return undefined;
+
+    const observer = new ResizeObserver(() => {
+      setLayoutTick((tick) => tick + 1);
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,11 +75,16 @@ export const PdfJsCanvasViewer = ({
           throw new Error('PDF_EMPTY');
         }
 
+        await new Promise((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(resolve));
+        });
+        if (cancelled) return;
+
         const pdfData = data.slice(0);
         const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
         if (cancelled) return;
 
-        const containerWidth = container.clientWidth || container.parentElement?.clientWidth || window.innerWidth - 24;
+        const containerWidth = resolveContainerWidth(container);
 
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
           if (cancelled) return;
@@ -63,8 +92,8 @@ export const PdfJsCanvasViewer = ({
           const { viewport, pixelRatio } = resolveRenderScale(page, containerWidth);
           const canvas = document.createElement('canvas');
           const context = canvas.getContext('2d', { alpha: false });
-          canvas.width = Math.floor(viewport.width * pixelRatio);
-          canvas.height = Math.floor(viewport.height * pixelRatio);
+          canvas.width = Math.ceil(viewport.width * pixelRatio);
+          canvas.height = Math.ceil(viewport.height * pixelRatio);
           canvas.style.width = `${Math.floor(viewport.width)}px`;
           canvas.style.height = `${Math.floor(viewport.height)}px`;
           canvas.className = 'mx-auto mb-3 block max-w-full rounded-lg bg-white shadow-sm';
@@ -72,7 +101,11 @@ export const PdfJsCanvasViewer = ({
           context.imageSmoothingEnabled = true;
           context.imageSmoothingQuality = 'high';
           context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-          await page.render({ canvasContext: context, viewport }).promise;
+          await page.render({
+            canvasContext: context,
+            viewport,
+            intent: 'display',
+          }).promise;
         }
       } catch (renderError) {
         if (!cancelled) {
@@ -93,7 +126,7 @@ export const PdfJsCanvasViewer = ({
       cancelled = true;
       container.innerHTML = '';
     };
-  }, [arrayBuffer, blob, blobUrl]);
+  }, [arrayBuffer, blob, blobUrl, layoutTick]);
 
   if (error) {
     return (

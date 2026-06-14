@@ -22,7 +22,7 @@ export const DocumentDownloadCard = ({
           {generatedAt ? ` · généré le ${new Date(generatedAt).toLocaleString('fr-FR')}` : ''}
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
-          Ouvrez ce PDF dans votre navigateur, Adobe Acrobat ou Aperçu pour compléter les champs bleus.
+          Ouvrez ce PDF dans votre navigateur ou une application de lecture PDF pour compléter les champs bleus.
         </p>
       </div>
     </div>

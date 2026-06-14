@@ -7,7 +7,7 @@ import {
 } from '@/config/paymentBrands.js';
 
 /** Footer sombre : markSrc (Visa = visa-mark.svg verrouillé). Checkout : checkoutSrc. */
-const withAssetVersion = (src, version = '20260614') => {
+const withAssetVersion = (src, version = '20260615') => {
   if (!src || src.includes('?')) return src;
   return `${src}?v=${version}`;
 };
@@ -28,7 +28,7 @@ const FOOTER_INVERSE_BRAND_CLASS = {
   visa: 'h-8 w-[2.75rem]',
   mastercard: 'h-8 w-10',
   cb: 'h-8 w-10',
-  amex: 'h-8 w-[4.75rem]',
+  amex: 'h-8 w-12 rounded-sm',
 };
 
 const resolveBrandList = ({ brandIds, inverse, floating }) => {
