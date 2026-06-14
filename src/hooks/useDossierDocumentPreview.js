@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
-import { fetchDossierDocumentBlob, savePdfBlobToDevice } from '@/utils/dossierDocumentFile.js';
+import {
+  createPdfPreviewSource,
+  fetchDossierDocumentBlob,
+  openCachedPdfInSystemViewer,
+  savePdfBlobToDevice,
+} from '@/utils/dossierDocumentFile.js';
+import { isCapacitorNative } from '@/utils/platform.js';
+
+const releasePreview = (preview) => {
+  if (!preview) return;
+  if (preview.cleanup) preview.cleanup();
+};
 
 export const useDossierDocumentPreview = () => {
   const [previewDoc, setPreviewDoc] = useState(null);
@@ -8,29 +19,33 @@ export const useDossierDocumentPreview = () => {
 
   const closePreview = useCallback(() => {
     setPreviewDoc((current) => {
-      if (current?.blobUrl) URL.revokeObjectURL(current.blobUrl);
+      releasePreview(current);
       return null;
     });
   }, []);
 
   useEffect(() => () => {
-    if (previewDoc?.blobUrl) URL.revokeObjectURL(previewDoc.blobUrl);
-  }, [previewDoc?.blobUrl]);
+    releasePreview(previewDoc);
+  }, [previewDoc]);
 
   const openPreview = useCallback(async ({ dossierId, docKey, label }) => {
     if (!dossierId || !docKey) return false;
     setLoadingDocKey(docKey);
     try {
       const { filename, blob } = await fetchDossierDocumentBlob({ dossierId, docKey, inline: true });
+      const previewSource = await createPdfPreviewSource(blob, filename);
       setPreviewDoc((current) => {
-        if (current?.blobUrl) URL.revokeObjectURL(current.blobUrl);
+        releasePreview(current);
         return {
           dossierId,
           docKey,
           label: label || filename,
           filename,
-          blob,
-          blobUrl: URL.createObjectURL(blob),
+          blob: previewSource.blob,
+          previewSrc: previewSource.src,
+          cachePath: previewSource.cachePath,
+          cacheDirectory: previewSource.cacheDirectory,
+          cleanup: previewSource.cleanup,
         };
       });
       return true;
@@ -45,6 +60,29 @@ export const useDossierDocumentPreview = () => {
     if (!previewDoc?.blob) return false;
     setDownloading(true);
     try {
+      await savePdfBlobToDevice(previewDoc.blob, previewDoc.filename, {
+        cachePath: previewDoc.cachePath,
+        cacheDirectory: previewDoc.cacheDirectory,
+      });
+      return true;
+    } catch (_error) {
+      return false;
+    } finally {
+      setDownloading(false);
+    }
+  }, [previewDoc]);
+
+  const openPreviewInSystemViewer = useCallback(async () => {
+    if (!previewDoc) return false;
+    setDownloading(true);
+    try {
+      if (previewDoc.cachePath) {
+        await openCachedPdfInSystemViewer({
+          path: previewDoc.cachePath,
+          directory: previewDoc.cacheDirectory,
+        });
+        return true;
+      }
       await savePdfBlobToDevice(previewDoc.blob, previewDoc.filename);
       return true;
     } catch (_error) {
@@ -61,5 +99,7 @@ export const useDossierDocumentPreview = () => {
     openPreview,
     closePreview,
     downloadPreview,
+    openPreviewInSystemViewer,
+    isNativePreview: isCapacitorNative(),
   };
 };

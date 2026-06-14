@@ -78,6 +78,7 @@ export const MobileDocumentsPage = () => {
     openPreview,
     closePreview,
     downloadPreview,
+    openPreviewInSystemViewer,
   } = useDossierDocumentPreview();
 
   useEffect(() => {
@@ -463,15 +464,20 @@ export const MobileDocumentsPage = () => {
       )}
       </MobilePageContainer>
       <MobileDocumentPreviewSheet
-        open={Boolean(previewDoc?.blobUrl)}
+        open={Boolean(previewDoc?.previewSrc)}
         title={previewDoc?.label}
-        blobUrl={previewDoc?.blobUrl}
+        previewSrc={previewDoc?.previewSrc}
         filename={previewDoc?.filename}
         downloading={previewDownloading}
         onClose={closePreview}
         onDownload={() => {
           void downloadPreview().then((ok) => {
             if (!ok) setUploadError('Impossible de télécharger ce document pour le moment.');
+          });
+        }}
+        onOpenExternal={() => {
+          void openPreviewInSystemViewer().then((ok) => {
+            if (!ok) setUploadError('Impossible d’ouvrir ce document pour le moment.');
           });
         }}
       />

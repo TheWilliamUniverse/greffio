@@ -61,6 +61,7 @@ export const MobileDossierDetailPage = () => {
     openPreview,
     closePreview,
     downloadPreview,
+    openPreviewInSystemViewer,
   } = useDossierDocumentPreview();
   const sectionRefs = useRef({});
 
@@ -255,13 +256,14 @@ export const MobileDossierDetailPage = () => {
         onUploaded={() => refetch()}
       />
       <MobileDocumentPreviewSheet
-        open={Boolean(previewDoc?.blobUrl)}
+        open={Boolean(previewDoc?.previewSrc)}
         title={previewDoc?.label}
-        blobUrl={previewDoc?.blobUrl}
+        previewSrc={previewDoc?.previewSrc}
         filename={previewDoc?.filename}
         downloading={previewDownloading}
         onClose={closePreview}
         onDownload={() => { void downloadPreview(); }}
+        onOpenExternal={() => { void openPreviewInSystemViewer(); }}
       />
     </MobilePageContainer>
   );
