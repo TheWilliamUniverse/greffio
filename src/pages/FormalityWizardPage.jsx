@@ -342,8 +342,11 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     if (needsExistingCompanyLookup) {
       subSteps = [{ id: 'company_lookup', label: 'Entreprise' }, ...subSteps];
     }
+    if (isMobilePresentation) {
+      subSteps = subSteps.filter((item) => item.id !== 'form_family');
+    }
     return subSteps;
-  }, [skipContactStep, needsExistingCompanyLookup]);
+  }, [skipContactStep, needsExistingCompanyLookup, isMobilePresentation]);
   const activeProjectSubIndex = useMemo(() => {
     let index = skipContactStep ? Math.max(0, projectSubStep - 1) : projectSubStep;
     if (needsExistingCompanyLookup) {
@@ -566,7 +569,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
 
   const handleSelectQuestionAnswer = (key, value) => {
     updateAnswer(key, value);
-    if (!isCapacitorNative() || !String(value || '').trim() || questionExitPhase) return;
+    if (!isMobilePresentation || !String(value || '').trim() || questionExitPhase) return;
     window.setTimeout(() => {
       if (isLastQuestion) completeLastQuestion();
       else advanceActiveQuestion();
@@ -766,7 +769,9 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
       }
     }
     if (projectSubStep < PROJECT_SUB_STEPS.length - 1) {
-      setProjectSubStep((value) => value + 1);
+      let nextSubStep = projectSubStep + 1;
+      if (isMobilePresentation && nextSubStep === 3) nextSubStep = 4;
+      setProjectSubStep(nextSubStep);
       return;
     }
     setStep(2);
@@ -791,7 +796,9 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
       return;
     }
     if (projectSubStep > (skipContactStep ? 1 : 0)) {
-      setProjectSubStep((value) => value - 1);
+      let nextSubStep = projectSubStep - 1;
+      if (isMobilePresentation && nextSubStep === 3) nextSubStep = 2;
+      setProjectSubStep(nextSubStep);
       return;
     }
     setStep(0);
@@ -912,36 +919,14 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     ? 'bottom-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom))]'
     : 'bottom-[calc(var(--bottom-nav-height-web)+env(safe-area-inset-bottom))]';
   useEffect(() => {
-    if (!isCapacitorNative() || step !== 1 || projectSubStep !== 0 || isAccountCreationStep || skipContactStep) return undefined;
-    if (!canContinueContact()) return undefined;
-    const timer = window.setTimeout(() => {
-      advanceProjectFlow();
-    }, 400);
-    return () => window.clearTimeout(timer);
-  }, [
-    step,
-    projectSubStep,
-    isAccountCreationStep,
-    skipContactStep,
-    activeContactField?.key,
-    data.firstName,
-    data.lastName,
-    data.email,
-    data.phone,
-    data.companyName,
-  ]);
+    if (isMobilePresentation && step === 1 && projectSubStep === 3) {
+      setProjectSubStep(2);
+    }
+  }, [isMobilePresentation, step, projectSubStep]);
 
-  useEffect(() => {
-    if (!canContinueAccountCreation()) return undefined;
-    const timer = window.setTimeout(() => {
-      void createAccountSpace();
-    }, 350);
-    return () => window.clearTimeout(timer);
-  }, [accountPassword, isAccountCreationStep, accountPhase, showAccountChallenge, hasAccountCaptchaToken]);
-
-  const nativeTapAdvanceWizard = isCapacitorNative() && (
+  const mobileChoiceNoContinue = isMobilePresentation && (
     step === 0
-    || isAccountCreationStep
+    || (step === 1 && (projectSubStep === 2 || projectSubStep === 3))
     || (step === 2 && step2Phase === 'questionnaire' && activeQuestion?.type === 'select' && !questionnaireFinished && !questionExitPhase)
   );
 
@@ -1394,19 +1379,30 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                           isMobilePresentation ? (
                             <MobileChoiceStep
                               kicker="Projet"
-                              title="Forme juridique visée"
-                              subtitle="Sélectionnez la catégorie la plus proche de votre situation, puis continuez."
+                              title="Choisissez votre forme juridique"
+                              subtitle="Toutes les formes disponibles – touchez la vôtre pour continuer."
+                              hint={isCapacitorNative()
+                                ? 'Touchez une forme pour continuer.'
+                                : 'Sélectionnez une forme pour continuer.'}
                               gridClassName="grid grid-cols-1 gap-2.5"
                             >
-                              {targetFormGroups.map((group) => (
-                                <MobileChoiceTile
-                                  key={group.category}
-                                  title={group.category}
-                                  description={`${group.forms.length} formes disponibles`}
-                                  selected={selectedFamily === group.category}
-                                  onSelect={() => chooseFamily(group.category)}
-                                />
-                              ))}
+                              {targetFormGroups.flatMap((group) => group.forms.map((form) => ({ form, group: group.category }))).map(({ form, group }) => {
+                                const availability = getFormAvailability(form.key);
+                                const availabilityLabel = availability === SERVICE_AVAILABILITY.AVAILABLE_NOW
+                                  ? 'Disponible'
+                                  : availability === SERVICE_AVAILABILITY.COMING_SOON
+                                    ? 'Bientôt'
+                                    : 'Sur devis';
+                                return (
+                                  <MobileChoiceTile
+                                    key={form.key}
+                                    title={form.label}
+                                    description={`${group} · ${availabilityLabel}`}
+                                    selected={data.legalForm === form.label}
+                                    onSelect={() => chooseLegalForm(form.label)}
+                                  />
+                                );
+                              })}
                             </MobileChoiceStep>
                           ) : (
                           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -1428,7 +1424,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                           )
                         )}
 
-                        {projectSubStep === 3 && (
+                        {projectSubStep === 3 && !isMobilePresentation && (
                           isMobilePresentation ? (
                             <MobileChoiceStep
                               kicker={selectedFamily}
@@ -1705,12 +1701,37 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                                     {activeQuestion.required ? <span className="text-primary"> *</span> : null}
                                   </Label>
                                   {activeQuestion.type === 'select' ? (
+                                    isMobilePresentation ? (
+                                      <MobileChoiceStep
+                                        title={activeQuestion.label}
+                                        subtitle={activeQuestion.sectionTitle}
+                                        hint={isCapacitorNative()
+                                          ? 'Touchez votre réponse pour continuer.'
+                                          : 'Sélectionnez une réponse pour continuer.'}
+                                        gridClassName="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3"
+                                      >
+                                        {(activeQuestion.options || []).map((option) => {
+                                          const optionValue = typeof option === 'string' ? option : option.value;
+                                          const optionLabel = typeof option === 'string' ? option : option.label;
+                                          return (
+                                            <MobileChoiceTile
+                                              key={optionValue}
+                                              title={optionLabel}
+                                              selected={String(answers[activeQuestion.key] || '') === String(optionValue)}
+                                              disabled={Boolean(questionExitPhase)}
+                                              onSelect={() => handleSelectQuestionAnswer(activeQuestion.key, optionValue)}
+                                            />
+                                          );
+                                        })}
+                                      </MobileChoiceStep>
+                                    ) : (
                                     <QuestionSelect
                                       value={answers[activeQuestion.key] || ''}
                                       disabled={Boolean(questionExitPhase)}
                                       options={activeQuestion.options}
                                       onChange={(event) => handleSelectQuestionAnswer(activeQuestion.key, event.target.value)}
                                     />
+                                    )
                                   ) : activeQuestion.type === 'textarea' ? (
                                     <textarea
                                       className={`${fieldClass} mt-2 min-h-[120px] w-full py-3`}
@@ -1930,10 +1951,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                   || (step === 2 && step2Phase === 'questionnaire' && Boolean(questionExitPhase) && questionExitPhase !== 'done')
                   || (step === 2 && step2Phase === 'questionnaire' && !questionnaireFinished && !questionExitPhase && !canAdvanceActiveQuestion())
                 }
-                showContinue={
-                  !nativeTapAdvanceWizard
-                  && !(step === 1 && (projectSubStep === 2 || projectSubStep === 3))
-                }
+                showContinue={!mobileChoiceNoContinue}
                 continueLabel={
                   step === steps.length - 1
                     ? 'Voir les offres'

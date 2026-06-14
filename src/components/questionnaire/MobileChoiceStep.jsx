@@ -118,6 +118,9 @@ export const MobileChoiceStep = ({
 );
 
 export const isMobileChoiceField = (field) => (
-  field
-  && ((field.type === 'select' && field.key !== 'typeFormalite') || field.type === 'checkbox')
+  Boolean(field && (field.type === 'select' || field.type === 'checkbox'))
+);
+
+export const isMobileTapToAdvanceGroup = (fields = []) => (
+  fields.length === 1 && isMobileChoiceField(fields[0])
 );

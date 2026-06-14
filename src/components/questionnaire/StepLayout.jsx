@@ -72,7 +72,7 @@ export const StepLayout = ({
       {securityNode}
     </div>
 
-    <div className={cn(actionBarClass, 'flex flex-wrap items-center justify-between gap-3')} style={stickyBottomStyle}>
+    <div className={cn(actionBarClass, hideContinueButton && mobileShell ? 'justify-start' : 'flex flex-wrap items-center justify-between gap-3')} style={stickyBottomStyle}>
       <QuestionBackButton type="button" onClick={onBack} disabled={!canGoBack} />
       {!hideContinueButton ? (
         <QuestionContinueButton type="button" label={continueLabel} onClick={onNext} disabled={!canGoNext} />

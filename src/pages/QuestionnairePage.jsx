@@ -13,6 +13,7 @@ import {
   MobileChoiceStep,
   MobileChoiceTile,
   isMobileChoiceField,
+  isMobileTapToAdvanceGroup,
 } from '@/components/questionnaire/MobileChoiceStep.jsx';
 import { AutosaveIndicator } from '@/components/questionnaire/AutosaveIndicator.jsx';
 import { SecurityNotice } from '@/components/questionnaire/SecurityNotice.jsx';
@@ -27,9 +28,12 @@ import {
   getFieldValidationMessage,
   getQuestionnaireProgressPercent,
   getVisibleFieldsForStep,
+  groupIndexFromFieldKey,
+  fieldIndexFromGroupIndex,
   inferDemarcheCategory,
   isFieldValueValid,
   isStepComplete,
+  resolveMobileFieldGroups,
   resolveResumePosition,
 } from '@/lib/questionnaireFlow.js';
 import {
@@ -53,7 +57,7 @@ import { validateDirectorEligibility } from '@/config/minorAssociateRules.js';
 import { syncDirigeantFromAssociates } from '@/utils/officerFromAssociates.js';
 import { cn } from '@/lib/utils.js';
 import { useAuth } from '@/hooks/useAuth.js';
-import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
+import { isCapacitorNative, isMobileBrowserViewport, isMobileQuestionnaireViewport } from '@/utils/platform.js';
 import { fetchUserProfile } from '@/api/profile.js';
 import { contactDetailsFromUser } from '@/utils/userProfile.js';
 import { getIntelligentPrefill } from '@/api/intelligentIntake.js';
@@ -136,7 +140,7 @@ export const QuestionnairePage = () => {
   const [reference, setReference] = useState(makeUiReference());
   const [formData, setFormData] = useState(defaultData);
   const [stepIndex, setStepIndex] = useState(0);
-  const [fieldIndex, setFieldIndex] = useState(0);
+  const [groupIndex, setGroupIndex] = useState(0);
   const [autosaveState, setAutosaveState] = useState('idle');
   const wizardTopRef = useRef(null);
   const [loading, setLoading] = useState(true);
@@ -147,7 +151,7 @@ export const QuestionnairePage = () => {
   const [touchedFields, setTouchedFields] = useState({});
   const pendingTapAdvanceRef = useRef(null);
 
-  const isMobileChoicePresentation = isCapacitorNative() || isMobileBrowserViewport();
+  const isMobileChoicePresentation = isMobileQuestionnaireViewport();
   const isMobileTapToAdvanceField = (field) => (
     isMobileChoicePresentation && isMobileChoiceField(field)
   );
@@ -157,26 +161,39 @@ export const QuestionnairePage = () => {
     () => getVisibleFieldsForStep(step, formData),
     [step, formData],
   );
-  const safeFieldIndex = visibleStepFields.length
-    ? Math.min(fieldIndex, visibleStepFields.length - 1)
+  const fieldGroups = useMemo(
+    () => (isMobileChoicePresentation
+      ? resolveMobileFieldGroups(step, formData)
+      : visibleStepFields.map((field) => [field])),
+    [step, formData, visibleStepFields, isMobileChoicePresentation],
+  );
+  const safeGroupIndex = fieldGroups.length
+    ? Math.min(groupIndex, fieldGroups.length - 1)
     : 0;
-  const activeField = visibleStepFields[safeFieldIndex] || null;
-  const isLastFieldInStep = visibleStepFields.length > 0 && safeFieldIndex === visibleStepFields.length - 1;
-  const progress = getQuestionnaireProgressPercent(formData, stepIndex, safeFieldIndex);
-  const canAdvanceCurrentField = useMemo(() => {
-    if (!activeField) return false;
-    const valid = isFieldValueValid(activeField, formData[activeField.key], formData);
-    if (activeField.key === 'dirigeant') {
-      return valid && validateDirectorEligibility(formData).ok;
-    }
-    return valid;
-  }, [activeField, formData]);
+  const activeGroup = fieldGroups[safeGroupIndex] || [];
+  const activeField = activeGroup[0] || null;
+  const isLastGroupInStep = fieldGroups.length > 0 && safeGroupIndex === fieldGroups.length - 1;
+  const progressFieldIndex = isMobileChoicePresentation
+    ? fieldIndexFromGroupIndex(fieldGroups, safeGroupIndex)
+    : safeGroupIndex;
+  const progress = getQuestionnaireProgressPercent(formData, stepIndex, progressFieldIndex);
+  const canAdvanceCurrentGroup = useMemo(() => {
+    if (!activeGroup.length) return false;
+    return activeGroup.every((field) => {
+      const valid = isFieldValueValid(field, formData[field.key], formData);
+      if (field.key === 'dirigeant') {
+        return valid && validateDirectorEligibility(formData).ok;
+      }
+      return valid;
+    });
+  }, [activeGroup, formData]);
   const canCompleteStep = (step.id === 'recap' || isStepComplete(step, formData))
     && (step.id !== 'gouvernance' || validateDirectorEligibility(formData).ok);
-  const canContinue = isLastFieldInStep ? canCompleteStep : canAdvanceCurrentField;
-  const continueLabel = isLastFieldInStep && stepIndex >= QUESTIONNAIRE_FLOW.length - 1
+  const canContinue = isLastGroupInStep ? canCompleteStep : canAdvanceCurrentGroup;
+  const hideContinueOnMobileChoice = isMobileTapToAdvanceGroup(activeGroup);
+  const continueLabel = isLastGroupInStep && stepIndex >= QUESTIONNAIRE_FLOW.length - 1
     ? 'Terminer le questionnaire'
-    : isLastFieldInStep
+    : isLastGroupInStep
       ? 'Étape suivante'
       : 'Continuer';
 
@@ -479,7 +496,14 @@ export const QuestionnairePage = () => {
           const firstInvalid = contactStepFields.findIndex(
             (field) => !isFieldValueValid(field, data[field.key], data),
           );
-          if (firstInvalid >= 0) return { stepIndex: 0, fieldIndex: firstInvalid };
+          if (firstInvalid >= 0) {
+            const groups = resolveMobileFieldGroups(contactStep, data);
+            const groupIdx = groupIndexFromFieldKey(
+              groups,
+              contactStepFields[firstInvalid]?.key,
+            );
+            return { stepIndex: 0, fieldIndex: isMobileQuestionnaireViewport() ? groupIdx : firstInvalid };
+          }
           const demarcheIndex = QUESTIONNAIRE_FLOW.findIndex((entry) => entry.id === 'demarche');
           return { stepIndex: Math.max(demarcheIndex, 0), fieldIndex: 0 };
         };
@@ -507,9 +531,18 @@ export const QuestionnairePage = () => {
           categoryConfirmed,
         } = resumeResult;
 
+        const resumeStepDef = QUESTIONNAIRE_FLOW[resumeStep] || QUESTIONNAIRE_FLOW[0];
+        const resumeGroups = resolveMobileFieldGroups(resumeStepDef, mergedData);
+        const resumeGroupIndex = isMobileQuestionnaireViewport()
+          ? groupIndexFromFieldKey(
+            resumeGroups,
+            resume.fieldKey || getVisibleFieldsForStep(resumeStepDef, mergedData)[resumeField]?.key,
+          )
+          : resumeField;
+
         setFormData(mergedData);
         setStepIndex(resumeStep);
-        setFieldIndex(resumeField);
+        setGroupIndex(resumeGroupIndex);
         setDemarcheCategory(resumeCategory || inferDemarcheCategory(mergedData.typeFormalite));
         setDemarcheCategoryConfirmed(startNewQuestionnaire ? false : categoryConfirmed);
       } catch (_error) {
@@ -551,38 +584,38 @@ export const QuestionnairePage = () => {
   }, [dossierId, formData, progress, loading]);
 
   useEffect(() => {
-    setFieldIndex(0);
+    setGroupIndex(0);
   }, [stepIndex]);
 
   useEffect(() => {
-    if (fieldIndex !== safeFieldIndex) {
-      setFieldIndex(safeFieldIndex);
+    if (groupIndex !== safeGroupIndex) {
+      setGroupIndex(safeGroupIndex);
     }
-  }, [fieldIndex, safeFieldIndex]);
+  }, [groupIndex, safeGroupIndex]);
 
   useEffect(() => {
-    if (loading || visibleStepFields.length > 0) return;
+    if (loading || fieldGroups.length > 0) return;
     let next = stepIndex + 1;
     while (next < QUESTIONNAIRE_FLOW.length) {
       const nextStep = QUESTIONNAIRE_FLOW[next];
       if (getVisibleFieldsForStep(nextStep, formData).length) {
         setStepIndex(next);
-        setFieldIndex(0);
+        setGroupIndex(0);
         return;
       }
       next += 1;
     }
-  }, [loading, stepIndex, visibleStepFields.length, formData]);
+  }, [loading, stepIndex, fieldGroups.length, formData]);
 
   useEffect(() => {
     wizardTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [stepIndex, safeFieldIndex]);
+  }, [stepIndex, safeGroupIndex]);
 
   useEffect(() => {
     const pendingKey = pendingTapAdvanceRef.current;
     if (!pendingKey || !isMobileChoicePresentation) return undefined;
-    if (activeField?.key !== pendingKey) return undefined;
-    if (!canAdvanceCurrentField) {
+    if (!activeGroup.some((field) => field.key === pendingKey)) return undefined;
+    if (!canAdvanceCurrentGroup) {
       pendingTapAdvanceRef.current = null;
       return undefined;
     }
@@ -591,7 +624,7 @@ export const QuestionnairePage = () => {
       void goNext();
     }, 180);
     return () => window.clearTimeout(timer);
-  }, [formData, activeField?.key, canAdvanceCurrentField]);
+  }, [formData, activeGroup, canAdvanceCurrentGroup]);
 
   const updateField = (field, value) => {
     if ((field.key === 'companySiren' || field.key === 'existingBusinessSiren') && String(value || '').trim() !== String(formData[field.key] || '').trim()) {
@@ -635,9 +668,9 @@ export const QuestionnairePage = () => {
       toast.error(message);
       return;
     }
-    if (!isLastFieldInStep) {
+    if (!isLastGroupInStep) {
       setTouchedFields({});
-      setFieldIndex((current) => Math.min(current + 1, visibleStepFields.length - 1));
+      setGroupIndex((current) => Math.min(current + 1, fieldGroups.length - 1));
       return;
     }
     try {
@@ -708,22 +741,24 @@ export const QuestionnairePage = () => {
     }
     setTouchedFields({});
     setStepIndex(nextIndex);
-    setFieldIndex(0);
+    setGroupIndex(0);
   };
 
   const goBack = () => {
-    if (safeFieldIndex > 0) {
-      setFieldIndex((current) => Math.max(0, current - 1));
+    if (safeGroupIndex > 0) {
+      setGroupIndex((current) => Math.max(0, current - 1));
       return;
     }
     if (stepIndex <= 0) return;
     let prev = stepIndex - 1;
     while (prev >= 0) {
       const prevStep = QUESTIONNAIRE_FLOW[prev];
-      const fields = getVisibleFieldsForStep(prevStep, formData);
-      if (fields.length) {
+      const prevGroups = isMobileChoicePresentation
+        ? resolveMobileFieldGroups(prevStep, formData)
+        : getVisibleFieldsForStep(prevStep, formData).map((field) => [field]);
+      if (prevGroups.length) {
         setStepIndex(prev);
-        setFieldIndex(fields.length - 1);
+        setGroupIndex(prevGroups.length - 1);
         return;
       }
       prev -= 1;
@@ -812,6 +847,7 @@ export const QuestionnairePage = () => {
                 categoryConfirmed={demarcheCategoryConfirmed}
                 onCategoryConfirmedChange={setDemarcheCategoryConfirmed}
                 mobilePresentation={isMobileChoicePresentation}
+                onAdvance={() => requestMobileTapAdvance(field.key)}
               />
             </div>
           </div>
@@ -830,8 +866,8 @@ export const QuestionnairePage = () => {
             subtitle={step.description}
             hint={mobileHint}
             progressPercent={progress}
-            stepCurrent={visibleStepFields.length > 1 ? safeFieldIndex + 1 : undefined}
-            stepTotal={visibleStepFields.length > 1 ? visibleStepFields.length : undefined}
+            stepCurrent={fieldGroups.length > 1 ? safeGroupIndex + 1 : undefined}
+            stepTotal={fieldGroups.length > 1 ? fieldGroups.length : undefined}
             gridClassName={normalizedOptions.length === 2
               ? 'grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3'
               : 'grid grid-cols-1 gap-2.5'}
@@ -889,8 +925,8 @@ export const QuestionnairePage = () => {
             subtitle={step.description}
             hint={mobileHint}
             progressPercent={progress}
-            stepCurrent={visibleStepFields.length > 1 ? safeFieldIndex + 1 : undefined}
-            stepTotal={visibleStepFields.length > 1 ? visibleStepFields.length : undefined}
+            stepCurrent={fieldGroups.length > 1 ? safeGroupIndex + 1 : undefined}
+            stepTotal={fieldGroups.length > 1 ? fieldGroups.length : undefined}
             gridClassName="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3"
           >
             <MobileChoiceTile
@@ -1083,10 +1119,10 @@ export const QuestionnairePage = () => {
         onBack={goBack}
         onNext={goNext}
         onEnterNext={goNext}
-        canGoBack={stepIndex > 0 || safeFieldIndex > 0}
+        canGoBack={stepIndex > 0 || safeGroupIndex > 0}
         canGoNext
         continueLabel={continueLabel}
-        hideContinueButton={isMobileTapToAdvanceField(activeField)}
+        hideContinueButton={hideContinueOnMobileChoice}
       >
         {stepError ? (
           <QuestionnaireNotice variant="error" title="Enregistrement">
@@ -1100,15 +1136,15 @@ export const QuestionnairePage = () => {
           revealThroughIndex={stepIndex}
         />
 
-        {visibleStepFields.length > 1 ? (
+        {fieldGroups.length > 1 ? (
           <p className="text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Question {safeFieldIndex + 1} sur {visibleStepFields.length}
+            Question {safeGroupIndex + 1} sur {fieldGroups.length}
             <span className="mx-2 text-border">·</span>
             {STEP_TITLES_BY_ID[step.id] || step.title}
           </p>
         ) : null}
 
-        {step.id === 'contact' && safeFieldIndex === 0 ? (
+        {step.id === 'contact' && safeGroupIndex === 0 && activeField?.key === 'initiatorType' ? (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/15 bg-secondary/40 px-4 py-3">
             <div>
               <p className="text-sm font-semibold text-foreground">Auto-collecte intelligente</p>
@@ -1122,18 +1158,20 @@ export const QuestionnairePage = () => {
 
         <AnimatePresence mode="wait">
           <motion.div
-            key={`${step.id}-${activeField?.key || safeFieldIndex}`}
+            key={`${step.id}-${activeGroup.map((field) => field.key).join('-') || safeGroupIndex}`}
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.22 }}
             className={cn(
-              isMobileChoicePresentation && isMobileChoiceField(activeField)
+              isMobileChoicePresentation && hideContinueOnMobileChoice
                 ? 'min-h-0 bg-transparent p-0'
                 : 'min-h-[12rem] rounded-xl border border-border bg-muted/30 p-5 md:p-6',
             )}
           >
-            {renderQuestionField(activeField)}
+            <div className={cn(activeGroup.length > 1 && 'space-y-4')}>
+              {activeGroup.map((field) => renderQuestionField(field))}
+            </div>
           </motion.div>
         </AnimatePresence>
 
@@ -1166,12 +1204,12 @@ export const QuestionnairePage = () => {
       <div className="mt-4 rounded-md border border-border bg-white p-4 text-xs text-muted-foreground">
         Contact Greffio: {runtimeConfig.supportPhone} – {runtimeConfig.supportEmail}
       </div>
-      {!canContinue && !stepError && !isMobileTapToAdvanceField(activeField) ? (
+      {!canContinue && !stepError && !hideContinueOnMobileChoice ? (
         <QuestionnaireNotice variant="vigilance" title="Pour continuer" className="mt-3">
           Répondez à la question ci-dessus, puis cliquez sur « {continueLabel} ».
         </QuestionnaireNotice>
       ) : null}
-      {!canContinue && !stepError && isMobileTapToAdvanceField(activeField) ? (
+      {!canContinue && !stepError && hideContinueOnMobileChoice ? (
         <QuestionnaireNotice variant="vigilance" title="Pour continuer" className="mt-3">
           Touchez votre réponse pour passer à la suite.
         </QuestionnaireNotice>

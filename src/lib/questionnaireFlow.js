@@ -361,6 +361,69 @@ export const getVisibleFieldsForStep = (step, formData = {}) => {
   return step.fields.filter((field) => !field.condition || field.condition(formData));
 };
 
+/** Regroupe les champs sur mobile pour réduire les micro-écrans (identité, coordonnées, siège…). */
+const MOBILE_FIELD_GROUP_SPECS = Object.freeze({
+  contact: [
+    ['initiatorType'],
+    ['firstName', 'lastName'],
+    ['nationality'],
+    ['birthDate'],
+    ['companyCountry', 'companySiren', 'companyName'],
+    ['email', 'phone'],
+  ],
+  demarche: [
+    ['typeFormalite'],
+    ['existingBusinessSiren', 'existingBusinessName'],
+  ],
+  entreprise: [
+    ['denomination'],
+    ['adresseSiege', 'codePostal', 'villeSiege'],
+    ['activite'],
+    ['capital'],
+    ['adressePersonnelle'],
+    ['adresseActivite', 'nomEnseigne'],
+    ['dateDebutActivite', 'regimeEi'],
+    ['optionFiscaleSociale'],
+  ],
+});
+
+export const resolveMobileFieldGroups = (step, formData = {}) => {
+  const visible = getVisibleFieldsForStep(step, formData);
+  if (!visible.length) return [];
+  const specs = MOBILE_FIELD_GROUP_SPECS[step?.id];
+  if (!specs) return visible.map((field) => [field]);
+
+  const used = new Set();
+  const groups = [];
+  specs.forEach((keys) => {
+    const group = keys
+      .map((key) => visible.find((field) => field.key === key))
+      .filter((field) => field && !used.has(field.key));
+    group.forEach((field) => used.add(field.key));
+    if (group.length) groups.push(group);
+  });
+  visible.forEach((field) => {
+    if (!used.has(field.key)) groups.push([field]);
+  });
+  return groups;
+};
+
+export const fieldIndexFromGroupIndex = (groups = [], groupIndex = 0) => {
+  let index = 0;
+  for (let i = 0; i < groupIndex && i < groups.length; i += 1) {
+    index += groups[i].length;
+  }
+  return index;
+};
+
+export const groupIndexFromFieldKey = (groups = [], fieldKey = '') => {
+  if (!fieldKey) return 0;
+  for (let index = 0; index < groups.length; index += 1) {
+    if (groups[index].some((field) => field.key === fieldKey)) return index;
+  }
+  return 0;
+};
+
 /** Progression fine : une question validée = un cran (parcours adaptatif EI / PM, etc.). */
 export const getQuestionnaireProgressPercent = (formData = {}, stepIndex = 0, fieldIndex = 0) => {
   let total = 0;

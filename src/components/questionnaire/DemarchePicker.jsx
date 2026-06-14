@@ -7,6 +7,10 @@ import {
   FormalityCategoryPicker,
 } from '@/components/questionnaire/FormalityCategoryPicker.jsx';
 import {
+  MobileChoiceStep,
+  MobileChoiceTile,
+} from '@/components/questionnaire/MobileChoiceStep.jsx';
+import {
   DEMARCHE_CATALOG,
   DEMARCHE_CATEGORIES,
   PRIMARY_FORMALITY_CATEGORIES,
@@ -23,6 +27,7 @@ export const DemarchePicker = ({
   categoryConfirmed: controlledConfirmed,
   onCategoryConfirmedChange,
   mobilePresentation = false,
+  onAdvance,
 }) => {
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
@@ -76,6 +81,45 @@ export const DemarchePicker = ({
         }}
         mobilePresentation={mobilePresentation}
       />
+    );
+  }
+
+  const handleDemarcheSelect = (key) => {
+    onChange(key);
+    if (mobilePresentation) onAdvance?.();
+  };
+
+  if (mobilePresentation) {
+    return (
+      <div className="space-y-3">
+        {categoryFirst && categoryConfirmed ? (
+          <FormalityCategoryBackButton
+            onClick={() => {
+              setCategoryConfirmed(false);
+              setActiveCategory('all');
+              onChange('');
+            }}
+          />
+        ) : null}
+        <MobileChoiceStep
+          kicker="Formalité"
+          title="Quelle démarche ?"
+          subtitle="Greffio adapte le questionnaire et les documents à votre situation."
+          hint="Touchez une démarche pour continuer."
+          gridClassName="grid grid-cols-1 gap-2.5"
+        >
+          {filteredItems.map((item) => (
+            <MobileChoiceTile
+              key={item.key}
+              title={item.label}
+              description={item.hint || ''}
+              selected={value === item.key}
+              compact
+              onSelect={() => handleDemarcheSelect(item.key)}
+            />
+          ))}
+        </MobileChoiceStep>
+      </div>
     );
   }
 
