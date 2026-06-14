@@ -20,6 +20,7 @@ import { createResourceOrder, fetchResourceConfig } from '@/api/resources.js';
 import { useNavigate } from 'react-router-dom';
 import { listDossiers } from '@/api/dossiers.js';
 import { lookupCompanyBySiren } from '@/api/company.js';
+import { sanitizeCompanyIdentifier } from '@/hooks/useCompanySirenLookup.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { LegalAcceptanceCheckbox } from '@/components/payments/LegalAcceptanceCheckbox.jsx';
 import { toast } from 'sonner';
@@ -63,7 +64,7 @@ export const ServiceOrderDrawer = ({ open, onOpenChange, service }) => {
   }, [open, service, currentUser?.email]);
 
   useEffect(() => {
-    const digits = String(siren || '').replace(/\D/g, '');
+    const digits = sanitizeCompanyIdentifier(siren);
     if (digits.length !== 9 && digits.length !== 14) {
       setLookupState('idle');
       setLookupCompany(null);
@@ -209,7 +210,7 @@ export const ServiceOrderDrawer = ({ open, onOpenChange, service }) => {
                       <input
                         className="mt-1 h-10 w-full rounded-md border border-input px-3"
                         value={siren}
-                        onChange={(event) => setSiren(event.target.value)}
+                        onChange={(event) => setSiren(sanitizeCompanyIdentifier(event.target.value))}
                         placeholder="123 456 789"
                         inputMode="numeric"
                       />

@@ -7,6 +7,7 @@ import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { CheckoutOrderSummary } from '@/components/payments/CheckoutOrderSummary.jsx';
 import { GreffioPaymentTerminal } from '@/components/payments/GreffioPaymentTerminal.jsx';
+import { ShopCartCompanyFields } from '@/components/shop/ShopCartCompanyFields.jsx';
 import { formatResourcePrice } from '@/config/resourceServices.js';
 import { prepareCartOrders, checkoutCartPayment } from '@/api/resources.js';
 import { useShopCart } from '@/hooks/useShopCart.js';
@@ -180,30 +181,14 @@ export const ShopCheckoutPage = () => {
                     <p className="text-sm font-extrabold text-primary">{formatResourcePrice(line.lineTotalTtc)}</p>
                   </div>
                   {showDetails && (line.catalog?.requiresSiren !== false || line.catalog?.requiresCompany !== false) ? (
-                    <div className="mt-3 space-y-2 border-t border-border pt-3">
-                      {line.catalog?.requiresSiren !== false ? (
-                        <label className="block text-xs">
-                          SIREN ou SIRET
-                          <input
-                            className="mt-1 h-9 w-full rounded-md border border-input px-3 text-sm"
-                            value={line.siren || ''}
-                            onChange={(event) => updateLineMeta(line.id, { siren: event.target.value })}
-                            placeholder="123 456 789"
-                          />
-                        </label>
-                      ) : null}
-                      {line.catalog?.requiresCompany !== false ? (
-                        <label className="block text-xs">
-                          Nom de l&apos;entreprise
-                          <input
-                            className="mt-1 h-9 w-full rounded-md border border-input px-3 text-sm"
-                            value={line.companyName || ''}
-                            onChange={(event) => updateLineMeta(line.id, { companyName: event.target.value })}
-                            placeholder="Dénomination sociale"
-                          />
-                        </label>
-                      ) : null}
-                    </div>
+                    <ShopCartCompanyFields
+                      lineId={line.id}
+                      siren={line.siren || ''}
+                      companyName={line.companyName || ''}
+                      requiresSiren={line.catalog?.requiresSiren !== false}
+                      requiresCompany={line.catalog?.requiresCompany !== false}
+                      onUpdate={updateLineMeta}
+                    />
                   ) : null}
                 </div>
               ))}
