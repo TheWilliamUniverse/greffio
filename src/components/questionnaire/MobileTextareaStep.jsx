@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useRef } from 'react';
+import React, { useId, useRef } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils.js';
 import { useMobileKeyboardInset } from '@/hooks/useMobileKeyboardInset.js';
@@ -31,13 +31,6 @@ export const MobileTextareaStep = ({
   const charCount = String(value || '').trim().length;
 
   useMobileKeyboardInset(compact);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      textareaRef.current?.focus({ preventScroll: true });
-    }, 120);
-    return () => window.clearTimeout(timer);
-  }, [resolvedId]);
 
   return (
     <div

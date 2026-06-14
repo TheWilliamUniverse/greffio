@@ -195,11 +195,12 @@ export const QUESTIONNAIRE_FLOW = [
   {
     id: 'demarche',
     title: 'Quelle démarche ?',
-    description: 'Nous adaptons ensuite les sous-questions selon votre situation.',
+    description: '',
+    condition: () => false,
     fields: [
       {
         key: 'typeFormalite',
-        label: 'Type de formalité',
+        label: 'Démarche',
         type: 'select',
         required: true,
         options: DEMARCHE_CATALOG,
@@ -421,6 +422,11 @@ export const getApplicableFlowSteps = (formData = {}) => (
   QUESTIONNAIRE_FLOW.filter((step) => !step.condition || step.condition(formData))
 );
 
+const getFlowStepIndexById = (stepId = '') => {
+  const index = QUESTIONNAIRE_FLOW.findIndex((entry) => entry.id === stepId);
+  return Math.max(index, 0);
+};
+
 export const getVisibleFieldsForStep = (step, formData = {}) => {
   if (!step) return [];
   if (step.condition && !step.condition(formData)) return [];
@@ -602,8 +608,9 @@ export const resolveResumePosition = (formData = {}, resume = {}) => {
   };
 
   if (formData.validationConfirmed === true) {
+    const lastApplicableStep = applicable[applicable.length - 1];
     return {
-      stepIndex: Math.max(applicable.length - 1, 0),
+      stepIndex: getFlowStepIndexById(lastApplicableStep?.id),
       fieldIndex: 0,
       ...sharedMeta,
       questionnaireAlreadyValidated: true,
@@ -611,15 +618,16 @@ export const resolveResumePosition = (formData = {}, resume = {}) => {
   }
 
   if (resume?.stepId) {
-    const savedStepIndex = applicable.findIndex((entry) => entry.id === resume.stepId);
-    if (savedStepIndex >= 0) {
-      const savedStep = applicable[savedStepIndex];
+    const savedApplicableIndex = applicable.findIndex((entry) => entry.id === resume.stepId);
+    if (savedApplicableIndex >= 0) {
+      const savedStep = applicable[savedApplicableIndex];
+      const savedFlowIndex = getFlowStepIndexById(savedStep.id);
       const fields = getVisibleFieldsForStep(savedStep, formData);
       if (resume?.fieldKey && fields.length) {
         const savedFieldIndex = fields.findIndex((field) => field.key === resume.fieldKey);
         if (savedFieldIndex >= 0) {
           return {
-            stepIndex: savedStepIndex,
+            stepIndex: savedFlowIndex,
             fieldIndex: savedFieldIndex,
             ...sharedMeta,
           };
@@ -630,27 +638,27 @@ export const resolveResumePosition = (formData = {}, resume = {}) => {
           (field) => !isFieldValueValid(field, formData[field.key], formData),
         );
         return {
-          stepIndex: savedStepIndex,
+          stepIndex: savedFlowIndex,
           fieldIndex: firstInvalid >= 0 ? firstInvalid : Math.max(fields.length - 1, 0),
           ...sharedMeta,
         };
       }
-      return { stepIndex: savedStepIndex, fieldIndex: 0, ...sharedMeta };
+      return { stepIndex: savedFlowIndex, fieldIndex: 0, ...sharedMeta };
     }
   }
 
-  let stepIndex = 0;
+  let applicableStepIndex = 0;
   let fieldIndex = 0;
 
   for (let index = 0; index < applicable.length; index += 1) {
     if (!isStepComplete(applicable[index], formData)) {
-      stepIndex = index;
+      applicableStepIndex = index;
       break;
     }
-    if (index === applicable.length - 1) stepIndex = index;
+    if (index === applicable.length - 1) applicableStepIndex = index;
   }
 
-  const step = applicable[stepIndex] || applicable[0];
+  const step = applicable[applicableStepIndex] || applicable[0];
   const fields = getVisibleFieldsForStep(step, formData);
   if (fields.length) {
     for (let index = 0; index < fields.length; index += 1) {
@@ -662,7 +670,7 @@ export const resolveResumePosition = (formData = {}, resume = {}) => {
   }
 
   return {
-    stepIndex,
+    stepIndex: getFlowStepIndexById(step?.id),
     fieldIndex,
     ...sharedMeta,
   };

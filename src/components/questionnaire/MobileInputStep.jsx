@@ -18,7 +18,7 @@ export const MobileInputStep = ({
   inputMode = 'text',
   inputType = 'text',
   enterKeyHint = 'next',
-  autoFocus = true,
+  autoFocus = false,
   invalid = false,
   errorMessage = '',
   onChange,

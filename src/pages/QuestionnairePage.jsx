@@ -105,7 +105,7 @@ const defaultData = {
   existingBusinessName: '',
   email: '',
   phone: '',
-  typeFormalite: '',
+  typeFormalite: 'creation_societe',
   formeJuridiqueFamillePrimary: '',
   formeJuridiqueFamilleSecondary: '',
   formeJuridiqueFamille: '',
@@ -140,7 +140,6 @@ const getFormAvailabilityLabel = (formKey) => {
 };
 const STEP_TITLES_BY_ID = Object.freeze({
   contact: 'Type de déclarant',
-  demarche: 'Type de formalité',
   forme: 'Structure',
   entreprise: 'Informations',
   gouvernance: 'Associés',
@@ -148,10 +147,12 @@ const STEP_TITLES_BY_ID = Object.freeze({
   recap: 'Récapitulatif',
   validation: 'Validation',
 });
-const PROGRESSIVE_STEPS = QUESTIONNAIRE_FLOW.map((flowStep) => ({
-  id: flowStep.id,
-  label: STEP_TITLES_BY_ID[flowStep.id] || flowStep.title,
-}));
+const PROGRESSIVE_STEPS = QUESTIONNAIRE_FLOW
+  .filter((flowStep) => flowStep.id !== 'demarche')
+  .map((flowStep) => ({
+    id: flowStep.id,
+    label: STEP_TITLES_BY_ID[flowStep.id] || flowStep.title,
+  }));
 
 const normalizeFormalityToService = (typeFormalite, formeJuridique) => (
   resolveServiceFromFormality(typeFormalite, formeJuridique)
@@ -244,6 +245,10 @@ export const QuestionnairePage = () => {
     : isLastGroupInStep
       ? 'Étape suivante'
       : 'Continuer';
+  const progressiveStepIndex = Math.max(
+    0,
+    PROGRESSIVE_STEPS.findIndex((entry) => entry.id === step.id),
+  );
 
   const contactPayload = useMemo(() => ({
     initiatorType: formData.initiatorType,
@@ -569,12 +574,15 @@ export const QuestionnairePage = () => {
             );
             return { stepIndex: 0, fieldIndex: isMobileQuestionnaireViewport() ? groupIdx : firstInvalid };
           }
-          const demarcheIndex = QUESTIONNAIRE_FLOW.findIndex((entry) => entry.id === 'demarche');
-          return { stepIndex: Math.max(demarcheIndex, 0), fieldIndex: 0 };
+          const formeIndex = QUESTIONNAIRE_FLOW.findIndex((entry) => entry.id === 'forme');
+          return { stepIndex: Math.max(formeIndex, 0), fieldIndex: 0 };
         };
 
         const resume = mergedData._resume || {};
-        mergedData = normalizeQuestionnaireFormFamilyFields(mergedData);
+        mergedData = normalizeQuestionnaireFormFamilyFields({
+          ...mergedData,
+          typeFormalite: mergedData.typeFormalite || 'creation_societe',
+        });
         const resumeResult = startNewQuestionnaire
           ? { ...resolveNewStartPosition(mergedData), demarcheCategory: inferDemarcheCategory(mergedData.typeFormalite), categoryConfirmed: false }
           : resolveResumePosition(mergedData, resume);
@@ -721,30 +729,6 @@ export const QuestionnairePage = () => {
     }, 120);
     return () => window.clearTimeout(timer);
   }, [formData, formData.comparateurIgnore, step]);
-
-  const creationDemarcheAutoAdvanceRef = useRef(false);
-
-  useEffect(() => {
-    if (!isMobileChoicePresentation || step.id !== 'demarche') {
-      creationDemarcheAutoAdvanceRef.current = false;
-      return undefined;
-    }
-    if (demarcheCategory !== 'creation' || !demarcheCategoryConfirmed) return undefined;
-    if (formData.typeFormalite !== 'creation_societe') return undefined;
-    if (creationDemarcheAutoAdvanceRef.current || !canAdvanceCurrentGroup) return undefined;
-    creationDemarcheAutoAdvanceRef.current = true;
-    const timer = window.setTimeout(() => {
-      void goNext();
-    }, 450);
-    return () => window.clearTimeout(timer);
-  }, [
-    isMobileChoicePresentation,
-    step.id,
-    demarcheCategory,
-    demarcheCategoryConfirmed,
-    formData.typeFormalite,
-    canAdvanceCurrentGroup,
-  ]);
 
   const updateField = (field, value) => {
     if ((field.key === 'companySiren' || field.key === 'existingBusinessSiren') && String(value || '').trim() !== String(formData[field.key] || '').trim()) {
@@ -903,8 +887,13 @@ export const QuestionnairePage = () => {
     }
     if (stepIndex <= 0) return;
     let prev = stepIndex - 1;
+    const applicableSteps = getApplicableFlowSteps(formData);
     while (prev >= 0) {
       const prevStep = QUESTIONNAIRE_FLOW[prev];
+      if (!applicableSteps.some((entry) => entry.id === prevStep.id)) {
+        prev -= 1;
+        continue;
+      }
       const prevGroups = isMobileChoicePresentation
         ? resolveMobileFieldGroups(prevStep, formData)
         : getVisibleFieldsForStep(prevStep, formData).map((field) => [field]);
@@ -1603,8 +1592,8 @@ export const QuestionnairePage = () => {
         {!isCompactMobileStep ? (
           <ProgressiveStepChips
             steps={PROGRESSIVE_STEPS}
-            activeIndex={stepIndex}
-            revealThroughIndex={stepIndex}
+            activeIndex={progressiveStepIndex}
+            revealThroughIndex={progressiveStepIndex}
           />
         ) : null}
 
