@@ -316,6 +316,12 @@ export const mapDocumentPreviewError = (error) => {
   if (code === 'DOCUMENT_DOWNLOAD_FAILED' || code === 'AUTH_TOKEN_MISSING') {
     return 'Impossible de récupérer ce document pour le moment.';
   }
+  if (code === 'API_TRANSIENT_UNAVAILABLE' || code === 'Failed to fetch') {
+    return 'Connexion instable. Réessayez dans quelques secondes.';
+  }
+  if (code === 'AUTH_SESSION_EXPIRED') {
+    return 'Session expirée. Reconnectez-vous puis réessayez.';
+  }
   if (code === 'DOSSIER_FORBIDDEN') {
     return 'Accès refusé à ce document.';
   }

@@ -8,6 +8,8 @@ export const MobileDocumentPreviewSheet = ({
   title = 'Aperçu document',
   previewSrc = '',
   previewArrayBuffer = null,
+  previewBlob = null,
+  loading = false,
   filename = 'document.pdf',
   error = '',
   downloading = false,
@@ -17,7 +19,7 @@ export const MobileDocumentPreviewSheet = ({
 }) => {
   if (!open) return null;
 
-  const hasPdfData = Boolean(previewArrayBuffer) || Boolean(previewSrc);
+  const hasPdfData = Boolean(previewBlob) || Boolean(previewArrayBuffer) || Boolean(previewSrc);
 
   return (
     <div className="fixed inset-0 z-[70] flex flex-col bg-[#0f172a]">
@@ -73,13 +75,21 @@ export const MobileDocumentPreviewSheet = ({
         </div>
       ) : hasPdfData ? (
         <PdfJsCanvasViewer
+          blob={previewBlob}
           arrayBuffer={previewArrayBuffer}
           blobUrl={previewSrc}
           className="flex-1"
         />
       ) : (
         <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-white/70">
-          Chargement du document…
+          {loading ? (
+            <>
+              <Loader2 className="mb-3 h-8 w-8 animate-spin text-white/70" aria-hidden="true" />
+              Chargement du document…
+            </>
+          ) : (
+            'Chargement du document…'
+          )}
         </div>
       )}
 

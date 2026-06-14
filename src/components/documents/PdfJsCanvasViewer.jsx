@@ -8,6 +8,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 ).toString();
 
 export const PdfJsCanvasViewer = ({
+  blob = null,
   arrayBuffer = null,
   blobUrl = '',
   className = '',
@@ -28,6 +29,9 @@ export const PdfJsCanvasViewer = ({
 
       try {
         let data = arrayBuffer;
+        if (!data && blob instanceof Blob) {
+          data = await blob.arrayBuffer();
+        }
         if (!data && blobUrl) {
           const response = await fetch(blobUrl);
           data = await response.arrayBuffer();
@@ -36,7 +40,8 @@ export const PdfJsCanvasViewer = ({
           throw new Error('PDF_EMPTY');
         }
 
-        const pdf = await pdfjsLib.getDocument({ data }).promise;
+        const pdfData = data.slice(0);
+        const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
         if (cancelled) return;
 
         const scale = typeof window !== 'undefined' && window.devicePixelRatio > 1 ? 1.35 : 1.15;
@@ -72,7 +77,7 @@ export const PdfJsCanvasViewer = ({
       cancelled = true;
       container.innerHTML = '';
     };
-  }, [arrayBuffer, blobUrl]);
+  }, [arrayBuffer, blob, blobUrl]);
 
   if (error) {
     return (

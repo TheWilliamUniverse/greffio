@@ -264,6 +264,8 @@ export const MobileDossierDetailPage = () => {
         title={previewDoc?.label}
         previewSrc={previewDoc?.previewSrc}
         previewArrayBuffer={previewDoc?.arrayBuffer}
+        previewBlob={previewDoc?.blob}
+        loading={Boolean(previewDoc?.loading)}
         filename={previewDoc?.filename}
         error={previewError}
         downloading={previewDownloading}

@@ -35,6 +35,23 @@ export const useDossierDocumentPreview = () => {
     if (!dossierId || !docKey) return { ok: false, error: 'Paramètres document manquants.' };
     setLoadingDocKey(docKey);
     setPreviewError('');
+    setPreviewDoc((current) => {
+      releasePreview(current);
+      return {
+        dossierId,
+        docKey,
+        label: label || docKey,
+        filename: `${docKey}.pdf`,
+        blob: null,
+        arrayBuffer: null,
+        previewSrc: null,
+        nativePreview: isCapacitorNative(),
+        cachePath: null,
+        cacheDirectory: null,
+        loading: true,
+        cleanup: () => {},
+      };
+    });
     try {
       const { filename, blob } = await fetchDossierDocumentBlob({ dossierId, docKey, inline: true });
       const previewSource = await createPdfPreviewSource(blob, filename);
@@ -51,6 +68,7 @@ export const useDossierDocumentPreview = () => {
           nativePreview: previewSource.nativePreview,
           cachePath: previewSource.cachePath,
           cacheDirectory: previewSource.cacheDirectory,
+          loading: false,
           cleanup: previewSource.cleanup,
         };
       });
@@ -66,6 +84,7 @@ export const useDossierDocumentPreview = () => {
           contentType: error?.contentType,
         });
       }
+      setPreviewDoc(null);
       setPreviewError(message);
       return { ok: false, error: message };
     } finally {
