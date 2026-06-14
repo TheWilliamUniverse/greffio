@@ -215,7 +215,7 @@ export const GreffioPaymentTerminal = ({
                     Saisie sécurisée Mollie Components – données carte jamais stockées chez Greffio.
                   </p>
                   <div className="mt-4">
-                    <PaymentBrandBadges compact />
+                    <PaymentBrandBadges compact floating />
                   </div>
                 </div>
               </div>

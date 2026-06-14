@@ -2,13 +2,24 @@ import React from 'react';
 import { cn } from '@/lib/utils.js';
 import { PRINCIPAL_PAYMENT_BRANDS } from '@/config/paymentBrands.js';
 
+const resolveBrandSrc = (brand, { inverse, floating }) => {
+  if (inverse) return brand.markSrc || brand.src;
+  if (floating) return brand.checkoutSrc || brand.markSrc || brand.src;
+  return brand.src;
+};
+
 export const PaymentBrandBadges = ({
   compact = false,
   inverse = false,
+  floating = false,
   className,
 }) => (
   <div
-    className={cn('flex flex-wrap items-center gap-2.5', className)}
+    className={cn(
+      'flex flex-wrap items-center',
+      floating ? 'gap-3' : 'gap-2.5',
+      className,
+    )}
     role="list"
     aria-label="Moyens de paiement acceptés"
   >
@@ -20,19 +31,21 @@ export const PaymentBrandBadges = ({
         aria-label={brand.label}
         className={cn(
           'inline-flex shrink-0 items-center justify-center',
-          compact ? 'h-7 px-1' : 'h-8 px-1.5',
-          inverse
-            ? 'rounded-md border border-white/10 bg-transparent'
-            : 'overflow-hidden rounded-md border border-border/40 bg-white shadow-sm',
+          !floating && (compact ? 'h-7 px-1' : 'h-8 px-1.5'),
+          !floating && (
+            inverse
+              ? 'rounded-md border border-white/10 bg-transparent'
+              : 'overflow-hidden rounded-md border border-border/40 bg-white shadow-sm'
+          ),
         )}
       >
         <img
-          src={inverse ? (brand.markSrc || brand.src) : brand.src}
+          src={resolveBrandSrc(brand, { inverse, floating })}
           alt=""
           aria-hidden="true"
           className={cn(
             'w-auto max-w-none object-contain',
-            compact ? 'h-5' : 'h-6',
+            floating ? (compact ? 'h-6' : 'h-7') : (compact ? 'h-5' : 'h-6'),
             inverse && 'opacity-90',
           )}
           loading="lazy"
