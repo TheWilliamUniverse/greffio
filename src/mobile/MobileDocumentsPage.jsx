@@ -40,6 +40,7 @@ import { MobileOnlineDocumentsPanel } from '@/mobile/ui/MobileOnlineDocumentsPan
 import { parseJsonField } from '@/utils/jsonField.js';
 import { resolveDocumentUserAction } from '@/utils/onlineDocumentStatus.js';
 import { triggerMobileHaptic } from '@/utils/mobileHaptics.js';
+import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 
 const FILTERS = ['Tous', 'Validés', 'En attente', 'Brouillons'];
 
