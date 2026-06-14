@@ -2,14 +2,16 @@ import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
+import { FileOpener } from '@capawesome-team/capacitor-file-opener';
 import { downloadDossierDocument } from '@/api/documents.js';
 import { apiGet } from '@/api/client.js';
 import { runtimeConfig } from '@/config/runtime.js';
 import { isCapacitorNative } from '@/utils/platform.js';
 
-const sanitizeFilename = (name) => (
-  String(name || 'document.pdf').replace(/[^\w.\-() ]+/g, '_') || 'document.pdf'
-);
+const sanitizeFilename = (name) => {
+  const safe = String(name || 'document.pdf').replace(/[^\w.\-() ]+/g, '_') || 'document.pdf';
+  return safe.toLowerCase().endsWith('.pdf') ? safe : `${safe}.pdf`;
+};
 
 export const blobToBase64 = (blob) => new Promise((resolve, reject) => {
   const reader = new FileReader();
@@ -57,7 +59,7 @@ export const writePdfBlobToCache = async (blob, filename) => {
   const pdfBlob = await normalizePdfBlob(blob);
   const safeName = sanitizeFilename(filename);
   const base64 = await blobToBase64(pdfBlob);
-  const path = `greffio/preview/${Date.now()}-${safeName}`;
+  const path = `greffio/export/${Date.now()}-${safeName}`;
   await Filesystem.writeFile({
     path,
     data: base64,
@@ -85,19 +87,13 @@ export const removeCachedPdf = async ({ path, directory = Directory.Cache } = {}
   }
 };
 
-const sharePdfBlobWithWebApi = async (blob, filename, dialogTitle) => {
+const sharePdfBlobWithWebApi = async (blob, filename) => {
   const pdfBlob = await normalizePdfBlob(blob);
   const file = new File([pdfBlob], sanitizeFilename(filename), { type: 'application/pdf' });
-  const shareData = {
-    files: [file],
-    title: sanitizeFilename(filename),
-  };
+  const shareData = { files: [file], title: sanitizeFilename(filename) };
   if (!navigator.share) return false;
   if (navigator.canShare && !navigator.canShare(shareData)) return false;
-  await navigator.share({
-    ...shareData,
-    text: dialogTitle || undefined,
-  });
+  await navigator.share(shareData);
   return true;
 };
 
@@ -116,12 +112,59 @@ const ensureCachedPdfPath = async ({
   return writePdfBlobToCache(blob, filename);
 };
 
+const getCachedPdfUri = async ({ path, directory = Directory.Cache }) => {
+  const { uri } = await Filesystem.getUri({ path, directory });
+  return String(uri || '').trim();
+};
+
+const openNativePdfUri = async (uri) => {
+  if (!uri) throw new Error('DOCUMENT_OPEN_UNAVAILABLE');
+
+  if (isPluginAvailable('FileOpener')) {
+    await FileOpener.openFile({
+      path: uri,
+      mimeType: 'application/pdf',
+    });
+    return;
+  }
+
+  if (isPluginAvailable('Share')) {
+    await Share.share({
+      files: [uri],
+      title: 'document.pdf',
+    });
+    return;
+  }
+
+  throw new Error('DOCUMENT_OPEN_UNAVAILABLE');
+};
+
+const exportNativePdfUri = async (uri, filename) => {
+  if (!uri) throw new Error('DOCUMENT_OPEN_UNAVAILABLE');
+  const safeName = sanitizeFilename(filename);
+
+  if (isPluginAvailable('Share')) {
+    try {
+      await Share.share({
+        files: [uri],
+        title: safeName,
+      });
+      return;
+    } catch (shareError) {
+      if (isShareCancelled(shareError)) return;
+      throw shareError;
+    }
+  }
+
+  throw new Error('DOCUMENT_OPEN_UNAVAILABLE');
+};
+
 const shareCachedPdfNative = async ({
   path,
   directory = Directory.Cache,
   filename,
   blob,
-  dialogTitle,
+  mode = 'export',
 }) => {
   const cached = await ensureCachedPdfPath({
     blob,
@@ -129,33 +172,15 @@ const shareCachedPdfNative = async ({
     cachePath: path,
     cacheDirectory: directory,
   });
-  const { uri } = await Filesystem.getUri({
-    path: cached.path,
-    directory: cached.directory,
-  });
-  const safeName = sanitizeFilename(filename);
-  const shareTitle = dialogTitle || 'Partager le PDF';
+  const uri = await getCachedPdfUri(cached);
 
-  if (isPluginAvailable('Share')) {
-    try {
-      await Share.share({
-        files: [uri],
-        url: uri,
-        title: safeName,
-        dialogTitle: shareTitle,
-      });
-      return cached;
-    } catch (shareError) {
-      if (isShareCancelled(shareError)) return cached;
-    }
+  if (mode === 'open') {
+    await openNativePdfUri(uri);
+    return cached;
   }
 
-  if (blob) {
-    const shared = await sharePdfBlobWithWebApi(blob, safeName, shareTitle);
-    if (shared) return cached;
-  }
-
-  throw new Error('DOCUMENT_OPEN_UNAVAILABLE');
+  await exportNativePdfUri(uri, filename);
+  return cached;
 };
 
 const fetchSignedDownloadUrl = async ({ dossierId, docKey } = {}) => {
@@ -194,7 +219,7 @@ export const openCachedPdfInSystemViewer = async ({
 } = {}) => {
   if (!isCapacitorNative()) {
     if (blob) {
-      const shared = await sharePdfBlobWithWebApi(blob, filename, 'Ouvrir le PDF');
+      const shared = await sharePdfBlobWithWebApi(blob, filename);
       if (shared) return null;
     }
     const signedUrl = await fetchSignedDownloadUrl({ dossierId, docKey });
@@ -211,7 +236,7 @@ export const openCachedPdfInSystemViewer = async ({
       directory,
       filename,
       blob,
-      dialogTitle: 'Ouvrir avec…',
+      mode: 'open',
     });
   }
 
@@ -270,12 +295,10 @@ export const createPdfPreviewSource = async (blob, filename) => {
   };
 };
 
-/** Téléchargement web (anchor) ou partage natif (feuille système « Enregistrer »). */
+/** Téléchargement web (anchor) ou export natif via menu système. */
 export const savePdfBlobToDevice = async (blob, filename, {
   cachePath,
   cacheDirectory = Directory.Cache,
-  dossierId,
-  docKey,
 } = {}) => {
   const safeName = sanitizeFilename(filename);
   if (!blob) throw new Error('DOCUMENT_DOWNLOAD_FAILED');
@@ -299,7 +322,7 @@ export const savePdfBlobToDevice = async (blob, filename, {
     directory: cacheDirectory,
     filename: safeName,
     blob,
-    dialogTitle: 'Enregistrer le PDF',
+    mode: 'export',
   });
 };
 
@@ -314,7 +337,7 @@ export const mapDocumentPreviewError = (error) => {
     return 'Le serveur n’a pas renvoyé un PDF valide. Réessayez ou contactez le support.';
   }
   if (code === 'DOCUMENT_OPEN_UNAVAILABLE') {
-    return 'Utilisez le menu « Partager » de votre téléphone pour ouvrir ou enregistrer le PDF (ex. Drive, Fichiers, Adobe).';
+    return 'Impossible d’ouvrir ou d’enregistrer ce PDF via une autre application. Réessayez ou mettez à jour l’application Greffio.';
   }
   if (code === 'DOCUMENT_DOWNLOAD_FAILED' || code === 'AUTH_TOKEN_MISSING') {
     return 'Impossible de récupérer ce document pour le moment.';

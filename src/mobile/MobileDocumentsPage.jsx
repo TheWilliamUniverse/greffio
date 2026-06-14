@@ -481,7 +481,7 @@ export const MobileDocumentsPage = () => {
         onDownload={() => {
           void downloadPreview().then((result) => {
             if (result.ok) {
-              toast.success('Choisissez « Enregistrer dans Fichiers » ou Drive dans le menu partage.');
+              toast.success('Choisissez l’application de destination dans le menu système.');
               return;
             }
             const message = result.error || 'Impossible de télécharger ce document pour le moment.';

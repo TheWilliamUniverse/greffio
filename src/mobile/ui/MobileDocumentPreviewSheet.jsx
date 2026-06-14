@@ -96,7 +96,7 @@ export const MobileDocumentPreviewSheet = ({
       {!error && hasPdfData ? (
         <div className="border-t border-white/10 bg-[#0f172a]/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <p className="text-xs leading-5 text-white/70">
-            Aperçu intégré Greffio. « Ouvrir » et « Télécharger » affichent le menu partage Android (Adobe, Drive, Fichiers…).
+            Aperçu intégré Greffio. « Ouvrir » lance une autre application ; « Télécharger » passe par le menu d’export de votre téléphone.
           </p>
         </div>
       ) : null}

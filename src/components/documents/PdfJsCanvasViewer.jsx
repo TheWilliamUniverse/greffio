@@ -7,6 +7,17 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString();
 
+const resolveRenderScale = (page, containerWidth) => {
+  const width = Math.max(containerWidth || 0, 280);
+  const baseViewport = page.getViewport({ scale: 1 });
+  const cssScale = width / baseViewport.width;
+  const pixelRatio = typeof window !== 'undefined'
+    ? Math.min(Math.max(window.devicePixelRatio || 1, 2.5), 3.5)
+    : 2.5;
+  const viewport = page.getViewport({ scale: cssScale });
+  return { viewport, pixelRatio };
+};
+
 export const PdfJsCanvasViewer = ({
   blob = null,
   arrayBuffer = null,
@@ -44,23 +55,22 @@ export const PdfJsCanvasViewer = ({
         const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
         if (cancelled) return;
 
-        const pixelRatio = typeof window !== 'undefined'
-          ? Math.min(Math.max(window.devicePixelRatio || 1, 2), 3)
-          : 2;
-        const layoutScale = 1.2;
+        const containerWidth = container.clientWidth || container.parentElement?.clientWidth || window.innerWidth - 24;
 
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
           if (cancelled) return;
           const page = await pdf.getPage(pageNum);
-          const viewport = page.getViewport({ scale: layoutScale });
+          const { viewport, pixelRatio } = resolveRenderScale(page, containerWidth);
           const canvas = document.createElement('canvas');
-          const context = canvas.getContext('2d');
+          const context = canvas.getContext('2d', { alpha: false });
           canvas.width = Math.floor(viewport.width * pixelRatio);
           canvas.height = Math.floor(viewport.height * pixelRatio);
           canvas.style.width = `${Math.floor(viewport.width)}px`;
           canvas.style.height = `${Math.floor(viewport.height)}px`;
           canvas.className = 'mx-auto mb-3 block max-w-full rounded-lg bg-white shadow-sm';
           container.appendChild(canvas);
+          context.imageSmoothingEnabled = true;
+          context.imageSmoothingQuality = 'high';
           context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
           await page.render({ canvasContext: context, viewport }).promise;
         }
