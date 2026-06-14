@@ -6,9 +6,13 @@ import {
   PRINCIPAL_PAYMENT_BRANDS,
 } from '@/config/paymentBrands.js';
 
+/** Footer sombre : markSrc (Visa = visa-mark.svg verrouillé). Checkout : checkoutSrc. */
 const resolveBrandSrc = (brand, { inverse, floating }) => {
-  if (inverse) return brand.markSrc || brand.src;
   if (floating) return brand.checkoutSrc || brand.markSrc || brand.src;
+  if (inverse) {
+    if (brand.id === 'visa') return brand.markSrc;
+    return brand.markSrc || brand.checkoutSrc || brand.src;
+  }
   return brand.src;
 };
 
@@ -37,7 +41,7 @@ export const PaymentBrandBadges = ({
     <div
       className={cn(
         'flex flex-wrap items-center',
-        floating ? 'gap-3' : 'gap-2.5',
+        floating || inverse ? 'gap-3' : 'gap-2.5',
         className,
       )}
       role="list"
@@ -51,12 +55,10 @@ export const PaymentBrandBadges = ({
           aria-label={brand.label}
           className={cn(
             'inline-flex shrink-0 items-center justify-center',
-            !floating && (compact ? 'h-7 px-1' : 'h-8 px-1.5'),
-            !floating && (
-              inverse
-                ? 'rounded-md border border-white/10 bg-transparent'
-                : 'overflow-hidden rounded-md border border-border/40 bg-white shadow-sm'
-            ),
+            !floating && !inverse && (compact ? 'h-7 px-1' : 'h-8 px-1.5'),
+            !floating &&
+              !inverse &&
+              'overflow-hidden rounded-md border border-border/40 bg-white shadow-sm',
           )}
         >
           <img
@@ -65,7 +67,9 @@ export const PaymentBrandBadges = ({
             aria-hidden="true"
             className={cn(
               'w-auto max-w-none object-contain',
-              floating ? (compact ? 'h-6' : 'h-7') : (compact ? 'h-5' : 'h-6'),
+              floating || inverse
+                ? (compact ? 'h-6' : 'h-7')
+                : (compact ? 'h-5' : 'h-6'),
               inverse && 'opacity-90',
             )}
             loading="lazy"
