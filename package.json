@@ -18,6 +18,7 @@
     "ops:send-direct-credentials": "node server/scripts/send-direct-credentials.js",
     "ops:send-william-admin-invitations": "node server/scripts/send-william-admin-invitations.js",
     "ops:delete-user-dossiers": "node server/scripts/delete-user-dossiers.js",
+    "ops:delete-user-resource-orders": "node server/scripts/delete-user-resource-orders.js",
     "storage:migrate-s3:dry": "node server/scripts/migrate-local-documents-to-s3.js --dry-run",
     "storage:migrate-s3": "node server/scripts/migrate-local-documents-to-s3.js",
     "storage:migrate:dry": "node server/scripts/migrate-local-documents-to-s3.js --dry-run",

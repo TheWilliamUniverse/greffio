@@ -82,6 +82,9 @@ import { resolveDossierDocumentPlan } from './domain/formalityDocuments.js';
 import { computePaymentAmounts } from './pricing.js';
 import {
   getResourceConfig,
+  bulkDeleteOpsResourceOrders,
+  deleteOpsResourceOrder,
+  deleteResourceOrderForUser,
   getResourceOrderForUser,
   listOpsResourceOrders,
   listResourceServices,
@@ -562,6 +565,18 @@ app.post('/api/resources/orders/:orderId/checkout', requireAuth, async (req, res
   }
 });
 
+app.delete('/api/resources/orders/:orderId', requireAuth, async (req, res) => {
+  try {
+    const payload = await deleteResourceOrderForUser({
+      orderId: req.params.orderId,
+      userId: req.auth.sub,
+    });
+    return res.json({ ok: true, ...payload });
+  } catch (error) {
+    return res.status(error?.status || 500).json({ ok: false, error: error?.message || 'DELETE_ORDER_ERROR' });
+  }
+});
+
 app.post('/api/resources/cart/prepare', requireAuth, async (req, res) => {
   try {
     const user = await getUserById(req.auth.sub);
@@ -621,6 +636,24 @@ app.patch('/api/ops/resource-orders/:orderId', requireAuth, requireRole(['ADMIN'
     return res.json({ ok: true, order });
   } catch (error) {
     return res.status(error?.status || 500).json({ ok: false, error: error?.message || 'UPDATE_ERROR' });
+  }
+});
+
+app.delete('/api/ops/resource-orders/:orderId', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
+  try {
+    const payload = await deleteOpsResourceOrder({ orderId: req.params.orderId });
+    return res.json({ ok: true, ...payload });
+  } catch (error) {
+    return res.status(error?.status || 500).json({ ok: false, error: error?.message || 'DELETE_ORDER_ERROR' });
+  }
+});
+
+app.post('/api/ops/resource-orders/bulk-delete', requireAuth, requireRole(['ADMIN', 'OPS']), async (req, res) => {
+  try {
+    const payload = await bulkDeleteOpsResourceOrders({ orderIds: req.body?.orderIds || [] });
+    return res.json({ ok: true, ...payload });
+  } catch (error) {
+    return res.status(error?.status || 500).json({ ok: false, error: error?.message || 'BULK_DELETE_ERROR' });
   }
 });
 

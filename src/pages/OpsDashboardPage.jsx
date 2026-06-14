@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, CalendarClock, CheckCircle2, CircleDollarSign, Eye, FileText, FolderKanban, Loader2, RefreshCw } from 'lucide-react';
+import { AlertCircle, CalendarClock, CheckCircle2, CircleDollarSign, Eye, FileText, FolderKanban, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
@@ -13,6 +13,7 @@ import {
   getOpsDossiers,
   getOpsDossiersRisk,
   getOpsPayments,
+  deleteOpsResourceOrder,
   getOpsResourceOrders,
   updateOpsDocumentStatus,
   updateOpsResourceOrderStatus,
@@ -34,6 +35,8 @@ const Card = ({ title, value, icon: Icon, tone = 'default' }) => (
 
 const fmtEuros = (cents) => `${(Number(cents || 0) / 100).toFixed(2)} €`;
 
+const OPS_DELETABLE_STATUSES = new Set(['draft', 'pending_payment', 'cancelled']);
+
 export const OpsDashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -53,6 +56,7 @@ export const OpsDashboardPage = () => {
   const [docPreviewing, setDocPreviewing] = useState('');
   const [rejectingDocKey, setRejectingDocKey] = useState('');
   const [rejectReason, setRejectReason] = useState('');
+  const [deletingResourceOrderId, setDeletingResourceOrderId] = useState(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -117,6 +121,22 @@ export const OpsDashboardPage = () => {
       setError('Impossible de sauvegarder l’assignation.');
     } finally {
       setSavingAssignment(false);
+    }
+  };
+
+  const removeResourceOrder = async (orderId) => {
+    if (!window.confirm('Supprimer cette commande ressource ?')) return;
+    setDeletingResourceOrderId(orderId);
+    try {
+      await deleteOpsResourceOrder(orderId);
+      setResourceOrders((current) => current.filter((order) => order.id !== orderId));
+      toast.success('Commande supprimée');
+    } catch (error) {
+      toast.error(error?.message === 'ORDER_NOT_CANCELLABLE'
+        ? 'Cette commande ne peut pas être supprimée.'
+        : 'Suppression impossible.');
+    } finally {
+      setDeletingResourceOrderId(null);
     }
   };
 
@@ -254,25 +274,40 @@ export const OpsDashboardPage = () => {
                     </td>
                     <td className="px-4 py-3">{fmtEuros(order.priceTtcCents)}</td>
                     <td className="px-4 py-3">
-                      {order.status === 'paid' && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => void updateOpsResourceOrderStatus(order.id, { status: 'processing' }).then(loadData)}
-                        >
-                          Traiter
-                        </Button>
-                      )}
-                      {order.status === 'processing' && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => void updateOpsResourceOrderStatus(order.id, { status: 'completed' }).then(loadData)}
-                        >
-                          Terminer
-                        </Button>
-                      )}
+                      <div className="flex flex-wrap gap-2">
+                        {order.status === 'paid' && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => void updateOpsResourceOrderStatus(order.id, { status: 'processing' }).then(loadData)}
+                          >
+                            Traiter
+                          </Button>
+                        )}
+                        {order.status === 'processing' && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => void updateOpsResourceOrderStatus(order.id, { status: 'completed' }).then(loadData)}
+                          >
+                            Terminer
+                          </Button>
+                        )}
+                        {OPS_DELETABLE_STATUSES.has(order.status) ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="bg-white text-red-700 hover:bg-red-50"
+                            disabled={deletingResourceOrderId === order.id}
+                            onClick={() => void removeResourceOrder(order.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Supprimer
+                          </Button>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 )) : (

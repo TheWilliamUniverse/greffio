@@ -5,6 +5,8 @@ import {
 import { searchResources } from './resourceSearch.js';
 import {
   createResourceOrder,
+  deleteResourceOrderById,
+  deleteResourceOrdersByIds,
   getResourceOrderById,
   listResourceOrdersByUser,
   listResourceOrdersForOps,
@@ -101,9 +103,68 @@ export const getResourceOrderForUser = async ({ orderId, userId, isOps = false }
   return order;
 };
 
+export const USER_CANCELLABLE_ORDER_STATUSES = ['draft', 'pending_payment'];
+
+export const OPS_CANCELLABLE_ORDER_STATUSES = ['draft', 'pending_payment', 'cancelled'];
+
+const assertOrderCancellable = (order, allowedStatuses) => {
+  if (!allowedStatuses.includes(order.status)) {
+    const error = new Error('ORDER_NOT_CANCELLABLE');
+    error.status = 409;
+    error.details = { status: order.status };
+    throw error;
+  }
+};
+
 export const listUserResourceOrders = (userId) => listResourceOrdersByUser(userId);
 
 export const listOpsResourceOrders = (filters) => listResourceOrdersForOps(filters);
+
+export const deleteResourceOrderForUser = async ({ orderId, userId }) => {
+  const order = await getResourceOrderById(orderId);
+  if (!order) {
+    const error = new Error('ORDER_NOT_FOUND');
+    error.status = 404;
+    throw error;
+  }
+  if (order.userId !== userId) {
+    const error = new Error('ORDER_FORBIDDEN');
+    error.status = 403;
+    throw error;
+  }
+  assertOrderCancellable(order, USER_CANCELLABLE_ORDER_STATUSES);
+  await deleteResourceOrderById(orderId);
+  return { deleted: true, order };
+};
+
+export const deleteOpsResourceOrder = async ({ orderId }) => {
+  const order = await getResourceOrderById(orderId);
+  if (!order) {
+    const error = new Error('ORDER_NOT_FOUND');
+    error.status = 404;
+    throw error;
+  }
+  assertOrderCancellable(order, OPS_CANCELLABLE_ORDER_STATUSES);
+  await deleteResourceOrderById(orderId);
+  return { deleted: true, order };
+};
+
+export const bulkDeleteOpsResourceOrders = async ({ orderIds = [] }) => {
+  const ids = [...new Set(orderIds.map((id) => String(id || '').trim()).filter(Boolean))];
+  if (!ids.length) {
+    return { deleted: 0, orders: [] };
+  }
+
+  const orders = (await Promise.all(ids.map((id) => getResourceOrderById(id))))
+    .filter(Boolean);
+  const deletable = orders.filter((order) => OPS_CANCELLABLE_ORDER_STATUSES.includes(order.status));
+  const deleted = await deleteResourceOrdersByIds(deletable.map((order) => order.id));
+  return {
+    deleted,
+    orders: deletable,
+    skipped: orders.length - deletable.length,
+  };
+};
 
 export const updateOpsResourceOrderStatus = async ({ orderId, status, actorId, notes }) => {
   const allowed = ['processing', 'completed', 'cancelled', 'pending_payment', 'paid'];

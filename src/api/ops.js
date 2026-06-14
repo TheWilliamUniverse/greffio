@@ -1,4 +1,4 @@
-import { apiFetch, apiGet, apiPatch, apiPost } from '@/api/client.js';
+import { apiFetch, apiDelete, apiGet, apiPatch, apiPost } from '@/api/client.js';
 
 export const getOpsCockpit = async () => apiGet('/api/ops/cockpit');
 
@@ -37,6 +37,15 @@ export const getOpsResourceOrders = async ({ status } = {}) => {
 export const updateOpsResourceOrderStatus = async (orderId, { status, notes }) => apiPatch(
   `/api/ops/resource-orders/${encodeURIComponent(orderId)}`,
   { status, notes },
+);
+
+export const deleteOpsResourceOrder = async (orderId) => apiDelete(
+  `/api/ops/resource-orders/${encodeURIComponent(orderId)}`,
+);
+
+export const bulkDeleteOpsResourceOrders = async (orderIds) => apiPost(
+  '/api/ops/resource-orders/bulk-delete',
+  { orderIds },
 );
 
 export const downloadOpsDocument = async ({ dossierId, docKey, inline = true, cacheBust = false } = {}) => {

@@ -233,3 +233,27 @@ export const updateResourceOrder = async (orderId, patch) => {
 
   return getResourceOrderById(orderId);
 };
+
+export const deleteResourceOrderById = async (orderId) => {
+  if (hasPostgres) {
+    const result = await query('DELETE FROM resource_orders WHERE id = $1', [orderId]);
+    return result.rowCount > 0;
+  }
+  const result = sqlite.prepare('DELETE FROM resource_orders WHERE id = ?').run(orderId);
+  return result.changes > 0;
+};
+
+export const deleteResourceOrdersByIds = async (orderIds = []) => {
+  const ids = [...new Set(orderIds.map((id) => String(id || '').trim()).filter(Boolean))];
+  if (!ids.length) return 0;
+  if (hasPostgres) {
+    const result = await query('DELETE FROM resource_orders WHERE id = ANY($1::text[])', [ids]);
+    return result.rowCount;
+  }
+  const stmt = sqlite.prepare('DELETE FROM resource_orders WHERE id = ?');
+  let deleted = 0;
+  for (const id of ids) {
+    deleted += stmt.run(id).changes;
+  }
+  return deleted;
+};
