@@ -66,7 +66,7 @@ export const buildActsAnnexe = (data) => {
 export const buildPowersAnnexe = (data) => ({
   title: 'Annexe 3 – Pouvoirs pour formalités',
   paragraphs: [
-    `Les pouvoirs sont expressément conférés à ${data.mandataire || 'WILLIAM ESTABLISHMENTS / Greffio'}, ou à toute personne qu'il désignera, aux fins notamment de :`,
+    `Les pouvoirs sont expressément conférés à ${data.mandataire || 'WILLIAM ESTABLISHMENTS'}, ou à toute personne qu'il désignera, aux fins notamment de :`,
     '• procéder à la signature électronique des pièces lorsque la loi l\'autorise ;',
     '• effectuer le dépôt au greffe compétent et les formalités au guichet unique ;',
     '• publier l\'annonce légale et accomplir toute publicité requise ;',

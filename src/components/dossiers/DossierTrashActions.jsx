@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { purgePlaceholderDossiers } from '@/api/dossiers.js';
 import { isEphemeralPlaceholderDossier } from '@/utils/dossierBootstrap.js';
 import { Button } from '@/components/ui/button.jsx';
+import { ConfirmActionDialog } from '@/components/ConfirmActionDialog.jsx';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/hooks/queries/queryKeys.js';
 
@@ -17,6 +18,7 @@ export const DossierTrashActions = ({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   if (!dossier?.id || !isEphemeralPlaceholderDossier(dossier)) return null;
 
@@ -29,7 +31,7 @@ export const DossierTrashActions = ({
   };
 
   const handlePurgeAll = async () => {
-    if (!window.confirm('Supprimer tous vos brouillons vides (ex. « Projet Greffio ») ?')) return;
+    setConfirmOpen(false);
     setBusy(true);
     try {
       const result = await purgePlaceholderDossiers();
@@ -56,12 +58,22 @@ export const DossierTrashActions = ({
           variant="ghost"
           disabled={busy}
           className={`text-red-700 hover:bg-red-100/60 ${compact ? 'h-11 w-full justify-start rounded-2xl' : ''}`}
-          onClick={() => { void handlePurgeAll(); }}
+          onClick={() => setConfirmOpen(true)}
         >
           <Trash2 className="h-4 w-4" />
           Nettoyer tous les brouillons vides
         </Button>
       </div>
+      <ConfirmActionDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        destructive
+        loading={busy}
+        title="Supprimer les brouillons vides ?"
+        description="Les brouillons non entamés, comme « Projet Greffio », seront retirés de votre liste. Vos vrais dossiers ne sont pas concernés."
+        confirmLabel="Nettoyer les brouillons"
+        onConfirm={() => { void handlePurgeAll(); }}
+      />
     </div>
   );
 };

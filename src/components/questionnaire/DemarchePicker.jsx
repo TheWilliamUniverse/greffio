@@ -31,6 +31,7 @@ export const DemarchePicker = ({
   onCategoryConfirmedChange,
   mobilePresentation = false,
   onAdvance,
+  onSkipCreationTiles,
 }) => {
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
@@ -89,6 +90,7 @@ export const DemarchePicker = ({
           const categoryId = selectedCategoryId || primaryCategory;
           if (categoryId === 'creation') {
             onChange(CREATION_AUTO_FORMALITY);
+            onSkipCreationTiles?.();
           }
           if (categoryId) setCategoryConfirmed(true);
         }}

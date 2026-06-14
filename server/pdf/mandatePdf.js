@@ -110,7 +110,7 @@ const generateMandatePdf = async ({
     height: cardHeight,
     title: 'MANDATAIRE',
     lines: [
-      { label: '', value: 'WILLIAM ESTABLISHMENTS (Greffio)' },
+      { label: '', value: 'WILLIAM ESTABLISHMENTS' },
       { label: 'SIREN : ', value: '102 230 414' },
     ],
     font,

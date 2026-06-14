@@ -369,28 +369,12 @@ export const applyDraftWatermarkToAllPages = (pdfDoc, fonts) => {
 };
 
 export const replaceDraftWatermarkWithSignedBadge = ({
-  page,
-  font,
-  fontBold,
-  pageWidth = PAGE_WIDTH,
-  pageHeight = PAGE_HEIGHT,
+  page: _page,
+  font: _font,
+  fontBold: _fontBold,
+  pageWidth: _pageWidth = PAGE_WIDTH,
+  pageHeight: _pageHeight = PAGE_HEIGHT,
 }) => {
-  const centerX = pageWidth / 2;
-  const centerY = pageHeight / 2;
-  page.drawRectangle({
-    x: centerX - 150,
-    y: centerY - 70,
-    width: 300,
-    height: 140,
-    color: rgb(1, 1, 1),
-    borderWidth: 0,
-  });
-  page.drawText('DOCUMENT SIGNÉ', {
-    x: centerX - 78,
-    y: centerY + 6,
-    size: 14,
-    font: fontBold,
-    color: rgb(0.12, 0.35, 0.62),
-    opacity: 0.85,
-  });
+  // Les documents signés doivent rester lisibles : la preuve de signature est
+  // portée par le certificat et les métadonnées, pas par un filigrane visible.
 };

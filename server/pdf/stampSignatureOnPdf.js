@@ -103,7 +103,7 @@ export const stampSignatureOnPdf = async ({
     ? marginH + 58
     : (signatureOnRight ? width - marginH - signatureColWidth : marginH);
   const yBase = isFormalityPowersLayout
-    ? 98
+    ? 82
     : (isSubscribersLayout ? 118 : (isOfficialLayout ? 228 : 168));
 
   const safeSignerName = pdfSafeText(signerFullName, 'Signataire');

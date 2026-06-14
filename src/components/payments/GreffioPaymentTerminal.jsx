@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, Building2, CreditCard, LockKeyhole, ShieldCheck, Smartphone } from 'lucide-react';
+import { ArrowRight, Building2, CreditCard, Smartphone } from 'lucide-react';
 import { MolliePaymentTrustFooter } from '@/components/payments/MollieSecureTrustBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { PaymentBrandBadges } from '@/components/layout/PaymentBrandBadges.jsx';
@@ -288,17 +288,6 @@ export const GreffioPaymentTerminal = ({
 
       <div className="relative px-5 py-6 sm:px-7">
         {paymentBody}
-      </div>
-
-      <div className="flex flex-wrap items-center justify-center gap-4 border-t border-white/70 bg-white/60 px-5 py-4 text-xs text-muted-foreground sm:justify-between">
-        <p className="inline-flex items-center gap-2">
-          <ShieldCheck className="h-4 w-4 text-primary" />
-          Transaction sécurisée
-        </p>
-        <p className="inline-flex items-center gap-2">
-          <LockKeyhole className="h-4 w-4 text-primary" />
-          Chiffrement TLS
-        </p>
       </div>
     </section>
   );

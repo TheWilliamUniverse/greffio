@@ -1,4 +1,4 @@
-# Release Google Play — Greffio Android
+# Release Google Play – Greffio Android
 
 Package : `com.greffio.app`  
 Nom store : **Greffio**  
@@ -51,8 +51,15 @@ Copier la ligne **SHA256** (format `AA:BB:CC:...`).
 
 ## 3. Déclencher un build AAB
 
-Push sur `main` (fichiers `android/**`, `src/**`, `package.json`, etc.)  
-ou **Actions → Mobile Artifacts → Run workflow**.
+L’app Android de production est **remote-first**. Un changement React/CSS
+simple doit d’abord être déployé côté web, puis testé dans l’app réelle.
+
+Déclencher un AAB seulement si le changement touche le natif :
+`android/**`, Capacitor, permissions, plugins, icônes, splash, deep links,
+versionCode/versionName ou politique Play Store.
+
+Push sur `main` ou **Actions → Mobile Artifacts → Run workflow** pour produire
+un build signé.
 
 Artifacts produits :
 - `app-release-apk`
@@ -86,7 +93,7 @@ Vérifier après déploiement frontend :
 ## 6. Commandes locales
 
 ```bash
-npm run mobile:build
+npm run mobile:build:remote
 npx cap open android
 ```
 

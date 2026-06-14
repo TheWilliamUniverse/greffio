@@ -28,6 +28,7 @@ export const MobileInputStep = ({
   showProgressBar = true,
   showStepMeta = true,
   children,
+  extra,
 }) => {
   const generatedId = useId();
   const inputRef = useRef(null);
@@ -117,6 +118,7 @@ export const MobileInputStep = ({
             </button>
           ) : null}
         </div>
+        {extra}
         {children}
         {errorMessage ? (
           <p id={errorId} className="mx-auto mt-3 max-w-md text-xs text-destructive">{errorMessage}</p>

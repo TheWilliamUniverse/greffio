@@ -69,7 +69,7 @@ const ROLE = Object.freeze({
 const OPS_ROLES = Object.freeze([ROLE.ADMIN, ROLE.OPS, ROLE.FORMALISTE]);
 
 const TRANSITIONS = Object.freeze([
-  { from: DOSSIER_STATUSES.DRAFT, to: DOSSIER_STATUSES.CONTACT_STARTED, allowedRoles: [ROLE.CLIENT, ...OPS_ROLES], automatic: false, emailTemplate: 'welcome' },
+  { from: DOSSIER_STATUSES.DRAFT, to: DOSSIER_STATUSES.CONTACT_STARTED, allowedRoles: [ROLE.CLIENT, ...OPS_ROLES], automatic: false },
   { from: DOSSIER_STATUSES.CONTACT_STARTED, to: DOSSIER_STATUSES.CONTACT_COMPLETED, allowedRoles: [ROLE.CLIENT, ...OPS_ROLES], automatic: false, emailTemplate: 'contact_confirmed' },
   { from: DOSSIER_STATUSES.CONTACT_COMPLETED, to: DOSSIER_STATUSES.LEGAL_FORM_SELECTED, allowedRoles: [ROLE.CLIENT, ...OPS_ROLES], automatic: false },
   { from: DOSSIER_STATUSES.LEGAL_FORM_SELECTED, to: DOSSIER_STATUSES.QUESTIONNAIRE_IN_PROGRESS, allowedRoles: [ROLE.CLIENT, ...OPS_ROLES], automatic: false },

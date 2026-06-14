@@ -20,7 +20,7 @@ export const buildFormalityPowersFields = ({ dossier, questionnaire = {}, user =
     annexTitle: annex.title,
     companyName: String(data.denomination || dossier?.companyName || '').trim(),
     legalForm: String(data.legalForm || dossier?.legalForm || 'SAS').toUpperCase(),
-    mandataire: String(data.mandataire || 'WILLIAM ESTABLISHMENTS / Greffio').trim(),
+    mandataire: String(data.mandataire || 'WILLIAM ESTABLISHMENTS').trim(),
     greffe: String(data.greffe || 'greffe compétent').trim(),
     paragraphs: annex.paragraphs || [],
     statementCity: String(questionnaire.registeredOfficeCity || questionnaire.villeSiege || data.seat?.city || 'Ville').trim(),

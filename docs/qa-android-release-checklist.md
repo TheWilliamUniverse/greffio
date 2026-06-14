@@ -1,4 +1,4 @@
-# Checklist QA — Release Android Greffio (Capacitor)
+# Checklist QA – Release Android Greffio (Capacitor)
 
 > Application : `com.greffio.app`  
 > Stack : React `dist` + Capacitor Android  
@@ -16,11 +16,32 @@ Cette checklist couvre la préparation d’un AAB Play Store et la validation ma
 | Sync Capacitor | `npm run mobile:build` ou `npx cap sync android` | ☐ |
 | Bump `versionCode` | `android/release-version.properties` (strictement croissant vs Play Console) | ☐ |
 | Cohérence `versionName` | Même fichier + `android/app/build.gradle` | ☐ |
-| API serveur | `server/config/appVersion.js` — `latestVersionCode`, `minimumRequiredVersionCode` | ☐ |
+| API serveur | `server/config/appVersion.js` – `latestVersionCode`, `minimumRequiredVersionCode` | ☐ |
 | AAB release | `cd android && ./gradlew bundleRelease` | ☐ |
 | APK debug local (optionnel) | `./gradlew assembleDebug` + `adb install -r app/build/outputs/apk/debug/app-debug.apk` | ☐ |
 
-**Règle** : un fix React/CSS n’est visible par les utilisateurs Play Store qu’après rebuild AAB + publication.
+**Règle actuelle** : l’app Play Store est remote-first. Un fix React/CSS est
+visible après déploiement web + smoke test dans l’app réelle. Rebuild AAB
+uniquement pour changement natif (Capacitor, Android, permissions, plugins,
+icônes, splash, versionCode/versionName, deep links).
+
+### Web remote only
+
+| Étape | OK |
+|-------|-----|
+| `npm run build` | ☐ |
+| Déployer le bundle web Hostinger | ☐ |
+| Smoke app réelle : dashboard, questionnaire, documents, paiement | ☐ |
+| Vérifier `/api/app-version` si popup update modifiée | ☐ |
+
+### AAB requis
+
+| Cas | OK |
+|-----|-----|
+| Plugin Capacitor ou permission Android | ☐ |
+| Icône, splash, manifest, deep links | ☐ |
+| FileOpener/PDF natif, biométrie, push | ☐ |
+| `versionCode` / publication Play Console | ☐ |
 
 ---
 

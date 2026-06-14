@@ -86,14 +86,14 @@ export const BeneficialOwnersPicker = ({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
-          Sélectionnez une ou plusieurs personnes parmi les associés et dirigeants déjà renseignés.
+          Sélectionnez uniquement les personnes qui contrôlent réellement la société. Vous pouvez compléter cette étape plus tard si vous hésitez.
         </p>
         <div className="flex gap-2">
           <button type="button" className="text-xs font-semibold text-primary hover:underline" onClick={selectAll}>
             Tout sélectionner
           </button>
           <button type="button" className="text-xs text-muted-foreground hover:underline" onClick={clearAll}>
-            Tout désélectionner
+            Compléter plus tard
           </button>
         </div>
       </div>

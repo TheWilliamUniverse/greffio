@@ -24,7 +24,7 @@ MANDANT
 Nom: ${signerFullName}
 
 MANDATAIRE
-WILLIAM ESTABLISHMENTS (Greffio)
+WILLIAM ESTABLISHMENTS
 SIREN: 102 230 414
 
 OBJET DU MANDAT
@@ -39,7 +39,7 @@ LIMITES
 Greffio intervient en accompagnement administratif et technique. Greffio ne se substitue pas à un avocat, notaire ou expert-comptable.
 
 CONSENTEMENT
-Je reconnais avoir lu et compris la procuration ci-dessus. J’autorise WILLIAM ESTABLISHMENTS, opérant sous le nom Greffio, à préparer, déposer, suivre et, si nécessaire, régulariser mon dossier de formalité d’entreprise auprès du Guichet unique, du greffe compétent et des organismes concernés, sur la base des informations et documents que je fournis.
+Je reconnais avoir lu et compris la procuration ci-dessus. J’autorise WILLIAM ESTABLISHMENTS à préparer, déposer, suivre et, si nécessaire, régulariser mon dossier de formalité d’entreprise auprès du Guichet unique, du greffe compétent et des organismes concernés, sur la base des informations et documents que je fournis.
 
 SIGNATURE
 Signataire: ${signerFullName}

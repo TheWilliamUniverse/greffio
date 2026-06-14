@@ -524,7 +524,7 @@ export const buildDocumentPreview = (data, answers, selectedForm) => {
   const isAssociationLike = ['ASSOCIATION', 'FOUNDATION'].includes(profile);
   const isCommandite = ['SCS', 'SCA'].includes(profile);
   const longArticles = buildLongArticles({
-    mandataire: 'WILLIAM ESTABLISHMENTS / Greffio',
+    mandataire: 'WILLIAM ESTABLISHMENTS',
     formalite: data.journey || 'creation',
     forme: label,
     denomination,

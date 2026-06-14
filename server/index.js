@@ -378,7 +378,7 @@ app.post('/api/observability/client-error', express.json({ limit: '32kb' }), (re
     timestamp: new Date().toISOString(),
   });
   if (process.env.SENTRY_DSN) {
-    console.info('[CLIENT_ERROR] Sentry DSN configured — forward via votre agent Sentry serveur si activé.');
+    console.info('[CLIENT_ERROR] Sentry DSN configured – forward via votre agent Sentry serveur si activé.');
   }
   return res.status(204).end();
 });
@@ -1758,13 +1758,6 @@ app.post('/api/dossiers/:dossierId/complete-step', requireAuth, async (req, res)
       lien_espace_client: `${appUrl}/dashboard`,
     };
     try {
-      await sendDossierEmailById({
-        templateId: 'welcome',
-        dossierId: updated.id,
-        userId: req.auth.sub,
-        toEmail: mergedData.email,
-        variables: baseVars,
-      });
       if (isEmailFeatureEnabled('dossierContactConfirmed')) {
         await sendDossierEmailById({
           templateId: 'contact_confirmed',
@@ -2020,11 +2013,12 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/download-url', requireAuth, 
 
   const documents = await listDossierDocuments(dossier.id);
   const requested = documents.find((item) => item.docKey === req.params.docKey);
-  if (!requested || !requested.storageUrl) {
+  const requestedStorageUrl = requested?.storageUrl || requested?.fileUrl || '';
+  if (!requested || !requestedStorageUrl) {
     return res.status(404).json({ ok: false, error: 'DOCUMENT_FILE_NOT_FOUND' });
   }
 
-  const source = String(requested.storageUrl);
+  const source = String(requestedStorageUrl);
   if (source.startsWith('s3://') || source.startsWith('supabase://')) {
     const signed = await createSignedDownloadUrl(source);
     if (!signed?.url) {
@@ -2058,7 +2052,8 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/download', requireAuth, asyn
 
   const documents = await listDossierDocuments(dossier.id);
   const requested = documents.find((item) => item.docKey === req.params.docKey);
-  if (!requested || !requested.storageUrl) {
+  const requestedStorageUrl = requested?.storageUrl || requested?.fileUrl || '';
+  if (!requested || !requestedStorageUrl) {
     return res.status(404).json({ ok: false, error: 'DOCUMENT_FILE_NOT_FOUND' });
   }
 
@@ -2068,7 +2063,7 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/download', requireAuth, asyn
   const disposition = inline ? 'inline' : 'attachment';
 
   try {
-    const buffer = await downloadDocumentBufferFromConfiguredStorage(requested.storageUrl);
+    const buffer = await downloadDocumentBufferFromConfiguredStorage(requestedStorageUrl);
     res.setHeader('Content-Type', requested.mimeType || 'application/pdf');
     res.setHeader('Content-Disposition', `${disposition}; filename="${downloadName}"`);
     res.setHeader('Cache-Control', 'no-store');
@@ -2964,7 +2959,7 @@ app.post(
   },
 );
 
-// Webhook Worldline Connect — corps JSON brut pour X-GCS-Signature.
+// Webhook Worldline Connect – corps JSON brut pour X-GCS-Signature.
 app.post(
   '/api/webhooks/cawl/worldline',
   express.text({ type: '*/*' }),

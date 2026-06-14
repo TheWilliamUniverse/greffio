@@ -58,6 +58,7 @@ import { isEiLikeFormality, isStatutesSupportedForm } from '@/config/formalities
 import { AssociatesMinorPanel } from '@/components/questionnaire/AssociatesMinorPanel.jsx';
 import { AssociatesMobileWizard } from '@/components/questionnaire/AssociatesMobileWizard.jsx';
 import { BeneficialOwnersPicker } from '@/components/questionnaire/BeneficialOwnersPicker.jsx';
+import { MobileBirthDatePicker } from '@/components/questionnaire/MobileBirthDatePicker.jsx';
 import { BirthDateMinorEncouragement } from '@/components/BirthDateMinorEncouragement.jsx';
 import { validateDirectorEligibility } from '@/config/minorAssociateRules.js';
 import { syncDirigeantFromAssociates } from '@/utils/officerFromAssociates.js';
@@ -74,6 +75,10 @@ import {
   resolveQuestionMode,
 } from '@/hooks/useQuestionnairePresentation.js';
 import { lightQuestionnaireHaptic } from '@/utils/questionnaireHaptics.js';
+import {
+  loadQuestionnaireDraftOffline,
+  saveQuestionnaireDraftOffline,
+} from '@/utils/mobileOffline.js';
 import {
   getCatalogFormsForFamily,
   normalizeQuestionnaireFormFamilyFields,
@@ -95,6 +100,7 @@ const defaultData = {
   companyCountry: 'France',
   companySiren: '',
   companyName: '',
+  companyRepresentative: '',
   existingBusinessSiren: '',
   existingBusinessName: '',
   email: '',
@@ -247,6 +253,7 @@ export const QuestionnairePage = () => {
     companyCountry: formData.companyCountry,
     companySiren: formData.companySiren,
     companyName: formData.companyName,
+    companyRepresentative: formData.companyRepresentative,
     email: formData.email,
     phone: formData.phone,
   }), [
@@ -257,6 +264,7 @@ export const QuestionnairePage = () => {
     formData.companyCountry,
     formData.companySiren,
     formData.companyName,
+    formData.companyRepresentative,
     formData.email,
     formData.phone,
   ]);
@@ -500,9 +508,24 @@ export const QuestionnairePage = () => {
           if (currentDossierId && state) {
             const fromApi = state.reference || state?.dossier?.reference || '';
             setReference(isModernReference(fromApi) ? fromApi : makeUiReference());
+            let offlineQuestionnaire = null;
+            if (isCapacitorNative()) {
+              try {
+                const draft = await loadQuestionnaireDraftOffline({
+                  userId: userForContact?.id || user?.id || 'anonymous',
+                  dossierId: currentDossierId,
+                });
+                if (draft?.data && typeof draft.data === 'object') {
+                  offlineQuestionnaire = draft.data;
+                }
+              } catch (_offlineError) {
+                offlineQuestionnaire = null;
+              }
+            }
             mergedData = {
               ...mergedData,
               ...(state.questionnaire || {}),
+              ...(offlineQuestionnaire || {}),
             };
           }
         }
@@ -609,6 +632,13 @@ export const QuestionnairePage = () => {
           dataPatch: buildPersistPayload(formData),
           progressPercent: progress,
         });
+        if (isCapacitorNative()) {
+          await saveQuestionnaireDraftOffline({
+            userId: user?.id || 'anonymous',
+            dossierId,
+            data: buildPersistPayload(formData),
+          });
+        }
         if (autosaveRequestId.current !== requestId) return;
         setAutosaveState('saved');
         setStepError((current) => (
@@ -619,6 +649,19 @@ export const QuestionnairePage = () => {
         if (error?.status === 401) {
           setAutosaveState('idle');
           return;
+        }
+        if (isCapacitorNative()) {
+          try {
+            await saveQuestionnaireDraftOffline({
+              userId: user?.id || 'anonymous',
+              dossierId,
+              data: buildPersistPayload(formData),
+            });
+            setAutosaveState('saved');
+            return;
+          } catch (_offlineError) {
+            // Keep visible save error if local fallback also fails.
+          }
         }
         setAutosaveState('error');
       }
@@ -888,7 +931,7 @@ export const QuestionnairePage = () => {
             companyName: foundCompany.denomination || current.companyName,
           }),
       companyCountry: foundCompany.country || current.companyCountry,
-      city: current.city || foundCompany.city || '',
+      villeSiege: current.villeSiege || foundCompany.city || '',
       adresseSiege: current.adresseSiege || foundCompany.addressSiege || '',
       activite: current.activite || foundCompany.apeCode || '',
     }));
@@ -930,11 +973,14 @@ export const QuestionnairePage = () => {
     invalid,
     inlineMessage,
     inputType = 'text',
+    inputMode,
     subtitle,
     hint = isCompactMobileStep ? 'Touchez la flèche pour continuer.' : 'Appuyez sur Suivant lorsque c’est prêt.',
     extra,
+    onChangeOverride,
   }) => {
     const isNumericField = field.type === 'number' || field.key === 'capital';
+    const validationValue = formData[field.key] ?? value;
     return (
     <MobileInputStep
       key={field.key}
@@ -948,15 +994,19 @@ export const QuestionnairePage = () => {
       fieldId={field.key}
       value={value}
       placeholder={field.placeholder || ''}
-      inputMode={isNumericField ? 'decimal' : resolveFieldInputMode(field)}
+      inputMode={inputMode || (isNumericField ? 'decimal' : resolveFieldInputMode(field))}
       inputType={isNumericField ? 'text' : inputType}
       compact={isCompactMobileStep}
       showProgressBar={!isCompactMobileStep}
       showStepMeta={!isCompactMobileStep}
-      canAdvance={!invalid && isFieldValueValid(field, value, formData)}
+      canAdvance={!invalid && isFieldValueValid(field, validationValue, formData)}
       invalid={invalid}
       errorMessage={invalid ? inlineMessage : ''}
       onChange={(nextValue) => {
+        if (onChangeOverride) {
+          onChangeOverride(nextValue);
+          return;
+        }
         const sanitized = field.key === 'companySiren' || field.key === 'existingBusinessSiren'
           ? sanitizeCompanyIdentifier(nextValue)
           : isNumericField
@@ -1115,6 +1165,14 @@ export const QuestionnairePage = () => {
                 onCategoryConfirmedChange={setDemarcheCategoryConfirmed}
                 mobilePresentation={isMobileChoicePresentation}
                 onAdvance={() => requestMobileTapAdvance(field.key)}
+                onSkipCreationTiles={() => {
+                  if (!isMobileChoicePresentation) return;
+                  const formeStepIndex = QUESTIONNAIRE_FLOW.findIndex((entry) => entry.id === 'forme');
+                  if (formeStepIndex >= 0) {
+                    setStepIndex(formeStepIndex);
+                    setGroupIndex(0);
+                  }
+                }}
               />
             </div>
           </div>
@@ -1333,6 +1391,20 @@ export const QuestionnairePage = () => {
       const showInlineError = touchedFields[field.key] && dateInvalid;
       const inlineMessage = getFieldValidationMessage(field, dateValue, formData);
       if (isMobileChoicePresentation && activeGroup.length === 1) {
+        if (field.key === 'birthDate') {
+          return (
+            <MobileBirthDatePicker
+              key={field.key}
+              value={dateValue}
+              invalid={showInlineError}
+              errorMessage={showInlineError ? inlineMessage : ''}
+              canAdvance={!dateInvalid}
+              onChange={(nextValue) => updateField(field, nextValue)}
+              onAdvance={goNext}
+              extra={showLegalHint ? <BirthDateMinorEncouragement birthDate={dateValue} showLegalHint /> : null}
+            />
+          );
+        }
         return renderMobileInputStep(field, {
           value: dateValue,
           invalid: showInlineError,

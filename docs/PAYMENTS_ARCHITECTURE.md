@@ -1,14 +1,20 @@
 # Payments Architecture
 
+> Statut 2026-06-14 : le paiement B2C actif en production est **Mollie**.
+> CAWL/Worldline reste présent dans le code comme piste dormante, mais ne doit
+> pas être considéré comme le PSP B2C courant. Pour l’état détaillé à jour, voir
+> aussi `docs/PAYMENT_SYSTEM_ARCHITECTURE_2026-06-14.md`.
+
 > Document de référence pour William Establishments (Greffio + boutique en
 > ligne). Toute modification du routing PSP doit passer par ce document
 > avant d'être implémentée en code.
 
 ## 1. Décision métier
 
-- **B2C → CAWL.** Tous les paiements B2C (particuliers, paiements ponctuels,
-  prestations numériques, boutique e-commerce, retail) sont traités par
-  **CAWL**.
+- **B2C → Mollie.** Tous les paiements B2C actifs (dossiers, boutique,
+  prestations numériques, paiements ponctuels) sont traités par **Mollie**.
+  Les écrans doivent afficher un seul bloc de confiance Mollie, sans doublon
+  TLS/carte autour du terminal.
 - **GoCardless → B2B uniquement.** GoCardless est strictement réservé aux
   paiements B2B (prélèvements SEPA / virements pros). Il est explicitement
   **interdit en B2C** : toute tentative est rejetée côté serveur avec un
@@ -23,30 +29,29 @@
 
 | Type client                | Provider par défaut         | Fallback              |
 |----------------------------|-----------------------------|-----------------------|
-| B2C                        | `cawl`                      | aucun (erreur 503)    |
+| B2C                        | `mollie`                    | aucun (erreur 503)    |
 | B2B                        | `gocardless` (si configuré) | `manual_bank_transfer`|
-| Tout type — réconciliation | `qonto`                     | —                     |
+| Tout type – réconciliation | `qonto`                     | –                     |
 
 Providers prévus pour extension future (déclarés comme stubs inactifs) :
 `stripe`, `payplug`. Brancher un de ces providers consiste à
 remplacer le stub par un adapter conforme à `PaymentProviderAdapter` puis à
 inscrire la règle dans `PaymentProviderResolver`.
 
-## 3. Flux B2C (Google Pay → CAWL)
+## 3. Flux B2C (Mollie)
 
-1. Le frontend affiche `GooglePayCheckoutPanel` et charge la config via
-   `GET /api/payments/google-pay/config`.
-2. L'utilisateur valide Google Pay ; le token est envoyé à
-   `POST /api/payments/google-pay`.
-3. Le serveur persiste le paiement (`pending`, `provider: cawl`,
-   `method: google_pay`) et transmet le token à CAWL lorsque l'API est branchée.
-4. CAWL envoie un webhook `POST /api/webhooks/cawl` (signature HMAC SHA256).
+1. Le frontend affiche `GreffioPaymentTerminal` et charge les méthodes Mollie.
+2. La carte est saisie dans le formulaire embarqué Mollie ; le token carte est
+   transmis au backend.
+3. Le serveur crée le paiement (`pending`, `provider: mollie`) et déclenche
+   3-D Secure si nécessaire.
+4. Mollie envoie son webhook signé/configuré côté serveur.
 5. Le webhook normalise le statut (`paid`, `failed`, `cancelled`…) et met à
    jour la ligne `payments`. Aucun statut n'est jamais accepté depuis le
    frontend.
 
-Alternative hébergée CAWL (hosted checkout) : `POST /api/payments` avec
-`customerType: "b2c"` lorsque `CAWL_API_KEY` est configuré.
+CAWL/Worldline : dormant. Ne pas documenter un nouveau flux CAWL comme actif
+tant que le resolver B2C et la prod ne pointent pas explicitement vers lui.
 
 ## 4. Flux B2B
 
@@ -63,7 +68,8 @@ Alternative hébergée CAWL (hosted checkout) : `POST /api/payments` avec
 
 | Code                    | Statut             | Rôle                                  |
 |-------------------------|--------------------|---------------------------------------|
-| `cawl`                  | actif (B2C)        | PSP carte / wallet (Google Pay en aval) |
+| `mollie`                | actif (B2C)        | PSP carte / wallets B2C                 |
+| `cawl`                  | dormant            | Piste Worldline/CAWL, non active B2C    |
 | `gocardless`            | actif (B2B uniqu.) | SEPA / virement pro                   |
 | `qonto`                 | actif              | Réconciliation, jamais PSP B2C        |
 | `manual_bank_transfer`  | actif              | Virement manuel B2B                   |
@@ -73,7 +79,7 @@ Alternative hébergée CAWL (hosted checkout) : `POST /api/payments` avec
 ## 6. Variables d'environnement
 
 ```env
-# CAWL — PSP B2C (capture token Google Pay)
+# CAWL – PSP B2C (capture token Google Pay)
 CAWL_API_BASE_URL=
 CAWL_API_KEY=
 CAWL_API_KEY_ID=
@@ -82,7 +88,7 @@ CAWL_WEBHOOK_SECRET=
 CAWL_RETURN_URL=
 CAWL_CANCEL_URL=
 
-# Google Pay — wallet B2C (frontend + config publique)
+# Google Pay – wallet B2C (frontend + config publique)
 GOOGLE_PAY_API_KEY=
 GOOGLE_PAY_MERCHANT_ID=
 GOOGLE_PAY_MERCHANT_NAME=Greffio
@@ -94,12 +100,12 @@ VITE_GOOGLE_PAY_MERCHANT_ID=
 VITE_GOOGLE_PAY_ENVIRONMENT=TEST
 VITE_GOOGLE_PAY_MERCHANT_NAME=Greffio
 
-# GoCardless — B2B uniquement
+# GoCardless – B2B uniquement
 GOCARDLESS_ACCESS_TOKEN=
 GOCARDLESS_WEBHOOK_SECRET=
 GOCARDLESS_ENV=live
 
-# Qonto — rapprochement
+# Qonto – rapprochement
 QONTO_CLIENT_ID=
 QONTO_CLIENT_SECRET=
 QONTO_ORGANIZATION_ID=
@@ -147,15 +153,15 @@ WILLIAM_ESTABLISHMENTS_BIC=
   brut PSP, jamais de PAN, IBAN complet ou secret.
 - **GoCardless interdit en B2C** : double protection (resolver + adapter).
 
-## 10. TODO[CAWL-API] — endpoints à brancher
+## 10. TODO[CAWL-API] – endpoints à brancher
 
 Le projet ne dispose pas (encore) de la documentation officielle CAWL. Les
 points suivants sont prêts à recevoir l'intégration réelle dans
 `server/payments/providers/CawlPaymentAdapter.js` :
 
-- `POST /checkout/sessions` (ou équivalent CAWL) — création de paiement.
-- `GET /checkout/sessions/:id` — récupération statut.
-- `POST /refunds` — remboursement total / partiel.
+- `POST /checkout/sessions` (ou équivalent CAWL) – création de paiement.
+- `GET /checkout/sessions/:id` – récupération statut.
+- `POST /refunds` – remboursement total / partiel.
 - Schéma exact du payload webhook + en-tête de signature.
 
 Pour brancher l'intégration réelle, remplir `CAWL_API_BASE_URL` /

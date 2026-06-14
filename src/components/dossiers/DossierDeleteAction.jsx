@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { trashDossier } from '@/api/dossiers.js';
 import { isEphemeralPlaceholderDossier } from '@/utils/dossierBootstrap.js';
 import { Button } from '@/components/ui/button.jsx';
+import { ConfirmActionDialog } from '@/components/ConfirmActionDialog.jsx';
 import { queryKeys } from '@/hooks/queries/queryKeys.js';
 
 export const DossierDeleteAction = ({
@@ -17,6 +18,7 @@ export const DossierDeleteAction = ({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   if (!dossier?.id) return null;
 
@@ -29,11 +31,7 @@ export const DossierDeleteAction = ({
   };
 
   const handleTrash = async () => {
-    const message = isPlaceholder
-      ? 'Supprimer ce brouillon ? Il sera placé en corbeille (récupérable 72 h).'
-      : 'Confirmer la mise en corbeille de ce dossier ? Suppression définitive sous 72 h sauf annulation depuis la corbeille.';
-    if (!window.confirm(message)) return;
-
+    setConfirmOpen(false);
     setBusy(true);
     try {
       await trashDossier(dossier.id);
@@ -63,11 +61,23 @@ export const DossierDeleteAction = ({
         variant="outline"
         disabled={busy}
         className={`mt-3 border-red-300 bg-white text-red-700 hover:bg-red-50 ${compact ? 'h-11 w-full rounded-2xl' : ''}`}
-        onClick={() => { void handleTrash(); }}
+        onClick={() => setConfirmOpen(true)}
       >
         <Trash2 className="h-4 w-4" />
         {isPlaceholder ? 'Supprimer ce brouillon' : 'Mettre en corbeille'}
       </Button>
+      <ConfirmActionDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        destructive
+        loading={busy}
+        title={isPlaceholder ? 'Supprimer ce brouillon ?' : 'Mettre ce dossier en corbeille ?'}
+        description={isPlaceholder
+          ? 'Il sera placé en corbeille et restera récupérable pendant 72 h.'
+          : 'Le dossier sera placé en corbeille puis supprimé définitivement sous 72 h, sauf annulation depuis la corbeille.'}
+        confirmLabel={isPlaceholder ? 'Supprimer le brouillon' : 'Mettre en corbeille'}
+        onConfirm={() => { void handleTrash(); }}
+      />
     </div>
   );
 };

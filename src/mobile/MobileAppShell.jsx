@@ -23,7 +23,10 @@ import { resolveNativePostLoginPath } from '@/utils/nativeColdStart.js';
 
 const AUTH_BOTTOM_NAV_HIDE_PREFIXES = [
   '/paiement',
+  '/questionnaire',
   '/signature/',
+  '/statuts',
+  '/statuts-gratuits',
 ];
 
 const tabIcons = {

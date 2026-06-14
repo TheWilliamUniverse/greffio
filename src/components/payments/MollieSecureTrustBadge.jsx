@@ -17,9 +17,9 @@ export const MollieSecureTrustBadge = ({ className, centered = true }) => (
     <img
       src={MOLLIE_WORDMARK_SRC}
       alt="mollie"
-      className="h-4 max-w-[4.5rem] shrink-0 object-contain object-left"
+      className="h-[22px] w-auto max-w-[6rem] shrink-0 object-contain object-left"
       width={72}
-      height={16}
+      height={22}
     />
   </p>
 );

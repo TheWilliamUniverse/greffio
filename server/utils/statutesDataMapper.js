@@ -257,7 +257,7 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
   const capitalRepartitionLines = associates.map((a) => {
     const security = usesActions(legalForm) ? 'actions' : 'parts sociales';
     const securitySingular = usesActions(legalForm) ? 'action' : 'part sociale';
-    return `${a.label} : ${a.share || '—'} des ${security}, soit ${a.titlesCount || '—'} ${securitySingular}${Number(a.titlesCount) > 1 ? 's' : ''}.`;
+    return `${a.label} : ${a.share || '–'} des ${security}, soit ${a.titlesCount || '–'} ${securitySingular}${Number(a.titlesCount) > 1 ? 's' : ''}.`;
   });
   // Représentation des mineurs : couverte dans le préambule (« Représenté(e) légalement par… »).
   const minorRepresentationNote = null;
@@ -337,7 +337,7 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
       );
       return resolveGreffeCity({ greffe: raw, seat }) || raw;
     })(),
-    mandataire: 'WILLIAM ESTABLISHMENTS / Greffio',
+    mandataire: 'WILLIAM ESTABLISHMENTS',
     isRegistered: Boolean(questionnaire.isRegistered),
     signatureCity: pick(questionnaire.signatureCity, seat.city),
     signatureDate: new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date()),

@@ -1,7 +1,7 @@
 # Plan de release mobile Greffio
 
 > Android prod → TestFlight iOS → prod iOS  
-> Bundle local Capacitor (`dist`) · Une seule app multi-rôles · UX mobile native premium
+> App remote-first en production · AAB ponctuel pour le natif · Une seule app multi-rôles
 
 ---
 
@@ -13,7 +13,7 @@
 | Sous-titre Play | Formalités d'entreprise simplifiées |
 | Sous-titre App Store | Formalités entreprise |
 | Package / Bundle ID | `com.greffio.app` |
-| Mode app | Bundle local embarqué (pas WebView URL live en prod) |
+| Mode app | **Remote-first** en production (`capacitor.config.remote.json`) ; AAB publié quand le shell natif change |
 | Entité Apple | William Establishments (Organization) |
 | Push V1 | FCM (Android) + APNs (iOS), pas OneSignal |
 | Biométrie | Déverrouillage local après login, jamais mot de passe en clair |
@@ -32,11 +32,11 @@ L'app **ne doit pas** ressembler à une WebView du site. Innovations V1 :
 1. **Bottom navigation 5 onglets** (Accueil, Dossiers, Assistant, Documents, Compte)
 2. **Accueil opérationnel** : prochaine action, recherche instantanée, scan → PDF natif
 3. **Assistant / recherche intelligente** via API backend (`POST /api/mobile/search`), IA côté serveur uniquement
-4. **Centre de notifications** (cloche header) — push branchés ensuite
+4. **Centre de notifications** (cloche header) – push branchés ensuite
 5. **Conversion PDF automatique** à la capture (jsPDF + compression raisonnable)
 6. **Cache offline minimal** avec indication « données hors ligne »
 
-Référence design : Qonto, Linear, Stripe — fond clair, cartes arrondies, typographie nette.
+Référence design : Qonto, Linear, Stripe – fond clair, cartes arrondies, typographie nette.
 
 ---
 
@@ -67,7 +67,7 @@ Capacitor : `webDir: dist` · `@capacitor/app`, `camera`, `filesystem`, `prefere
 
 ## 4. Ordre d'implémentation exact
 
-### Phase A — Fondations (en cours / fait)
+### Phase A – Fondations (en cours / fait)
 
 - [x] `capacitor.config.json` → bundle local
 - [x] `capacitor.config.dev.json` → URL live pour dev
@@ -80,15 +80,16 @@ Capacitor : `webDir: dist` · `@capacitor/app`, `camera`, `filesystem`, `prefere
 - [ ] Remplacer Team ID dans `apple-app-site-association`
 - [ ] Brancher brouillon offline dans `QuestionnairePage`
 
-### Phase B — Android production
+### Phase B – Android production
 
 1. Vérifier Play Console : test ouvert vs production
 2. Configurer secrets GitHub (voir §6)
-3. `npm run mobile:build` → AAB signé
+3. Si changement natif : `npm run mobile:build:remote` → AAB signé
 4. Upload Play (internal → open → production)
-5. Vérifier pages légales publiques (sans login)
+5. Si changement web seul : déployer le bundle web Hostinger + smoke app réelle
+6. Vérifier pages légales publiques (sans login)
 
-### Phase C — iOS TestFlight
+### Phase C – iOS TestFlight
 
 1. `npx cap add ios` (si absent)
 2. Créer app App Store Connect : Greffio, `com.greffio.app`
@@ -97,22 +98,22 @@ Capacitor : `webDir: dist` · `@capacitor/app`, `camera`, `filesystem`, `prefere
 5. Archive Xcode → TestFlight
 6. Tests internes équipe William Establishments
 
-### Phase D — Fonctions natives (ordre recommandé)
+### Phase D – Fonctions natives (ordre recommandé)
 
-1. **Deep links** — Universal Links + App Links (fait côté config, tester E2E)
-2. **Auth / session + biométrie** — `@capacitor-community/biometric-auth` ou équivalent + `@capacitor/preferences` / Keychain
-3. **Upload documents natif** — scanner PDF (fait), recadrage optionnel V1.1
-4. **Push notifications** — FCM + `@capacitor/push-notifications`, APNs key App Store Connect
-5. **Cache / offline** — brouillon questionnaire, meta PDF téléchargés
+1. **Deep links** – Universal Links + App Links (fait côté config, tester E2E)
+2. **Auth / session + biométrie** – `@capacitor-community/biometric-auth` ou équivalent + `@capacitor/preferences` / Keychain
+3. **Upload documents natif** – scanner PDF (fait), recadrage optionnel V1.1
+4. **Push notifications** – FCM + `@capacitor/push-notifications`, APNs key App Store Connect
+5. **Cache / offline** – brouillon questionnaire, meta PDF téléchargés
 
-### Phase E — Enrichissement produit
+### Phase E – Enrichissement produit
 
 1. Recherche backend enrichie (documents, factures, statuts)
 2. Couche IA serveur (OpenAI **uniquement backend**, filtrage par userId/rôle)
 3. Notifications push réelles (remplacer sample dans `MobileTopBar`)
 4. Actions rapides depuis résultats recherche
 
-### Phase F — iOS production
+### Phase F – iOS production
 
 1. Métadonnées App Store (captures, description, âge, export compliance)
 2. Review Apple (voir §8 risques)
@@ -123,7 +124,10 @@ Capacitor : `webDir: dist` · `@capacitor/app`, `camera`, `filesystem`, `prefere
 ## 5. Commandes
 
 ```bash
-# Build web + sync Android
+# Build web remote + sync Android (mode prod actuel)
+npm run mobile:build:remote
+
+# Build bundled seulement si une release locale embarquée est explicitement voulue
 npm run mobile:build
 
 # Dev avec bundle local
@@ -176,7 +180,7 @@ keytool -list -v -keystore release.keystore -alias YOUR_ALIAS
 
 | Variable | Usage |
 |----------|-------|
-| `OPENAI_API_KEY` | IA recherche — **serveur uniquement** |
+| `OPENAI_API_KEY` | IA recherche – **serveur uniquement** |
 | `API_BASE_URL` | `https://api.greffio.willentreprises.com` |
 
 ---
@@ -207,7 +211,7 @@ keytool -list -v -keystore release.keystore -alias YOUR_ALIAS
 
 ### Apple
 
-- **4.2 Minimum Functionality** : l'app doit apporter une UX native (shell mobile, scan PDF, assistant) — pas une simple WebView
+- **4.2 Minimum Functionality** : l'app doit apporter une UX native (shell mobile, scan PDF, assistant) – pas une simple WebView
 - **5.1.1 Données** : politique confidentialité + usage caméra / notifications
 - **Organization** : D-U-N-S / validation légale William Establishments
 - **Sign in with Apple** : non requis si login email propre existe

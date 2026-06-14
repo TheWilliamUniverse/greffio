@@ -68,4 +68,4 @@ export const parseBeneficialOwnersSelection = (summaryText = '', candidates = []
   return [...matched];
 };
 
-export const defaultBeneficialOwnersSelection = (candidates = []) => candidates.map((c) => c.id);
+export const defaultBeneficialOwnersSelection = () => [];

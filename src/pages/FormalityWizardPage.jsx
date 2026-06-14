@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { ProgressiveStepChips } from '@/components/ProgressiveStepChips.jsx';
 import { MobileChoiceStep, MobileChoiceTile } from '@/components/questionnaire/MobileChoiceStep.jsx';
+import { MobileInputStep } from '@/components/questionnaire/MobileInputStep.jsx';
 import { QuestionPanelSuccessOverlay } from '@/components/questionnaire/QuestionPanelSuccessOverlay.jsx';
 import { ProgressCircle } from '@/components/questionnaire/ProgressCircle.jsx';
 import { QuestionSectionHint } from '@/components/questionnaire/QuestionSectionHint.jsx';
@@ -289,6 +290,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
   const [existingCompany, setExistingCompany] = useState(null);
   const [companyLookupConfirmed, setCompanyLookupConfirmed] = useState(false);
   const [step2Phase, setStep2Phase] = useState('profile');
+  const [profileQuestionIndex, setProfileQuestionIndex] = useState(0);
   const [dossierReference] = useState(`F${Math.floor(10000000 + (Math.random() * 90000000))}`);
   const [answers, setAnswers] = useState(draft?.answers || {
     capitalType: 'Fixe',
@@ -303,6 +305,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     initiatorName: draft?.data?.initiatorName || (accountContact?.firstName
       ? `${accountContact.firstName} ${accountContact.lastName || ''}`.trim()
       : ''),
+    initiatorRepresentative: draft?.data?.initiatorRepresentative || '',
     initiatorLegalForm: draft?.data?.initiatorLegalForm || 'SA',
     legalForm: formalityPreset?.legalForm || draft?.data?.legalForm || 'SASU',
     urgency: draft?.data?.urgency || 'Cette semaine',
@@ -379,6 +382,23 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
   );
   const completion = useMemo(() => getCompletion(data, answers, questionnaire), [data, answers, questionnaire]);
   const warnings = useMemo(() => getWarnings(data, answers), [data, answers]);
+  const profileQuestions = useMemo(() => {
+    const base = eiLike
+      ? [
+          { key: 'president', label: "Nom de l'entrepreneur", type: 'text', placeholder: 'Nom et prénom', required: true },
+        ]
+      : [
+          { key: 'president', label: 'Président, dirigeant ou PDG', type: 'text', placeholder: 'Nom et prénom', required: true },
+          { key: 'shareholders', label: "Nombre d'associés/actionnaires", type: 'number', placeholder: 'Ex. 1', required: true },
+          { key: 'capital', label: 'Capital social en euros', type: 'number', placeholder: 'Ex. 1000', required: true },
+        ];
+    return [
+      ...base,
+      { key: 'email', label: 'Email de réception', type: 'email', placeholder: 'vous@entreprise.fr', required: true },
+      { key: 'phone', label: 'Numéro joignable', type: 'tel', placeholder: GREFFIO_CONTACT.supportPhone, required: true },
+    ];
+  }, [eiLike]);
+  const activeProfileQuestion = profileQuestions[profileQuestionIndex] || profileQuestions[0];
   const [williamStatutesPreview, setWilliamStatutesPreview] = useState(null);
   const [williamStatutesLoading, setWilliamStatutesLoading] = useState(false);
   const williamStatutesForm = useMemo(
@@ -597,8 +617,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
       return;
     }
     if (step === 2 && step2Phase === 'profile') {
-      if (!canContinueStep2Profile()) return;
-      setStep2Phase('questionnaire');
+      advanceProfileQuestion();
       return;
     }
     if (step === 2 && step2Phase === 'questionnaire' && (questionnaireFinished || questionExitPhase === 'done')) {
@@ -663,25 +682,30 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
   useEffect(() => {
     if (step === 2) {
       setStep2Phase('profile');
+      setProfileQuestionIndex(0);
       setActiveQuestionIndex(0);
       setQuestionnaireFinished(false);
       setQuestionExitPhase(null);
     }
   }, [step]);
 
-  const canContinueStep2Profile = () => {
-    const emailOk = String(data.email || '').trim().includes('@');
-    const phoneOk = String(data.phone || '').trim().length >= 8;
-    if (eiLike) {
-      return Boolean(String(data.president || '').trim() && emailOk && phoneOk);
+  const isProfileQuestionValid = (question = activeProfileQuestion) => {
+    if (!question) return false;
+    const value = String(data[question.key] || '').trim();
+    if (!question.required) return true;
+    if (!value) return false;
+    if (question.key === 'email') return value.includes('@');
+    if (question.key === 'phone') return value.length >= 8;
+    return true;
+  };
+
+  const advanceProfileQuestion = () => {
+    if (!isProfileQuestionValid()) return;
+    if (profileQuestionIndex < profileQuestions.length - 1) {
+      setProfileQuestionIndex((current) => Math.min(profileQuestions.length - 1, current + 1));
+      return;
     }
-    return Boolean(
-      String(data.president || '').trim()
-      && String(data.capital || '').trim()
-      && String(data.shareholders || '').trim()
-      && emailOk
-      && phoneOk,
-    );
+    setStep2Phase('questionnaire');
   };
 
   const canContinueAccountCreation = () => {
@@ -736,7 +760,12 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
       if (skipContactStep) return true;
       return canContinueContact();
     }
-    if (projectSubStep === 1) return Boolean(String(data.initiatorName || '').trim());
+    if (projectSubStep === 1) {
+      if (data.initiatorType === 'personne_morale') {
+        return Boolean(String(data.initiatorName || '').trim() && String(data.initiatorRepresentative || '').trim());
+      }
+      return Boolean(String(data.initiatorName || '').trim());
+    }
     if (projectSubStep === 2) return Boolean(selectedFamily);
     if (projectSubStep === 3) return Boolean(data.legalForm);
     return Boolean(String(data.companyName || '').trim() && String(data.city || '').trim());
@@ -834,12 +863,17 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
       return;
     }
     if (step === 2) {
+      if (step2Phase === 'profile' && profileQuestionIndex > 0) {
+        setProfileQuestionIndex((current) => Math.max(0, current - 1));
+        return;
+      }
       if (step2Phase === 'questionnaire' && activeQuestionIndex > 0 && !questionnaireFinished) {
         setActiveQuestionIndex((current) => Math.max(0, current - 1));
         return;
       }
       if (step2Phase === 'questionnaire') {
         setStep2Phase('profile');
+        setProfileQuestionIndex(profileQuestions.length - 1);
         setActiveQuestionIndex(0);
         setQuestionnaireFinished(false);
         setQuestionExitPhase(null);
@@ -1334,18 +1368,24 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                                 />
                               </MobileChoiceStep>
                               <div className="space-y-2 rounded-2xl border border-border bg-white p-4">
-                                <Label>{data.initiatorType === 'personne_morale' ? 'Nom de la société demandeuse' : 'Nom du fondateur'}</Label>
+                                <Label>{data.initiatorType === 'personne_morale' ? 'Dénomination / raison sociale' : 'Nom du fondateur'}</Label>
                                 <Input className={mobileFieldClass} value={data.initiatorName} onChange={(event) => update('initiatorName', event.target.value)} />
                               </div>
                               {data.initiatorType === 'personne_morale' && (
-                                <div className="space-y-2 rounded-2xl border border-border bg-white p-4">
-                                  <Label>Forme de la société demandeuse</Label>
-                                  <select className={`${fieldClass} w-full rounded-xl`} value={data.initiatorLegalForm} onChange={(event) => update('initiatorLegalForm', event.target.value)}>
-                                    {['SA', 'SAS', 'SASU', 'SARL', 'EURL', 'SCI', 'Association', 'Autre personne morale'].map((item) => (
-                                      <option key={item} value={item}>{item}</option>
-                                    ))}
-                                  </select>
-                                </div>
+                                <>
+                                  <div className="space-y-2 rounded-2xl border border-border bg-white p-4">
+                                    <Label>Représentant légal</Label>
+                                    <Input className={mobileFieldClass} value={data.initiatorRepresentative} onChange={(event) => update('initiatorRepresentative', event.target.value)} />
+                                  </div>
+                                  <div className="space-y-2 rounded-2xl border border-border bg-white p-4">
+                                    <Label>Forme de la société demandeuse</Label>
+                                    <select className={`${fieldClass} w-full rounded-xl`} value={data.initiatorLegalForm} onChange={(event) => update('initiatorLegalForm', event.target.value)}>
+                                      {['SA', 'SAS', 'SASU', 'SARL', 'EURL', 'SCI', 'Association', 'Autre personne morale'].map((item) => (
+                                        <option key={item} value={item}>{item}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                </>
                               )}
                             </div>
                           ) : (
@@ -1358,18 +1398,24 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                               </select>
                             </div>
                             <div className="space-y-2">
-                              <Label>{data.initiatorType === 'personne_morale' ? 'Nom de la société demandeuse' : 'Nom du fondateur'}</Label>
+                              <Label>{data.initiatorType === 'personne_morale' ? 'Dénomination / raison sociale' : 'Nom du fondateur'}</Label>
                               <Input className={cn(isMobilePresentation ? mobileFieldClass : 'w-full rounded-xl')} value={data.initiatorName} onChange={(event) => update('initiatorName', event.target.value)} />
                             </div>
                             {data.initiatorType === 'personne_morale' && (
-                              <div className="space-y-2 md:col-span-2">
-                                <Label>Forme de la société demandeuse</Label>
-                                <select className={`${fieldClass} w-full rounded-xl`} value={data.initiatorLegalForm} onChange={(event) => update('initiatorLegalForm', event.target.value)}>
-                                  {['SA', 'SAS', 'SASU', 'SARL', 'EURL', 'SCI', 'Association', 'Autre personne morale'].map((item) => (
-                                    <option key={item} value={item}>{item}</option>
-                                  ))}
-                                </select>
-                              </div>
+                              <>
+                                <div className="space-y-2">
+                                  <Label>Représentant légal</Label>
+                                  <Input className="w-full rounded-xl" value={data.initiatorRepresentative} onChange={(event) => update('initiatorRepresentative', event.target.value)} />
+                                </div>
+                                <div className="space-y-2 md:col-span-2">
+                                  <Label>Forme de la société demandeuse</Label>
+                                  <select className={`${fieldClass} w-full rounded-xl`} value={data.initiatorLegalForm} onChange={(event) => update('initiatorLegalForm', event.target.value)}>
+                                    {['SA', 'SAS', 'SASU', 'SARL', 'EURL', 'SCI', 'Association', 'Autre personne morale'].map((item) => (
+                                      <option key={item} value={item}>{item}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </>
                             )}
                           </div>
                           )
@@ -1538,56 +1584,50 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                     </div>
 
                     {step2Phase === 'profile' ? (
-                    <>
-                    <div className="rounded-md border border-border bg-muted/30 p-5">
-                      <p className="text-xs font-bold uppercase text-primary">
-                        {eiLike ? 'Identité et coordonnées' : 'Dirigeants et capital'}
-                      </p>
-                      <div className="mt-4 grid gap-5 md:grid-cols-2">
-                        {eiLike ? (
-                          <div className="space-y-2 md:col-span-2">
-                            <Label>Nom de l&apos;entrepreneur</Label>
-                            <Input
-                              value={data.president}
-                              onChange={(event) => {
-                                update('president', event.target.value);
-                                updateAnswer('nomEntrepreneur', event.target.value);
-                              }}
+                    <div className={cn(!isMobilePresentation && 'rounded-[1.35rem] border border-border bg-white p-6 shadow-[0_14px_40px_rgba(15,31,61,0.07)]')}>
+                      <MobileInputStep
+                        key={activeProfileQuestion.key}
+                        kicker={eiLike ? 'Identité et coordonnées' : 'Dirigeants et capital'}
+                        title={`${activeProfileQuestion.label}${activeProfileQuestion.required ? ' *' : ''}`}
+                        subtitle={eiLike
+                          ? 'Complétez les informations utiles à votre formalité.'
+                          : 'Une question à la fois, sur la même logique que le questionnaire Greffio.'}
+                        progressPercent={Math.round(((profileQuestionIndex + 1) / profileQuestions.length) * 100)}
+                        stepCurrent={profileQuestionIndex + 1}
+                        stepTotal={profileQuestions.length}
+                        fieldId={`simulator-${activeProfileQuestion.key}`}
+                        value={data[activeProfileQuestion.key] || ''}
+                        placeholder={activeProfileQuestion.placeholder || ''}
+                        inputMode={resolveInputMode(activeProfileQuestion.key)}
+                        inputType={activeProfileQuestion.type === 'number' ? 'text' : activeProfileQuestion.type}
+                        compact={false}
+                        canAdvance={isProfileQuestionValid()}
+                        onChange={(nextValue) => {
+                          update(activeProfileQuestion.key, activeProfileQuestion.type === 'number'
+                            ? String(nextValue || '').replace(/[^\d.,]/g, '').replace(',', '.')
+                            : nextValue);
+                          if (activeProfileQuestion.key === 'president' && eiLike) {
+                            updateAnswer('nomEntrepreneur', nextValue);
+                          }
+                        }}
+                        onAdvance={advanceProfileQuestion}
+                        hint="Touchez la flèche pour continuer."
+                      >
+                        {activeProfileQuestion.key === 'email' ? (
+                          <label className="mx-auto mt-4 flex max-w-md items-start gap-3 rounded-2xl border border-border bg-white p-4 text-left">
+                            <input
+                              type="checkbox"
+                              checked={data.marketingConsent}
+                              onChange={(event) => update('marketingConsent', event.target.checked)}
+                              className="mt-1"
                             />
-                          </div>
-                        ) : (
-                          <>
-                            <div className="space-y-2">
-                              <Label>Président, dirigeant ou PDG</Label>
-                              <Input value={data.president} onChange={(event) => update('president', event.target.value)} />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Nombre d&apos;associés/actionnaires</Label>
-                              <Input type="number" min="1" value={data.shareholders} onChange={(event) => update('shareholders', event.target.value)} />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Capital social en euros</Label>
-                              <Input type="number" min="1" value={data.capital} onChange={(event) => update('capital', event.target.value)} />
-                            </div>
-                          </>
-                        )}
-                        <div className="space-y-2">
-                          <Label>Email de réception</Label>
-                          <Input type="email" value={data.email} onChange={(event) => update('email', event.target.value)} />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Numero joignable</Label>
-                          <Input type="tel" value={data.phone} onChange={(event) => update('phone', event.target.value)} placeholder={GREFFIO_CONTACT.supportPhone} />
-                        </div>
-                      </div>
+                            <span className="text-xs leading-5 text-muted-foreground">
+                              J’accepte de recevoir mon résumé, mes statuts générés et les relances liées à ma formalité.
+                            </span>
+                          </label>
+                        ) : null}
+                      </MobileInputStep>
                     </div>
-                    <label className="flex items-start gap-3 rounded-md border border-border bg-muted p-4">
-                      <input type="checkbox" checked={data.marketingConsent} onChange={(event) => update('marketingConsent', event.target.checked)} className="mt-1" />
-                      <span className="text-sm leading-6 text-muted-foreground">
-                        J’accepte de recevoir par email mon résumé, mes statuts générés et les relances liées à ma formalité.
-                      </span>
-                    </label>
-                    </>
                     ) : (
                     <div className="rounded-md border border-border bg-white p-5">
                       <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
@@ -1947,7 +1987,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                 continueDisabled={
                   (step === 0 && !journeyChosen)
                   || (step === 1 && !canContinueProjectSubStep())
-                  || (step === 2 && step2Phase === 'profile' && !canContinueStep2Profile())
+                  || (step === 2 && step2Phase === 'profile' && !isProfileQuestionValid())
                   || (step === 2 && step2Phase === 'questionnaire' && Boolean(questionExitPhase) && questionExitPhase !== 'done')
                   || (step === 2 && step2Phase === 'questionnaire' && !questionnaireFinished && !questionExitPhase && !canAdvanceActiveQuestion())
                 }
@@ -1958,7 +1998,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                     : isCompanyLookupStep
                       ? 'Continuer'
                     : step === 2 && step2Phase === 'profile'
-                      ? 'Passer au questionnaire'
+                      ? (profileQuestionIndex < profileQuestions.length - 1 ? 'Question suivante' : 'Passer au questionnaire')
                     : step === 2 && step2Phase === 'questionnaire' && (questionnaireFinished || questionExitPhase === 'done')
                       ? 'Passer à la synthèse'
                     : step === 2 && step2Phase === 'questionnaire' && questionExitPhase

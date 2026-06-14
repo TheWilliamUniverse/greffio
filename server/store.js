@@ -1892,6 +1892,7 @@ const syncGeneratedStatutesToDossierChecklist = async ({
     originalFilename: filename,
     recommendedFilename: filename,
     fileUrl,
+    storageUrl: fileUrl,
     filename,
     fileSizeBytes,
     mimeType: 'application/pdf',
