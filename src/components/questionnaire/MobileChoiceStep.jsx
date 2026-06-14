@@ -1,0 +1,123 @@
+import React from 'react';
+import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils.js';
+
+export const MobileChoiceTile = ({
+  title,
+  description,
+  icon: Icon,
+  iconTone = 'bg-secondary',
+  selected = false,
+  onSelect,
+  disabled = false,
+  compact = false,
+  className,
+}) => (
+  <motion.button
+    type="button"
+    role="radio"
+    aria-checked={selected}
+    disabled={disabled}
+    onClick={onSelect}
+    whileHover={disabled ? undefined : { y: -2 }}
+    whileTap={disabled ? undefined : { scale: 0.98 }}
+    className={cn(
+      'mobile-choice-tile group relative flex w-full flex-col text-left transition-all duration-200 ease-out',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2',
+      compact ? 'min-h-[3rem] rounded-2xl p-3.5' : 'min-h-[3.25rem] rounded-[22px] p-4 sm:min-h-[3.5rem] sm:p-5',
+      selected
+        ? 'border-2 border-primary bg-secondary/70 shadow-[0_10px_28px_rgba(30,77,140,0.12)]'
+        : 'border border-[#d4e2f5] bg-white shadow-[0_2px_12px_rgba(15,31,61,0.05)] hover:border-primary/30 hover:shadow-[0_12px_32px_rgba(15,31,61,0.1)]',
+      disabled && 'cursor-not-allowed opacity-60',
+      className,
+    )}
+  >
+    {Icon ? (
+      <span
+        className={cn(
+          'mb-2.5 flex shrink-0 items-center justify-center rounded-xl text-primary',
+          iconTone,
+          compact ? 'h-9 w-9' : 'h-10 w-10',
+        )}
+      >
+        <Icon className={compact ? 'h-4 w-4' : 'h-5 w-5'} strokeWidth={2.2} aria-hidden />
+      </span>
+    ) : null}
+    <span
+      className={cn(
+        'block font-extrabold leading-snug text-[hsl(var(--greffio-blue-900))]',
+        compact ? 'text-sm' : 'text-base',
+        selected && 'text-primary',
+      )}
+    >
+      {title}
+    </span>
+    {description ? (
+      <span className={cn('mt-1 block leading-snug text-muted-foreground', compact ? 'text-xs' : 'text-sm')}>
+        {description}
+      </span>
+    ) : null}
+  </motion.button>
+);
+
+export const MobileChoiceStep = ({
+  kicker,
+  title,
+  subtitle,
+  hint,
+  progressPercent,
+  stepCurrent,
+  stepTotal,
+  children,
+  className,
+  gridClassName,
+}) => (
+  <div className={cn('mobile-choice-step flex min-h-[min(58vh,520px)] w-full flex-col', className)}>
+    <header className="shrink-0 space-y-1.5">
+      {kicker ? (
+        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">{kicker}</p>
+      ) : null}
+      <h2 className="font-display text-xl font-extrabold leading-snug tracking-tight text-[hsl(var(--greffio-blue-900))]">
+        {title}
+      </h2>
+      {subtitle ? (
+        <p className="text-sm leading-relaxed text-muted-foreground">{subtitle}</p>
+      ) : null}
+      {typeof progressPercent === 'number' ? (
+        <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-[#e8f0fa]">
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-300"
+            style={{ width: `${Math.max(0, Math.min(100, progressPercent))}%` }}
+          />
+        </div>
+      ) : null}
+      {stepCurrent && stepTotal ? (
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Question {stepCurrent} sur {stepTotal}
+        </p>
+      ) : null}
+    </header>
+
+    <div className="flex flex-1 flex-col items-center justify-center py-4 sm:py-6">
+      <div
+        className={cn(
+          'mobile-choice-grid w-full max-w-md',
+          gridClassName || 'grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3',
+        )}
+        role="radiogroup"
+        aria-label={title}
+      >
+        {children}
+      </div>
+    </div>
+
+    {hint ? (
+      <p className="shrink-0 text-center text-xs font-medium text-primary/85">{hint}</p>
+    ) : null}
+  </div>
+);
+
+export const isMobileChoiceField = (field) => (
+  field
+  && ((field.type === 'select' && field.key !== 'typeFormalite') || field.type === 'checkbox')
+);

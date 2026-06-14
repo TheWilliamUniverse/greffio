@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { ProgressiveStepChips } from '@/components/ProgressiveStepChips.jsx';
-import { SimulatorJourneyCard } from '@/components/simulator/SimulatorJourneyCard.jsx';
+import { MobileChoiceStep, MobileChoiceTile } from '@/components/questionnaire/MobileChoiceStep.jsx';
 import { QuestionPanelSuccessOverlay } from '@/components/questionnaire/QuestionPanelSuccessOverlay.jsx';
 import { ProgressCircle } from '@/components/questionnaire/ProgressCircle.jsx';
 import { QuestionSectionHint } from '@/components/questionnaire/QuestionSectionHint.jsx';
@@ -531,7 +531,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     update('journey', journeyId);
     setJourneyChosen(true);
     setJourneyStepError('');
-    if (isCapacitorNative()) {
+    if (isMobilePresentation) {
       window.setTimeout(() => wizardNextRef.current(), 220);
     }
   };
@@ -1039,6 +1039,32 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                         </Button>
                       </div>
                     ) : null}
+                    {isMobilePresentation ? (
+                      <MobileChoiceStep
+                        kicker="Démarche"
+                        title="Que souhaitez-vous faire ?"
+                        subtitle="Greffio adapte automatiquement les pièces, les statuts, les relances et les offres selon votre démarche."
+                        hint={isCapacitorNative()
+                          ? 'Touchez une démarche pour continuer.'
+                          : 'Sélectionnez une démarche pour continuer.'}
+                        progressPercent={Math.round(progress)}
+                        gridClassName="simulator-journey-grid w-full max-w-none"
+                      >
+                        {journeys.map((journey) => (
+                          <MobileChoiceTile
+                            key={journey.id}
+                            title={journey.title}
+                            description={journey.pitch}
+                            icon={journey.icon}
+                            iconTone={journey.color}
+                            selected={journeyChosen && data.journey === journey.id}
+                            onSelect={() => selectJourney(journey.id)}
+                            compact
+                          />
+                        ))}
+                      </MobileChoiceStep>
+                    ) : (
+                      <>
                     <div>
                       <p className={cn('font-bold uppercase text-primary', isMobilePresentation ? 'text-[11px] tracking-wide' : 'text-sm')}>Démarche</p>
                       <h1 className={cn('mt-1.5 font-extrabold tracking-tight text-[hsl(var(--greffio-blue-900))]', isMobilePresentation ? 'text-xl' : 'mt-2 text-3xl')}>
@@ -1059,18 +1085,6 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                       aria-label="Type de démarche"
                     >
                       {journeys.map((journey) => (
-                        isMobilePresentation ? (
-                          <SimulatorJourneyCard
-                            key={journey.id}
-                            title={journey.title}
-                            description={journey.pitch}
-                            icon={journey.icon}
-                            iconTone={journey.color}
-                            selected={journeyChosen && data.journey === journey.id}
-                            onSelect={() => selectJourney(journey.id)}
-                            compact
-                          />
-                        ) : (
                           <button
                             type="button"
                             key={journey.id}
@@ -1088,12 +1102,13 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                             <span className="block text-lg font-extrabold sm:text-xl">{journey.title}</span>
                             <span className="mt-2 block text-sm leading-6 text-muted-foreground">{journey.pitch}</span>
                           </button>
-                        )
                       ))}
                     </div>
                     <p className={cn('text-muted-foreground', isMobilePresentation ? 'text-xs' : 'text-sm')}>
                       Simulation gratuite, sans engagement.
                     </p>
+                      </>
+                    )}
                     {journeyStepError ? (
                       <p className="text-sm text-destructive" role="alert">{journeyStepError}</p>
                     ) : null}
@@ -1102,6 +1117,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
 
                 {step === 1 && (
                   <div className={cn(isMobilePresentation ? 'min-w-0 space-y-3' : 'space-y-7')}>
+                    {!(isMobilePresentation && !isCompanyLookupStep && !isAccountCreationStep && [1, 2, 3].includes(projectSubStep)) ? (
                     <div className="min-w-0">
                       <p className={cn('font-bold uppercase text-primary', isMobilePresentation ? 'text-[10px] tracking-wide' : 'text-sm')}>
                         {isCompanyLookupStep ? 'Entreprise existante' : isAccountCreationStep ? 'Votre espace' : 'Projet'}
@@ -1125,6 +1141,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                         {!isCompanyLookupStep && projectSubStep === 4 && 'Ces éléments alimentent le questionnaire et l’aperçu documentaire.'}
                       </p>
                     </div>
+                    ) : null}
 
                     {isCompanyLookupStep ? (
                       <div className="rounded-md border border-border bg-white p-5">
@@ -1312,6 +1329,41 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                         )}
 
                         {projectSubStep === 1 && (
+                          isMobilePresentation ? (
+                            <div className="space-y-4">
+                              <MobileChoiceStep
+                                kicker="Projet"
+                                title="Qui effectue la démarche ?"
+                                subtitle="Une personne physique ou morale peut porter la demande, y compris une société qui crée une filiale."
+                                gridClassName="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3"
+                              >
+                                <MobileChoiceTile
+                                  title="Personne physique"
+                                  selected={data.initiatorType === 'personne_physique'}
+                                  onSelect={() => update('initiatorType', 'personne_physique')}
+                                />
+                                <MobileChoiceTile
+                                  title="Personne morale"
+                                  selected={data.initiatorType === 'personne_morale'}
+                                  onSelect={() => update('initiatorType', 'personne_morale')}
+                                />
+                              </MobileChoiceStep>
+                              <div className="space-y-2 rounded-2xl border border-border bg-white p-4">
+                                <Label>{data.initiatorType === 'personne_morale' ? 'Nom de la société demandeuse' : 'Nom du fondateur'}</Label>
+                                <Input className={mobileFieldClass} value={data.initiatorName} onChange={(event) => update('initiatorName', event.target.value)} />
+                              </div>
+                              {data.initiatorType === 'personne_morale' && (
+                                <div className="space-y-2 rounded-2xl border border-border bg-white p-4">
+                                  <Label>Forme de la société demandeuse</Label>
+                                  <select className={`${fieldClass} w-full rounded-xl`} value={data.initiatorLegalForm} onChange={(event) => update('initiatorLegalForm', event.target.value)}>
+                                    {['SA', 'SAS', 'SASU', 'SARL', 'EURL', 'SCI', 'Association', 'Autre personne morale'].map((item) => (
+                                      <option key={item} value={item}>{item}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
                           <div className={cn(isMobilePresentation ? 'simulator-field-stack grid min-w-0 grid-cols-1 gap-3' : 'grid gap-5 md:grid-cols-2')}>
                             <div className="space-y-2">
                               <Label>Qui effectue la démarche</Label>
@@ -1335,9 +1387,28 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                               </div>
                             )}
                           </div>
+                          )
                         )}
 
                         {projectSubStep === 2 && (
+                          isMobilePresentation ? (
+                            <MobileChoiceStep
+                              kicker="Projet"
+                              title="Forme juridique visée"
+                              subtitle="Sélectionnez la catégorie la plus proche de votre situation, puis continuez."
+                              gridClassName="grid grid-cols-1 gap-2.5"
+                            >
+                              {targetFormGroups.map((group) => (
+                                <MobileChoiceTile
+                                  key={group.category}
+                                  title={group.category}
+                                  description={`${group.forms.length} formes disponibles`}
+                                  selected={selectedFamily === group.category}
+                                  onSelect={() => chooseFamily(group.category)}
+                                />
+                              ))}
+                            </MobileChoiceStep>
+                          ) : (
                           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                             {targetFormGroups.map((group) => (
                               <motion.button
@@ -1354,9 +1425,36 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                             ))}
                             <LegalFormComparatorPromoCard variant="gridTile" />
                           </div>
+                          )
                         )}
 
                         {projectSubStep === 3 && (
+                          isMobilePresentation ? (
+                            <MobileChoiceStep
+                              kicker={selectedFamily}
+                              title="Choisissez votre forme"
+                              subtitle="Comparez les formes disponibles dans cette catégorie."
+                              gridClassName="grid grid-cols-1 gap-2.5"
+                            >
+                              {visibleForms.map((form) => {
+                                const availability = getFormAvailability(form.key);
+                                const availabilityLabel = availability === SERVICE_AVAILABILITY.AVAILABLE_NOW
+                                  ? 'Disponible'
+                                  : availability === SERVICE_AVAILABILITY.COMING_SOON
+                                    ? 'Bientôt'
+                                    : 'Sur devis';
+                                return (
+                                  <MobileChoiceTile
+                                    key={form.key}
+                                    title={form.label}
+                                    description={`${availabilityLabel} · ${form.description}`}
+                                    selected={data.legalForm === form.label}
+                                    onSelect={() => chooseLegalForm(form.label)}
+                                  />
+                                );
+                              })}
+                            </MobileChoiceStep>
+                          ) : (
                           <div className="space-y-4">
                             <p className="rounded-2xl border border-primary/20 bg-secondary px-4 py-3 text-sm font-semibold text-primary">
                               {selectedFamily}
@@ -1390,6 +1488,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                               })}
                             </div>
                           </div>
+                          )
                         )}
 
                         {projectSubStep === 4 && (

@@ -2,8 +2,40 @@ import React from 'react';
 import { ArrowLeft, Check } from 'lucide-react';
 import { PRIMARY_FORMALITY_CATEGORIES } from '@/lib/questionnaireFlow.js';
 import { getCategoryVisual } from '@/config/demarcheVisuals.js';
+import { MobileChoiceStep, MobileChoiceTile } from '@/components/questionnaire/MobileChoiceStep.jsx';
 
-export const FormalityCategoryPicker = ({ value, onChange, onContinue }) => (
+export const FormalityCategoryPicker = ({ value, onChange, onContinue, mobilePresentation = false }) => {
+  if (mobilePresentation) {
+    return (
+      <MobileChoiceStep
+        kicker="Votre démarche"
+        title="Choisissez une famille de formalité"
+        subtitle="Greffio adapte ensuite le questionnaire, les pièces et les documents à votre situation."
+        hint="Touchez une famille pour continuer."
+        gridClassName="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3"
+      >
+        {PRIMARY_FORMALITY_CATEGORIES.map((category) => {
+          const selected = value === category.id;
+          return (
+            <MobileChoiceTile
+              key={category.id}
+              title={category.label}
+              description={category.description}
+              selected={selected}
+              compact
+              onSelect={() => {
+                onChange(category.id);
+                onContinue?.();
+              }}
+              className="overflow-hidden"
+            />
+          );
+        })}
+      </MobileChoiceStep>
+    );
+  }
+
+  return (
   <div className="space-y-5">
     <div>
       <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Votre démarche</p>
@@ -72,7 +104,8 @@ export const FormalityCategoryPicker = ({ value, onChange, onContinue }) => (
       </button>
     ) : null}
   </div>
-);
+  );
+};
 
 export const FormalityCategoryBackButton = ({ onClick }) => (
   <button

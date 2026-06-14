@@ -380,6 +380,34 @@
     flex-direction: column;
   }
 
+  .mobile-choice-step {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .mobile-choice-grid {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .mobile-choice-tile {
+    min-height: 48px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .mobile-choice-tile:not(:disabled):hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  .mobile-choice-tile:active:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
   .mobile-cockpit-px {
     padding-left: 1rem;
     padding-right: 1rem;

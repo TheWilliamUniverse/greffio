@@ -22,6 +22,7 @@ export const DemarchePicker = ({
   onPrimaryCategoryChange,
   categoryConfirmed: controlledConfirmed,
   onCategoryConfirmedChange,
+  mobilePresentation = false,
 }) => {
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
@@ -73,6 +74,7 @@ export const DemarchePicker = ({
         onContinue={() => {
           if (primaryCategory) setCategoryConfirmed(true);
         }}
+        mobilePresentation={mobilePresentation}
       />
     );
   }
