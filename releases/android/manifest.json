@@ -150,6 +150,18 @@
       "notesFile": "../MOBILE_RELEASE_1.2.15.md",
       "mode": "capacitor-remote",
       "archivedAt": "2026-06-13"
+    },
+    {
+      "versionName": "1.2.18",
+      "versionCode": 261510017,
+      "artifact": "greffio-1.2.18-261510017.aab",
+      "sha256": "45E5B041D4FDB7467BFA8FB16BC60CB67FBB75F883E02399FD8B608E734E95E5",
+      "sizeBytes": 11031296,
+      "builtAt": "2026-06-14",
+      "gitCommit": "d0062cc",
+      "notesFile": "../MOBILE_RELEASE_1.2.18.md",
+      "mode": "capacitor-remote",
+      "archivedAt": "2026-06-14"
     }
   ],
   "package": "com.greffio.app"
