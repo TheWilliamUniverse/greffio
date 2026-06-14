@@ -1,7 +1,4 @@
 import React from 'react';
-import { isOpsMobileViewport } from '@/utils/platform.js';
-import { OpsMobileGuardPage } from '@/pages/ops/OpsMobileGuardPage.jsx';
 
-export const OpsMobileEntry = ({ children }) => (
-  isOpsMobileViewport() ? <OpsMobileGuardPage /> : children
-);
+/** Passe-through : le cockpit ops est accessible sur mobile (drawer + layout responsive). */
+export const OpsMobileEntry = ({ children }) => children;

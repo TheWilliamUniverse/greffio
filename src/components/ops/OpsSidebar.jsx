@@ -12,7 +12,9 @@ import {
   ShieldCheck,
   Truck,
   Users,
+  X,
 } from 'lucide-react';
+import { cn } from '@/lib/utils.js';
 import { GREFFIO_COMPANY } from '@/config/opsTeam.js';
 
 const navItems = [
@@ -28,18 +30,31 @@ const navItems = [
   { to: '/ops/settings', label: 'Paramètres', icon: Settings },
 ];
 
-export const OpsSidebar = ({ collapsed = false }) => (
-  <aside className={`flex h-full flex-col border-r border-slate-800 bg-slate-950 text-slate-100 ${collapsed ? 'w-[72px]' : 'w-64'}`}>
-    <div className={`border-b border-slate-800 px-4 py-5 ${collapsed ? 'px-3' : ''}`}>
+export const OpsSidebar = ({ collapsed = false, mobile = false, onClose }) => (
+  <aside className={cn(
+    'flex h-full flex-col border-r border-slate-800 bg-slate-950 text-slate-100',
+    collapsed ? 'w-[72px]' : mobile ? 'w-[88%] max-w-[280px]' : 'w-64',
+  )}>
+    <div className={cn('border-b border-slate-800 px-4 py-5', collapsed ? 'px-3' : '')}>
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-sm font-extrabold text-slate-900">
           G
         </div>
         {!collapsed ? (
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-extrabold">Greffio Ops</p>
             <p className="truncate text-[11px] text-slate-400">Cockpit formaliste</p>
           </div>
+        ) : null}
+        {mobile && onClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fermer le menu ops"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-300 transition hover:bg-slate-900 hover:text-white"
+          >
+            <X className="h-5 w-5" />
+          </button>
         ) : null}
       </div>
     </div>
@@ -50,6 +65,7 @@ export const OpsSidebar = ({ collapsed = false }) => (
           key={to}
           to={to}
           end={end}
+          onClick={mobile ? onClose : undefined}
           className={({ isActive }) => `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
             isActive
               ? 'bg-white text-slate-900 shadow-sm'

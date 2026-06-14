@@ -5,6 +5,7 @@ import { getOpsCockpit } from '@/api/ops.js';
 import { OpsSidebar } from '@/components/ops/OpsSidebar.jsx';
 import { OpsTopbar } from '@/components/ops/OpsTopbar.jsx';
 import { OpsSearchDialog } from '@/components/ops/OpsSearchDialog.jsx';
+import { isOpsMobileViewport } from '@/utils/platform.js';
 
 import { PUBLISHER_LEGAL_NAME } from '@/config/publisher.js';
 
@@ -50,10 +51,14 @@ const pageMeta = {
 export const OpsShell = () => {
   const { currentUser } = useContext(AuthContext);
   const location = useLocation();
+  const mobileLayout = isOpsMobileViewport();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [cockpitCache, setCockpitCache] = useState(null);
   const [refreshToken, setRefreshToken] = useState(0);
+
+  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
   const loadCockpit = useCallback(async () => {
     setRefreshing(true);
@@ -72,6 +77,18 @@ export const OpsShell = () => {
   }, [loadCockpit, refreshToken]);
 
   useEffect(() => {
+    closeSidebar();
+  }, [location.pathname, closeSidebar]);
+
+  useEffect(() => {
+    if (!sidebarOpen) return undefined;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [sidebarOpen]);
+
+  useEffect(() => {
     const onKeyDown = (event) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
@@ -87,8 +104,22 @@ export const OpsShell = () => {
   const meta = pageMeta[metaKey] || pageMeta['/ops/cockpit'];
 
   return (
-    <div className="flex min-h-screen bg-slate-100 font-['Inter']">
-      <OpsSidebar />
+    <div className="flex min-h-[100dvh] bg-slate-100 font-['Inter']">
+      {mobileLayout ? (
+        sidebarOpen ? (
+          <div className="fixed inset-0 z-50 flex" role="dialog" aria-modal="true">
+            <button
+              type="button"
+              aria-label="Fermer le menu ops"
+              onClick={closeSidebar}
+              className="absolute inset-0 bg-[#0a1220]/45 backdrop-blur-[2px]"
+            />
+            <OpsSidebar mobile onClose={closeSidebar} />
+          </div>
+        ) : null
+      ) : (
+        <OpsSidebar />
+      )}
       <div className="flex min-w-0 flex-1 flex-col">
         <OpsTopbar
           title={meta.title}
@@ -97,9 +128,10 @@ export const OpsShell = () => {
           onRefresh={() => setRefreshToken((value) => value + 1)}
           refreshing={refreshing}
           onOpenSearch={() => setSearchOpen(true)}
+          onOpenMenu={mobileLayout ? () => setSidebarOpen(true) : undefined}
           headerSummary={location.pathname.startsWith('/ops/cockpit') ? cockpitCache?.headerSummary : null}
         />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className={`flex-1 overflow-y-auto overflow-x-hidden ${mobileLayout ? 'p-4' : 'p-6'}`}>
           <Outlet context={{
             cockpit: cockpitCache,
             refreshCockpit: () => setRefreshToken((value) => value + 1),

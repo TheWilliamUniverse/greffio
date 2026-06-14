@@ -1,8 +1,9 @@
 import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 import {
+  Activity,
   BarChart3,
   Bot,
-  Building2,
+  ClipboardList,
   FileSignature,
   FileText,
   FolderKanban,
@@ -12,6 +13,7 @@ import {
   LayoutGrid,
   LogIn,
   MessageSquareText,
+  Network,
   Plus,
   Receipt,
   Settings,
@@ -100,11 +102,29 @@ export const MOBILE_DRAWER_NAV_GROUPS = [
   },
 ];
 
+export const MOBILE_DRAWER_OPS_ITEM = {
+  to: '/ops/cockpit',
+  icon: ClipboardList,
+  label: 'Cockpit Ops',
+};
+
+export const MOBILE_DRAWER_OPS_OBSERVABILITY_ITEM = {
+  to: '/ops-observability',
+  icon: Activity,
+  label: 'Ops observabilité',
+};
+
 export const MOBILE_DRAWER_INTERNAL_ITEM = {
   to: '/interfaces',
-  icon: Building2,
+  icon: Network,
   label: 'Interfaces',
 };
+
+const MOBILE_DRAWER_INTERNAL_PILOTAGE_ITEMS = [
+  MOBILE_DRAWER_OPS_ITEM,
+  MOBILE_DRAWER_INTERNAL_ITEM,
+  MOBILE_DRAWER_OPS_OBSERVABILITY_ITEM,
+];
 
 /** Menu ☰ simplifié – landing et pages publiques mobile. */
 export const MOBILE_PUBLIC_DRAWER_ITEMS = [
@@ -148,6 +168,10 @@ export const isMobileDrawerNavActive = (pathname, to) => {
       return path.startsWith('/contact');
     case '/interfaces':
       return path.startsWith('/interfaces');
+    case '/ops/cockpit':
+      return path === '/ops' || path.startsWith('/ops/');
+    case '/ops-observability':
+      return path.startsWith('/ops-observability');
     case '/statuts':
       return path.startsWith('/statuts');
     case '/':
@@ -167,7 +191,7 @@ export const buildMobileDrawerNavItems = (internalView = false) => {
   if (!internalView) return MOBILE_DRAWER_NAV_ITEMS;
   return [
     ...MOBILE_DRAWER_NAV_ITEMS.slice(0, 5),
-    MOBILE_DRAWER_INTERNAL_ITEM,
+    ...MOBILE_DRAWER_INTERNAL_PILOTAGE_ITEMS,
     ...MOBILE_DRAWER_NAV_ITEMS.slice(5),
   ];
 };
@@ -178,7 +202,7 @@ export const buildMobileDrawerNavGroups = (internalView = false) => {
     if (group.label !== 'Pilotage') return group;
     return {
       ...group,
-      items: [...group.items, MOBILE_DRAWER_INTERNAL_ITEM],
+      items: [...group.items, ...MOBILE_DRAWER_INTERNAL_PILOTAGE_ITEMS],
     };
   });
 };
