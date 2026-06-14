@@ -1,0 +1,27 @@
+---
+description: Garde-fous pour les zones critiques Greffio
+alwaysApply: true
+---
+
+# Zones Critiques Greffio
+
+Ces fichiers portent les flux P0/P1 : questionnaire, dossiers, PDF, signature,
+paiement, auth, biométrie, version app, backend et shells mobile/web.
+
+## Fichiers à Protéger
+
+- Routage / shells : `src/App.jsx`, `src/utils/platform.js`, `src/config/mobileNavigation.js`
+- Questionnaire : `src/lib/questionnaireFlow.js`, `src/pages/QuestionnairePage.jsx`, `src/components/questionnaire/*`
+- Documents PDF : `src/utils/dossierDocumentFile.js`, `src/hooks/useDossierDocumentPreview.js`, routes documents serveur
+- Paiement : `src/components/payments/GreffioPaymentTerminal.jsx`, `server/routes/mollieRoutes.js`, routes paiements
+- Auth / biométrie : `src/context/AuthContext.jsx`, `src/context/BiometricSessionContext.jsx`, `src/utils/biometricAuth.js`
+- Version app : `src/components/AppUpdateDialog.jsx`, `server/config/appVersion.js`, `android/release-version.properties`
+- Backend : `server/index.js`, `server/store.js`, routes dossiers, documents, signatures, webhooks
+
+## Règle de Travail
+
+- Avant toute modification dans ces zones, lire le contexte local et comprendre le flux utilisateur complet.
+- Garder les changements minimaux, ciblés et réversibles ; ne pas faire de refonte transversale sans demande explicite.
+- Préserver l'identité Greffio, les contrats API, la compatibilité mobile remote et les données déjà persistées.
+- Après modification, exécuter au minimum un lint ciblé et, si applicable, build/test lié au flux touché.
+- Ne jamais inclure fichiers générés, secrets, archives, staging ou données locales dans un commit.

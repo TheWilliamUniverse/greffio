@@ -34,6 +34,10 @@ const parseIsoDate = (value) => {
 const toIsoDate = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
 const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+const mondayFirstWeekdayOffset = (year, month) => {
+  const nativeDay = new Date(year, month, 1).getDay();
+  return (nativeDay + 6) % 7;
+};
 
 export const MobileBirthDatePicker = ({
   value = '',
@@ -58,6 +62,10 @@ export const MobileBirthDatePicker = ({
   const days = useMemo(() => (
     Array.from({ length: daysInMonth(viewYear, viewMonth) }, (_, index) => index + 1)
   ), [viewMonth, viewYear]);
+  const firstWeekdayOffset = useMemo(
+    () => mondayFirstWeekdayOffset(viewYear, viewMonth),
+    [viewMonth, viewYear],
+  );
 
   const shiftMonth = (delta) => {
     const next = new Date(viewYear, viewMonth + delta, 1);
@@ -120,6 +128,9 @@ export const MobileBirthDatePicker = ({
       <div className="mt-4 grid grid-cols-7 gap-1.5">
         {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((day, index) => (
           <span key={`${day}-${index}`} className="py-1 text-center text-[11px] font-bold text-muted-foreground">{day}</span>
+        ))}
+        {Array.from({ length: firstWeekdayOffset }, (_, index) => (
+          <span key={`empty-${viewYear}-${viewMonth}-${index}`} aria-hidden="true" />
         ))}
         {days.map((day) => {
           const isSelected = selected
