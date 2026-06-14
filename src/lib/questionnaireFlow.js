@@ -1,6 +1,12 @@
 import { isLegallyMinor } from '@/config/minorAssociateRules.js';
 import { ASSOCIATE_TYPES, isAssociateEntryComplete } from '@/utils/associateEntry.js';
 import { resolveDemarchePreset } from '@/utils/formalityMapping.js';
+import {
+  isCommercialFormFamily,
+  needsFormeWizard,
+  shouldShowComparateurCta,
+  shouldShowFormeJuridiqueField,
+} from '@/lib/questionnaireFormFamilies.js';
 
 export const DEMARCHE_CATEGORIES = [
   { id: 'creation', label: 'Création', description: 'Immatriculer une nouvelle structure' },
@@ -196,19 +202,45 @@ export const QUESTIONNAIRE_FLOW = [
   {
     id: 'forme',
     title: 'Forme juridique',
-    description: 'Sélectionnez la structure cible de votre activité.',
+    description: 'Identifiez d’abord la catégorie juridique, puis la forme adaptée à votre projet.',
     condition: (data) => {
       const preset = String(data.formeJuridique || '').trim();
       if (preset && resolveDemarchePreset(data.typeFormalite).formeJuridique) return false;
-      return !isEiLikeFormality(data);
+      return needsFormeWizard(data);
     },
     fields: [
+      {
+        key: 'formeJuridiqueFamille',
+        label: 'Quelle catégorie correspond à votre projet ?',
+        type: 'form_family_picker',
+        required: true,
+        condition: (data) => needsFormeWizard(data),
+      },
+      {
+        key: 'connaissezFormeJuridique',
+        label: 'Savez-vous déjà quelle forme juridique vous intéresse ?',
+        type: 'select',
+        required: true,
+        options: [
+          { key: 'oui', label: 'Oui, je sais déjà' },
+          { key: 'non', label: 'Non, j’ai besoin d’aide' },
+        ],
+        condition: (data) => needsFormeWizard(data) && isCommercialFormFamily(data.formeJuridiqueFamille),
+      },
+      {
+        key: '_comparateurCta',
+        label: 'Comparer les formes juridiques',
+        type: 'comparateur_cta',
+        required: false,
+        condition: (data) => shouldShowComparateurCta(data),
+      },
       {
         key: 'formeJuridique',
         label: 'Forme juridique',
         type: 'select',
         required: true,
-        options: ['SASU', 'SAS', 'EURL', 'SARL', 'SCI', 'EI', 'MICRO-ENTREPRISE', 'AUTRE'],
+        options: ['SASU', 'SAS', 'EURL', 'SARL', 'SCI', 'SA', 'EI', 'MICRO-ENTREPRISE', 'AUTRE'],
+        condition: (data) => shouldShowFormeJuridiqueField(data),
       },
     ],
   },
@@ -365,24 +397,39 @@ export const getVisibleFieldsForStep = (step, formData = {}) => {
 const MOBILE_FIELD_GROUP_SPECS = Object.freeze({
   contact: [
     ['initiatorType'],
-    ['firstName', 'lastName'],
+    ['firstName'],
+    ['lastName'],
     ['nationality'],
     ['birthDate'],
-    ['companyCountry', 'companySiren', 'companyName'],
-    ['email', 'phone'],
+    ['companyCountry'],
+    ['companySiren'],
+    ['companyName'],
+    ['email'],
+    ['phone'],
   ],
   demarche: [
     ['typeFormalite'],
-    ['existingBusinessSiren', 'existingBusinessName'],
+    ['existingBusinessSiren'],
+    ['existingBusinessName'],
+  ],
+  forme: [
+    ['formeJuridiqueFamille'],
+    ['connaissezFormeJuridique'],
+    ['_comparateurCta'],
+    ['formeJuridique'],
   ],
   entreprise: [
     ['denomination'],
-    ['adresseSiege', 'codePostal', 'villeSiege'],
+    ['adresseSiege'],
+    ['codePostal'],
+    ['villeSiege'],
     ['activite'],
     ['capital'],
     ['adressePersonnelle'],
-    ['adresseActivite', 'nomEnseigne'],
-    ['dateDebutActivite', 'regimeEi'],
+    ['adresseActivite'],
+    ['nomEnseigne'],
+    ['dateDebutActivite'],
+    ['regimeEi'],
     ['optionFiscaleSociale'],
   ],
 });
@@ -460,6 +507,10 @@ export const isFieldValueValid = (field, value, formData = {}) => {
       .every((a) => a.isMinorEmancipated === true || String(a.legalRepresentatives || '').trim());
     return hasAssociate && minorsComplete;
   }
+  if (field.type === 'comparateur_cta') {
+    return Boolean(formData.comparateurIgnore);
+  }
+  if (field.key === 'formeJuridique' && formData.comparateurIgnore) return true;
   if (!field.required) return true;
   if (field.type === 'checkbox') return Boolean(value);
   if (value == null) return false;
@@ -550,6 +601,8 @@ export const getFieldValidationMessage = (field, value, formData = {}) => {
   if (field.key === 'companySiren' || field.key === 'existingBusinessSiren') {
     return 'Le SIREN (9 chiffres) ou SIRET (14 chiffres) est requis pour identifier l’entreprise.';
   }
+  if (field.key === 'formeJuridiqueFamille') return 'Choisissez la catégorie juridique la plus proche de votre projet.';
+  if (field.key === 'connaissezFormeJuridique') return 'Indiquez si vous connaissez déjà la forme juridique visée.';
   if (field.key === 'typeFormalite') return 'Choisissez la formalité correspondant à votre projet.';
   if (field.key === 'formeJuridique') return 'Indiquez la forme juridique de votre structure.';
   if (field.key === 'dirigeant') return 'Le dirigeant doit être identifié conformément à la réglementation.';

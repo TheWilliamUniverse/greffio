@@ -1,0 +1,168 @@
+import { test, expect } from '@playwright/test';
+
+const DOSSIER_ID = 'e2e-forme-flow';
+const MOBILE_VIEWPORT = { width: 390, height: 844 };
+
+const e2eUser = {
+  id: 'e2e-user',
+  email: 'jean.dupont@example.com',
+  firstName: 'Jean',
+  lastName: 'Dupont',
+  phone: '0600000000',
+  role: 'CLIENT',
+};
+
+const resumeQuestionnaire = {
+  initiatorType: 'personne_physique',
+  firstName: 'Jean',
+  lastName: 'Dupont',
+  nationality: 'Française',
+  birthDate: '1990-01-01',
+  email: 'jean.dupont@example.com',
+  phone: '0600000000',
+  typeFormalite: 'creation_societe',
+  formeJuridiqueFamille: '',
+  connaissezFormeJuridique: '',
+  comparateurIgnore: false,
+  formeJuridique: '',
+  _resume: {
+    stepId: 'forme',
+    fieldKey: 'formeJuridiqueFamille',
+    categoryConfirmed: true,
+  },
+};
+
+const mockQuestionnaireApis = async (page) => {
+  await page.route(/\/api\//, async (route) => {
+    const url = route.request().url();
+    const method = route.request().method();
+
+    if (url.includes('/api/auth/refresh') && method === 'POST') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          accessToken: 'e2e-access-token',
+          refreshToken: 'e2e-refresh-token',
+        }),
+      });
+      return;
+    }
+
+    if (url.includes('/api/user/profile') && method === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ user: e2eUser }),
+      });
+      return;
+    }
+
+    if (url.includes('/api/dossiers') && url.includes('/questionnaire') && method === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          reference: 'GRE-E2E-001',
+          questionnaire: resumeQuestionnaire,
+        }),
+      });
+      return;
+    }
+
+    if (url.includes('/api/dossiers') && url.includes('/questionnaire') && method === 'PATCH') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: true, dossier: { id: DOSSIER_ID } }),
+      });
+      return;
+    }
+
+    if (url.includes('/api/dossiers') && url.includes('/complete-step') && method === 'POST') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: true }),
+      });
+      return;
+    }
+
+    if (url.endsWith('/api/dossiers') && method === 'POST') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ dossier: { id: DOSSIER_ID, reference: 'GRE-E2E-001' } }),
+      });
+      return;
+    }
+
+    if (url.includes('/api/dossiers') && method === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ dossiers: [] }),
+      });
+      return;
+    }
+
+    await route.fallback();
+  });
+};
+
+const dismissCookieBanner = async (page) => {
+  const refuse = page.getByRole('button', { name: /Refuser le non essentiel/i });
+  if (await refuse.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await refuse.click();
+  }
+};
+
+test.beforeEach(async ({ context, page }) => {
+  await context.clearCookies();
+  await page.addInitScript((user) => {
+    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.setItem('greffio_user', JSON.stringify(user));
+    localStorage.setItem('greffio_token', 'e2e-access-token');
+    localStorage.setItem('greffio_refresh_token', 'e2e-refresh-token');
+    localStorage.setItem('greffio_cookie_consent', 'essential');
+  }, e2eUser);
+  await mockQuestionnaireApis(page);
+});
+
+test.describe('questionnaire mobile — flux catégorie puis forme', () => {
+  test('catégorie commerciale → comparateur → ignorer', async ({ page }) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await page.goto(`/questionnaire?dossierId=${DOSSIER_ID}`);
+    await dismissCookieBanner(page);
+
+    await expect(page.getByText('Quelle catégorie correspond à votre projet ?')).toBeVisible({ timeout: 20_000 });
+    await page.getByRole('radio', { name: /Sociétés commerciales classiques/i }).click();
+
+    await expect(page.getByText(/Savez-vous déjà quelle forme juridique/i)).toBeVisible({ timeout: 10_000 });
+    await page.getByRole('radio', { name: /Non, j.*ai besoin d.*aide/i }).click();
+
+    await expect(page.getByText(/Comparez les formes avant de choisir/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('link', { name: /Lancer le comparateur/i })).toBeVisible();
+    await page.getByRole('button', { name: /Ignorer pour l'instant/i }).click();
+
+    await expect(page.getByText(/Dénomination/i)).toBeVisible({ timeout: 15_000 });
+  });
+
+  test('catégorie commerciale → forme connue → SAS', async ({ page }) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await page.goto(`/questionnaire?dossierId=${DOSSIER_ID}`);
+    await dismissCookieBanner(page);
+
+    await expect(page.getByText('Quelle catégorie correspond à votre projet ?')).toBeVisible({ timeout: 20_000 });
+    await page.getByRole('radio', { name: /Formes les plus courantes/i }).click();
+
+    await expect(page.getByText(/Savez-vous déjà quelle forme juridique/i)).toBeVisible({ timeout: 10_000 });
+    await page.getByRole('radio', { name: /Oui, je sais déjà/i }).click();
+
+    await expect(page.getByRole('heading', { name: /Forme juridique \*/i })).toBeVisible({ timeout: 10_000 });
+    await page.getByRole('radio', { name: /^SAS\b/i }).first().click();
+
+    await expect(page.getByText(/Dénomination/i)).toBeVisible({ timeout: 15_000 });
+  });
+});

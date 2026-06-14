@@ -13,8 +13,12 @@ import {
   MobileChoiceStep,
   MobileChoiceTile,
   isMobileChoiceField,
-  isMobileTapToAdvanceGroup,
 } from '@/components/questionnaire/MobileChoiceStep.jsx';
+import { MobileInputStep } from '@/components/questionnaire/MobileInputStep.jsx';
+import { MobileTextareaStep } from '@/components/questionnaire/MobileTextareaStep.jsx';
+import { MobileCompositeStep } from '@/components/questionnaire/MobileCompositeStep.jsx';
+import { LegalFormFamilyPicker } from '@/components/questionnaire/LegalFormFamilyPicker.jsx';
+import { QuestionnaireComparatorStep } from '@/components/questionnaire/QuestionnaireComparatorStep.jsx';
 import { AutosaveIndicator } from '@/components/questionnaire/AutosaveIndicator.jsx';
 import { SecurityNotice } from '@/components/questionnaire/SecurityNotice.jsx';
 import { QuestionnaireNotice } from '@/components/questionnaire/QuestionnaireNotice.jsx';
@@ -62,6 +66,17 @@ import { fetchUserProfile } from '@/api/profile.js';
 import { contactDetailsFromUser } from '@/utils/userProfile.js';
 import { getIntelligentPrefill } from '@/api/intelligentIntake.js';
 import {
+  useQuestionnairePresentation,
+  shouldAutoAdvanceMobileField,
+  resolveFieldInputMode,
+  resolveQuestionMode,
+} from '@/hooks/useQuestionnairePresentation.js';
+import { lightQuestionnaireHaptic } from '@/utils/questionnaireHaptics.js';
+import {
+  getCatalogFormsForFamily,
+  mapCatalogFormToFormeJuridique,
+} from '@/lib/questionnaireFormFamilies.js';
+import {
   resolveDemarchePreset,
   resolveLegalFormFromContext,
   resolveServiceFromFormality,
@@ -81,6 +96,9 @@ const defaultData = {
   email: '',
   phone: '',
   typeFormalite: '',
+  formeJuridiqueFamille: '',
+  connaissezFormeJuridique: '',
+  comparateurIgnore: false,
   formeJuridique: '',
   denomination: '',
   adresseSiege: '',
@@ -150,6 +168,7 @@ export const QuestionnairePage = () => {
   const [demarcheCategoryConfirmed, setDemarcheCategoryConfirmed] = useState(false);
   const [touchedFields, setTouchedFields] = useState({});
   const pendingTapAdvanceRef = useRef(null);
+  const forceAdvanceAfterIgnoreRef = useRef(false);
 
   const isMobileChoicePresentation = isMobileQuestionnaireViewport();
   const isMobileTapToAdvanceField = (field) => (
@@ -190,7 +209,15 @@ export const QuestionnairePage = () => {
   const canCompleteStep = (step.id === 'recap' || isStepComplete(step, formData))
     && (step.id !== 'gouvernance' || validateDirectorEligibility(formData).ok);
   const canContinue = isLastGroupInStep ? canCompleteStep : canAdvanceCurrentGroup;
-  const hideContinueOnMobileChoice = isMobileTapToAdvanceGroup(activeGroup);
+  const presentation = useQuestionnairePresentation({
+    activeGroup,
+    step,
+    formData,
+    progressPercent: progress,
+    safeGroupIndex,
+    fieldGroups,
+  });
+  const hideContinueOnMobile = presentation.shouldHideStickyContinue;
   const continueLabel = isLastGroupInStep && stepIndex >= QUESTIONNAIRE_FLOW.length - 1
     ? 'Terminer le questionnaire'
     : isLastGroupInStep
@@ -626,6 +653,16 @@ export const QuestionnairePage = () => {
     return () => window.clearTimeout(timer);
   }, [formData, activeGroup, canAdvanceCurrentGroup]);
 
+  useEffect(() => {
+    if (!forceAdvanceAfterIgnoreRef.current || !formData.comparateurIgnore || step.id !== 'forme') return undefined;
+    if (!isStepComplete(step, formData)) return undefined;
+    forceAdvanceAfterIgnoreRef.current = false;
+    const timer = window.setTimeout(() => {
+      void goNext();
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [formData, formData.comparateurIgnore, step]);
+
   const updateField = (field, value) => {
     if ((field.key === 'companySiren' || field.key === 'existingBusinessSiren') && String(value || '').trim() !== String(formData[field.key] || '').trim()) {
       setFoundCompany(null);
@@ -640,6 +677,24 @@ export const QuestionnairePage = () => {
       if (field.key === 'typeFormalite') {
         const preset = resolveDemarchePreset(value);
         if (preset.formeJuridique) next.formeJuridique = preset.formeJuridique;
+        next.formeJuridiqueFamille = '';
+        next.connaissezFormeJuridique = '';
+        next.comparateurIgnore = false;
+      }
+      if (field.key === 'formeJuridiqueFamille') {
+        next.connaissezFormeJuridique = '';
+        next.comparateurIgnore = false;
+        next.formeJuridique = '';
+      }
+      if (field.key === 'connaissezFormeJuridique') {
+        next.comparateurIgnore = false;
+        if (value !== 'oui') next.formeJuridique = '';
+      }
+      if (isMobileChoicePresentation
+        && shouldAutoAdvanceMobileField(field, next[field.key], {
+          isValid: isFieldValueValid(field, next[field.key], next),
+        })) {
+        window.setTimeout(() => requestMobileTapAdvance(field.key), 400);
       }
       return next;
     });
@@ -651,6 +706,7 @@ export const QuestionnairePage = () => {
   };
 
   const handleTapFieldUpdate = (field, value) => {
+    void lightQuestionnaireHaptic();
     updateField(field, value);
     requestMobileTapAdvance(field.key);
   };
@@ -816,11 +872,144 @@ export const QuestionnairePage = () => {
     );
   }
 
+  const renderMobileInputStep = (field, {
+    value,
+    invalid,
+    inlineMessage,
+    inputType = 'text',
+    subtitle,
+    hint = 'Appuyez sur Suivant lorsque c’est prêt.',
+    extra,
+  }) => (
+    <MobileInputStep
+      key={field.key}
+      kicker={STEP_TITLES_BY_ID[step.id] || step.title}
+      title={`${field.label}${field.required ? ' *' : ''}`}
+      subtitle={subtitle}
+      hint={hint}
+      progressPercent={progress}
+      stepCurrent={presentation.stepCurrent}
+      stepTotal={presentation.stepTotal}
+      fieldId={field.key}
+      value={value}
+      placeholder={field.placeholder || ''}
+      inputMode={resolveFieldInputMode(field)}
+      inputType={inputType}
+      canAdvance={!invalid && isFieldValueValid(field, value, formData)}
+      invalid={invalid}
+      errorMessage={invalid ? inlineMessage : ''}
+      onChange={(nextValue) => {
+        const sanitized = field.key === 'companySiren' || field.key === 'existingBusinessSiren'
+          ? sanitizeCompanyIdentifier(nextValue)
+          : nextValue;
+        updateField(field, sanitized);
+      }}
+      onAdvance={goNext}
+    >
+      {extra}
+    </MobileInputStep>
+  );
+
   const renderQuestionField = (field) => {
     if (!field) return null;
 
     if (field.type === 'recap_summary') {
       return <QuestionnaireRecapPanel formData={formData} />;
+    }
+
+    if (field.type === 'form_family_picker') {
+      const familyPicker = (
+        <LegalFormFamilyPicker
+          value={formData.formeJuridiqueFamille || ''}
+          onSelect={(family) => handleTapFieldUpdate(field, family)}
+          mobilePresentation={isMobileChoicePresentation}
+          progressPercent={progress}
+          stepCurrent={presentation.stepCurrent}
+          stepTotal={presentation.stepTotal}
+        />
+      );
+      if (isMobileChoicePresentation) {
+        return <div key={field.key}>{familyPicker}</div>;
+      }
+      return (
+        <div key={field.key} className="space-y-3">
+          <Label className="text-base font-semibold">{field.label}{field.required ? ' *' : ''}</Label>
+          {familyPicker}
+        </div>
+      );
+    }
+
+    if (field.type === 'comparateur_cta') {
+      return (
+        <QuestionnaireComparatorStep
+          key={field.key}
+          mobilePresentation={isMobileChoicePresentation}
+          progressPercent={progress}
+          stepCurrent={presentation.stepCurrent}
+          stepTotal={presentation.stepTotal}
+          onIgnore={() => {
+            forceAdvanceAfterIgnoreRef.current = true;
+            setFormData((current) => ({
+              ...current,
+              comparateurIgnore: true,
+              formeJuridique: current.formeJuridique || 'AUTRE',
+            }));
+          }}
+        />
+      );
+    }
+
+    if (field.key === 'formeJuridique' && formData.formeJuridiqueFamille) {
+      const forms = getCatalogFormsForFamily(formData.formeJuridiqueFamille);
+      if (isMobileChoicePresentation) {
+        return (
+          <MobileChoiceStep
+            key={field.key}
+            kicker={formData.formeJuridiqueFamille}
+            title={`${field.label}${field.required ? ' *' : ''}`}
+            subtitle="Choisissez la forme qui correspond le mieux à votre projet."
+            hint="Touchez une forme pour continuer."
+            progressPercent={progress}
+            stepCurrent={presentation.stepCurrent}
+            stepTotal={presentation.stepTotal}
+            gridClassName="grid grid-cols-1 gap-2.5"
+          >
+            {forms.map((form) => {
+              const mapped = mapCatalogFormToFormeJuridique(form);
+              return (
+                <MobileChoiceTile
+                  key={form.key}
+                  title={form.label}
+                  description={form.description}
+                  selected={String(formData.formeJuridique || '') === String(mapped)}
+                  onSelect={() => handleTapFieldUpdate(field, mapped)}
+                />
+              );
+            })}
+          </MobileChoiceStep>
+        );
+      }
+      return (
+        <div key={field.key} className="space-y-3">
+          <Label className="text-base font-semibold">{field.label}{field.required ? ' *' : ''}</Label>
+          <p className="text-sm font-semibold text-primary">{formData.formeJuridiqueFamille}</p>
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {forms.map((form) => {
+              const mapped = mapCatalogFormToFormeJuridique(form);
+              return (
+                <ChoiceCard
+                  key={form.key}
+                  compact
+                  selected={String(formData.formeJuridique || '') === String(mapped)}
+                  title={form.label}
+                  description={form.description}
+                  onClick={() => handleTapFieldUpdate(field, mapped)}
+                />
+              );
+            })}
+          </div>
+        </div>
+      );
     }
 
     if (field.type === 'select') {
@@ -957,39 +1146,77 @@ export const QuestionnairePage = () => {
     }
 
     if (field.type === 'beneficial_owners_picker') {
+      const picker = (
+        <BeneficialOwnersPicker
+          formData={formData}
+          selectedIds={formData.beneficiairesEffectifsSelected || []}
+          summaryText={formData.beneficiairesEffectifs || ''}
+          otherName={formData.beneficiairesEffectifsAutre || ''}
+          fieldClass={fieldClass}
+          onChange={(patch) => setFormData((current) => ({ ...current, ...patch }))}
+        />
+      );
+      if (isMobileChoicePresentation && activeGroup.length === 1) {
+        return (
+          <MobileCompositeStep
+            key={field.key}
+            kicker={STEP_TITLES_BY_ID[step.id] || step.title}
+            title={`${field.label}${field.required ? ' *' : ''}`}
+            subtitle={step.description}
+            progressPercent={progress}
+            stepCurrent={presentation.stepCurrent}
+            stepTotal={presentation.stepTotal}
+            hint="Sélectionnez les bénéficiaires effectifs puis appuyez sur Continuer."
+          >
+            {picker}
+          </MobileCompositeStep>
+        );
+      }
       return (
         <div key={field.key} className="space-y-3">
           <Label className="text-base font-semibold">
             {field.label}{field.required ? ' *' : ''}
           </Label>
-          <BeneficialOwnersPicker
-            formData={formData}
-            selectedIds={formData.beneficiairesEffectifsSelected || []}
-            summaryText={formData.beneficiairesEffectifs || ''}
-            otherName={formData.beneficiairesEffectifsAutre || ''}
-            fieldClass={fieldClass}
-            onChange={(patch) => setFormData((current) => ({ ...current, ...patch }))}
-          />
+          {picker}
         </div>
       );
     }
 
     if (field.type === 'associates_minor_panel') {
+      const associatesPanel = (
+        <AssociatesMinorPanel
+          value={formData.associates}
+          includeDirector={false}
+          onChange={(patch) => setFormData((current) => {
+            const associates = patch.associates ?? current.associates;
+            return {
+              ...current,
+              ...patch,
+              dirigeant: syncDirigeantFromAssociates(associates, current.dirigeant),
+              repartition: patch.associesSummary || current.repartition,
+            };
+          })}
+        />
+      );
+      if (isMobileChoicePresentation && activeGroup.length === 1) {
+        return (
+          <MobileCompositeStep
+            key={field.key}
+            kicker={STEP_TITLES_BY_ID[step.id] || step.title}
+            title={step.title}
+            subtitle={step.description}
+            progressPercent={progress}
+            stepCurrent={presentation.stepCurrent}
+            stepTotal={presentation.stepTotal}
+            hint="Renseignez chaque associé puis appuyez sur Continuer."
+          >
+            {associatesPanel}
+          </MobileCompositeStep>
+        );
+      }
       return (
         <div key={field.key}>
-          <AssociatesMinorPanel
-            value={formData.associates}
-            includeDirector={false}
-            onChange={(patch) => setFormData((current) => {
-              const associates = patch.associates ?? current.associates;
-              return {
-                ...current,
-                ...patch,
-                dirigeant: syncDirigeantFromAssociates(associates, current.dirigeant),
-                repartition: patch.associesSummary || current.repartition,
-              };
-            })}
-          />
+          {associatesPanel}
         </div>
       );
     }
@@ -997,6 +1224,15 @@ export const QuestionnairePage = () => {
     if (field.key === 'dirigeant') {
       const directorCheck = validateDirectorEligibility(formData);
       const showDirectorError = touchedFields.dirigeant && !directorCheck.ok;
+      const directorValue = formData.dirigeant || '';
+      const directorInvalid = field.required && !isFieldValueValid(field, directorValue, formData);
+      if (isMobileChoicePresentation && activeGroup.length === 1) {
+        return renderMobileInputStep(field, {
+          value: directorValue,
+          invalid: showDirectorError || (touchedFields.dirigeant && directorInvalid),
+          inlineMessage: showDirectorError ? directorCheck.message : getFieldValidationMessage(field, directorValue, formData),
+        });
+      }
       return (
         <div key={field.key} className="space-y-3">
           <Label>{field.label}{field.required ? ' *' : ''}</Label>
@@ -1018,6 +1254,18 @@ export const QuestionnairePage = () => {
     if (field.type === 'date') {
       const dateValue = formData[field.key] || '';
       const showLegalHint = field.key === 'birthDate';
+      const dateInvalid = field.required && !isFieldValueValid(field, dateValue, formData);
+      const showInlineError = touchedFields[field.key] && dateInvalid;
+      const inlineMessage = getFieldValidationMessage(field, dateValue, formData);
+      if (isMobileChoicePresentation && activeGroup.length === 1) {
+        return renderMobileInputStep(field, {
+          value: dateValue,
+          invalid: showInlineError,
+          inlineMessage,
+          inputType: 'date',
+          extra: showLegalHint ? <BirthDateMinorEncouragement birthDate={dateValue} showLegalHint /> : null,
+        });
+      }
       return (
         <div key={field.key} className="space-y-2">
           <Label htmlFor={field.key}>{field.label}{field.required ? ' *' : ''}</Label>
@@ -1039,8 +1287,68 @@ export const QuestionnairePage = () => {
     const invalid = field.required && !isFieldValueValid(field, value, formData);
     const showInlineError = touchedFields[field.key] && invalid;
     const inlineMessage = getFieldValidationMessage(field, value, formData);
+    const isSirenField = field.key === 'companySiren' || field.key === 'existingBusinessSiren';
+    const mobileInputHint = field.key === 'email'
+      ? 'Utilisé pour suivre votre dossier.'
+      : field.key === 'phone'
+        ? 'Utile uniquement si une précision est nécessaire.'
+        : isSirenField
+          ? 'Nous l’utilisons pour retrouver les informations de la société.'
+          : undefined;
+
+    if (isMobileChoicePresentation && activeGroup.length === 1 && resolveQuestionMode(field) === 'input') {
+      return renderMobileInputStep(field, {
+        value,
+        invalid: showInlineError,
+        inlineMessage,
+        subtitle: mobileInputHint,
+        inputType: field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : field.type === 'tel' ? 'tel' : 'text',
+        extra: (
+          <>
+            {isSirenField && sirenLookupState === 'loading' ? (
+              <p className="mx-auto mt-3 max-w-md text-xs text-muted-foreground">Recherche de l’entreprise…</p>
+            ) : null}
+            {isSirenField && sirenLookupMessage ? (
+              <p className={`mx-auto mt-3 max-w-md text-xs ${sirenLookupState === 'error' ? 'text-destructive' : 'text-emerald-600'}`}>
+                {sirenLookupMessage}
+              </p>
+            ) : null}
+            {isSirenField && foundCompany && foundCompanyFieldKey === field.key ? (
+              <div className="mx-auto mt-3 max-w-md">
+                <CompanyLookupCard company={foundCompany} onUse={applyFoundCompany} />
+              </div>
+            ) : null}
+          </>
+        ),
+      });
+    }
 
     if (field.type === 'textarea') {
+      const minLength = field.key === 'activite' ? 12 : 8;
+      const trimmedLength = String(value || '').trim().length;
+      const canAdvanceTextarea = trimmedLength >= minLength && !invalid;
+      if (isMobileChoicePresentation && activeGroup.length === 1) {
+        return (
+          <MobileTextareaStep
+            key={field.key}
+            kicker={STEP_TITLES_BY_ID[step.id] || step.title}
+            title={`${field.label}${field.required ? ' *' : ''}`}
+            subtitle={step.description}
+            progressPercent={progress}
+            stepCurrent={presentation.stepCurrent}
+            stepTotal={presentation.stepTotal}
+            fieldId={field.key}
+            value={value}
+            placeholder={field.placeholder || ''}
+            minLength={minLength}
+            onChange={(nextValue) => updateField(field, nextValue)}
+            onAdvance={goNext}
+            canAdvance={canAdvanceTextarea}
+            invalid={showInlineError}
+            errorMessage={showInlineError ? inlineMessage : ''}
+          />
+        );
+      }
       return (
         <div key={field.key} className="space-y-2">
           <Label>{field.label}{field.required ? ' *' : ''}</Label>
@@ -1069,6 +1377,8 @@ export const QuestionnairePage = () => {
               : event.target.value;
             updateField(field, nextValue);
           }}
+          inputMode={field.key === 'companySiren' || field.key === 'existingBusinessSiren' || field.key === 'codePostal' ? 'numeric' : undefined}
+          pattern={field.key === 'companySiren' || field.key === 'existingBusinessSiren' ? '[0-9]*' : undefined}
           className={`${fieldClass} ${showInlineError ? 'border-red-400' : ''}`}
         />
         {field.key === 'companySiren' && formData.initiatorType === 'personne_morale' ? (
@@ -1122,7 +1432,7 @@ export const QuestionnairePage = () => {
         canGoBack={stepIndex > 0 || safeGroupIndex > 0}
         canGoNext
         continueLabel={continueLabel}
-        hideContinueButton={hideContinueOnMobileChoice}
+        hideContinueButton={hideContinueOnMobile}
       >
         {stepError ? (
           <QuestionnaireNotice variant="error" title="Enregistrement">
@@ -1164,7 +1474,7 @@ export const QuestionnairePage = () => {
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.22 }}
             className={cn(
-              isMobileChoicePresentation && hideContinueOnMobileChoice
+              isMobileChoicePresentation && hideContinueOnMobile
                 ? 'min-h-0 bg-transparent p-0'
                 : 'min-h-[12rem] rounded-xl border border-border bg-muted/30 p-5 md:p-6',
             )}
@@ -1204,12 +1514,12 @@ export const QuestionnairePage = () => {
       <div className="mt-4 rounded-md border border-border bg-white p-4 text-xs text-muted-foreground">
         Contact Greffio: {runtimeConfig.supportPhone} – {runtimeConfig.supportEmail}
       </div>
-      {!canContinue && !stepError && !hideContinueOnMobileChoice ? (
+      {!canContinue && !stepError && !hideContinueOnMobile ? (
         <QuestionnaireNotice variant="vigilance" title="Pour continuer" className="mt-3">
           Répondez à la question ci-dessus, puis cliquez sur « {continueLabel} ».
         </QuestionnaireNotice>
       ) : null}
-      {!canContinue && !stepError && hideContinueOnMobileChoice ? (
+      {!canContinue && !stepError && hideContinueOnMobile ? (
         <QuestionnaireNotice variant="vigilance" title="Pour continuer" className="mt-3">
           Touchez votre réponse pour passer à la suite.
         </QuestionnaireNotice>
