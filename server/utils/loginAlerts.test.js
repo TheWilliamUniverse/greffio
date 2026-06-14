@@ -8,9 +8,9 @@ import {
   shouldSendLoginAlert,
 } from './loginAlerts.js';
 
-test('shouldSendLoginAlert returns true by default when preference is unset', () => {
-  assert.equal(shouldSendLoginAlert({ profile: null }), true);
-  assert.equal(shouldSendLoginAlert({ profile: { preferences: {} } }), true);
+test('shouldSendLoginAlert returns false by default when preference is unset', () => {
+  assert.equal(shouldSendLoginAlert({ profile: null }), false);
+  assert.equal(shouldSendLoginAlert({ profile: { preferences: {} } }), false);
 });
 
 test('shouldSendLoginAlert returns false when user explicitly disabled alerts', () => {

@@ -43,6 +43,9 @@ export class PaymentProviderResolver {
       if (this.configuredProviders.has(PAYMENT_PROVIDERS.GOCARDLESS)) {
         return PAYMENT_PROVIDERS.GOCARDLESS;
       }
+      if (this.configuredProviders.has(PAYMENT_PROVIDERS.MOLLIE)) {
+        return PAYMENT_PROVIDERS.MOLLIE;
+      }
       return PAYMENT_PROVIDERS.MANUAL_BANK_TRANSFER;
     }
 
@@ -78,7 +81,17 @@ export class PaymentProviderResolver {
     ) {
       throw new PaymentError(
         'CAWL_NOT_CONFIGURED_FOR_B2B',
-        'CAWL n\'est pas configuré pour les paiements B2B. Utiliser GoCardless ou virement manuel.',
+        'CAWL n\'est pas configuré pour les paiements B2B. Utiliser GoCardless, Mollie ou virement manuel.',
+        409,
+      );
+    }
+    if (
+      customerType === CUSTOMER_TYPES.B2C
+      && provider === PAYMENT_PROVIDERS.MOLLIE
+    ) {
+      throw new PaymentError(
+        'MOLLIE_FORBIDDEN_FOR_B2C',
+        'Mollie est réservé aux paiements B2B et factures. Utiliser CAWL pour le B2C.',
         409,
       );
     }

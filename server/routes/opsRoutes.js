@@ -3,6 +3,8 @@ import { isEphemeralPlaceholderDossier } from '../utils/placeholderDossier.js';
 import { computeDossierRisk, sortAntiRejectionQueue } from '../services/opsRisk.js';
 import { buildCanonicalDocumentFilename } from '../documentNaming.js';
 import { downloadDocumentBufferFromConfiguredStorage } from '../services/objectStorage.js';
+import { issueQontoInvoiceWithMolliePayment } from '../services/qonto/qontoInvoiceService.js';
+import { notifyInvoiceAvailable } from '../services/invoicePaymentNotifications.js';
 
 const OPS_TEAM_DIRECTORY = Object.freeze([
   { id: 'william', email: 'william@willentreprises.com', name: 'William ABDOU', role: 'ADMIN', initials: 'WA', title: 'Direction & pilotage ops' },
@@ -243,5 +245,52 @@ export const registerOpsRoutes = (app, deps) => {
       document: updated,
       documents: await listDossierDocuments(dossier.id),
     });
+  });
+
+  app.post('/api/ops/invoices/issue', requireAuth, requireRole(['ADMIN', 'OPS']), async (req, res) => {
+    try {
+      const {
+        customerEmail,
+        customerName,
+        amountTotalCents,
+        currency = 'EUR',
+        description,
+        dossierId = null,
+        userId = null,
+        dueDays = 14,
+        mollieMethod = null,
+      } = req.body || {};
+
+      const result = await issueQontoInvoiceWithMolliePayment({
+        customerEmail,
+        customerName,
+        amountTotalCents: Number(amountTotalCents),
+        currency,
+        description,
+        dossierId,
+        userId,
+        dueDays: Number(dueDays),
+        mollieMethod,
+      });
+
+      await notifyInvoiceAvailable({
+        payment: result.payment,
+        invoice: result.invoice,
+      });
+
+      return res.status(201).json({
+        ok: true,
+        invoice: result.invoice,
+        payment: result.payment,
+        checkoutUrl: result.checkoutUrl,
+      });
+    } catch (error) {
+      console.error('[ops/invoices/issue]', error);
+      return res.status(502).json({
+        ok: false,
+        error: 'INVOICE_ISSUE_FAILED',
+        message: error?.message || 'Échec émission facture',
+      });
+    }
   });
 };

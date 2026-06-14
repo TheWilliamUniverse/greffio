@@ -15,7 +15,14 @@ test('B2B → GoCardless si configuré', () => {
   assert.equal(resolver.resolve(CUSTOMER_TYPES.B2B), PAYMENT_PROVIDERS.GOCARDLESS);
 });
 
-test('B2B → manual_bank_transfer si GoCardless absent', () => {
+test('B2B → Mollie si GoCardless absent et Mollie configuré', () => {
+  const resolver = new PaymentProviderResolver({
+    configuredProviders: new Set([PAYMENT_PROVIDERS.MOLLIE]),
+  });
+  assert.equal(resolver.resolve(CUSTOMER_TYPES.B2B), PAYMENT_PROVIDERS.MOLLIE);
+});
+
+test('B2B → manual_bank_transfer si GoCardless et Mollie absents', () => {
   const resolver = new PaymentProviderResolver({ configuredProviders: new Set() });
   assert.equal(resolver.resolve(CUSTOMER_TYPES.B2B), PAYMENT_PROVIDERS.MANUAL_BANK_TRANSFER);
 });

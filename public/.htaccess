@@ -7,8 +7,24 @@
 
   RewriteEngine On
   RewriteBase /
+
+  # Canonical : www → apex HTTPS (Mollie review + SEO)
+  RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+  RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
+
+  # HTTP → HTTPS (apex et sous-domaines)
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP_HOST} !^localhost [NC]
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
   RewriteRule ^index\.html$ - [L]
   RewriteRule ^\.well-known/ - [L]
+
+  # Mollie : éviter que le SPA avale /api/*
+  RewriteRule ^api/mollie/callback/?$ api-mollie-callback.php [L,QSA]
+  RewriteRule ^api/mollie/status/?$ api-mollie-status.php [L,QSA]
+  RewriteRule ^api/webhooks/mollie/?$ api-mollie-webhook.php [L]
+
   RewriteCond %{REQUEST_METHOD} POST
   RewriteRule ^callback/?$ signwell-callback.php [L]
   RewriteCond %{REQUEST_FILENAME} !-f

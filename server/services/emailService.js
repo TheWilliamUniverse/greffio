@@ -3,6 +3,7 @@ import { getTemplate, resolveTemplateKey } from '../emails/templates.js';
 import { normalizeEmailVariables } from '../emails/templateBuilder.js';
 import { renderTemplate, validateTemplateVariables } from '../emails/renderTemplate.js';
 import { sendWithProvider } from '../emails/provider.js';
+import { isEmailTemplateEnabled } from '../config/emailFeatureFlags.js';
 
 const sanitizeForLog = ({ templateKey, to, status, provider, errorCode }) => ({
   templateKey,
@@ -24,6 +25,10 @@ const sendTransactionalEmail = async ({
   const template = getTemplate(resolvedKey);
   if (!template) {
     return { ok: false, error: 'EMAIL_TEMPLATE_NOT_FOUND', templateKey: resolvedKey };
+  }
+
+  if (!isEmailTemplateEnabled(resolvedKey)) {
+    return { ok: true, skipped: true, reason: 'EMAIL_TEMPLATE_DISABLED', templateKey: resolvedKey };
   }
 
   const recipientEmail = String(typeof to === 'string' ? to : to?.email || '').trim().toLowerCase();

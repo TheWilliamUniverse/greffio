@@ -11,7 +11,7 @@ export const CRITICAL_SECURITY_EMAIL_TEMPLATES = new Set([
   'email_verification',
 ]);
 
-export const DEFAULT_LOGIN_ALERTS_ENABLED = true;
+export const DEFAULT_LOGIN_ALERTS_ENABLED = false;
 
 export const getLoginAlertsSettings = (user) => {
   const security = user?.profile?.preferences?.security || {};

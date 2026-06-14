@@ -54,7 +54,9 @@ export class PaymentService {
     const internalPaymentId = randomUUID();
     const providerName = normalizedInput.providerOverride
       ? normalizedInput.providerOverride
-      : this.resolver.resolve(normalizedInput.customerType);
+      : (normalizedInput.invoiceId && this.providers[PAYMENT_PROVIDERS.MOLLIE]?.isConfigured?.())
+        ? PAYMENT_PROVIDERS.MOLLIE
+        : this.resolver.resolve(normalizedInput.customerType);
 
     this.resolver.assertProviderAllowedForCustomerType(providerName, normalizedInput.customerType);
 

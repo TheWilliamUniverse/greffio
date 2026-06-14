@@ -16,12 +16,14 @@ export const CUSTOMER_TYPES = Object.freeze({
  * - gocardless          : SEPA / virement, autorisé uniquement en B2B
  * - qonto               : rapprochement bancaire, jamais PSP B2C
  * - manual_bank_transfer: virement manuel B2B
+ * - mollie              : B2B / factures (iDEAL, carte pro)
  * - amazon_pay          : valeur historique en base uniquement (intégration retirée)
- * - stripe / payplug : providers futurs (non actifs)
+ * - stripe / payplug    : providers futurs (non actifs)
  */
 export const PAYMENT_PROVIDERS = Object.freeze({
   CAWL: 'cawl',
   GOCARDLESS: 'gocardless',
+  MOLLIE: 'mollie',
   QONTO: 'qonto',
   MANUAL_BANK_TRANSFER: 'manual_bank_transfer',
   STRIPE: 'stripe',
@@ -54,7 +56,7 @@ export const TERMINAL_STATUSES = new Set([
 /**
  * @typedef {'b2c'|'b2b'} CustomerType
  *
- * @typedef {'cawl'|'gocardless'|'qonto'|'manual_bank_transfer'|'amazon_pay'|'stripe'|'payplug'} PaymentProviderName
+ * @typedef {'cawl'|'gocardless'|'mollie'|'qonto'|'manual_bank_transfer'|'amazon_pay'|'stripe'|'payplug'} PaymentProviderName
  *
  * @typedef {'pending'|'requires_action'|'processing'|'paid'|'failed'|'cancelled'|'refunded'|'partially_refunded'} PaymentStatusName
  *

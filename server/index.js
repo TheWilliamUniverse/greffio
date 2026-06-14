@@ -112,6 +112,7 @@ import {
 } from './features/appDownloadAccess/appDownloadAccessService.js';
 import { formatParisDateTime, getClientIp, parseDeviceLabel } from './utils/loginContext.js';
 import { buildLoginAlertsProfilePatch, shouldSendLoginAlert } from './utils/loginAlerts.js';
+import { isEmailFeatureEnabled } from './config/emailFeatureFlags.js';
 import { buildMobileSearchResponse } from './utils/mobileSearch.js';
 import { buildMobileNotifications } from './utils/mobileNotifications.js';
 import { upsertPushDeviceToken, revokePushDeviceToken } from './pushStore.js';
@@ -162,6 +163,7 @@ import {
 } from './documents/editableDocumentRegistry.js';
 import { persistEditableDocumentPdf } from './services/editableDocumentService.js';
 import { registerPaymentsRoutes } from './routes/paymentsRoutes.js';
+import { registerMollieRoutes } from './routes/mollieRoutes.js';
 import { registerAppVersionRoutes } from './routes/appVersionRoutes.js';
 import { registerDocumentCompletionRoutes } from './routes/documentCompletionRoutes.js';
 import verificationRouter from './routes/verificationRoutes.js';
@@ -253,6 +255,8 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   if (req.path === '/api/webhooks/resend' || req.path === '/api/webhooks/brevo') return next();
   if (req.path === '/webhooks/gocardless' || req.path === '/api/webhooks/gocardless') return next();
+  if (req.path === '/webhooks/mollie' || req.path === '/api/webhooks/mollie'
+    || req.path === '/api/mollie/webhook') return next();
   return express.json()(req, res, next);
 });
 
@@ -1561,10 +1565,10 @@ app.post('/api/dossiers/:dossierId/complete-step', requireAuth, async (req, res)
   }
 
   const mergedData = updated?.dataJson ? JSON.parse(updated.dataJson) : {};
-  if (stepId === 'validation') {
+  if (stepId === 'validation' && mergedData.validationConfirmed === true) {
     const owner = await getUserById(req.auth.sub);
     const recipientEmail = String(mergedData.email || owner?.email || req.auth.email || '').trim();
-    if (recipientEmail) {
+    if (recipientEmail && isEmailFeatureEnabled('dossierCreated')) {
       try {
         await sendDossierEmailById({
           templateId: 'dossier_created',
@@ -1604,8 +1608,7 @@ app.post('/api/dossiers/:dossierId/complete-step', requireAuth, async (req, res)
         toEmail: mergedData.email,
         variables: baseVars,
       });
-      if (process.env.EMAIL_DOSSIER_CONTACT_CONFIRMED_ENABLED !== 'false'
-        && process.env.EMAIL_DOSSIER_CONTACT_CONFIRMED_ENABLED !== '0') {
+      if (isEmailFeatureEnabled('dossierContactConfirmed')) {
         await sendDossierEmailById({
           templateId: 'contact_confirmed',
           dossierId: updated.id,
@@ -1738,8 +1741,7 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
   const uploadedDoc = (await listDossierDocuments(dossier.id)).find((item) => item.docKey === docKey);
   const documentLabel = uploadedDoc?.label || docKey;
   if (recipientEmail) {
-    if (process.env.EMAIL_DOCUMENT_UPLOAD_RECEIVED_ENABLED !== 'false'
-      && process.env.EMAIL_DOCUMENT_UPLOAD_RECEIVED_ENABLED !== '0') {
+    if (isEmailFeatureEnabled('documentUploadReceived')) {
       await sendDossierEmailById({
         templateId: 'documents_received',
         dossierId: dossier.id,
@@ -2444,7 +2446,7 @@ app.post('/api/dossiers/:dossierId/statutes/generate', requireAuth, async (req, 
   });
   const dossierData = questionnaire;
   const recipientEmail = user?.email || dossierData.email || req.auth.email || null;
-  if (recipientEmail) {
+  if (recipientEmail && isEmailFeatureEnabled('statutesGenerated')) {
     await sendDossierEmailById({
       templateId: 'statutes_generated',
       dossierId: dossier.id,
@@ -2656,6 +2658,8 @@ app.post('/api/payments/create', paymentLimiter, requireAuth, async (req, res) =
     checkoutUrl: created.checkoutUrl,
   });
 });
+
+registerMollieRoutes(app, { appUrl });
 
 registerWebhookRoutes(app, {
   parseResendWebhook,

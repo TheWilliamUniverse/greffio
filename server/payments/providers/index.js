@@ -1,5 +1,6 @@
 import { CawlPaymentAdapter } from './CawlPaymentAdapter.js';
 import { GoCardlessAdapter } from './GoCardlessAdapter.js';
+import { MolliePaymentAdapter } from './MolliePaymentAdapter.js';
 import { ManualBankTransferAdapter } from './ManualBankTransferAdapter.js';
 import { QontoReconciliationAdapter } from './QontoReconciliationAdapter.js';
 import {
@@ -17,6 +18,7 @@ import { PAYMENT_PROVIDERS } from '../types.js';
 export const buildProviderRegistry = (overrides = {}) => ({
   [PAYMENT_PROVIDERS.CAWL]: overrides.cawl || new CawlPaymentAdapter(),
   [PAYMENT_PROVIDERS.GOCARDLESS]: overrides.gocardless || new GoCardlessAdapter(),
+  [PAYMENT_PROVIDERS.MOLLIE]: overrides.mollie || new MolliePaymentAdapter(),
   [PAYMENT_PROVIDERS.QONTO]: overrides.qonto || new QontoReconciliationAdapter(),
   [PAYMENT_PROVIDERS.MANUAL_BANK_TRANSFER]: overrides.manual_bank_transfer || new ManualBankTransferAdapter(),
   [PAYMENT_PROVIDERS.STRIPE]: overrides.stripe || new StripeStubAdapter(),
@@ -34,6 +36,7 @@ export const getConfiguredProviders = (registry) => {
 export {
   CawlPaymentAdapter,
   GoCardlessAdapter,
+  MolliePaymentAdapter,
   ManualBankTransferAdapter,
   QontoReconciliationAdapter,
   PayPlugStubAdapter,
