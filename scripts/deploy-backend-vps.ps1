@@ -125,10 +125,19 @@ touch "$DEPS/sqlite3.o.d.raw" 2>/dev/null || true
 WATCH_PID=$!
 if ! ( cd /opt/greffio/node_modules/better-sqlite3 && npx --yes node-gyp rebuild --release ); then
   kill "$WATCH_PID" 2>/dev/null || true
-  echo "better-sqlite3 rebuild failed" >&2
-  exit 1
+  if [ -f /opt/greffio-deps/node_modules/better-sqlite3/build/Release/better_sqlite3.node ]; then
+    echo "better-sqlite3 rebuild failed – restore depuis /opt/greffio-deps"
+    rm -rf /opt/greffio/node_modules/better-sqlite3
+    cp -a /opt/greffio-deps/node_modules/better-sqlite3 /opt/greffio/node_modules/
+  else
+    echo "better-sqlite3 rebuild failed" >&2
+    exit 1
+  fi
 fi
 kill "$WATCH_PID" 2>/dev/null || true
+if [ -f /opt/greffio/node_modules/better-sqlite3/build/Release/better_sqlite3.node ]; then
+  cp -a /opt/greffio/node_modules/better-sqlite3 /opt/greffio-deps/node_modules/ 2>/dev/null || mkdir -p /opt/greffio-deps/node_modules && cp -a /opt/greffio/node_modules/better-sqlite3 /opt/greffio-deps/node_modules/
+fi
 npm run db:migrate
 pm2 restart greffio-api --update-env > /dev/null || pm2 start ecosystem.config.cjs --only greffio-api --update-env > /dev/null
 sleep 5
