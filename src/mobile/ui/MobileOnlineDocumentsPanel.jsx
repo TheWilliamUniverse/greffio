@@ -3,6 +3,7 @@ import { FilePlus2, PenLine, Users, FileSignature } from 'lucide-react';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
 import { MobileDocumentCard } from '@/mobile/ui/MobileDocumentCard.jsx';
 import { resolveOnlineDocumentState } from '@/utils/onlineDocumentStatus.js';
+import { isDocumentPreviewAction } from '@/utils/dossierDocumentFile.js';
 
 const ONLINE_DOCS = [
   {
@@ -34,6 +35,8 @@ export const MobileOnlineDocumentsPanel = ({
   eiLike = false,
   delay = 0.07,
   onDocumentAction,
+  onDocumentPreview,
+  previewLoadingDocKey = null,
 }) => {
   if (!dossierId || eiLike) return null;
 
@@ -52,6 +55,7 @@ export const MobileOnlineDocumentsPanel = ({
         <div className="mt-4 space-y-3">
           {ONLINE_DOCS.map((item) => {
             const state = resolveOnlineDocumentState(item.key, documents, item.hint);
+            const canPreview = state.hasFile && isDocumentPreviewAction(state.action);
             return (
               <MobileDocumentCard
                 key={item.key}
@@ -62,8 +66,12 @@ export const MobileOnlineDocumentsPanel = ({
                 cta={state.cta}
                 hasFile={state.hasFile}
                 icon={item.icon}
-                to={item.to(dossierId)}
-                onAction={onDocumentAction ? () => onDocumentAction(item, state) : undefined}
+                to={canPreview ? undefined : item.to(dossierId)}
+                onAction={!canPreview && onDocumentAction ? () => onDocumentAction(item, state) : undefined}
+                onPreview={canPreview && onDocumentPreview
+                  ? () => onDocumentPreview({ docKey: state.docKey, label: item.label })
+                  : undefined}
+                previewLoading={previewLoadingDocKey === state.docKey}
                 minHeight={false}
                 className="rounded-2xl shadow-none"
               />

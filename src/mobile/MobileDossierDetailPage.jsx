@@ -23,8 +23,8 @@ import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 import { DossierTrashActions } from '@/components/dossiers/DossierTrashActions.jsx';
 import { DossierDeleteAction } from '@/components/dossiers/DossierDeleteAction.jsx';
-import { downloadDossierDocument } from '@/api/documents.js';
-import { resolveDocumentUserAction } from '@/utils/onlineDocumentStatus.js';
+import { MobileDocumentPreviewSheet } from '@/mobile/ui/MobileDocumentPreviewSheet.jsx';
+import { useDossierDocumentPreview } from '@/hooks/useDossierDocumentPreview.js';
 import { cn } from '@/lib/utils.js';
 
 const SECTION_PILLS = [
@@ -54,6 +54,14 @@ export const MobileDossierDetailPage = () => {
   const [selectedDocKey, setSelectedDocKey] = useState('identity_proof');
   const [activeSection, setActiveSection] = useState('resume');
   const { data, isLoading, isError, refetch, isFetching, dataUpdatedAt } = useDossierQuery(id);
+  const {
+    previewDoc,
+    loadingDocKey,
+    downloading: previewDownloading,
+    openPreview,
+    closePreview,
+    downloadPreview,
+  } = useDossierDocumentPreview();
   const sectionRefs = useRef({});
 
   const dossier = data?.dossier;
@@ -187,25 +195,12 @@ export const MobileDossierDetailPage = () => {
           eiLike={eiLike}
           delay={0.03}
           onDocumentAction={(item, state) => {
-            if ((state.action === 'download' || state.action === 'view') && state.hasFile) {
-              void downloadDossierDocument({ dossierId: id, docKey: state.docKey, inline: true })
-                .then(({ filename, blob }) => {
-                  const url = window.URL.createObjectURL(blob);
-                  const anchor = document.createElement('a');
-                  anchor.href = url;
-                  anchor.target = '_blank';
-                  anchor.rel = 'noopener noreferrer';
-                  anchor.download = filename;
-                  document.body.appendChild(anchor);
-                  anchor.click();
-                  anchor.remove();
-                  window.setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
-                })
-                .catch(() => {});
-              return;
-            }
             navigate(item.to(id));
           }}
+          onDocumentPreview={({ docKey, label }) => {
+            void openPreview({ dossierId: id, docKey, label });
+          }}
+          previewLoadingDocKey={loadingDocKey}
         />
       </div>
 
@@ -258,6 +253,15 @@ export const MobileDossierDetailPage = () => {
         dossierId={id}
         docKey={selectedDocKey}
         onUploaded={() => refetch()}
+      />
+      <MobileDocumentPreviewSheet
+        open={Boolean(previewDoc?.blobUrl)}
+        title={previewDoc?.label}
+        blobUrl={previewDoc?.blobUrl}
+        filename={previewDoc?.filename}
+        downloading={previewDownloading}
+        onClose={closePreview}
+        onDownload={() => { void downloadPreview(); }}
       />
     </MobilePageContainer>
   );

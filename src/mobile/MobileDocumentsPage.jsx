@@ -25,7 +25,6 @@ import { INPI_UPLOAD_RULES } from '@/config/legalFlow.js';
 import { normalizeUploadToPdfWithMessage, ensurePdfFilename } from '@/utils/documentPdf.js';
 import {
   uploadDossierDocument,
-  downloadDossierDocument,
   deleteDossierDocument,
 } from '@/api/documents.js';
 import { getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.js';
@@ -33,10 +32,13 @@ import { DossierVaultPickerOverlay } from '@/components/dossiers/DossierVaultPic
 import { isInternalUser } from '@/utils/roles.js';
 import { getDocumentStatusLabel, getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 import { documentHasFile, formatDocumentRejectionHint, resolveClientDocumentStatus } from '@/utils/documentWorkflow.js';
+import { isDocumentPreviewAction } from '@/utils/dossierDocumentFile.js';
 import { isCapacitorNative } from '@/utils/platform.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
 import { IdentityVerificationCard } from '@/components/identity/IdentityVerificationCard.jsx';
 import { MobileOnlineDocumentsPanel } from '@/mobile/ui/MobileOnlineDocumentsPanel.jsx';
+import { MobileDocumentPreviewSheet } from '@/mobile/ui/MobileDocumentPreviewSheet.jsx';
+import { useDossierDocumentPreview } from '@/hooks/useDossierDocumentPreview.js';
 import { parseJsonField } from '@/utils/jsonField.js';
 import { resolveDocumentUserAction } from '@/utils/onlineDocumentStatus.js';
 import { triggerMobileHaptic } from '@/utils/mobileHaptics.js';
@@ -69,6 +71,14 @@ export const MobileDocumentsPage = () => {
   const [pickerOpen, setPickerOpen] = useState(false);
   const { data: dossiersList = [], isLoading: loadingDossiers } = useDossiersQuery(currentUser?.id);
   const { data: dossierPayload, isLoading: loadingDossier, isError, refetch } = useDossierQuery(dossierId);
+  const {
+    previewDoc,
+    loadingDocKey,
+    downloading: previewDownloading,
+    openPreview,
+    closePreview,
+    downloadPreview,
+  } = useDossierDocumentPreview();
 
   useEffect(() => {
     if (loadingDossiers || internalView) return;
@@ -201,28 +211,18 @@ export const MobileDocumentsPage = () => {
     pendingUploadDocKey.current = null;
   };
 
-  const openDocumentPreview = async (docKey) => {
+  const openDocumentPreview = async ({ docKey, label }) => {
     if (!dossierId || !docKey) return;
     setUploadError('');
-    try {
-      const { filename, blob } = await downloadDossierDocument({
-        dossierId,
-        docKey,
-        inline: true,
-      });
-      const url = window.URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.target = '_blank';
-      anchor.rel = 'noopener noreferrer';
-      anchor.download = filename;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      window.setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
-    } catch (_error) {
+    const ok = await openPreview({ dossierId, docKey, label });
+    if (!ok) {
       setUploadError('Impossible d’afficher l’aperçu de ce document pour le moment.');
     }
+  };
+
+  const handleDocumentPreview = (doc) => {
+    void triggerMobileHaptic('light');
+    void openDocumentPreview({ docKey: doc.docKey, label: doc.name });
   };
 
   const handleDocumentAction = (doc) => {
@@ -232,7 +232,7 @@ export const MobileDocumentsPage = () => {
 
     if (userAction.action === 'download' || userAction.action === 'view') {
       if (doc.hasFile) {
-        void openDocumentPreview(doc.docKey);
+        handleDocumentPreview(doc);
         return;
       }
     }
@@ -250,7 +250,7 @@ export const MobileDocumentsPage = () => {
   const handleOnlineDocumentAction = (item, state) => {
     void triggerMobileHaptic('light');
     if ((state.action === 'download' || state.action === 'view') && state.hasFile) {
-      void openDocumentPreview(state.docKey);
+      void openDocumentPreview({ docKey: state.docKey, label: item.label });
       return;
     }
     const editorPath = item.to(dossierId);
@@ -400,6 +400,8 @@ export const MobileDocumentsPage = () => {
             documents={dossierPayload?.documents || []}
             eiLike={eiLike}
             onDocumentAction={handleOnlineDocumentAction}
+            onDocumentPreview={openDocumentPreview}
+            previewLoadingDocKey={loadingDocKey}
           />
 
           <MobileAnimatedSection delay={0.09}>
@@ -422,7 +424,10 @@ export const MobileDocumentsPage = () => {
           ) : null}
 
           <div className="space-y-3">
-            {filtered.map((doc, index) => (
+            {filtered.map((doc, index) => {
+              const userAction = resolveDocumentUserAction(doc.status, doc.hasFile, doc.rejectedReason);
+              const canPreview = doc.hasFile && isDocumentPreviewAction(userAction.action);
+              return (
               <motion.div key={doc.id || doc.docKey} {...staggerItem(index)}>
                 <MobileDocumentCard
                   name={doc.name}
@@ -431,12 +436,14 @@ export const MobileDocumentsPage = () => {
                   hint={['REJECTED', 'INVALID'].includes(doc.status) ? formatDocumentRejectionHint(doc) : undefined}
                   hasFile={doc.hasFile}
                   date={doc.date}
-                  onAction={() => handleDocumentAction(doc)}
+                  onAction={canPreview ? undefined : () => handleDocumentAction(doc)}
+                  onPreview={canPreview ? () => handleDocumentPreview(doc) : undefined}
+                  previewLoading={loadingDocKey === doc.docKey}
                   onDelete={doc.hasFile && doc.canUpload ? () => void removeAttachment(doc) : undefined}
                   deleting={deletingDocKey === doc.docKey}
                 />
               </motion.div>
-            ))}
+            );})}
           </div>
 
           {!filtered.length && !isError ? (
@@ -455,6 +462,19 @@ export const MobileDocumentsPage = () => {
         </>
       )}
       </MobilePageContainer>
+      <MobileDocumentPreviewSheet
+        open={Boolean(previewDoc?.blobUrl)}
+        title={previewDoc?.label}
+        blobUrl={previewDoc?.blobUrl}
+        filename={previewDoc?.filename}
+        downloading={previewDownloading}
+        onClose={closePreview}
+        onDownload={() => {
+          void downloadPreview().then((ok) => {
+            if (!ok) setUploadError('Impossible de télécharger ce document pour le moment.');
+          });
+        }}
+      />
     </>
   );
 };

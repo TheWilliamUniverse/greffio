@@ -1,9 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FileText } from 'lucide-react';
+import { Eye, FileText, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { resolveDocumentUserAction } from '@/utils/onlineDocumentStatus.js';
+import { isDocumentPreviewAction } from '@/utils/dossierDocumentFile.js';
 import { cn } from '@/lib/utils.js';
 
 /**
@@ -20,6 +21,8 @@ export const MobileDocumentCard = ({
   icon: Icon = FileText,
   to,
   onAction,
+  onPreview,
+  previewLoading = false,
   onDelete,
   deleting = false,
   className,
@@ -30,6 +33,25 @@ export const MobileDocumentCard = ({
   const displayCta = cta || action.cta;
   const useActionHandler = Boolean(onAction);
   const useEditorLink = Boolean(to) && !useActionHandler;
+  const showPreviewButton = Boolean(onPreview) && hasFile && isDocumentPreviewAction(action.action);
+
+  const previewButton = showPreviewButton ? (
+    <Button
+      type="button"
+      variant="outline"
+      size="icon"
+      className="h-10 w-10 shrink-0 rounded-xl bg-white"
+      aria-label="Aperçu"
+      title="Aperçu"
+      onClick={(event) => {
+        event.stopPropagation();
+        onPreview();
+      }}
+      disabled={previewLoading}
+    >
+      {previewLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+    </Button>
+  ) : null;
 
   const ctaButton = useEditorLink ? (
     <Button asChild size="sm" className="h-10 shrink-0 rounded-xl px-4 font-bold">
@@ -47,11 +69,25 @@ export const MobileDocumentCard = ({
     </Button>
   );
 
+  const handleCardClick = showPreviewButton
+    ? () => { if (!previewLoading) onPreview(); }
+    : undefined;
+
   return (
     <article
+      role={handleCardClick ? 'button' : undefined}
+      tabIndex={handleCardClick ? 0 : undefined}
+      onClick={handleCardClick}
+      onKeyDown={handleCardClick ? (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          handleCardClick();
+        }
+      } : undefined}
       className={cn(
         'rounded-3xl border border-border/70 bg-white p-4 shadow-sm',
         minHeight && 'min-h-[132px]',
+        handleCardClick && 'cursor-pointer active:bg-secondary/20',
         className,
       )}
     >
@@ -82,13 +118,17 @@ export const MobileDocumentCard = ({
             size="sm"
             variant="outline"
             className="h-10 rounded-xl px-3 text-xs font-bold text-red-600"
-            onClick={onDelete}
+            onClick={(event) => {
+              event.stopPropagation();
+              onDelete();
+            }}
             disabled={deleting}
           >
             {deleting ? 'Suppression…' : 'Supprimer'}
           </Button>
         ) : null}
-        {onAction || to ? ctaButton : null}
+        {previewButton}
+        {!showPreviewButton && (onAction || to) ? ctaButton : null}
       </div>
     </article>
   );
