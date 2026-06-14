@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button.jsx';
 import { SignatureAdoptPanel } from '@/components/signature/SignatureAdoptPanel.jsx';
 import { SignatureDocumentAcknowledge } from '@/components/signature/SignatureDocumentAcknowledge.jsx';
 import { SignatureOtpStep } from '@/components/signature/SignatureOtpStep.jsx';
-import { SignwellPublicSigningPanel } from '@/components/signature/SignwellPublicSigningPanel.jsx';
 import {
   fetchPublicSignatureSession,
   getPublicProofCertificateUrl,
@@ -15,7 +14,6 @@ import {
   submitPublicSignature,
 } from '@/api/nonConviction.js';
 import { mapSignaturePublicError } from '@/utils/signaturePublicErrors.js';
-import { redirectToSignwellSigning } from '@/utils/signwellClient.js';
 import { PdfPreviewPanel } from '@/components/documents/PdfPreviewPanel.jsx';
 
 export const SignaturePublicPage = () => {
@@ -31,7 +29,6 @@ export const SignaturePublicPage = () => {
   const [proofId, setProofId] = useState('');
   const pendingSignRef = useRef(null);
 
-  const isSignwellSession = session?.provider === 'signwell' && Boolean(session?.signwellSigningUrl);
   const otpRequired = Boolean(session?.signature?.otpRequired) && !session?.signature?.otpVerified;
 
   useEffect(() => {
@@ -123,16 +120,6 @@ export const SignaturePublicPage = () => {
     }
   };
 
-  const onContinueSignwell = () => {
-    if (!previewAcknowledged) {
-      setError(mapSignaturePublicError('SIGNATURE_PREVIEW_REQUIRED'));
-      return;
-    }
-    setSigning(true);
-    setError('');
-    redirectToSignwellSigning(session.signwellSigningUrl);
-  };
-
   if (loading) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center bg-[#f6f8fc] text-sm text-muted-foreground">
@@ -220,16 +207,6 @@ export const SignaturePublicPage = () => {
                 onBack={() => setStep('adopt')}
               />
             </div>
-          ) : isSignwellSession ? (
-            <SignwellPublicSigningPanel
-              signerFullName={session?.signerFullName}
-              signerEmail={session?.signerEmail}
-              signingUrl={session?.signwellSigningUrl}
-              previewAcknowledged={previewAcknowledged}
-              onContinue={onContinueSignwell}
-              loading={signing}
-              errorMessage={error}
-            />
           ) : (
             <div className="w-full max-w-md">
               <SignatureAdoptPanel

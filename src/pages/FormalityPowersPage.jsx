@@ -17,7 +17,6 @@ import {
   signEditableDocumentNow,
 } from '@/api/editableDocuments.js';
 import { getDocumentEditorLoadErrorMessage } from '@/utils/documentEditorErrors.js';
-import { handleSignNowApiResponse } from '@/utils/signwellClient.js';
 import { DocumentEditorLoadGate } from '@/components/documents/DocumentEditorLoadGate.jsx';
 import { MobileStickyFormActions } from '@/mobile/ui/MobileStickyFormActions.jsx';
 import { MobileSignatureOverlay } from '@/mobile/ui/MobileSignatureOverlay.jsx';
@@ -122,15 +121,11 @@ export const FormalityPowersPage = () => {
         setPreviewKey((value) => value + 1);
       }
       await saveEditableDocumentDraft(dossierId, DOC_KEY, fields);
-      const result = await signEditableDocumentNow(dossierId, DOC_KEY, {
+      await signEditableDocumentNow(dossierId, DOC_KEY, {
         fields,
         ...signaturePayload,
         previewAcknowledged: true,
       });
-      if (handleSignNowApiResponse(result) === 'redirect') {
-        toast.info('Ouverture de la signature sécurisée SignWell…');
-        return;
-      }
       const { blob } = await downloadDossierDocument({ dossierId, docKey: DOC_KEY, cacheBust: true, inline: true });
       setPreviewBlobUrl((current) => {
         if (current) URL.revokeObjectURL(current);

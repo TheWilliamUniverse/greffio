@@ -4,8 +4,13 @@ const DEFAULT_BASE = 'https://www.signwell.com/api/v1';
 
 export const SIGNWELL_PROVIDER = 'signwell';
 
+/** Dormant par défaut — activer uniquement pour legacy explicite (SIGNWELL_ENABLED=true). */
+export const isSignwellEnabled = () => process.env.SIGNWELL_ENABLED === 'true';
+
 export const isSignwellConfigured = () => Boolean(
-  process.env.SIGNWELL_API_KEY && String(process.env.SIGNWELL_API_KEY).trim(),
+  isSignwellEnabled()
+  && process.env.SIGNWELL_API_KEY
+  && String(process.env.SIGNWELL_API_KEY).trim(),
 );
 
 const resolveBaseUrl = () => String(process.env.SIGNWELL_API_BASE_URL || DEFAULT_BASE).replace(/\/$/, '');

@@ -18,7 +18,6 @@ import {
 } from '@/api/nonConviction.js';
 import { runtimeConfig } from '@/config/runtime.js';
 import { getDocumentEditorLoadErrorMessage } from '@/utils/documentEditorErrors.js';
-import { handleSignNowApiResponse } from '@/utils/signwellClient.js';
 import { DocumentEditorLoadGate } from '@/components/documents/DocumentEditorLoadGate.jsx';
 import { MobileStickyFormActions } from '@/mobile/ui/MobileStickyFormActions.jsx';
 import { MobileSignatureOverlay } from '@/mobile/ui/MobileSignatureOverlay.jsx';
@@ -143,15 +142,11 @@ export const NonConvictionDeclarationPage = () => {
         setPreviewKey((k) => k + 1);
       }
       await saveNonConvictionDraft(dossierId, normalized);
-      const result = await signNonConvictionNow(dossierId, {
+      await signNonConvictionNow(dossierId, {
         fields: normalized,
         ...signaturePayload,
         previewAcknowledged: true,
       });
-      if (handleSignNowApiResponse(result) === 'redirect') {
-        toast.info('Ouverture de la signature sécurisée SignWell…');
-        return;
-      }
       toast.success('Signature enregistrée. Votre document est maintenant enregistré dans le dossier.');
       void triggerMobileHaptic('success');
       setSignMode(null);

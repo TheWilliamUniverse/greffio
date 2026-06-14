@@ -17,7 +17,6 @@ import {
   signEditableDocumentNow,
 } from '@/api/editableDocuments.js';
 import { getDocumentEditorLoadErrorMessage } from '@/utils/documentEditorErrors.js';
-import { handleSignNowApiResponse } from '@/utils/signwellClient.js';
 import { DocumentEditorLoadGate } from '@/components/documents/DocumentEditorLoadGate.jsx';
 import { MobileStickyFormActions } from '@/mobile/ui/MobileStickyFormActions.jsx';
 import { MobileSignatureOverlay } from '@/mobile/ui/MobileSignatureOverlay.jsx';
@@ -41,9 +40,9 @@ const mapError = (error) => {
     DOCUMENT_EDITOR_SIGNATURE_PLACE_DATE_REQUIRED: 'Indiquez le lieu et la date.',
     DOCUMENT_EDITOR_SIGNATURE_REQUIRED: 'Indiquez le nom du signataire (Président).',
     SIGN_NOW_FAILED: 'La signature n’a pas pu être apposée sur le document.',
-    SIGNWELL_SIGN_NOW_FAILED: 'La redirection SignWell a échoué. Greffio tente la signature interne.',
-    SIGNWELL_API_ERROR: 'SignWell a refusé la requête. Réessayez ou contactez le support Greffio.',
-    SIGNWELL_SEND_FAILED: 'L’envoi SignWell a échoué. Un lien Greffio interne sera utilisé si possible.',
+    SIGNWELL_SIGN_NOW_FAILED: 'La signature n’a pas pu être finalisée. Réessayez ou contactez le support Greffio.',
+    SIGNWELL_API_ERROR: 'La signature n’a pas pu être finalisée. Réessayez ou contactez le support Greffio.',
+    SIGNWELL_SEND_FAILED: 'L’envoi du lien de signature a échoué. Réessayez ou contactez le support Greffio.',
     SIGNATURE_PREVIEW_REQUIRED: 'Consultez le document avant de le signer.',
     PDF_GENERATION_FAILED: 'La génération du document a échoué.',
     STORAGE_UPLOAD_FAILED: 'Le document n’a pas pu être enregistré.',
@@ -135,15 +134,11 @@ export const SubscribersListPage = () => {
         setPreviewKey((value) => value + 1);
       }
       await saveEditableDocumentDraft(dossierId, DOC_KEY, fields);
-      const result = await signEditableDocumentNow(dossierId, DOC_KEY, {
+      await signEditableDocumentNow(dossierId, DOC_KEY, {
         fields,
         ...signaturePayload,
         previewAcknowledged: true,
       });
-      if (handleSignNowApiResponse(result) === 'redirect') {
-        toast.info('Ouverture de la signature sécurisée SignWell…');
-        return;
-      }
       const { blob } = await downloadDossierDocument({ dossierId, docKey: DOC_KEY, cacheBust: true, inline: true });
       setPreviewBlobUrl((current) => {
         if (current) URL.revokeObjectURL(current);
