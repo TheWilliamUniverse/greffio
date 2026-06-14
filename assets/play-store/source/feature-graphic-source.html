@@ -4,148 +4,245 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Greffio Feature Graphic Source</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" />
     <style>
       :root {
-        --bg-1: #f8faff;
-        --bg-2: #eef3ff;
-        --ink: #0f172a;
+        --bg: #f7f9fc;
+        --ink: #0a1628;
         --muted: #475569;
-        --brand: #3b5bdb;
-        --brand-soft: #dfe7ff;
+        --primary: #16549c;
+        --brand: #26487a;
+        --secondary: #e4ecf6;
+        --border: rgba(184, 197, 217, 0.75);
         --card: #ffffff;
-        --ok: #0f766e;
       }
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
       body {
         width: 1024px;
         height: 500px;
-        font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
-        background: linear-gradient(135deg, var(--bg-1), var(--bg-2));
-        color: var(--ink);
         overflow: hidden;
+        font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+        background: linear-gradient(135deg, #f7f9fc 0%, #eef3fb 55%, #f4f7fd 100%);
+        color: var(--ink);
       }
       .frame {
+        position: relative;
         width: 100%;
         height: 100%;
-        position: relative;
-        display: flex;
-      }
-      .left {
-        width: 42%;
-        padding: 54px 40px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        gap: 16px;
-      }
-      .logo-wordmark {
-        width: 270px;
-        max-width: 100%;
-        height: auto;
-      }
-      .title {
-        font-size: 24px;
-        line-height: 1.2;
-        color: #1e293b;
-        font-weight: 650;
-      }
-      .disclaimer {
-        margin-top: 4px;
-        font-size: 14px;
-        color: #64748b;
-      }
-      .right {
-        width: 58%;
         display: flex;
         align-items: center;
-        justify-content: center;
+        padding: 0 46px;
+        gap: 34px;
+      }
+      .glow {
+        position: absolute;
+        border-radius: 999px;
+        filter: blur(56px);
+        pointer-events: none;
+      }
+      .glow-a {
+        width: 280px;
+        height: 280px;
+        top: -80px;
+        right: 120px;
+        background: rgba(22, 84, 156, 0.14);
+      }
+      .glow-b {
+        width: 220px;
+        height: 220px;
+        bottom: -90px;
+        left: 40px;
+        background: rgba(38, 72, 122, 0.1);
+      }
+      .left {
         position: relative;
+        z-index: 1;
+        width: 46%;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .logo-wordmark {
+        width: 250px;
+        height: auto;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        align-self: flex-start;
+        border-radius: 999px;
+        border: 1px solid rgba(22, 84, 156, 0.2);
+        background: rgba(228, 236, 246, 0.75);
+        padding: 7px 14px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--primary);
+      }
+      .title {
+        font-family: "Plus Jakarta Sans", Inter, sans-serif;
+        font-size: 30px;
+        line-height: 1.12;
+        letter-spacing: -0.03em;
+        font-weight: 800;
+        color: var(--ink);
+        max-width: 420px;
+      }
+      .subtitle {
+        font-size: 15px;
+        line-height: 1.45;
+        color: var(--muted);
+        max-width: 430px;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      .chip {
+        border-radius: 999px;
+        border: 1px solid rgba(22, 84, 156, 0.14);
+        background: #fff;
+        padding: 6px 12px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--ink);
+      }
+      .disclaimer {
+        font-size: 11px;
+        color: #64748b;
+        margin-top: 2px;
+      }
+      .right {
+        position: relative;
+        z-index: 1;
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
       }
       .phone {
-        width: 358px;
-        height: 432px;
+        width: 250px;
         border-radius: 28px;
-        border: 1px solid #dbe5ff;
-        background: var(--card);
-        box-shadow: 0 20px 46px rgba(15, 23, 42, 0.16);
-        padding: 18px;
+        border: 7px solid var(--ink);
+        background: var(--ink);
+        padding: 8px;
+        box-shadow: 0 22px 48px rgba(10, 18, 32, 0.18);
+        transform: rotate(-2deg);
       }
-      .header {
-        height: 60px;
-        border-radius: 16px;
-        background: #f7f9ff;
-        margin-bottom: 14px;
-        padding: 12px 14px;
+      .phone-inner {
+        border-radius: 20px;
+        overflow: hidden;
+        background: var(--bg);
       }
-      .h1 {
-        font-size: 16px;
-        font-weight: 700;
-      }
-      .h2 {
-        margin-top: 4px;
-        font-size: 13px;
-        color: var(--muted);
-      }
-      .card {
-        border: 1px solid #e6ebff;
-        border-radius: 14px;
+      .phone-notch {
+        height: 22px;
         background: #fff;
-        margin-bottom: 12px;
-        padding: 12px 13px;
+        border-bottom: 1px solid var(--border);
+        display: grid;
+        place-items: center;
       }
-      .row {
+      .phone-notch span {
+        width: 56px;
+        height: 5px;
+        border-radius: 999px;
+        background: #dbe5f2;
+      }
+      .phone-body { padding: 12px; }
+      .mini-card {
+        border-radius: 14px;
+        border: 1px solid rgba(22, 84, 156, 0.2);
+        background: #fff;
+        padding: 12px;
+      }
+      .mini-card + .mini-card { margin-top: 8px; }
+      .mini-card strong {
+        font-size: 11px;
+        color: var(--primary);
+      }
+      .mini-card p {
+        margin-top: 4px;
+        font-size: 10px;
+        color: #64748b;
+        line-height: 1.35;
+      }
+      .progress-meta {
+        margin-top: 8px;
         display: flex;
         justify-content: space-between;
-        gap: 10px;
-        font-size: 13px;
-      }
-      .label {
+        font-size: 9px;
+        font-weight: 700;
         color: #64748b;
       }
-      .value {
+      .progress-bar {
+        margin-top: 4px;
+        height: 6px;
+        border-radius: 999px;
+        background: #e2e8f0;
+        overflow: hidden;
+      }
+      .progress-bar span {
+        display: block;
+        height: 100%;
+        width: 67%;
+        border-radius: 999px;
+        background: var(--primary);
+      }
+      .doc-row {
+        margin-top: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        padding: 5px 7px;
+        font-size: 8px;
         font-weight: 600;
       }
-      .dot {
-        display: inline-block;
-        width: 8px;
-        height: 8px;
+      .doc-dot {
+        width: 6px;
+        height: 6px;
         border-radius: 999px;
-        background: #22c55e;
-        margin-right: 6px;
-        vertical-align: middle;
+        background: #0f766e;
       }
     </style>
   </head>
   <body>
     <main class="frame">
+      <div class="glow glow-a"></div>
+      <div class="glow glow-b"></div>
       <section class="left">
         <img class="logo-wordmark" src="./greffio-wordmark-official.svg" alt="Logo Greffio" />
-        <p class="title">Formalités d'entreprise simplifiées</p>
+        <span class="badge">✦ Formalités d’entreprise</span>
+        <h1 class="title">Créez, suivez et centralisez vos formalités d’entreprise</h1>
+        <p class="subtitle">Parcours guidé, documents centralisés et suivi clair avec l’équipe Greffio.</p>
+        <div class="chips">
+          <span class="chip">0€ pour démarrer</span>
+          <span class="chip">Dossier centralisé</span>
+          <span class="chip">Interface mobile</span>
+        </div>
         <p class="disclaimer">Service privé indépendant</p>
       </section>
       <section class="right">
         <div class="phone">
-          <div class="header">
-            <div class="h1">Tableau de bord dossier</div>
-            <div class="h2">Suivi centralisé des formalités</div>
-          </div>
-          <div class="card">
-            <div class="row"><span class="label">Entreprise</span><span class="value">Nova Atelier SAS</span></div>
-            <div class="row"><span class="label">SIREN</span><span class="value">123 456 789</span></div>
-            <div class="row"><span class="label">SIRET</span><span class="value">123 456 789 00012</span></div>
-          </div>
-          <div class="card">
-            <div class="row"><span class="label">Statut</span><span class="value"><span class="dot"></span>Entreprise trouvée</span></div>
-            <div class="row"><span class="label">Ville</span><span class="value">Paris</span></div>
-            <div class="row"><span class="label">Prochaine action</span><span class="value">Déposer les documents</span></div>
-          </div>
-          <div class="card">
-            <div class="row"><span class="label">Suivi dossier</span><span class="value">4/6 étapes complétées</span></div>
-            <div class="row"><span class="label">Documents</span><span class="value">3 validés / 1 en attente</span></div>
+          <div class="phone-inner">
+            <div class="phone-notch"><span></span></div>
+            <div class="phone-body">
+              <div class="mini-card">
+                <strong>Action requise · Nova Atelier SAS</strong>
+                <p>Complétez les documents à signer pour avancer vers le dépôt.</p>
+                <div class="progress-meta"><span>Progression</span><span>67 %</span></div>
+                <div class="progress-bar"><span></span></div>
+              </div>
+              <div class="mini-card">
+                <strong>DOCUMENTS</strong>
+                <p>3 validés / 1 en attente</p>
+                <div class="doc-row"><span class="doc-dot"></span>Statuts SAS</div>
+                <div class="doc-row"><span class="doc-dot"></span>Pouvoir formalités</div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

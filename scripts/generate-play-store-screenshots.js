@@ -9,7 +9,9 @@ const repoRoot = path.resolve(__dirname, '..');
 
 const baseUrl = process.env.PLAYSTORE_BASE_URL || 'http://127.0.0.1:3000';
 const outputRoot = path.join(repoRoot, 'assets', 'play-store', 'screenshots');
+const phoneSourceRoot = path.join(repoRoot, 'assets', 'play-store', 'source', 'phone');
 const OFFICIAL_ICON = '../../../public/icons/greffio-icon.svg';
+const USE_SITE_SOURCES = process.env.PLAYSTORE_USE_SITE_SOURCES !== '0';
 
 const SCREEN_GROUPS = [
   {
@@ -65,13 +67,97 @@ const SCREEN_GROUPS = [
 ];
 
 const SCENES = [
-  { file: '01-accueil-greffio.png', route: '/', title: 'Accueil Greffio', subtitle: 'Formalités d’entreprise simplifiées', fallbackTag: 'Accueil' },
-  { file: '02-recherche-siren-siret.png', route: '/simulateur', title: 'Recherche SIREN / SIRET', subtitle: 'Entreprise trouvée : Nova Atelier SAS', fallbackTag: 'Recherche' },
-  { file: '03-questionnaire-progressif.png', route: '/questionnaire', title: 'Questionnaire progressif', subtitle: 'Étape 2 sur 6 - informations entreprise', fallbackTag: 'Questionnaire' },
-  { file: '04-dashboard-dossier.png', route: '/dashboard', title: 'Dashboard dossier', subtitle: 'Suivez les étapes et actions prioritaires', fallbackTag: 'Dashboard' },
-  { file: '05-documents.png', route: '/documents', title: 'Documents à transmettre', subtitle: 'Pièces centralisées et statut de vérification', fallbackTag: 'Documents' },
-  { file: '06-suivi-dossier.png', route: '/dossiers', title: 'Suivi du dossier', subtitle: 'Prochaines actions et avancement en direct', fallbackTag: 'Suivi dossier' },
+  { file: '01-accueil-greffio.png', sourceHtml: '01-accueil-greffio.html', activeNavTab: 'accueil', navVariant: 'public', route: '/', title: 'Accueil Greffio', subtitle: 'Formalités d’entreprise simplifiées', fallbackTag: 'Accueil' },
+  { file: '02-recherche-siren-siret.png', sourceHtml: '02-recherche-siren-siret.html', activeNavTab: 'simuler', navVariant: 'public', route: '/simulateur', title: 'Recherche SIREN / SIRET', subtitle: 'Entreprise trouvée : Nova Atelier SAS', fallbackTag: 'Recherche' },
+  { file: '03-questionnaire-progressif.png', sourceHtml: '03-questionnaire-progressif.html', activeNavTab: 'new', navVariant: 'auth', route: '/questionnaire', title: 'Questionnaire progressif', subtitle: 'Étape 2 sur 6 - informations entreprise', fallbackTag: 'Questionnaire' },
+  { file: '04-dashboard-dossier.png', sourceHtml: '04-dashboard-dossier.html', activeNavTab: 'home', navVariant: 'auth', route: '/dashboard', title: 'Dashboard dossier', subtitle: 'Suivez les étapes et actions prioritaires', fallbackTag: 'Dashboard' },
+  { file: '05-documents.png', sourceHtml: '05-documents.html', activeNavTab: 'documents', navVariant: 'auth', route: '/documents', title: 'Documents à transmettre', subtitle: 'Pièces centralisées et statut de vérification', fallbackTag: 'Documents' },
+  { file: '06-suivi-dossier.png', sourceHtml: '06-suivi-dossier.html', activeNavTab: 'dossiers', navVariant: 'auth', route: '/dossiers', title: 'Suivi du dossier', subtitle: 'Prochaines actions et avancement en direct', fallbackTag: 'Suivi dossier' },
 ];
+
+const MOBILE_LOGICAL_VIEWPORT = { width: 1080, height: 1920 };
+
+function resolveCaptureProfile(group) {
+  if (['phone', 'tablet-7', 'tablet-10'].includes(group.folder)) {
+    const scaleX = group.width / MOBILE_LOGICAL_VIEWPORT.width;
+    const scaleY = group.height / MOBILE_LOGICAL_VIEWPORT.height;
+    const deviceScaleFactor = Math.min(scaleX, scaleY);
+    return {
+      viewport: MOBILE_LOGICAL_VIEWPORT,
+      deviceScaleFactor,
+    };
+  }
+  return {
+    viewport: { width: group.width, height: group.height },
+    deviceScaleFactor: 1,
+  };
+}
+
+function applyActiveNavTab(navHtml, activeTab) {
+  return navHtml.replace(
+    /(<a class=")bottom-nav-link(" href="#" data-tab=")([^"]+)(")/g,
+    (_match, prefix, middle, tab, suffix) => (
+      tab === activeTab
+        ? `${prefix}bottom-nav-link active${middle}${tab}${suffix}`
+        : `${prefix}bottom-nav-link${middle}${tab}${suffix}`
+    ),
+  );
+}
+
+const PHONE_DEVICE_SHELL_OPEN = [
+  '<body class="capture-phone">',
+  '<div class="phone-stage">',
+  '<div class="iphone-device">',
+  '<span class="iphone-btn iphone-btn-vol-up" aria-hidden="true"></span>',
+  '<span class="iphone-btn iphone-btn-vol-down" aria-hidden="true"></span>',
+  '<span class="iphone-btn iphone-btn-power" aria-hidden="true"></span>',
+  '<div class="iphone-glass">',
+  '<div class="iphone-screen">',
+].join('');
+
+const PHONE_DEVICE_SHELL_CLOSE = '</div></div></div></div>';
+
+function wrapPhoneDeviceHtml(html) {
+  return html
+    .replace('<body>', PHONE_DEVICE_SHELL_OPEN)
+    .replace('</main>', `</main>${PHONE_DEVICE_SHELL_CLOSE}`)
+    .replace(
+      '<div class="status-bar">',
+      '<div class="status-bar"><div class="dynamic-island" aria-hidden="true"><span class="di-sensor"></span></div>',
+    );
+}
+
+async function loadSceneHtml(scene, { captureMode = 'phone' } = {}) {
+  const htmlPath = path.join(phoneSourceRoot, scene.sourceHtml);
+  let html = await fs.readFile(htmlPath, 'utf8');
+  const fragmentName = scene.navVariant === 'public' ? 'bottom-nav-public.html' : 'bottom-nav-auth.html';
+  const fragmentPath = path.join(phoneSourceRoot, 'fragments', fragmentName);
+  let nav = await fs.readFile(fragmentPath, 'utf8');
+  nav = applyActiveNavTab(nav, scene.activeNavTab);
+  if (!html.includes('<!-- BOTTOM_NAV -->')) {
+    throw new Error(`Missing <!-- BOTTOM_NAV --> placeholder in ${scene.sourceHtml}`);
+  }
+  html = html.replace('<!-- BOTTOM_NAV -->', nav);
+
+  const cssPath = path.join(phoneSourceRoot, 'play-store-shared.css');
+  const css = await fs.readFile(cssPath, 'utf8');
+  html = html.replace(
+    '<link rel="stylesheet" href="./play-store-shared.css" />',
+    `<style>${css}</style>`,
+  );
+
+  const wordmarkSvg = await fs.readFile(path.join(phoneSourceRoot, '..', 'greffio-wordmark-official.svg'), 'utf8');
+  const inlineWordmark = wordmarkSvg.replace('<svg ', '<svg class="wordmark" ');
+  html = html.replace(/<img class="wordmark"[^>]*>/g, inlineWordmark);
+
+  if (captureMode === 'tablet') {
+    html = html.replace('<body>', '<body class="capture-tablet">');
+  } else if (captureMode === 'phone') {
+    html = wrapPhoneDeviceHtml(html);
+  }
+
+  return html;
+}
 
 function maskSensitiveDataInDom() {
   const selectors = [
@@ -168,31 +254,59 @@ function buildFallbackTemplate({ title, subtitle, tag, width, height }) {
 </html>`;
 }
 
+function resolveCaptureMode(groupFolder) {
+  if (groupFolder === 'phone') return 'phone';
+  if (['tablet-7', 'tablet-10'].includes(groupFolder)) return 'tablet';
+  return 'default';
+}
+
+async function captureSiteSourceHtml(browser, group, scene) {
+  const captureMode = resolveCaptureMode(group.folder);
+  const html = await loadSceneHtml(scene, { captureMode });
+  const { viewport, deviceScaleFactor } = resolveCaptureProfile(group);
+  const page = await browser.newPage({ viewport, deviceScaleFactor });
+  await page.setContent(html, { waitUntil: 'networkidle', timeout: 20_000 });
+  await page.waitForTimeout(400);
+  return { page, resolvedUrl: `site-source:${scene.sourceHtml}`, usedFallback: false };
+}
+
 async function captureRouteOrFallback(browser, group, scene) {
   const viewport = { width: group.width, height: group.height };
-  let page = await browser.newPage({ viewport, deviceScaleFactor: 1 });
+  let page;
   let usedFallback = false;
   let resolvedUrl = `${baseUrl}${scene.route}`;
-  try {
-    const response = await page.goto(resolvedUrl, { waitUntil: 'domcontentloaded', timeout: 15_000 });
-    if (!response || response.status() >= 400) {
-      throw new Error(`Invalid response status for ${resolvedUrl}`);
+
+  if (USE_SITE_SOURCES && ['phone', 'tablet-7', 'tablet-10'].includes(group.folder)) {
+    try {
+      ({ page, resolvedUrl, usedFallback } = await captureSiteSourceHtml(browser, group, scene));
+    } catch {
+      page = undefined;
     }
-    await page.waitForTimeout(900);
-    await page.evaluate(maskSensitiveDataInDom);
-  } catch {
-    usedFallback = true;
-    resolvedUrl = `fallback:${scene.route}`;
-    await page.close();
+  }
+
+  if (!page) {
     page = await browser.newPage({ viewport, deviceScaleFactor: 1 });
-    const html = buildFallbackTemplate({
-      title: scene.title,
-      subtitle: scene.subtitle,
-      tag: scene.fallbackTag,
-      width: group.width,
-      height: group.height,
-    });
-    await page.setContent(html, { waitUntil: 'domcontentloaded' });
+    try {
+      const response = await page.goto(resolvedUrl, { waitUntil: 'domcontentloaded', timeout: 15_000 });
+      if (!response || response.status() >= 400) {
+        throw new Error(`Invalid response status for ${resolvedUrl}`);
+      }
+      await page.waitForTimeout(900);
+      await page.evaluate(maskSensitiveDataInDom);
+    } catch {
+      usedFallback = true;
+      resolvedUrl = `fallback:${scene.route}`;
+      await page.close();
+      page = await browser.newPage({ viewport, deviceScaleFactor: 1 });
+      const html = buildFallbackTemplate({
+        title: scene.title,
+        subtitle: scene.subtitle,
+        tag: scene.fallbackTag,
+        width: group.width,
+        height: group.height,
+      });
+      await page.setContent(html, { waitUntil: 'domcontentloaded' });
+    }
   }
 
   const targetDir = path.join(outputRoot, group.folder);
@@ -251,7 +365,7 @@ async function main() {
   for (const item of results) {
     const group = SCREEN_GROUPS.find((g) => g.folder === item.group);
     const valid = validateResult(group, item);
-    const mode = item.usedFallback ? 'fallback-template' : 'app-route';
+    const mode = item.usedFallback ? 'fallback-template' : 'site-source';
     const status = valid ? 'OK' : 'ERROR';
     console.log(`- [${status}] ${item.group}/${item.file} (${item.width}x${item.height}, ${(item.sizeBytes / 1024).toFixed(1)} KB, ${mode} -> ${item.resolvedUrl})`);
   }
