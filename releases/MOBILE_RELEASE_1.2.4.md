@@ -1,13 +1,13 @@
-# Greffio Android — release 1.2.4
+# Greffio Android – release 1.2.4
 
 - **versionName** : `1.2.4`
 - **versionCode** : `261510003`
 - **package** : `com.greffio.app`
 
-## Notes de version (Play Console — fr-FR, courtes)
+## Notes de version (Play Console – fr-FR, courtes)
 
 ```
-Greffio 1.2.4 — documents, assistant et stabilité
+Greffio 1.2.4 – documents, assistant et stabilité
 
 • Aperçu PDF des documents et coffre documentaire amélioré
 • Assistant Greffio plus pertinent sur votre dossier

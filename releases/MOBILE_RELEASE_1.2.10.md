@@ -1,4 +1,4 @@
-# Greffio Android — release 1.2.10
+# Greffio Android – release 1.2.10
 
 - **versionName** : `1.2.10`
 - **versionCode** : `261510009`
@@ -6,7 +6,7 @@
 
 > Parité web mobile + terminal paiement accordéon + profil/paramètres accessibles sur mobile.
 
-## Notes de version (Play Console — fr-FR)
+## Notes de version (Play Console – fr-FR)
 
 ```
 • Mon profil et Paramètres accessibles depuis le menu ☰ et le parcours Compte
@@ -51,11 +51,11 @@ cd android && ./gradlew.bat bundleRelease
 |-------|--------|
 | Frontend Hostinger | `dist_20260613_011839.zip` → `greffio.willentreprises.com` |
 | Bundle live | `/assets/index-CdCyLwjV.js` |
-| Backend VPS | `deploy-backend-vps.ps1` — backup `greffio-backup-20260612-231922` |
+| Backend VPS | `deploy-backend-vps.ps1` – backup `greffio-backup-20260612-231922` |
 | API `/api/app-version` | `1.2.10` / `261510009` |
 
 ## API (après déploiement serveur)
 
 Mettre à jour `APP_LATEST_VERSION_CODE=261510009` et `APP_LATEST_VERSION_NAME=1.2.10` sur le VPS, ou déployer `server/config/appVersion.js` avec les nouvelles valeurs par défaut.
 
-**Statut :** déployé le 13/06/2026 — `/api/app-version` renvoie déjà `1.2.10`.
+**Statut :** déployé le 13/06/2026 – `/api/app-version` renvoie déjà `1.2.10`.

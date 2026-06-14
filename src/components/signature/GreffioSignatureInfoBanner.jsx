@@ -9,7 +9,7 @@ export const GreffioSignatureInfoBanner = ({ className = '' }) => (
     <PenLine className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
     <p>
       <span className="font-semibold text-foreground">Signature Greffio</span>
-      {' — '}
+      {' – '}
       Consultez l’aperçu du document, confirmez votre identité et signez directement dans Greffio.
       Le document signé et la preuve sont enregistrés dans votre dossier.
     </p>

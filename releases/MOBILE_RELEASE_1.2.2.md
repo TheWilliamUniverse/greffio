@@ -1,14 +1,14 @@
-# Greffio Android — release 1.2.2
+# Greffio Android – release 1.2.2
 
 - **versionName** : `1.2.2`
 - **versionCode** : `261510001`
 - **package** : `com.greffio.app`
 - **API** : `https://api.greffio.willentreprises.com`
 
-## Notes de version (Play Console — fr-FR)
+## Notes de version (Play Console – fr-FR)
 
 ```
-Greffio 1.2.2 — liens profonds et améliorations mobile
+Greffio 1.2.2 – liens profonds et améliorations mobile
 
 • Correction App Links : greffio.willentreprises.com associé à l’application
 • Parcours démarches en grille 2 colonnes (navigation plus compacte)

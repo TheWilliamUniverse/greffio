@@ -1,4 +1,4 @@
-# Greffio Android — release 1.2.18 (icône + PDF + questionnaire)
+# Greffio Android – release 1.2.18 (icône + PDF + questionnaire)
 
 - **versionName** : `1.2.18`
 - **versionCode** : `261510017`
@@ -6,7 +6,7 @@
 
 > Release native : icône launcher Greffio, FileProvider/FileOpener pour PDF. Le questionnaire à deux niveaux, le paiement mobile et les corrections UI sont livrés via le bundle web Hostinger.
 
-## Notes de release (Play Console — fr-FR)
+## Notes de release (Play Console – fr-FR)
 
 ```
 • Icône Greffio affichée correctement sur l’écran d’accueil

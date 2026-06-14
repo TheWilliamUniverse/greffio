@@ -54,7 +54,7 @@ const detectDeviceHint = () => {
 };
 
 const formatBytes = (bytes = 0) => {
-  if (!bytes) return '—';
+  if (!bytes) return '–';
   const mb = bytes / (1024 * 1024);
   return `${mb.toFixed(mb >= 10 ? 0 : 1)} Mo`;
 };
@@ -199,7 +199,7 @@ export const AppDownloadGatePage = () => {
             </div>
 
             <p className="text-sm leading-6 text-muted-foreground">
-              Bonjour Ibtissam — cette page n’est pas référencée publiquement. Un code à 6 chiffres est envoyé uniquement à
+              Bonjour Ibtissam – cette page n’est pas référencée publiquement. Un code à 6 chiffres est envoyé uniquement à
               {' '}
               <strong>{AUTHORIZED_RECIPIENT_MASKED}</strong>.
             </p>
@@ -268,7 +268,7 @@ export const AppDownloadGatePage = () => {
                       {loadingInfo
                         ? 'Chargement de la dernière version…'
                         : downloadInfo?.available
-                          ? `Version ${downloadInfo.versionName} (build ${downloadInfo.versionCode}) — ${formatBytes(downloadInfo.sizeBytes)}`
+                          ? `Version ${downloadInfo.versionName} (build ${downloadInfo.versionCode}) – ${formatBytes(downloadInfo.sizeBytes)}`
                           : 'APK en cours de préparation côté serveur. Réessayez dans quelques minutes ou utilisez le Play Store.'}
                     </p>
                     <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{installHint}</p>
@@ -334,7 +334,7 @@ export const AppDownloadGatePage = () => {
                 {[
                   'Ne pas partager cette URL publiquement.',
                   'Même compte Greffio sur web, Android et future app iOS.',
-                  'L’app charge le site live — les mises à jour métier passent par le web.',
+                  'L’app charge le site live – les mises à jour métier passent par le web.',
                 ].map((point) => (
                   <div key={point} className="flex items-center gap-2 text-sm">
                     <BadgeCheck className="h-4 w-4 shrink-0 text-emerald-600" />

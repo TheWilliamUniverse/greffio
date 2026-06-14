@@ -1,13 +1,13 @@
-# Greffio Android — release 1.2.6
+# Greffio Android – release 1.2.6
 
 - **versionName** : `1.2.6`
 - **versionCode** : `261510005`
 - **package** : `com.greffio.app`
 
-## Notes de version (Play Console — fr-FR)
+## Notes de version (Play Console – fr-FR)
 
 ```
-Greffio 1.2.6 — cockpit mobile premium
+Greffio 1.2.6 – cockpit mobile premium
 
 • Header cockpit : sheet compte (profil, paramètres), pastille connectée, recherche dossiers/documents, confirmation déconnexion, ombre au scroll
 • Landing mobile animée, drawer latéral web + app, pages Documents et Messages dédiées
@@ -24,8 +24,8 @@ Header cockpit premium, drawer, docs Didit, assistant & statuts mobile, stabilit
 
 ## Commits inclus
 
-- `89505b1` — Didit, docs en ligne, header cockpit v1.2.6
-- `c2b799f` — polish header (sheet, recherche API, ombre scroll, back Android)
+- `89505b1` – Didit, docs en ligne, header cockpit v1.2.6
+- `c2b799f` – polish header (sheet, recherche API, ombre scroll, back Android)
 
 ## Artefact
 

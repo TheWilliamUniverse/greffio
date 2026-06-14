@@ -15,6 +15,7 @@ import {
   ASSOCIATE_TYPES,
   buildAssociateDisplayName,
   buildAssociatesSummary,
+  createEmptyAssociate,
 } from '@/utils/associateEntry.js';
 import {
   ASSOCIATE_ROLE_OPTIONS,
@@ -24,25 +25,6 @@ import {
 
 const fieldClass = 'h-12 rounded-xl border-2 border-[#d4e2f5] bg-white px-3 text-sm font-medium focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/12';
 
-const emptyAssociate = () => ({
-  id: `associate_${Math.random().toString(36).slice(2, 8)}`,
-  associateType: ASSOCIATE_TYPES.PERSON,
-  firstName: '',
-  lastName: '',
-  companyName: '',
-  siren: '',
-  legalForm: 'SAS',
-  representativeName: '',
-  representativeQuality: '',
-  rcsCity: '',
-  birthDate: '',
-  address: '',
-  share: '',
-  roleLabel: 'Associé',
-  isMinorEmancipated: false,
-  legalRepresentatives: '',
-});
-
 export const AssociatesMinorPanel = ({
   value = [],
   onChange,
@@ -50,7 +32,7 @@ export const AssociatesMinorPanel = ({
   onDirigeantChange,
   includeDirector = false,
 }) => {
-  const associates = Array.isArray(value) && value.length ? value : [emptyAssociate()];
+  const associates = Array.isArray(value) && value.length ? value : [createEmptyAssociate()];
   const [expandedId, setExpandedId] = useState(associates[0]?.id || null);
 
   const updateAssociate = (index, patch) => {
@@ -79,7 +61,7 @@ export const AssociatesMinorPanel = ({
   };
 
   const addAssociate = () => {
-    const entry = emptyAssociate();
+    const entry = createEmptyAssociate();
     setExpandedId(entry.id);
     onChange({
       associates: [...associates, entry],
@@ -89,7 +71,7 @@ export const AssociatesMinorPanel = ({
 
   const removeAssociate = (index) => {
     const next = associates.filter((_, i) => i !== index);
-    const fallback = next.length ? next : [emptyAssociate()];
+    const fallback = next.length ? next : [createEmptyAssociate()];
     if (!fallback.some((a) => a.id === expandedId)) {
       setExpandedId(fallback[0]?.id || null);
     }

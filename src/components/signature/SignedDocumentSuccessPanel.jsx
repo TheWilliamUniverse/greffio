@@ -15,7 +15,7 @@ const formatFrenchDateTime = (value) => {
   });
 };
 
-/** Présentation post-signature — niveau SignWell ou supérieur. */
+/** Présentation post-signature – niveau SignWell ou supérieur. */
 export const SignedDocumentSuccessPanel = ({
   title = 'Document signé avec succès',
   subtitle = 'Votre document a été signé électroniquement via Greffio. Une preuve de signature a été générée et enregistrée dans votre dossier.',
@@ -142,7 +142,7 @@ export const SignedDocumentSuccessPanel = ({
       </div>
 
       <p className="mt-4 max-w-md text-[11px] leading-5 text-muted-foreground">
-        Signature électronique simple (SES) — non qualifiée eIDAS. Le QR code figurant sur le PDF permet de vérifier l&apos;intégrité du document.
+        Signature électronique simple (SES) – non qualifiée eIDAS. Le QR code figurant sur le PDF permet de vérifier l&apos;intégrité du document.
       </p>
     </div>
   );

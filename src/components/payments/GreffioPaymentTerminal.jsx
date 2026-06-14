@@ -128,7 +128,7 @@ export const GreffioPaymentTerminal = ({
       <div>
         <h2 className="text-lg font-extrabold text-[hsl(var(--greffio-blue-900))]">Options de paiement</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          {offerLabel} — choisissez votre moyen de paiement sécurisé.
+          {offerLabel} – choisissez votre moyen de paiement sécurisé.
         </p>
       </div>
 

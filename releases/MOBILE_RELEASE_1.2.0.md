@@ -1,4 +1,4 @@
-# Greffio Android — release 1.2.0
+# Greffio Android – release 1.2.0
 
 - **versionName** : `1.2.0`
 - **versionCode** : `26145200`

@@ -1,4 +1,4 @@
-# Greffio Android — release 1.2.9
+# Greffio Android – release 1.2.9
 
 - **versionName** : `1.2.9`
 - **versionCode** : `261510008`
@@ -6,7 +6,7 @@
 
 > Repackage 1.2.8 avec nouveau `versionCode` (261510007 déjà consommé sur Play Console).
 
-## Notes de version (Play Console — fr-FR)
+## Notes de version (Play Console – fr-FR)
 
 ```
 • Parcours simulateur plus fluide

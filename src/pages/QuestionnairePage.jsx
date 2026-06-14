@@ -56,6 +56,7 @@ import { getProjectDraft } from '@/utils/localStorage.js';
 import { runtimeConfig } from '@/config/runtime.js';
 import { isEiLikeFormality, isStatutesSupportedForm } from '@/config/formalities.js';
 import { AssociatesMinorPanel } from '@/components/questionnaire/AssociatesMinorPanel.jsx';
+import { AssociatesMobileWizard } from '@/components/questionnaire/AssociatesMobileWizard.jsx';
 import { BeneficialOwnersPicker } from '@/components/questionnaire/BeneficialOwnersPicker.jsx';
 import { BirthDateMinorEncouragement } from '@/components/BirthDateMinorEncouragement.jsx';
 import { validateDirectorEligibility } from '@/config/minorAssociateRules.js';
@@ -678,6 +679,30 @@ export const QuestionnairePage = () => {
     return () => window.clearTimeout(timer);
   }, [formData, formData.comparateurIgnore, step]);
 
+  const creationDemarcheAutoAdvanceRef = useRef(false);
+
+  useEffect(() => {
+    if (!isMobileChoicePresentation || step.id !== 'demarche') {
+      creationDemarcheAutoAdvanceRef.current = false;
+      return undefined;
+    }
+    if (demarcheCategory !== 'creation' || !demarcheCategoryConfirmed) return undefined;
+    if (formData.typeFormalite !== 'creation_societe') return undefined;
+    if (creationDemarcheAutoAdvanceRef.current || !canAdvanceCurrentGroup) return undefined;
+    creationDemarcheAutoAdvanceRef.current = true;
+    const timer = window.setTimeout(() => {
+      void goNext();
+    }, 450);
+    return () => window.clearTimeout(timer);
+  }, [
+    isMobileChoicePresentation,
+    step.id,
+    demarcheCategory,
+    demarcheCategoryConfirmed,
+    formData.typeFormalite,
+    canAdvanceCurrentGroup,
+  ]);
+
   const updateField = (field, value) => {
     if ((field.key === 'companySiren' || field.key === 'existingBusinessSiren') && String(value || '').trim() !== String(formData[field.key] || '').trim()) {
       setFoundCompany(null);
@@ -1236,40 +1261,37 @@ export const QuestionnairePage = () => {
     }
 
     if (field.type === 'associates_minor_panel') {
-      const associatesPanel = (
-        <AssociatesMinorPanel
-          value={formData.associates}
-          includeDirector={false}
-          onChange={(patch) => setFormData((current) => {
-            const associates = patch.associates ?? current.associates;
-            return {
-              ...current,
-              ...patch,
-              dirigeant: syncDirigeantFromAssociates(associates, current.dirigeant),
-              repartition: patch.associesSummary || current.repartition,
-            };
-          })}
-        />
-      );
+      const handleAssociatesChange = (patch) => setFormData((current) => {
+        const associates = patch.associates ?? current.associates;
+        return {
+          ...current,
+          ...patch,
+          dirigeant: syncDirigeantFromAssociates(associates, current.dirigeant),
+          repartition: patch.associesSummary || current.repartition,
+        };
+      });
+
       if (isMobileChoicePresentation && activeGroup.length === 1) {
         return (
-          <MobileCompositeStep
+          <AssociatesMobileWizard
             key={field.key}
-            kicker={STEP_TITLES_BY_ID[step.id] || step.title}
-            title={step.title}
-            subtitle={step.description}
+            value={formData.associates}
+            onChange={handleAssociatesChange}
             progressPercent={progress}
             stepCurrent={presentation.stepCurrent}
             stepTotal={presentation.stepTotal}
-            hint="Renseignez chaque associé puis appuyez sur Continuer."
-          >
-            {associatesPanel}
-          </MobileCompositeStep>
+            onComplete={() => { void goNext(); }}
+          />
         );
       }
+
       return (
         <div key={field.key}>
-          {associatesPanel}
+          <AssociatesMinorPanel
+            value={formData.associates}
+            includeDirector={false}
+            onChange={handleAssociatesChange}
+          />
         </div>
       );
     }

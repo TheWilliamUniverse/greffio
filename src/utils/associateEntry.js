@@ -5,6 +5,25 @@ export const ASSOCIATE_TYPES = Object.freeze({
   COMPANY: 'personne_morale',
 });
 
+export const createEmptyAssociate = () => ({
+  id: `associate_${Math.random().toString(36).slice(2, 8)}`,
+  associateType: ASSOCIATE_TYPES.PERSON,
+  firstName: '',
+  lastName: '',
+  companyName: '',
+  siren: '',
+  legalForm: 'SAS',
+  representativeName: '',
+  representativeQuality: '',
+  rcsCity: '',
+  birthDate: '',
+  address: '',
+  share: '',
+  roleLabel: 'Associé',
+  isMinorEmancipated: false,
+  legalRepresentatives: '',
+});
+
 export const buildAssociateDisplayName = (associate = {}) => {
   if (associate.associateType === ASSOCIATE_TYPES.COMPANY) {
     return String(associate.companyName || associate.raisonSociale || '').trim();

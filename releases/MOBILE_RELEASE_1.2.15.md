@@ -1,4 +1,4 @@
-# Greffio Android — release 1.2.15 (shell remote OTA)
+# Greffio Android – release 1.2.15 (shell remote OTA)
 
 - **versionName** : `1.2.15`
 - **versionCode** : `261510014`
@@ -8,10 +8,10 @@
 
 > Première release « shell remote » : l’UI charge `https://greffio.willentreprises.com/?nativeApp=1`. Les petites évolutions web se déploient sans resoumettre d’AAB (comme Shopfun).
 
-## Notes de version (Play Console — fr-FR)
+## Notes de version (Play Console – fr-FR)
 
 ```
-• Application connectée au site Greffio en direct — mises à jour automatiques sans réinstaller
+• Application connectée au site Greffio en direct – mises à jour automatiques sans réinstaller
 • Connexion sécurisée corrigée : ouverture dans le navigateur et retour automatique dans l'app
 • PDF pouvoirs formalités : mise en page professionnelle, signature et lieu rehaussés
 • Commandes documents (Kbis, etc.) : confirmation par email uniquement après paiement

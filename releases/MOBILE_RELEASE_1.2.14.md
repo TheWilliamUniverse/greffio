@@ -1,4 +1,4 @@
-# Greffio Android — release 1.2.14
+# Greffio Android – release 1.2.14
 
 - **versionName** : `1.2.14`
 - **versionCode** : `261510013`
@@ -6,10 +6,10 @@
 
 > Connexion via page web, création d'espace simulateur, icônes formalités site, copy sans concurrents.
 
-## Notes de version (Play Console — fr-FR)
+## Notes de version (Play Console – fr-FR)
 
 ```
-• Connexion via la page web Greffio — MFA et récupération mot de passe inclus
+• Connexion via la page web Greffio – MFA et récupération mot de passe inclus
 • Retour automatique dans l'app après connexion réussie
 • Création d'espace (simulateur) : validation au tap, sans blocage captcha
 • Catalogue formalités : icônes du site web (plus de badges SA/SAS texte)

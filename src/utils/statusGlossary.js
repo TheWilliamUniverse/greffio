@@ -21,7 +21,7 @@ export const STATUS_GLOSSARY = Object.freeze({
   INVALID: 'Cette pièce doit être corrigée ou remplacée.',
   SIGNED: 'Le document est signé et enregistré dans le dossier.',
   GENERATED: 'Le document a été généré ; vérifiez-le puis signez si nécessaire.',
-  MODELE: 'Modèle disponible — complétez ou déposez la version finale.',
+  MODELE: 'Modèle disponible – complétez ou déposez la version finale.',
 });
 
 export const getStatusGlossary = (badgeStatus) => (

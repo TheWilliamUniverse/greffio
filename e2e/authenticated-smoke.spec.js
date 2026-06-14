@@ -1,7 +1,7 @@
 import { test } from '@playwright/test';
 
 /**
- * Smoke authentifié — structure préparée.
+ * Smoke authentifié – structure préparée.
  * Décommenter et brancher E2E_AUTH_EMAIL / E2E_AUTH_PASSWORD quand les fixtures CI seront disponibles.
  */
 test.describe.skip('authenticated cockpit smoke', () => {

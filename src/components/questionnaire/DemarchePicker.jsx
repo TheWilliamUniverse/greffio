@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Check, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input.jsx';
 import { FormalityChoiceCard } from '@/components/questionnaire/FormalityChoiceCard.jsx';
@@ -17,6 +17,9 @@ import {
 } from '@/lib/questionnaireFlow.js';
 
 const normalize = (value) => String(value || '').trim().toLowerCase();
+
+/** Après « Immatriculer une nouvelle structure », la forme est choisie via familles juridiques. */
+const CREATION_AUTO_FORMALITY = 'creation_societe';
 
 export const DemarchePicker = ({
   value,
@@ -70,14 +73,24 @@ export const DemarchePicker = ({
   }, [query, activeCategory, categoryFilterIds, filteredItems]);
 
   const selectedLabel = DEMARCHE_CATALOG.find((item) => item.key === value)?.label;
+  const shouldSkipCreationTiles = categoryFirst && categoryConfirmed && primaryCategory === 'creation';
+
+  useEffect(() => {
+    if (!shouldSkipCreationTiles || value === CREATION_AUTO_FORMALITY) return;
+    onChange(CREATION_AUTO_FORMALITY);
+  }, [shouldSkipCreationTiles, value, onChange]);
 
   if (categoryFirst && !categoryConfirmed) {
     return (
       <FormalityCategoryPicker
         value={primaryCategory}
         onChange={setPrimaryCategory}
-        onContinue={() => {
-          if (primaryCategory) setCategoryConfirmed(true);
+        onContinue={(selectedCategoryId) => {
+          const categoryId = selectedCategoryId || primaryCategory;
+          if (categoryId === 'creation') {
+            onChange(CREATION_AUTO_FORMALITY);
+          }
+          if (categoryId) setCategoryConfirmed(true);
         }}
         mobilePresentation={mobilePresentation}
       />
@@ -88,6 +101,33 @@ export const DemarchePicker = ({
     onChange(key);
     if (mobilePresentation) onAdvance?.();
   };
+
+  if (shouldSkipCreationTiles && mobilePresentation) {
+    return null;
+  }
+
+  if (shouldSkipCreationTiles && !mobilePresentation) {
+    return (
+      <div className="space-y-4">
+        {categoryFirst && categoryConfirmed ? (
+          <FormalityCategoryBackButton
+            onClick={() => {
+              setCategoryConfirmed(false);
+              setActiveCategory('all');
+              onChange('');
+            }}
+          />
+        ) : null}
+        <div className="flex items-center gap-2 rounded-xl border border-primary/25 bg-secondary/60 px-3 py-3 text-sm">
+          <Check className="h-4 w-4 shrink-0 text-primary" />
+          <span>
+            <span className="font-semibold text-foreground">Créer une société</span>
+            <span className="text-muted-foreground"> – la forme juridique sera choisie à l&apos;étape suivante.</span>
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   if (mobilePresentation) {
     return (

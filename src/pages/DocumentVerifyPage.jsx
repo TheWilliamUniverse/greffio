@@ -61,7 +61,7 @@ const STATUS_CONFIG = {
   },
 };
 
-/** Page publique cachée — vérification d'intégrité documentaire (QR procuration / pouvoirs). */
+/** Page publique cachée – vérification d'intégrité documentaire (QR procuration / pouvoirs). */
 export const DocumentVerifyPage = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
@@ -178,7 +178,7 @@ export const DocumentVerifyPage = () => {
         ) : null}
 
         <p className="mt-5 text-center text-[11px] leading-5 text-muted-foreground">
-          Signature électronique simple (SES) — non qualifiée eIDAS.
+          Signature électronique simple (SES) – non qualifiée eIDAS.
         </p>
 
         <div className="mt-6 flex flex-col gap-3">

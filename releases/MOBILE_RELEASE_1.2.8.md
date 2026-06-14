@@ -1,10 +1,10 @@
-# Greffio Android — release 1.2.8
+# Greffio Android – release 1.2.8
 
 - **versionName** : `1.2.8`
 - **versionCode** : `261510007`
 - **package** : `com.greffio.app`
 
-## Notes de version (Play Console — fr-FR)
+## Notes de version (Play Console – fr-FR)
 
 ```
 • Parcours simulateur plus fluide

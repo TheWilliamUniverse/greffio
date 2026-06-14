@@ -1,13 +1,13 @@
-# Greffio Android — release 1.2.3
+# Greffio Android – release 1.2.3
 
 - **versionName** : `1.2.3`
 - **versionCode** : `261510002`
 - **package** : `com.greffio.app`
 
-## Notes de version (Play Console — fr-FR)
+## Notes de version (Play Console – fr-FR)
 
 ```
-Greffio 1.2.3 — stabilité et liens profonds
+Greffio 1.2.3 – stabilité et liens profonds
 
 • Symboles natifs intégrés pour un meilleur diagnostic des crashs
 • Liens profonds : greffio.willentreprises.com associé à l’application

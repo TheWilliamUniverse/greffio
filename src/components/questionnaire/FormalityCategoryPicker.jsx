@@ -25,7 +25,7 @@ export const FormalityCategoryPicker = ({ value, onChange, onContinue, mobilePre
               compact
               onSelect={() => {
                 onChange(category.id);
-                onContinue?.();
+                onContinue?.(category.id);
               }}
               className="overflow-hidden"
             />
@@ -97,7 +97,7 @@ export const FormalityCategoryPicker = ({ value, onChange, onContinue, mobilePre
     {value ? (
       <button
         type="button"
-        onClick={onContinue}
+        onClick={() => onContinue?.(value)}
         className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-sm"
       >
         Continuer

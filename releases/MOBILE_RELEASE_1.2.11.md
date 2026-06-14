@@ -1,4 +1,4 @@
-# Greffio Android — release 1.2.11
+# Greffio Android – release 1.2.11
 
 - **versionName** : `1.2.11`
 - **versionCode** : `261510010`
@@ -6,10 +6,10 @@
 
 > Expérience app native : welcome 1er lancement, cold start intelligent, auth et permissions séquencées.
 
-## Notes de version (Play Console — fr-FR)
+## Notes de version (Play Console – fr-FR)
 
 ```
-• Accueil dédié au 1er lancement — parcours app, pas la landing web
+• Accueil dédié au 1er lancement – parcours app, pas la landing web
 • Reprise automatique de votre dossier actif après connexion
 • Connexion native plus fiable, sans friction captcha inutile
 • Biométrie et notifications proposées au bon moment

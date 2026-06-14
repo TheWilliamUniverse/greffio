@@ -1,4 +1,4 @@
-# Archivage AAB Android — Greffio
+# Archivage AAB Android – Greffio
 
 Ce dossier contient les **AAB signés** archivés dans Git pour traçabilité release.
 

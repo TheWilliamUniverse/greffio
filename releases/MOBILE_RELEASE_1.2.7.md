@@ -1,10 +1,10 @@
-# Greffio Android — release 1.2.7
+# Greffio Android – release 1.2.7
 
 - **versionName** : `1.2.7`
 - **versionCode** : `261510006`
 - **package** : `com.greffio.app`
 
-## Notes de version (Play Console — fr-FR)
+## Notes de version (Play Console – fr-FR)
 
 ```
 Stabilité et expérience mobile :

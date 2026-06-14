@@ -35,7 +35,17 @@ const resumeQuestionnaire = {
   },
 };
 
-const mockQuestionnaireApis = async (page) => {
+const resumeAtDemarcheQuestionnaire = {
+  ...resumeQuestionnaire,
+  typeFormalite: '',
+  _resume: {
+    stepId: 'demarche',
+    fieldKey: 'typeFormalite',
+    categoryConfirmed: false,
+  },
+};
+
+const mockQuestionnaireApis = async (page, questionnairePayload = resumeQuestionnaire) => {
   await page.route(/\/api\//, async (route) => {
     const url = route.request().url();
     const method = route.request().method();
@@ -67,7 +77,7 @@ const mockQuestionnaireApis = async (page) => {
         contentType: 'application/json',
         body: JSON.stringify({
           reference: 'GRE-E2E-001',
-          questionnaire: resumeQuestionnaire,
+          questionnaire: questionnairePayload,
         }),
       });
       return;
@@ -144,7 +154,24 @@ test.beforeEach(async ({ context, page }) => {
   await mockQuestionnaireApis(page);
 });
 
-test.describe('questionnaire mobile — flux catégorie puis forme', () => {
+test.describe('questionnaire mobile – flux catégorie puis forme', () => {
+  test('immatriculer une nouvelle structure → familles juridiques directement', async ({ page }) => {
+    await page.unroute(/\/api\//);
+    await mockQuestionnaireApis(page, resumeAtDemarcheQuestionnaire);
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await page.goto(`/questionnaire?dossierId=${DOSSIER_ID}`);
+    await dismissCookieBanner(page);
+
+    await expect(page.getByText('Choisissez une famille de formalité')).toBeVisible({ timeout: 20_000 });
+    await page.getByRole('radio', { name: /Immatriculer une nouvelle structure/i }).click();
+
+    await expect(page.getByText('Quelle catégorie correspond à votre projet ?')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('radio', { name: /Créer une SASU/i })).toHaveCount(0);
+    await page.getByRole('radio', { name: /Formes les plus courantes/i }).click();
+
+    await expect(page.getByText(/Savez-vous déjà quelle forme juridique/i)).toBeVisible({ timeout: 10_000 });
+  });
+
   test('catégorie commerciale → comparateur → ignorer', async ({ page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto(`/questionnaire?dossierId=${DOSSIER_ID}`);

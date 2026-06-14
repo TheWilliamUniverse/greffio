@@ -13,14 +13,22 @@ const sanitizeFilename = (name) => {
 };
 
 export const blobToBase64 = (blob) => new Promise((resolve, reject) => {
-  const reader = new FileReader();
-  reader.onloadend = () => {
-    const dataUrl = String(reader.result || '');
-    const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
-    resolve(base64);
-  };
-  reader.onerror = () => reject(reader.error || new Error('BLOB_READ_FAILED'));
-  reader.readAsDataURL(blob);
+  if (!blob) {
+    reject(new Error('BLOB_READ_FAILED'));
+    return;
+  }
+  void blob.arrayBuffer()
+    .then((buffer) => {
+      const bytes = new Uint8Array(buffer);
+      const chunkSize = 0x8000;
+      let binary = '';
+      for (let index = 0; index < bytes.length; index += chunkSize) {
+        const chunk = bytes.subarray(index, index + chunkSize);
+        binary += String.fromCharCode.apply(null, chunk);
+      }
+      resolve(btoa(binary));
+    })
+    .catch((error) => reject(error instanceof Error ? error : new Error('BLOB_READ_FAILED')));
 });
 
 const isPdfHeader = async (blob) => {
@@ -91,24 +99,80 @@ const sharePdfBlobWithWebApi = async (blob, filename) => {
   return true;
 };
 
-const ensureCachedPdfPath = async ({
-  blob,
-  filename,
-  cachePath,
-  cacheDirectory = Directory.Cache,
-} = {}) => {
-  if (cachePath && isPluginAvailable('Filesystem')) {
-    return { path: cachePath, directory: cacheDirectory };
+const OPEN_PDF_DIRECTORY = Directory.External;
+const OPEN_PDF_FOLDER = 'Greffio/open';
+
+const verifyStoredPdf = async ({ path, directory, expectedSize }) => {
+  if (!path || !isPluginAvailable('Filesystem')) return;
+  const stat = await Filesystem.stat({ path, directory });
+  const size = Number(stat?.size || 0);
+  if (!size || (expectedSize && size !== expectedSize)) {
+    throw new Error('DOCUMENT_NOT_PDF');
   }
-  if (!blob || !isPluginAvailable('Filesystem')) {
-    throw new Error('DOCUMENT_OPEN_UNAVAILABLE');
+  try {
+    const headerBase64 = await Filesystem.readFile({
+      path,
+      directory,
+      offset: 0,
+      length: 5,
+    });
+    const header = atob(String(headerBase64?.data || '').slice(0, 8));
+    if (!header.startsWith('%PDF')) {
+      throw new Error('DOCUMENT_NOT_PDF');
+    }
+  } catch (error) {
+    if (String(error?.message || '') === 'DOCUMENT_NOT_PDF') throw error;
   }
-  return writePdfBlobToCache(blob, filename);
 };
 
-const getCachedPdfUri = async ({ path, directory = Directory.Cache }) => {
-  const { uri } = await Filesystem.getUri({ path, directory });
-  return String(uri || '').trim();
+const resolvePdfBlob = async ({ blob, path, directory = Directory.Cache } = {}) => {
+  if (blob) return normalizePdfBlob(blob);
+  if (!path || !isPluginAvailable('Filesystem')) {
+    throw new Error('DOCUMENT_DOWNLOAD_FAILED');
+  }
+  const { data } = await Filesystem.readFile({ path, directory });
+  const base64 = String(data || '');
+  if (!base64) throw new Error('DOCUMENT_DOWNLOAD_FAILED');
+  const binary = atob(base64);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return normalizePdfBlob(new Blob([bytes], { type: 'application/pdf' }));
+};
+
+const writePdfBlobForExternalOpen = async (blob, filename, {
+  sourcePath,
+  sourceDirectory = Directory.Cache,
+} = {}) => {
+  const pdfBlob = blob
+    ? await normalizePdfBlob(blob)
+    : await resolvePdfBlob({ path: sourcePath, directory: sourceDirectory });
+  const safeName = sanitizeFilename(filename);
+  const path = `${OPEN_PDF_FOLDER}/${Date.now()}-${safeName}`;
+  const base64 = await blobToBase64(pdfBlob);
+
+  await Filesystem.writeFile({
+    path,
+    data: base64,
+    directory: OPEN_PDF_DIRECTORY,
+    recursive: true,
+  });
+
+  await verifyStoredPdf({
+    path,
+    directory: OPEN_PDF_DIRECTORY,
+    expectedSize: pdfBlob.size,
+  });
+
+  const { uri } = await Filesystem.getUri({
+    path,
+    directory: OPEN_PDF_DIRECTORY,
+  });
+
+  return {
+    path,
+    directory: OPEN_PDF_DIRECTORY,
+    fileUri: uri,
+    previewUrl: Capacitor.convertFileSrc(uri),
+  };
 };
 
 const openNativePdfUri = async (uri) => {
@@ -123,6 +187,21 @@ const openNativePdfUri = async (uri) => {
   }
 
   throw new Error('DOCUMENT_OPEN_UNAVAILABLE');
+};
+
+const ensureCachedPdfPath = async ({
+  blob,
+  filename,
+  cachePath,
+  cacheDirectory = Directory.Cache,
+} = {}) => {
+  if (!blob && cachePath && isPluginAvailable('Filesystem')) {
+    return { path: cachePath, directory: cacheDirectory };
+  }
+  if (!blob || !isPluginAvailable('Filesystem')) {
+    throw new Error('DOCUMENT_OPEN_UNAVAILABLE');
+  }
+  return writePdfBlobToCache(blob, filename);
 };
 
 const readCachedPdfBase64 = async ({ path, directory = Directory.Cache, blob } = {}) => {
@@ -163,18 +242,21 @@ const shareCachedPdfNative = async ({
   blob,
   mode = 'export',
 }) => {
+  if (mode === 'open') {
+    const openable = await writePdfBlobForExternalOpen(blob, filename, {
+      sourcePath: path,
+      sourceDirectory: directory,
+    });
+    await openNativePdfUri(openable.fileUri);
+    return openable;
+  }
+
   const cached = await ensureCachedPdfPath({
     blob,
     filename,
     cachePath: path,
     cacheDirectory: directory,
   });
-  const uri = await getCachedPdfUri(cached);
-
-  if (mode === 'open') {
-    await openNativePdfUri(uri);
-    return cached;
-  }
 
   return saveNativePdfToDocuments({
     path: cached.path,

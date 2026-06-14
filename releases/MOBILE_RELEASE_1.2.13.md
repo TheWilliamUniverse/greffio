@@ -1,4 +1,4 @@
-# Greffio Android — release 1.2.13
+# Greffio Android – release 1.2.13
 
 - **versionName** : `1.2.13`
 - **versionCode** : `261510012`
@@ -6,10 +6,10 @@
 
 > Connexion native corrigée, tarifs/services mobile refondus, signature SES renforcée (backend VPS).
 
-## Notes de version (Play Console — fr-FR)
+## Notes de version (Play Console – fr-FR)
 
 ```
-• Connexion corrigée — écran login réactif, plus d'erreur au tap « Se connecter »
+• Connexion corrigée – écran login réactif, plus d'erreur au tap « Se connecter »
 • Tarifs et services mobile refondus (navigation claire, style Qonto/Legalstart)
 • Signature électronique : parcours public clarifié, téléchargement document signé
 • Questionnaire et simulateur : validation au tap sur votre réponse

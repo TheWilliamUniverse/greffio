@@ -1,4 +1,4 @@
-# Greffio Android — release 1.2.12
+# Greffio Android – release 1.2.12
 
 - **versionName** : `1.2.12`
 - **versionCode** : `261510011`
@@ -6,14 +6,14 @@
 
 > Correctifs connexion native, identité auth alignée site, validation au tap sur les choix.
 
-## Notes de version (Play Console — fr-FR)
+## Notes de version (Play Console – fr-FR)
 
 ```
-• Connexion corrigée — plus de déconnexion après login, captcha natif contourné
+• Connexion corrigée – plus de déconnexion après login, captcha natif contourné
 • Écran de connexion aligné sur le site Greffio (bandeau bleu, sans barre du bas)
 • Simulateur et questionnaire : touchez votre réponse pour avancer (sans bouton Valider)
 • MFA : code à 6 chiffres validé automatiquement
-• Accueil app simplifié — « Me connecter » en priorité, mêmes identifiants que le site
+• Accueil app simplifié – « Me connecter » en priorité, mêmes identifiants que le site
 • Biométrie : plus de blocage juste après une connexion mot de passe
 ```
 

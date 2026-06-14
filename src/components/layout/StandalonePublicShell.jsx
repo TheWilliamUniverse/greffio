@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '@/lib/utils.js';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 
-/** Coquille publique minimaliste — sans header global ni footer marketing. */
+/** Coquille publique minimaliste – sans header global ni footer marketing. */
 export const StandalonePublicShell = ({
   children,
   className = '',
@@ -18,7 +18,7 @@ export const StandalonePublicShell = ({
       {children}
     </main>
     <footer className="px-4 pb-8 pt-2 text-center text-[11px] leading-5 text-muted-foreground">
-      Greffio — service privé d&apos;assistance aux formalités d&apos;entreprise.
+      Greffio – service privé d&apos;assistance aux formalités d&apos;entreprise.
     </footer>
   </div>
 );

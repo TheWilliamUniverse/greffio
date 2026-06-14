@@ -445,6 +445,11 @@ const MOBILE_FIELD_GROUP_SPECS = Object.freeze({
     ['regimeEi'],
     ['optionFiscaleSociale'],
   ],
+  /** Mobile : wizard associés question par question, puis dirigeant seul. */
+  gouvernance: [
+    ['associates'],
+    ['dirigeant'],
+  ],
 });
 
 export const resolveMobileFieldGroups = (step, formData = {}) => {
