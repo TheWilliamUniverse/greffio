@@ -2,9 +2,17 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button.jsx';
 import { GreffioUltraFooter } from '@/components/layout/GreffioUltraFooter.jsx';
+import { MobileFooter } from '@/mobile/MobileFooter.jsx';
+import { isMobileBrowserViewport } from '@/utils/platform.js';
 import { SeoHead, buildFaqJsonLd } from '@/components/seo/SeoHead.jsx';
 import { runtimeConfig } from '@/config/runtime.js';
 import { SEO_DISCLAIMER } from '@/config/seoContent.js';
+
+const SeoPageFooter = () => (
+  isMobileBrowserViewport()
+    ? <MobileFooter />
+    : <GreffioUltraFooter compact showIntro={false} />
+);
 
 const SeoBreadcrumb = ({ items }) => (
   <nav aria-label="Fil d'Ariane" className="text-xs text-muted-foreground">
@@ -91,7 +99,7 @@ export const SeoPillarPage = ({ page }) => {
 
           <p className="text-xs leading-6 text-muted-foreground">{SEO_DISCLAIMER}</p>
         </article>
-        <GreffioUltraFooter compact showIntro={false} />
+        <SeoPageFooter />
       </main>
     </>
   );
@@ -130,7 +138,7 @@ export const SeoGlossaryPage = ({ page }) => (
         ) : null}
         <p className="text-xs text-muted-foreground">{SEO_DISCLAIMER}</p>
       </article>
-      <GreffioUltraFooter compact showIntro={false} />
+      <SeoPageFooter />
     </main>
   </>
 );
@@ -156,7 +164,7 @@ export const SeoHubPage = ({ hub }) => (
           </div>
         ) : null}
       </section>
-      <GreffioUltraFooter compact showIntro={false} />
+      <SeoPageFooter />
     </main>
   </>
 );
@@ -181,7 +189,7 @@ export const SeoFaqPage = ({ hub, items }) => {
           </div>
           <p className="text-xs text-muted-foreground">{SEO_DISCLAIMER}</p>
         </article>
-        <GreffioUltraFooter compact showIntro={false} />
+        <SeoPageFooter />
       </main>
     </>
   );

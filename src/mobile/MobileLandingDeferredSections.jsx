@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { LandingPricingSection } from '@/components/pricing/LandingPricingSection.jsx';
 import { GooglePlayStoreLink } from '@/components/store/GooglePlayStoreLink.jsx';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
-import { GreffioUltraFooter } from '@/components/layout/GreffioUltraFooter.jsx';
+import { MobileFooter } from '@/mobile/MobileFooter.jsx';
 import { useMobileMotion } from '@/mobile/ui/mobileMotion.js';
 
 const faq = [
@@ -89,7 +89,7 @@ export const MobileLandingDeferredSections = () => {
         </div>
       </MobileAnimatedSection>
 
-      <GreffioUltraFooter compact showIntro={false} />
+      <MobileFooter />
     </>
   );
 };

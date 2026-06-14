@@ -18,6 +18,7 @@ import { isMobileBrowserViewport, isCapacitorNative } from '@/utils/platform.js'
 import { NativeWebLoginPage } from '@/pages/NativeWebLoginPage.jsx';
 import { resolveNativePostLoginPath } from '@/utils/nativeColdStart.js';
 import { PublicMinimalLegalFooter } from '@/components/layout/PublicMinimalLegalFooter.jsx';
+import { MobileFooter } from '@/mobile/MobileFooter.jsx';
 import { SecurityChallengeWidget } from '@/components/security/SecurityChallengeWidget.jsx';
 import { useSecurityConfig } from '@/hooks/useSecurityConfig.js';
 import { FieldError } from '@/components/patterns/FieldError.jsx';
@@ -464,7 +465,7 @@ export const LoginPage = () => {
           </p>
         </motion.div>
       </section>
-      {!nativeApp ? <PublicMinimalLegalFooter /> : null}
+      {!nativeApp ? (isMobileBrowserViewport() ? <MobileFooter /> : <PublicMinimalLegalFooter />) : null}
     </div>
   );
 };

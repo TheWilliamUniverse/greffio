@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { GooglePlayStoreLink } from '@/components/store/GooglePlayStoreLink.jsx';
 import { PublicMinimalLegalFooter } from '@/components/layout/PublicMinimalLegalFooter.jsx';
+import { MobileFooter } from '@/mobile/MobileFooter.jsx';
+import { isMobileBrowserViewport } from '@/utils/platform.js';
 import { requestAppDownloadCode, verifyAppDownloadCode } from '@/api/appDownloadAccess.js';
 import {
   clearAppDownloadAccess,
@@ -285,7 +287,7 @@ export const AppDownloadGatePage = () => {
         </div>
       </div>
 
-      <PublicMinimalLegalFooter />
+      {isMobileBrowserViewport() ? <MobileFooter /> : <PublicMinimalLegalFooter />}
     </div>
   );
 };

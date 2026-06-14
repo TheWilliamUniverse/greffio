@@ -6,7 +6,7 @@ import { LEGAL_SERVICES } from '@/config/businessCatalog.js';
 import { getServiceRoute } from '@/config/serviceLandingPages.js';
 import { getServiceCatalogIcon } from '@/config/demarcheVisuals.js';
 import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
-import { PublicMinimalLegalFooter } from '@/components/layout/PublicMinimalLegalFooter.jsx';
+import { MobileFooter } from '@/mobile/MobileFooter.jsx';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
 import { SeoHead } from '@/components/seo/SeoHead.jsx';
 import { SEO_PAGE_META } from '@/config/seoContent.js';
@@ -116,7 +116,7 @@ export const MobileServicesPage = () => {
         </Button>
       </MobileAnimatedSection>
     </MobilePageContainer>
-    <PublicMinimalLegalFooter />
+    <MobileFooter />
     </>
   );
 };

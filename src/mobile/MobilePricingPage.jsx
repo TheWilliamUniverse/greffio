@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { LANDING_PRICING_PLANS, YOUNG_ENTREPRENEUR_LANDING_FOOTER } from '@/config/landingPricingPlans.js';
 import { PRICING_FAQ } from '@/config/pricingPlans.js';
 import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
+import { MobileFooter } from '@/mobile/MobileFooter.jsx';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
 import { SeoHead } from '@/components/seo/SeoHead.jsx';
 import { SEO_PAGE_META } from '@/config/seoContent.js';
@@ -126,6 +127,7 @@ export const MobilePricingPage = () => {
         </Button>
       </MobileAnimatedSection>
     </MobilePageContainer>
+    <MobileFooter />
     </>
   );
 };
