@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, Building2, CreditCard, LockKeyhole, ShieldCheck, Smartphone } from 'lucide-react';
+import { MolliePaymentTrustFooter, MollieSecureTrustBadge } from '@/components/payments/MollieSecureTrustBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { PaymentBrandBadges } from '@/components/layout/PaymentBrandBadges.jsx';
 import { LegalAcceptanceCheckbox } from '@/components/payments/LegalAcceptanceCheckbox.jsx';
@@ -193,10 +194,7 @@ export const GreffioPaymentTerminal = ({
           ) : (
             <p className="text-sm text-muted-foreground">Chargement du formulaire carte…</p>
           )}
-          <p className="inline-flex items-center gap-2 text-xs leading-5 text-muted-foreground">
-            <LockKeyhole className="h-4 w-4 shrink-0 text-[hsl(var(--greffio-blue))]" />
-            Paiements sécurisés effectués par Mollie
-          </p>
+          <MollieSecureTrustBadge centered={false} />
           {nativeApp ? (
             <p className="rounded-lg bg-[#f8fbff] px-3 py-2 text-xs leading-5 text-muted-foreground">
               Sur l&apos;app mobile, la vérification 3-D Secure s&apos;ouvre dans le navigateur système puis vous ramène dans Greffio.
@@ -245,9 +243,7 @@ export const GreffioPaymentTerminal = ({
         <ArrowRight className="h-4 w-4" />
       </Button>
 
-      <p className="text-center text-xs leading-5 text-muted-foreground">
-        Paiement traité par Mollie · Données chiffrées · Aucun stockage de carte côté Greffio
-      </p>
+      <MolliePaymentTrustFooter />
     </div>
   );
 
