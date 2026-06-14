@@ -1,5 +1,6 @@
 import multer from 'multer';
 import path from 'node:path';
+import { DOSSIER_DOCUMENT_MAX_BYTES } from './config/uploadLimits.js';
 
 const allowedMimeTypes = new Set([
   'application/pdf',
@@ -11,7 +12,7 @@ const allowedExtensions = new Set(['.pdf', '.jpg', '.jpeg', '.png']);
 
 const uploadMiddleware = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: DOSSIER_DOCUMENT_MAX_BYTES },
   fileFilter: (_req, file, cb) => {
     const mimeOk = allowedMimeTypes.has(file.mimetype);
     const extension = path.extname(String(file.originalname || '')).toLowerCase();

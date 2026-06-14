@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, CalendarClock, CheckCircle2, Clock3, FileText, Upload } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CalendarClock, CheckCircle2, Clock3, Eye, FileText, Loader2, Upload } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Progress } from '@/components/ui/progress.jsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.jsx';
 import { fetchDossierDetail } from '@/api/dossiers.js';
+import { downloadDossierDocument } from '@/api/documents.js';
 import { fetchDossierMessages, fetchOpsDossierMessages, postDossierMessage, postOpsDossierMessage } from '@/api/dossierMessages.js';
 import { useDossierMessagesRealtime, sendDossierMessageOptimistic } from '@/hooks/useDossierMessagesRealtime.js';
 import { fetchVerificationProfile, runDossierVerification } from '@/api/verification.js';
@@ -26,6 +27,8 @@ import { mapDossierStatusForBadge, mapDossierClientAction } from '@/utils/dossie
 import { DossierMessageThread } from '@/components/messaging/DossierMessageThread.jsx';
 import {
   documentHasFile,
+  filterClientActionRequiredDocuments,
+  formatDocumentRejectionHint,
   getClientDocumentReviewHint,
   resolveClientDocumentStatus,
 } from '@/utils/documentWorkflow.js';
@@ -93,6 +96,7 @@ const mapDocumentsFromApi = (documents = [], { internalView = false } = {}) => d
     dossierId: doc.dossierId,
     docKey: doc.docKey,
     hasFile,
+    rejectedReason: doc.rejectedReason || null,
     reviewHint: internalView
       ? (metadata?.analysis?.requiresManualReview ? 'Vérification manuelle requise' : 'Analyse auto OK')
       : getClientDocumentReviewHint({ metadata }),
@@ -119,7 +123,8 @@ export const DossierDetailPage = () => {
   );
   const [verificationProfile, setVerificationProfile] = useState(null);
   const [verificationRunning, setVerificationRunning] = useState(false);
-  const missingDocuments = useMemo(() => docs.filter((document) => ['ATTENTE_DOCS', 'URGENT', 'EN_ANALYSE', 'A_SIGNER', 'BROUILLON'].includes(document.status)), [docs]);
+  const [docPreviewing, setDocPreviewing] = useState('');
+  const missingDocuments = useMemo(() => filterClientActionRequiredDocuments(docs), [docs]);
   const timeline = useMemo(() => {
     if (!dossier) return [];
     return [
@@ -173,6 +178,26 @@ export const DossierDetailPage = () => {
       toast.error(error?.message || 'Impossible de lancer les vérifications');
     } finally {
       setVerificationRunning(false);
+    }
+  };
+
+  const openDocumentPreview = async (docKey) => {
+    if (!id || !docKey) return;
+    setDocPreviewing(docKey);
+    try {
+      const { blob } = await downloadDossierDocument({ dossierId: id, docKey, inline: true });
+      const url = window.URL.createObjectURL(blob);
+      const previewWindow = window.open(url, '_blank', 'noopener,noreferrer');
+      if (!previewWindow) {
+        window.URL.revokeObjectURL(url);
+        toast.error('Autorisez les pop-ups pour ouvrir l’aperçu du document.');
+        return;
+      }
+      setTimeout(() => window.URL.revokeObjectURL(url), 120_000);
+    } catch (_error) {
+      toast.error('Impossible d’afficher l’aperçu de ce document pour le moment.');
+    } finally {
+      setDocPreviewing('');
     }
   };
 
@@ -353,13 +378,27 @@ export const DossierDetailPage = () => {
                             {typeof document.confidence === 'number' ? ` (${document.confidence}%)` : ''}
                           </p>
                         ) : null}
+                        {['REJECTED', 'INVALID'].includes(document.status) && document.rejectedReason ? (
+                          <p className="mt-1 text-xs text-destructive">{formatDocumentRejectionHint(document)}</p>
+                        ) : null}
                       </div>
                     </div>
                     {internalView ? (
                       <span className="text-sm font-semibold text-foreground">{document.source}</span>
                     ) : null}
                     <StatusBadge status={document.status} className="w-fit" />
-                    <Button variant="outline" size="sm" className="bg-white" disabled={!document.hasFile}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-white"
+                      disabled={!document.hasFile || docPreviewing === document.docKey}
+                      onClick={() => void openDocumentPreview(document.docKey)}
+                    >
+                      {docPreviewing === document.docKey ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                       Aperçu
                     </Button>
                   </div>

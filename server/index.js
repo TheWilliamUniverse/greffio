@@ -76,6 +76,8 @@ import {
   upsertPayment,
   ensureDossierDocuments,
 } from './store.js';
+import { DOSSIER_DOCUMENT_MAX_BYTES } from './config/uploadLimits.js';
+import { resolveDossierDocumentPlan } from './domain/formalityDocuments.js';
 import { computePaymentAmounts } from './pricing.js';
 import {
   getResourceConfig,
@@ -1429,11 +1431,14 @@ app.get('/api/dossiers/:dossierId', requireAuth, async (req, res) => {
     return res.status(access.status).json({ ok: false, error: access.error });
   }
   const { dossier } = access;
+  const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+  const documentPlan = resolveDossierDocumentPlan({ dossier, questionnaire });
   return res.json({
     ok: true,
     dossier,
     events: await listDossierEvents(dossier.id),
     documents: await listDossierDocuments(dossier.id),
+    documentPlan,
   });
 });
 
@@ -1655,7 +1660,7 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
   if (!allowedMimes.has(req.file.mimetype)) {
     return res.status(400).json({ ok: false, error: 'INVALID_FILE_TYPE' });
   }
-  if (req.file.size > 10 * 1024 * 1024) {
+  if (req.file.size > DOSSIER_DOCUMENT_MAX_BYTES) {
     return res.status(400).json({ ok: false, error: 'FILE_TOO_LARGE' });
   }
 

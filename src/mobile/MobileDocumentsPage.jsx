@@ -21,7 +21,8 @@ import { useMobileShellOverlay } from '@/mobile/context/MobileShellOverlayContex
 import { useAuth } from '@/hooks/useAuth.js';
 import { useDossierQuery } from '@/hooks/queries/useDossierQuery.js';
 import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
-import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
+import { INPI_UPLOAD_RULES } from '@/config/legalFlow.js';
+import { normalizeUploadToPdfWithMessage, ensurePdfFilename } from '@/utils/documentPdf.js';
 import {
   uploadDossierDocument,
   downloadDossierDocument,
@@ -31,7 +32,7 @@ import { getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.
 import { DossierVaultPickerOverlay } from '@/components/dossiers/DossierVaultPickerOverlay.jsx';
 import { isInternalUser } from '@/utils/roles.js';
 import { getDocumentStatusLabel, getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
-import { documentHasFile, resolveClientDocumentStatus } from '@/utils/documentWorkflow.js';
+import { documentHasFile, formatDocumentRejectionHint, resolveClientDocumentStatus } from '@/utils/documentWorkflow.js';
 import { isCapacitorNative } from '@/utils/platform.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
 import { IdentityVerificationCard } from '@/components/identity/IdentityVerificationCard.jsx';
@@ -108,6 +109,7 @@ export const MobileDocumentsPage = () => {
         status: displayStatus,
         statusLabel: getDocumentStatusLabel(displayStatus),
         hasFile,
+        rejectedReason: item.rejectedReason || null,
         canUpload: !['VALID', 'VALIDATED', 'SIGNED'].includes(displayStatus),
         date: item.updatedAt || item.uploadedAt || item.createdAt,
       };
@@ -147,12 +149,16 @@ export const MobileDocumentsPage = () => {
   const uploadPdfFile = async (docKey, file) => {
     if (!file || !dossierId || !docKey) return;
     setUploadError('');
-    if (file.type !== 'application/pdf') {
-      setUploadError('Seuls les fichiers PDF sont autorisés.');
+    const maxBytes = INPI_UPLOAD_RULES.maxFileSizeMb * 1024 * 1024;
+    if (file.size > maxBytes) {
+      setUploadError(`Le fichier dépasse ${INPI_UPLOAD_RULES.maxFileSizeMb} Mo.`);
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      setUploadError('Le fichier dépasse 10 Mo.');
+    const conversion = await normalizeUploadToPdfWithMessage(file, {
+      filename: ensurePdfFilename(file.name),
+    });
+    if (!conversion.ok) {
+      setUploadError(conversion.message);
       return;
     }
     try {
@@ -161,7 +167,7 @@ export const MobileDocumentsPage = () => {
       await uploadDossierDocument({
         dossierId,
         docKey,
-        file,
+        file: conversion.file,
         ownerFirstName: currentUser?.firstName || '',
         ownerLastName: currentUser?.lastName || '',
       });
@@ -220,7 +226,7 @@ export const MobileDocumentsPage = () => {
 
   const handleDocumentAction = (doc) => {
     void triggerMobileHaptic('light');
-    const userAction = resolveDocumentUserAction(doc.status, doc.hasFile);
+    const userAction = resolveDocumentUserAction(doc.status, doc.hasFile, doc.rejectedReason);
     const editorPath = ONLINE_DOC_EDITOR_PATHS[doc.docKey]?.(dossierId);
 
     if (userAction.action === 'download' || userAction.action === 'view') {
@@ -421,6 +427,7 @@ export const MobileDocumentsPage = () => {
                   name={doc.name}
                   status={doc.status}
                   statusLabel={doc.statusLabel}
+                  hint={['REJECTED', 'INVALID'].includes(doc.status) ? formatDocumentRejectionHint(doc) : undefined}
                   hasFile={doc.hasFile}
                   date={doc.date}
                   onAction={() => handleDocumentAction(doc)}

@@ -56,9 +56,3 @@ export const GREFFIO_FOOTER_COLUMNS = [
     ],
   },
 ];
-
-export const GREFFIO_FOOTER_PAYMENT_LABELS = [
-  'Visa · Mastercard · CB · Amex',
-  'Apple Pay · Google Pay',
-  'SEPA · Mollie',
-];

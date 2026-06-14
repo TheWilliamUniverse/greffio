@@ -7,6 +7,7 @@ import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { INPI_UPLOAD_RULES } from '@/config/legalFlow.js';
+import { normalizeUploadToPdfWithMessage, ensurePdfFilename } from '@/utils/documentPdf.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
 import { getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.js';
 import { DossierVaultPickerOverlay } from '@/components/dossiers/DossierVaultPickerOverlay.jsx';
@@ -24,6 +25,7 @@ import { PdfPreviewPanel } from '@/components/documents/PdfPreviewPanel.jsx';
 import { FormalityPowerSummary } from '@/components/documents/FormalityPowerSummary.jsx';
 import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
 import { DocumentStatusCard } from '@/components/patterns/DocumentStatusCard.jsx';
+import { GreffioSignatureInfoBanner } from '@/components/signature/GreffioSignatureInfoBanner.jsx';
 import { EmptyState } from '@/components/patterns/EmptyState.jsx';
 import { isFormalityPowerDocument, mapFormalityPowerStatus } from '@/utils/formalityPowerDocuments.js';
 import { useAuth } from '@/hooks/useAuth.js';
@@ -32,7 +34,7 @@ import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
 import { queryKeys } from '@/hooks/queries/queryKeys.js';
 import { isInternalUser } from '@/utils/roles.js';
 import { getDocumentStatusLabel, getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
-import { documentHasFile, resolveClientDocumentStatus } from '@/utils/documentWorkflow.js';
+import { documentHasFile, filterClientActionRequiredDocuments, formatDocumentRejectionHint, resolveClientDocumentStatus } from '@/utils/documentWorkflow.js';
 
 export const DocumentsPage = () => {
   const navigate = useNavigate();
@@ -84,9 +86,14 @@ export const DocumentsPage = () => {
       statusLabel: getDocumentStatusLabel(displayStatus),
       date: item.updatedAt || item.uploadedAt || item.createdAt || null,
       hasFile,
+      rejectedReason: item.rejectedReason || null,
       canUpload: !['VALID', 'VALIDATED', 'SIGNED'].includes(displayStatus),
     };
   }), [apiDocuments, internalView]);
+  const waitingDocs = useMemo(
+    () => filterClientActionRequiredDocuments(normalizedDocuments),
+    [normalizedDocuments],
+  );
   const dossierMeta = useMemo(() => {
     const questionnaire = dossierPayload?.dossier?.dataJson
       ? JSON.parse(dossierPayload.dossier.dataJson)
@@ -171,12 +178,16 @@ export const DocumentsPage = () => {
     if (!file || !resolvedDossierId || !docKey) return;
     setUploadError(null);
     setUploadSuccess('');
-    if (file.type !== 'application/pdf') {
-      setUploadError('Seuls les fichiers PDF sont autorisés.');
+    const maxBytes = INPI_UPLOAD_RULES.maxFileSizeMb * 1024 * 1024;
+    if (file.size > maxBytes) {
+      setUploadError(`Le fichier dépasse ${INPI_UPLOAD_RULES.maxFileSizeMb} Mo.`);
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      setUploadError('Le fichier dépasse 10 Mo.');
+    const conversion = await normalizeUploadToPdfWithMessage(file, {
+      filename: ensurePdfFilename(file.name),
+    });
+    if (!conversion.ok) {
+      setUploadError(conversion.message);
       return;
     }
     try {
@@ -186,7 +197,7 @@ export const DocumentsPage = () => {
       const payload = await uploadDossierDocument({
         dossierId: resolvedDossierId,
         docKey,
-        file,
+        file: conversion.file,
         ownerFirstName: currentUser?.firstName || '',
         ownerLastName: currentUser?.lastName || '',
       });
@@ -342,7 +353,7 @@ export const DocumentsPage = () => {
     }
   };
 
-  const waitingDocs = normalizedDocuments.filter((document) => ['REQUESTED', 'PENDING_REVIEW', 'INVALID', 'REJECTED', 'GENERATED'].includes(document.status));
+
   const powerDocuments = useMemo(
     () => normalizedDocuments.filter((document) => isFormalityPowerDocument(document).match),
     [normalizedDocuments],
@@ -410,12 +421,12 @@ export const DocumentsPage = () => {
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white">
                 <Upload className="h-4 w-4" />
                 {uploading ? 'Upload...' : 'Ajouter une pièce'}
-                <input type="file" accept="application/pdf" className="hidden" onChange={onUpload} disabled={uploading || Boolean(uploadingDocKey)} />
+                <input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" className="hidden" onChange={onUpload} disabled={uploading || Boolean(uploadingDocKey)} />
               </label>
               <input
                 ref={rowUploadRef}
                 type="file"
-                accept="application/pdf"
+                accept="application/pdf,image/jpeg,image/png,image/webp"
                 className="hidden"
                 onChange={onRowUpload}
                 disabled={Boolean(uploadingDocKey)}
@@ -433,7 +444,7 @@ export const DocumentsPage = () => {
                   ))}
                 </select>
               </div>
-              <p className="text-xs text-muted-foreground">PDF uniquement, 10 Mo max, un justificatif par fichier.</p>
+              <p className="text-xs text-muted-foreground">PDF ou image (JPG, PNG, WebP), 20 Mo max, un justificatif par fichier.</p>
             </div>
             {uploadError ? <p className="mt-2 text-xs text-destructive">{uploadError}</p> : null}
             {uploadSuccess ? <p className="mt-2 text-xs text-emerald-700">{uploadSuccess}</p> : null}
@@ -471,6 +482,7 @@ export const DocumentsPage = () => {
                 Pouvoirs formalités
               </Button>
             </div>
+            <GreffioSignatureInfoBanner className="mt-4" />
           </section>
 
           {resolvedDossierId ? (
@@ -516,7 +528,11 @@ export const DocumentsPage = () => {
                           subtitle="Document de représentation pour les formalités de votre dossier."
                           status={mapFormalityPowerStatus(document)}
                           badges={powerMeta.confidence !== 'low' ? ['Vaut procuration'] : []}
-                          warning={document.status === 'PENDING_REVIEW' ? 'Ce pouvoir est en cours de contrôle Greffio.' : undefined}
+                          warning={
+                            ['REJECTED', 'INVALID'].includes(document.status)
+                              ? formatDocumentRejectionHint(document)
+                              : (document.status === 'PENDING_REVIEW' ? 'Ce pouvoir est en cours de contrôle Greffio.' : undefined)
+                          }
                           actions={actions}
                         />
                         <FormalityPowerSummary document={document} />
@@ -674,6 +690,9 @@ export const DocumentsPage = () => {
                       <p className="mt-1 text-xs text-muted-foreground">
                         {document.date ? `Mis à jour le ${new Date(document.date).toLocaleDateString('fr-FR')}` : 'En attente de dépôt'}
                       </p>
+                      {['REJECTED', 'INVALID'].includes(document.status) ? (
+                        <p className="mt-1 text-xs text-destructive">{formatDocumentRejectionHint(document)}</p>
+                      ) : null}
                     </div>
                   </div>
                   <StatusBadge status={document.status} className="w-fit" />

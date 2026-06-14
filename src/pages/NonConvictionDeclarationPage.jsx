@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { SignatureAdoptPanel } from '@/components/signature/SignatureAdoptPanel.jsx';
+import { GreffioSignatureInfoBanner } from '@/components/signature/GreffioSignatureInfoBanner.jsx';
 import { downloadDossierDocument, previewDossierDocumentPdf } from '@/api/documents.js';
 import {
   loadNonConvictionEditor,
@@ -398,6 +399,7 @@ export const NonConvictionDeclarationPage = () => {
               <p className="text-sm text-muted-foreground">
                 Complétez le formulaire conforme au modèle administratif. Vous pourrez vérifier le PDF avant signature.
               </p>
+              <GreffioSignatureInfoBanner className="mt-3" />
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <div>
                   <Label>Prénom(s)</Label>

@@ -7,7 +7,7 @@ export const GREFFIO_CONTACT = {
 };
 
 export const INPI_UPLOAD_RULES = {
-  maxFileSizeMb: 10,
+  maxFileSizeMb: 20,
   acceptedFormats: ['PDF'],
   oneDocumentPerFile: true,
   namingRule: 'Chaque fichier doit avoir un nom en lien direct avec son contenu.',

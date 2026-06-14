@@ -1,0 +1,2 @@
+export const DOSSIER_DOCUMENT_MAX_BYTES = 20 * 1024 * 1024;
+export const DOSSIER_DOCUMENT_MAX_MB = 20;

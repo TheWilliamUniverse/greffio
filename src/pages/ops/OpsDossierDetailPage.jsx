@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button.jsx';
 import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
 import { Input } from '@/components/ui/input.jsx';
+import { Textarea } from '@/components/ui/textarea.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import {
   createOpsNote,
@@ -54,6 +55,8 @@ export const OpsDossierDetailPage = () => {
   const [saving, setSaving] = useState(false);
   const [docUpdating, setDocUpdating] = useState('');
   const [docPreviewing, setDocPreviewing] = useState('');
+  const [rejectingDocKey, setRejectingDocKey] = useState('');
+  const [rejectReason, setRejectReason] = useState('');
   const {
     messages,
     setMessages,
@@ -136,12 +139,14 @@ export const OpsDossierDetailPage = () => {
     }
   };
 
-  const setDocumentStatus = async (docKey, status) => {
+  const setDocumentStatus = async (docKey, status, rejectedReason = null) => {
     setDocUpdating(docKey);
     setError('');
     try {
-      const result = await updateOpsDocumentStatus({ dossierId, docKey, status });
+      const result = await updateOpsDocumentStatus({ dossierId, docKey, status, rejectedReason });
       setPayload((current) => ({ ...current, documents: result.documents || [] }));
+      setRejectingDocKey('');
+      setRejectReason('');
       await loadDetail();
       refreshCockpit?.();
       toast.success(status === 'valid' ? 'Document validé' : 'Document rejeté');
@@ -236,11 +241,19 @@ export const OpsDossierDetailPage = () => {
               <h3 className="text-lg font-extrabold text-slate-900">Documents</h3>
             </div>
             <div className="divide-y divide-slate-100">
-              {documents.length ? documents.map((doc) => (
-                <div key={doc.id || doc.docKey} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+              {documents.length ? documents.map((doc) => {
+                const docStatus = String(doc.status || '').toLowerCase();
+                const isRejecting = rejectingDocKey === doc.docKey;
+                const showReviewActions = docStatus === 'uploaded' || docStatus === 'under_review';
+                return (
+                <div key={doc.id || doc.docKey} className="px-5 py-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="font-semibold text-slate-900">{getDocumentTypeLabel(doc.docKey, doc.label)}</p>
                     <p className="text-xs text-slate-500">{doc.docKey} · {doc.filename || 'non uploadé'}</p>
+                    {doc.rejectedReason ? (
+                      <p className="mt-1 text-xs text-rose-700">Motif : {doc.rejectedReason}</p>
+                    ) : null}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <StatusBadge status={String(doc.status || '').toUpperCase()} />
@@ -260,8 +273,7 @@ export const OpsDossierDetailPage = () => {
                           : <Eye className="h-4 w-4" />}
                       </Button>
                     ) : null}
-                    {(String(doc.status || '').toLowerCase() === 'uploaded'
-                      || String(doc.status || '').toLowerCase() === 'under_review') && (
+                    {showReviewActions && !isRejecting ? (
                       <>
                         <Button
                           type="button"
@@ -277,15 +289,60 @@ export const OpsDossierDetailPage = () => {
                           variant="outline"
                           className="bg-white"
                           disabled={docUpdating === doc.docKey}
-                          onClick={() => void setDocumentStatus(doc.docKey, 'invalid')}
+                          onClick={() => {
+                            setRejectingDocKey(doc.docKey);
+                            setRejectReason('');
+                          }}
                         >
                           Rejeter
                         </Button>
                       </>
-                    )}
+                    ) : null}
                   </div>
+                  </div>
+                  {isRejecting ? (
+                    <div className="mt-3 space-y-2 rounded-lg border border-rose-100 bg-rose-50/50 p-3">
+                      <p className="text-xs font-semibold text-slate-700">Motif du refus (optionnel, visible par le client)</p>
+                      <Textarea
+                        value={rejectReason}
+                        onChange={(event) => setRejectReason(event.target.value)}
+                        placeholder="Ex. : pièce illisible, document expiré, nom ne correspond pas…"
+                        rows={3}
+                        className="bg-white text-sm"
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="destructive"
+                          disabled={docUpdating === doc.docKey}
+                          onClick={() => void setDocumentStatus(
+                            doc.docKey,
+                            'invalid',
+                            rejectReason.trim() || null,
+                          )}
+                        >
+                          Confirmer le refus
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="bg-white"
+                          disabled={docUpdating === doc.docKey}
+                          onClick={() => {
+                            setRejectingDocKey('');
+                            setRejectReason('');
+                          }}
+                        >
+                          Annuler
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
-              )) : (
+              );
+              }) : (
                 <p className="px-5 py-6 text-sm text-slate-500">Aucun document.</p>
               )}
             </div>

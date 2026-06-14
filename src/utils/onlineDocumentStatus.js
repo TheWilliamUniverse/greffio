@@ -31,10 +31,13 @@ export const resolveOnlineDocumentState = (docKey, documents = [], fallbackHint 
   let hint = fallbackHint;
   if (isComplete) hint = 'Validé – document enregistré';
   else if (isPending) hint = 'Envoyé – en cours de vérification';
-  else if (['INVALID', 'REJECTED'].includes(normalized)) hint = 'À corriger puis renvoyer';
+  else if (['INVALID', 'REJECTED'].includes(normalized)) {
+    const reason = String(doc.rejectedReason || '').trim();
+    hint = reason ? `Motif du refus : ${reason}` : 'À corriger puis renvoyer';
+  }
   else if (hasFile) hint = 'Déposé – compléter ou signer si besoin';
 
-  const userAction = resolveDocumentUserAction(status, hasFile);
+  const userAction = resolveDocumentUserAction(status, hasFile, doc.rejectedReason);
 
   return {
     docKey: apiKey,
@@ -49,7 +52,7 @@ export const resolveOnlineDocumentState = (docKey, documents = [], fallbackHint 
 };
 
 /** Traduction statut document → hint actionnable + CTA unique (audit mobile). */
-export const resolveDocumentUserAction = (status, hasFile = false) => {
+export const resolveDocumentUserAction = (status, hasFile = false, rejectedReason = null) => {
   const normalized = String(status || '').toUpperCase();
 
   if (['VALID', 'VALIDATED', 'SIGNED'].includes(normalized)) {
@@ -69,8 +72,9 @@ export const resolveDocumentUserAction = (status, hasFile = false) => {
   }
 
   if (['INVALID', 'REJECTED'].includes(normalized)) {
+    const reason = String(rejectedReason || '').trim();
     return {
-      hint: 'Une correction est nécessaire avant dépôt.',
+      hint: reason ? `Motif du refus : ${reason}` : 'Une correction est nécessaire avant dépôt.',
       cta: 'Corriger',
       action: 'correct',
     };

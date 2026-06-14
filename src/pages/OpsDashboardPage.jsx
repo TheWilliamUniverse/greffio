@@ -1,20 +1,26 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, CalendarClock, CheckCircle2, CircleDollarSign, FileText, FolderKanban, RefreshCw } from 'lucide-react';
+import { AlertCircle, CalendarClock, CheckCircle2, CircleDollarSign, Eye, FileText, FolderKanban, Loader2, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Input } from '@/components/ui/input.jsx';
+import { Textarea } from '@/components/ui/textarea.jsx';
 import {
   createOpsNote,
+  downloadOpsDocument,
   getOpsDossierDetail,
   getOpsDossiers,
   getOpsDossiersRisk,
   getOpsPayments,
   getOpsResourceOrders,
+  updateOpsDocumentStatus,
   updateOpsResourceOrderStatus,
   updateOpsAssignment,
 } from '@/api/ops.js';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
+
+const opsDocumentHasFile = (doc) => Boolean(doc?.storageUrl || (doc?.filename && doc.filename !== 'non uploadé'));
 
 const Card = ({ title, value, icon: Icon, tone = 'default' }) => (
   <div className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
@@ -43,6 +49,10 @@ export const OpsDashboardPage = () => {
   const [savingAssignment, setSavingAssignment] = useState(false);
   const [antiRejectQueue, setAntiRejectQueue] = useState([]);
   const [resourceOrders, setResourceOrders] = useState([]);
+  const [docUpdating, setDocUpdating] = useState('');
+  const [docPreviewing, setDocPreviewing] = useState('');
+  const [rejectingDocKey, setRejectingDocKey] = useState('');
+  const [rejectReason, setRejectReason] = useState('');
 
   const loadData = async () => {
     setLoading(true);
@@ -121,6 +131,58 @@ export const OpsDashboardPage = () => {
       setNewNote('');
     } catch (_e) {
       setError("Impossible d'ajouter la note.");
+    }
+  };
+
+  const openOpsDocumentPreview = async (docKey) => {
+    if (!selectedDossier?.id) return;
+    setDocPreviewing(docKey);
+    setError('');
+    try {
+      const { blob } = await downloadOpsDocument({
+        dossierId: selectedDossier.id,
+        docKey,
+        inline: true,
+        cacheBust: true,
+      });
+      const url = window.URL.createObjectURL(blob);
+      const previewWindow = window.open(url, '_blank', 'noopener,noreferrer');
+      if (!previewWindow) {
+        window.URL.revokeObjectURL(url);
+        setError('Autorisez les pop-ups pour ouvrir l’aperçu du document.');
+        return;
+      }
+      setTimeout(() => window.URL.revokeObjectURL(url), 120_000);
+    } catch (_e) {
+      setError('Impossible d’ouvrir ce document pour le moment.');
+    } finally {
+      setDocPreviewing('');
+    }
+  };
+
+  const setDocumentStatus = async (docKey, status, rejectedReason = null) => {
+    if (!selectedDossier?.id) return;
+    setDocUpdating(docKey);
+    setError('');
+    try {
+      const result = await updateOpsDocumentStatus({
+        dossierId: selectedDossier.id,
+        docKey,
+        status,
+        rejectedReason,
+      });
+      setSelectedDocuments(result.documents || []);
+      setRejectingDocKey('');
+      setRejectReason('');
+      toast.success(status === 'valid' ? 'Document validé' : 'Document rejeté');
+    } catch (err) {
+      const code = err?.payload?.error || err?.message;
+      setError(code === 'AUTH_SESSION_EXPIRED'
+        ? 'Session expirée. Reconnectez-vous puis réessayez.'
+        : 'Impossible de mettre à jour le document.');
+      toast.error('Validation impossible pour le moment.');
+    } finally {
+      setDocUpdating('');
     }
   };
 
@@ -427,22 +489,115 @@ export const OpsDashboardPage = () => {
               <div className="border-b border-border p-4">
                 <h2 className="text-lg font-extrabold">Documents dossier</h2>
               </div>
-              {selectedDocuments.length ? selectedDocuments.map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between border-b border-border px-4 py-3 last:border-b-0">
-                  <div>
-                    <p className="text-sm font-bold">{getDocumentTypeLabel(doc.docKey, doc.label)}</p>
-                    <p className="text-xs text-muted-foreground">{doc.docKey} · {doc.filename || 'non uploadé'}</p>
-                    {doc.metadata?.analysis ? (
-                      <p className="mt-1 text-xs font-semibold text-primary">
-                        Analyse identité: {doc.metadata.analysis.docCategory || 'N/A'} ·
-                        confiance {doc.metadata.analysis.confidence ?? 'N/A'}% ·
-                        {doc.metadata.analysis.requiresManualReview ? ' contrôle manuel requis' : ' auto validé'}
-                      </p>
+              {selectedDocuments.length ? selectedDocuments.map((doc) => {
+                const docStatus = String(doc.status || '').toLowerCase();
+                const isRejecting = rejectingDocKey === doc.docKey;
+                const showReviewActions = docStatus === 'uploaded' || docStatus === 'under_review';
+                return (
+                  <div key={doc.id} className="border-b border-border px-4 py-3 last:border-b-0">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-bold">{getDocumentTypeLabel(doc.docKey, doc.label)}</p>
+                        <p className="text-xs text-muted-foreground">{doc.docKey} · {doc.filename || 'non uploadé'}</p>
+                        {doc.rejectedReason ? (
+                          <p className="mt-1 text-xs text-rose-700">Motif : {doc.rejectedReason}</p>
+                        ) : null}
+                        {doc.metadata?.analysis ? (
+                          <p className="mt-1 text-xs font-semibold text-primary">
+                            Analyse identité: {doc.metadata.analysis.docCategory || 'N/A'} ·
+                            confiance {doc.metadata.analysis.confidence ?? 'N/A'}% ·
+                            {doc.metadata.analysis.requiresManualReview ? ' contrôle manuel requis' : ' auto validé'}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <StatusBadge status={String(doc.status || '').toUpperCase()} />
+                        {opsDocumentHasFile(doc) ? (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="outline"
+                            className="h-8 w-8 bg-white"
+                            aria-label="Voir le document"
+                            title="Voir le document"
+                            disabled={docPreviewing === doc.docKey}
+                            onClick={() => void openOpsDocumentPreview(doc.docKey)}
+                          >
+                            {docPreviewing === doc.docKey
+                              ? <Loader2 className="h-4 w-4 animate-spin" />
+                              : <Eye className="h-4 w-4" />}
+                          </Button>
+                        ) : null}
+                        {showReviewActions && !isRejecting ? (
+                          <>
+                            <Button
+                              type="button"
+                              size="sm"
+                              disabled={docUpdating === doc.docKey}
+                              onClick={() => void setDocumentStatus(doc.docKey, 'valid')}
+                            >
+                              Valider
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="bg-white"
+                              disabled={docUpdating === doc.docKey}
+                              onClick={() => {
+                                setRejectingDocKey(doc.docKey);
+                                setRejectReason('');
+                              }}
+                            >
+                              Rejeter
+                            </Button>
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+                    {isRejecting ? (
+                      <div className="mt-3 space-y-2 rounded-lg border border-rose-100 bg-rose-50/50 p-3">
+                        <p className="text-xs font-semibold text-slate-700">Motif du refus (optionnel, visible par le client)</p>
+                        <Textarea
+                          value={rejectReason}
+                          onChange={(event) => setRejectReason(event.target.value)}
+                          placeholder="Ex. : pièce illisible, document expiré, nom ne correspond pas…"
+                          rows={3}
+                          className="bg-white text-sm"
+                        />
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="destructive"
+                            disabled={docUpdating === doc.docKey}
+                            onClick={() => void setDocumentStatus(
+                              doc.docKey,
+                              'invalid',
+                              rejectReason.trim() || null,
+                            )}
+                          >
+                            Confirmer le refus
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="bg-white"
+                            disabled={docUpdating === doc.docKey}
+                            onClick={() => {
+                              setRejectingDocKey('');
+                              setRejectReason('');
+                            }}
+                          >
+                            Annuler
+                          </Button>
+                        </div>
+                      </div>
                     ) : null}
                   </div>
-                  <StatusBadge status={String(doc.status || '').toUpperCase()} />
-                </div>
-              )) : <div className="px-4 py-4 text-sm text-muted-foreground">Aucun document pour ce dossier.</div>}
+                );
+              }) : <div className="px-4 py-4 text-sm text-muted-foreground">Aucun document pour ce dossier.</div>}
             </div>
           </section>
         ) : null}

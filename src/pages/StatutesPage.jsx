@@ -79,6 +79,7 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
   const [pdfBlobUrl, setPdfBlobUrl] = useState('');
   const [dossierName, setDossierName] = useState('');
   const [loadError, setLoadError] = useState('');
+  const [showDocumentsLink, setShowDocumentsLink] = useState(false);
 
   useEffect(() => {
     const fromUrl = searchParams.get('dossierId');
@@ -229,6 +230,7 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
       }
       await load(payload?.dossierId || dossierId);
       const completeness = payload?.document?.completeness;
+      setShowDocumentsLink(true);
       toast.success(
         completeness != null
           ? `Statuts générés (${completeness} % des données obligatoires intégrées).`
@@ -345,6 +347,15 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
             <QuestionnaireNotice variant="error" title="Chargement du dossier">
               {loadError}
             </QuestionnaireNotice>
+          ) : null}
+
+          {showDocumentsLink && !eiLike ? (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-900">
+              Les statuts ont été enregistrés dans votre coffre documentaire.{' '}
+              <Link to="/documents" className="font-semibold underline underline-offset-2">
+                Voir dans Documents
+              </Link>
+            </div>
           ) : null}
 
           {!eiLike && preview ? (

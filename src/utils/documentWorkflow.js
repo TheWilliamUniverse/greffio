@@ -1,3 +1,5 @@
+import { isClientDocumentComplete, normalizeDocumentStatusKey } from '@/utils/documentStatusNormalize.js';
+
 export const documentHasFile = (doc = {}) => Boolean(
   doc.filename || doc.storageUrl || doc.fileUrl || doc.hasFile,
 );
@@ -30,7 +32,35 @@ export const ACTIONABLE_DOCUMENT_STATUSES = Object.freeze([
 ]);
 
 export const countActionableDocuments = (documents = []) => (
-  documents.filter((document) => ACTIONABLE_DOCUMENT_STATUSES.includes(
-    String(document.status || '').toUpperCase(),
-  )).length
+  documents.filter((document) => {
+    const hasFile = documentHasFile(document);
+    const status = resolveClientDocumentStatus({ ...document, hasFile });
+    const bucket = normalizeDocumentStatusKey(status);
+    return bucket === 'REQUESTED' || bucket === 'REJECTED';
+  }).length
 );
+
+/** Document nécessitant encore une action client (dépôt, correction, signature). */
+export const isClientDocumentActionRequired = (doc = {}) => {
+  if (isClientDocumentComplete(doc.status)) return false;
+  const hasFile = documentHasFile(doc);
+  const status = resolveClientDocumentStatus({ ...doc, hasFile });
+  const bucket = normalizeDocumentStatusKey(status);
+  if (bucket === 'VALIDATED' || bucket === 'PENDING_REVIEW') return false;
+  return bucket === 'REQUESTED' || bucket === 'REJECTED';
+};
+
+export const filterClientActionRequiredDocuments = (documents = []) => (
+  documents.filter(isClientDocumentActionRequired)
+);
+
+export const getDocumentRejectionReason = (doc = {}) => {
+  const reason = String(doc.rejectedReason || '').trim();
+  return reason || null;
+};
+
+export const formatDocumentRejectionHint = (doc = {}) => {
+  const reason = getDocumentRejectionReason(doc);
+  if (!reason) return 'Une correction est nécessaire avant dépôt.';
+  return `Motif du refus : ${reason}`;
+};

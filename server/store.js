@@ -1,7 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { DOSSIER_STATUSES, evaluateTransition, ROLE } from './stateMachine.js';
 import { hasPostgres, query, sqlite } from './dbClient.js';
-import { getFormalityRule } from './domain/formalities.js';
+import { DOCUMENT_STATUSES, isDocumentCompleteStatus } from './domain/documentStatus.js';
+import {
+  resolveDossierDocumentPlan,
+  resolveDocumentRequiredFlag,
+} from './domain/formalityDocuments.js';
 import { resolveLegalFormFromQuestionnaire, resolveServiceFromFormality } from './utils/formalityMapping.js';
 import { getMinorDocumentRequirements } from './utils/minorAssociateRules.js';
 
@@ -25,14 +29,6 @@ const makeShortReference = () => {
   }
   return `GF-${block}`;
 };
-const DOCUMENT_STATUSES = Object.freeze({
-  REQUESTED: 'requested',
-  UPLOADED: 'uploaded',
-  UNDER_REVIEW: 'under_review',
-  VALID: 'valid',
-  INVALID: 'invalid',
-});
-
 const DOSSIER_DOCUMENT_TEMPLATES = Object.freeze([
   { key: 'identity_proof', label: "Pièce d'identité", required: true },
   { key: 'address_proof', label: 'Justificatif de domicile', required: true },
@@ -311,9 +307,12 @@ const ensureDossierDocuments = async (dossierId) => {
   const createdAt = nowIso();
   const dossier = await getDossier(dossierId);
   const questionnaire = dossier?.dataJson ? JSON.parse(dossier.dataJson) : {};
-  const formalityRule = getFormalityRule({ dossier, questionnaire });
+  const documentPlan = resolveDossierDocumentPlan({ dossier, questionnaire });
+  const excludedDocumentKeys = documentPlan.formalityType === 'creation'
+    ? (documentPlan.formalityRule?.excludedDocumentKeys || [])
+    : [];
   const allowedTemplates = DOSSIER_DOCUMENT_TEMPLATES.filter(
-    (template) => !formalityRule.excludedDocumentKeys?.includes(template.key),
+    (template) => !excludedDocumentKeys.includes(template.key),
   );
   if (hasPostgres) {
     for (const template of allowedTemplates) {
@@ -351,6 +350,64 @@ const ensureDossierDocuments = async (dossierId) => {
       createdAt,
       updatedAt: createdAt,
     });
+  }
+  await syncDocumentRequirements(dossierId);
+};
+
+const syncDocumentRequirements = async (dossierId) => {
+  const dossier = await getDossier(dossierId);
+  if (!dossier) return;
+  const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+  const documentPlan = resolveDossierDocumentPlan({ dossier, questionnaire });
+  const updatedAt = nowIso();
+
+  for (const template of DOSSIER_DOCUMENT_TEMPLATES) {
+    const required = resolveDocumentRequiredFlag(template.key, {
+      dossier,
+      questionnaire,
+      documentPlan,
+    });
+    if (hasPostgres) {
+      await query(`
+        UPDATE documents
+        SET required = $1, updated_at = $2
+        WHERE dossier_id = $3 AND doc_key = $4
+      `, [required, updatedAt, dossierId, template.key]);
+    } else {
+      sqlite.prepare(`
+        UPDATE documents
+        SET required = @required, updated_at = @updatedAt
+        WHERE dossier_id = @dossierId AND doc_key = @docKey
+      `).run({
+        required: required ? 1 : 0,
+        updatedAt,
+        dossierId,
+        docKey: template.key,
+      });
+    }
+  }
+
+  const excludedDocumentKeys = documentPlan.formalityType === 'creation'
+    ? (documentPlan.formalityRule?.excludedDocumentKeys || [])
+    : [];
+  if (excludedDocumentKeys.length) {
+    if (hasPostgres) {
+      await query(
+        `
+        UPDATE documents
+        SET required = FALSE, updated_at = $1
+        WHERE dossier_id = $2 AND doc_key = ANY($3::text[])
+        `,
+        [updatedAt, dossierId, excludedDocumentKeys],
+      );
+    } else {
+      const placeholders = excludedDocumentKeys.map(() => '?').join(',');
+      sqlite.prepare(`
+        UPDATE documents
+        SET required = 0, updated_at = ?
+        WHERE dossier_id = ? AND doc_key IN (${placeholders})
+      `).run(updatedAt, dossierId, ...excludedDocumentKeys);
+    }
   }
 };
 
@@ -893,7 +950,6 @@ const updateDossierQuestionnaire = async ({
     ...previousData,
     ...dataPatch,
   };
-  const formalityRule = getFormalityRule({ dossier, questionnaire: mergedData });
   const nextProgress = progressPercent == null ? Number(dossier.progressPercent || 0) : Math.max(0, Math.min(100, Number(progressPercent)));
   const updatedAt = nowIso();
   const nextLegalForm = resolveLegalFormFromQuestionnaire({ dossier, questionnaire: mergedData }) || dossier.legalForm;
@@ -960,24 +1016,10 @@ const updateDossierQuestionnaire = async ({
       dossierId,
     );
   }
-  if (formalityRule?.excludedDocumentKeys?.length) {
-    if (hasPostgres) {
-      await query(
-        `
-        UPDATE documents
-        SET required = FALSE, updated_at = $1
-        WHERE dossier_id = $2 AND doc_key = ANY($3::text[])
-        `,
-        [updatedAt, dossierId, formalityRule.excludedDocumentKeys],
-      );
-    } else {
-      const placeholders = formalityRule.excludedDocumentKeys.map(() => '?').join(',');
-      sqlite.prepare(`
-        UPDATE documents
-        SET required = 0, updated_at = ?
-        WHERE dossier_id = ? AND doc_key IN (${placeholders})
-      `).run(updatedAt, dossierId, ...formalityRule.excludedDocumentKeys);
-    }
+  try {
+    await syncDocumentRequirements(dossierId);
+  } catch (error) {
+    console.error('[questionnaire] syncDocumentRequirements failed:', error?.message || error);
   }
   try {
     await syncMinorAssociateDocuments(dossierId, mergedData);
@@ -1108,7 +1150,7 @@ const transitionDossierStatus = async ({
   const documents = await listDossierDocuments(dossier.id);
   const requiredDocsValid = documents
     .filter((item) => item.required)
-    .every((item) => item.status === DOCUMENT_STATUSES.VALID);
+    .every((item) => isDocumentCompleteStatus(item.status));
   const mandateDoc = documents.find((item) => item.docKey === 'proxy_mandate');
   const hasMandateSigned = Boolean(mandateDoc && mandateDoc.status === DOCUMENT_STATUSES.VALID);
   const requiresMandate = Boolean(mandateDoc && mandateDoc.required);
@@ -1932,6 +1974,7 @@ export {
   createDossier,
   ensureSeedDossier,
   ensureDossierDocuments,
+  syncDocumentRequirements,
   listDossierDocuments,
   updateDossierDocument,
   clearDossierDocumentAttachment,

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { SignatureAdoptPanel } from '@/components/signature/SignatureAdoptPanel.jsx';
+import { GreffioSignatureInfoBanner } from '@/components/signature/GreffioSignatureInfoBanner.jsx';
 import { downloadDossierDocument, previewDossierDocumentPdf } from '@/api/documents.js';
 import {
   loadEditableDocumentEditor,
@@ -211,6 +212,7 @@ export const FormalityPowersPage = () => {
                 Document séparé des statuts – confère les pouvoirs au mandataire pour le dépôt guichet unique et les formalités d’immatriculation.
               </p>
             ) : null}
+            {!nativeApp ? <GreffioSignatureInfoBanner className="mt-3" /> : null}
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <Label>Société</Label>
