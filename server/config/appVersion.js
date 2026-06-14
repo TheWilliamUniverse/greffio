@@ -34,16 +34,16 @@ const parseChangelog = (value) => {
     .filter(Boolean);
 };
 
-const DEFAULT_LATEST_VERSION_CODE = 261510014;
+const DEFAULT_LATEST_VERSION_CODE = 261510017;
 const DEFAULT_MIN_VERSION_CODE = 261422041;
-const DEFAULT_LATEST_VERSION_NAME = '1.2.15';
+const DEFAULT_LATEST_VERSION_NAME = '1.2.18';
 
 const DEFAULT_CHANGELOG = [
-  'Shell remote : l\'app charge le site live — mises à jour UI sans nouvel AAB',
-  'Connexion native corrigée : ouverture navigateur système et retour deep link',
-  'PDF pouvoirs formalités refondu (signature, lieu, sans mention SES)',
-  'Commandes ressources (Kbis) : emails uniquement après paiement effectif',
-  'Stabilité générale et corrections diverses',
+  'Icône Greffio corrigée sur l’écran d’accueil Android',
+  'PDF : ouverture dans un lecteur externe et enregistrement dans Documents/Greffio',
+  'Questionnaire création : catégories juridiques à deux niveaux (Autres)',
+  'Paiement mobile : logo Mollie complet et interface réorganisée',
+  'Navigation questionnaire : bouton Retour ne masque plus les champs',
 ];
 
 export const getAppVersionConfig = () => ({

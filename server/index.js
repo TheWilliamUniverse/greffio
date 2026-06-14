@@ -117,6 +117,8 @@ import {
   requestAppDownloadAccessCode,
   verifyAppDownloadAccess,
 } from './features/appDownloadAccess/appDownloadAccessService.js';
+import { resolveAppDownloadApk } from './features/appDownloadAccess/appDownloadApk.js';
+import { isAccessTokenValid } from './features/appDownloadAccess/appDownloadAccessStore.js';
 import { formatParisDateTime, getClientIp, parseDeviceLabel } from './utils/loginContext.js';
 import { buildLoginAlertsProfilePatch, shouldSendLoginAlert } from './utils/loginAlerts.js';
 import { isEmailFeatureEnabled } from './config/emailFeatureFlags.js';
@@ -1211,6 +1213,44 @@ app.post('/api/public/app-download/verify', appDownloadAccessLimiter, async (req
     expiresAt: result.expiresAt,
     revalidated: Boolean(result.revalidated),
   });
+});
+
+const resolveAppDownloadAccessToken = (req) => {
+  const bearer = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+  const fromQuery = String(req.query?.accessToken || '').trim();
+  return bearer || fromQuery;
+};
+
+app.get('/api/public/app-download/info', appDownloadAccessLimiter, (req, res) => {
+  const accessToken = resolveAppDownloadAccessToken(req);
+  if (!accessToken || !isAccessTokenValid(accessToken)) {
+    return res.status(401).json({ ok: false, error: 'APP_DOWNLOAD_ACCESS_DENIED' });
+  }
+  const apk = resolveAppDownloadApk();
+  return res.json({
+    ok: true,
+    versionName: apk.versionName,
+    versionCode: apk.versionCode,
+    filename: apk.filename,
+    sizeBytes: apk.sizeBytes,
+    available: Boolean(apk.path),
+    downloadUrl: `/api/public/app-download/apk?accessToken=${encodeURIComponent(accessToken)}`,
+  });
+});
+
+app.get('/api/public/app-download/apk', appDownloadAccessLimiter, (req, res) => {
+  const accessToken = resolveAppDownloadAccessToken(req);
+  if (!accessToken || !isAccessTokenValid(accessToken)) {
+    return res.status(401).json({ ok: false, error: 'APP_DOWNLOAD_ACCESS_DENIED' });
+  }
+  const apk = resolveAppDownloadApk();
+  if (!apk.path) {
+    return res.status(503).json({ ok: false, error: 'APP_DOWNLOAD_APK_UNAVAILABLE' });
+  }
+  res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+  res.setHeader('Content-Disposition', `attachment; filename="${apk.filename}"`);
+  res.setHeader('Content-Length', String(apk.sizeBytes));
+  return fs.createReadStream(apk.path).pipe(res);
 });
 
 app.get('/api/auth/mfa/status', requireAuth, async (req, res) => {

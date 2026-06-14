@@ -3,6 +3,7 @@ import { ASSOCIATE_TYPES, isAssociateEntryComplete } from '@/utils/associateEntr
 import { resolveDemarchePreset } from '@/utils/formalityMapping.js';
 import {
   isCommercialFormFamily,
+  isQuestionnaireAutresPrimary,
   needsFormeWizard,
   shouldShowComparateurCta,
   shouldShowFormeJuridiqueField,
@@ -210,11 +211,22 @@ export const QUESTIONNAIRE_FLOW = [
     },
     fields: [
       {
-        key: 'formeJuridiqueFamille',
+        key: 'formeJuridiqueFamillePrimary',
         label: 'Quelle catégorie correspond à votre projet ?',
         type: 'form_family_picker',
         required: true,
         condition: (data) => needsFormeWizard(data),
+      },
+      {
+        key: 'formeJuridiqueFamilleSecondary',
+        label: 'Précisez votre catégorie',
+        type: 'form_family_secondary_picker',
+        required: true,
+        condition: (data) => (
+          needsFormeWizard(data)
+          && isQuestionnaireAutresPrimary(data.formeJuridiqueFamillePrimary)
+          && !String(data.formeJuridiqueFamille || '').trim()
+        ),
       },
       {
         key: 'connaissezFormeJuridique',
@@ -413,7 +425,8 @@ const MOBILE_FIELD_GROUP_SPECS = Object.freeze({
     ['existingBusinessName'],
   ],
   forme: [
-    ['formeJuridiqueFamille'],
+    ['formeJuridiqueFamillePrimary'],
+    ['formeJuridiqueFamilleSecondary'],
     ['connaissezFormeJuridique'],
     ['_comparateurCta'],
     ['formeJuridique'],
@@ -509,6 +522,15 @@ export const isFieldValueValid = (field, value, formData = {}) => {
   }
   if (field.type === 'comparateur_cta') {
     return Boolean(formData.comparateurIgnore);
+  }
+  if (field.type === 'form_family_picker') {
+    const primary = String(formData.formeJuridiqueFamillePrimary ?? value ?? '').trim();
+    if (!field.required) return Boolean(primary);
+    return Boolean(primary);
+  }
+  if (field.type === 'form_family_secondary_picker') {
+    if (!field.required) return true;
+    return Boolean(String(formData.formeJuridiqueFamille || '').trim());
   }
   if (field.key === 'formeJuridique' && formData.comparateurIgnore) return true;
   if (!field.required) return true;
@@ -649,7 +671,8 @@ export const getFieldValidationMessage = (field, value, formData = {}) => {
   if (field.key === 'companySiren' || field.key === 'existingBusinessSiren') {
     return 'Le SIREN (9 chiffres) ou SIRET (14 chiffres) est requis pour identifier l’entreprise.';
   }
-  if (field.key === 'formeJuridiqueFamille') return 'Choisissez la catégorie juridique la plus proche de votre projet.';
+  if (field.key === 'formeJuridiqueFamillePrimary') return 'Choisissez la catégorie juridique la plus proche de votre projet.';
+  if (field.key === 'formeJuridiqueFamilleSecondary') return 'Choisissez la catégorie la plus proche dans « Autres ».';
   if (field.key === 'connaissezFormeJuridique') return 'Indiquez si vous connaissez déjà la forme juridique visée.';
   if (field.key === 'typeFormalite') return 'Choisissez la formalité correspondant à votre projet.';
   if (field.key === 'formeJuridique') return 'Indiquez la forme juridique de votre structure.';

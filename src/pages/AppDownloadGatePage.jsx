@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Apple, BadgeCheck, Download, LockKeyhole, Mail, ShieldCheck, Smartphone } from 'lucide-react';
+import { Apple, BadgeCheck, Download, LockKeyhole, Mail, Monitor, ShieldCheck, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { SeoHead } from '@/components/seo/SeoHead.jsx';
@@ -11,7 +11,12 @@ import { GooglePlayStoreLink } from '@/components/store/GooglePlayStoreLink.jsx'
 import { PublicMinimalLegalFooter } from '@/components/layout/PublicMinimalLegalFooter.jsx';
 import { MobileFooter } from '@/mobile/MobileFooter.jsx';
 import { isMobileBrowserViewport } from '@/utils/platform.js';
-import { requestAppDownloadCode, verifyAppDownloadCode } from '@/api/appDownloadAccess.js';
+import {
+  buildAppDownloadApkUrl,
+  getAppDownloadInfo,
+  requestAppDownloadCode,
+  verifyAppDownloadCode,
+} from '@/api/appDownloadAccess.js';
 import {
   clearAppDownloadAccess,
   readAppDownloadAccess,
@@ -21,17 +26,9 @@ import { runtimeConfig } from '@/config/runtime.js';
 import { getAuthInputClass } from '@/lib/authFormStyles.js';
 import { maskEmailFirstFour } from '@/utils/maskEmail.js';
 
-/** Affichage masqué de l’adresse autorisée (aligné sur APP_DOWNLOAD_CODE_RECIPIENT côté serveur). */
 const AUTHORIZED_RECIPIENT_MASKED = maskEmailFirstFour(
   import.meta.env.VITE_APP_DOWNLOAD_RECIPIENT || 'ibtissam@willentreprises.com',
 );
-
-const LATEST_ANDROID = {
-  versionName: '1.2.15',
-  versionCode: 261510014,
-  builtAt: '2026-06-13',
-  mode: 'capacitor-remote',
-};
 
 const IOS_OPTIONS = [
   {
@@ -44,9 +41,23 @@ const IOS_OPTIONS = [
   },
   {
     title: 'Prochaine étape iOS native',
-    text: 'Le projet Capacitor est prêt côté configuration (`capacitor.config.remote.json`). Dès l’inscription Apple Developer, nous pourrons soumettre l’app native sur TestFlight.',
+    text: 'Le projet Capacitor est prêt côté configuration. Dès l’inscription Apple Developer, nous pourrons soumettre l’app native sur TestFlight.',
   },
 ];
+
+const detectDeviceHint = () => {
+  if (typeof navigator === 'undefined') return 'desktop';
+  const ua = navigator.userAgent || '';
+  if (/android/i.test(ua)) return 'android';
+  if (/iphone|ipad|ipod/i.test(ua)) return 'ios';
+  return 'desktop';
+};
+
+const formatBytes = (bytes = 0) => {
+  if (!bytes) return '—';
+  const mb = bytes / (1024 * 1024);
+  return `${mb.toFixed(mb >= 10 ? 0 : 1)} Mo`;
+};
 
 export const AppDownloadGatePage = () => {
   const [access, setAccess] = useState(() => readAppDownloadAccess());
@@ -54,7 +65,10 @@ export const AppDownloadGatePage = () => {
   const [requesting, setRequesting] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [recipientMasked, setRecipientMasked] = useState('');
+  const [downloadInfo, setDownloadInfo] = useState(null);
+  const [loadingInfo, setLoadingInfo] = useState(false);
   const authInputClass = getAuthInputClass(false);
+  const deviceHint = useMemo(() => detectDeviceHint(), []);
 
   useEffect(() => {
     const stored = readAppDownloadAccess();
@@ -71,6 +85,26 @@ export const AppDownloadGatePage = () => {
       setAccess(null);
     });
   }, []);
+
+  useEffect(() => {
+    if (!access?.accessToken) {
+      setDownloadInfo(null);
+      return;
+    }
+    setLoadingInfo(true);
+    void getAppDownloadInfo({ accessToken: access.accessToken })
+      .then((payload) => {
+        if (payload?.ok) setDownloadInfo(payload);
+      })
+      .catch(() => {
+        setDownloadInfo(null);
+      })
+      .finally(() => setLoadingInfo(false));
+  }, [access?.accessToken]);
+
+  const apkDownloadUrl = access?.accessToken
+    ? buildAppDownloadApkUrl({ accessToken: access.accessToken, apiBaseUrl: runtimeConfig.apiBaseUrl })
+    : null;
 
   const handleRequestCode = async () => {
     setRequesting(true);
@@ -125,7 +159,18 @@ export const AppDownloadGatePage = () => {
     clearAppDownloadAccess();
     setAccess(null);
     setCode('');
+    setDownloadInfo(null);
   };
+
+  const installHint = (() => {
+    if (deviceHint === 'android') {
+      return 'Téléchargez l’APK, ouvrez-le depuis vos notifications ou le gestionnaire de fichiers, puis autorisez l’installation si Android le demande.';
+    }
+    if (deviceHint === 'ios') {
+      return 'L’APK ne s’installe pas sur iPhone. Vous pouvez quand même le télécharger pour le transférer vers un téléphone Android (AirDrop vers Mac + USB, email, Drive…). Sur iPhone, utilisez la PWA ci-dessous.';
+    }
+    return 'Téléchargez l’APK depuis cet appareil (PC, tablette ou téléphone), puis transférez-le sur un Android par câble USB, email ou Google Drive.';
+  })();
 
   return (
     <div className="min-h-screen bg-background px-4 py-10">
@@ -154,7 +199,7 @@ export const AppDownloadGatePage = () => {
             </div>
 
             <p className="text-sm leading-6 text-muted-foreground">
-              Cette page n’est pas référencée publiquement. Un code à 6 chiffres est envoyé uniquement à l’adresse autorisée
+              Bonjour Ibtissam — cette page n’est pas référencée publiquement. Un code à 6 chiffres est envoyé uniquement à
               {' '}
               <strong>{AUTHORIZED_RECIPIENT_MASKED}</strong>.
             </p>
@@ -192,16 +237,9 @@ export const AppDownloadGatePage = () => {
               </div>
               <Button type="submit" className="w-full" disabled={verifying}>
                 <ShieldCheck className="h-4 w-4" />
-                {verifying ? 'Vérification…' : 'Accéder à la page'}
+                {verifying ? 'Vérification…' : 'Accéder au téléchargement'}
               </Button>
             </form>
-
-            <p className="mt-4 text-xs leading-5 text-muted-foreground">
-              En production, définissez aussi{' '}
-              <code className="rounded bg-muted px-1">ADMIN_APP_DOWNLOAD_CODE</code>
-              {' '}
-              côté serveur pour un accès administrateur direct.
-            </p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -212,8 +250,8 @@ export const AppDownloadGatePage = () => {
                     <Download className="h-5 w-5" />
                   </div>
                   <div>
-                    <h1 className="text-xl font-extrabold">Téléchargement Greffio</h1>
-                    <p className="text-sm text-muted-foreground">Distribution interne – ne pas partager publiquement</p>
+                    <h1 className="text-xl font-extrabold">Bonjour Ibtissam</h1>
+                    <p className="text-sm text-muted-foreground">Téléchargez l’APK Greffio depuis n’importe quel appareil</p>
                   </div>
                 </div>
                 <Button type="button" variant="ghost" size="sm" onClick={handleLogout}>
@@ -221,22 +259,50 @@ export const AppDownloadGatePage = () => {
                 </Button>
               </div>
 
-              <section className="rounded-md border border-border/70 bg-[#f6f8fc] p-4">
+              <section className="rounded-md border border-primary/25 bg-secondary/30 p-4">
                 <div className="flex items-start gap-3">
                   <Smartphone className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-                  <div>
-                    <h2 className="font-extrabold text-[hsl(var(--greffio-blue-900))]">Android</h2>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="font-extrabold text-[hsl(var(--greffio-blue-900))]">APK Android Greffio</h2>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Version {LATEST_ANDROID.versionName} (build {LATEST_ANDROID.versionCode}) – mode {LATEST_ANDROID.mode}.
-                      L’app charge le site {runtimeConfig.appUrl} en natif (Capacitor remote).
+                      {loadingInfo
+                        ? 'Chargement de la dernière version…'
+                        : downloadInfo?.available
+                          ? `Version ${downloadInfo.versionName} (build ${downloadInfo.versionCode}) — ${formatBytes(downloadInfo.sizeBytes)}`
+                          : 'APK en cours de préparation côté serveur. Réessayez dans quelques minutes ou utilisez le Play Store.'}
+                    </p>
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{installHint}</p>
+                    {apkDownloadUrl && downloadInfo?.available ? (
+                      <Button asChild className="mt-4 w-full" size="lg">
+                        <a href={apkDownloadUrl} download={downloadInfo.filename || 'greffio.apk'}>
+                          <Download className="h-5 w-5" />
+                          Télécharger l’APK Greffio
+                        </a>
+                      </Button>
+                    ) : (
+                      <Button className="mt-4 w-full" size="lg" disabled>
+                        <Download className="h-5 w-5" />
+                        APK indisponible pour le moment
+                      </Button>
+                    )}
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      Ce lien fonctionne depuis n’importe quel appareil (Android, iPhone, ordinateur) tant que votre session est active.
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              <section className="mt-4 rounded-md border border-border/70 bg-[#f6f8fc] p-4">
+                <div className="flex items-start gap-3">
+                  <Monitor className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                  <div>
+                    <h2 className="font-extrabold text-[hsl(var(--greffio-blue-900))]">Play Store (alternative)</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Si l’installation directe de l’APK est bloquée, utilisez la fiche Google Play (même compte Greffio).
                     </p>
                     <div className="mt-4">
                       <GooglePlayStoreLink size="mdInline" />
                     </div>
-                    <p className="mt-3 text-xs text-muted-foreground">
-                      AAB interne archivé : releases/android/greffio-1.2.15-261510014.aab
-                      (distribution Play Console / test interne – non installable directement sur téléphone).
-                    </p>
                   </div>
                 </div>
               </section>
@@ -245,9 +311,9 @@ export const AppDownloadGatePage = () => {
                 <div className="flex items-start gap-3">
                   <Apple className="mt-0.5 h-5 w-5 shrink-0 text-amber-800" />
                   <div>
-                    <h2 className="font-extrabold text-amber-950">iPhone / iOS</h2>
+                    <h2 className="font-extrabold text-amber-950">iPhone / iPad</h2>
                     <p className="mt-1 text-sm text-amber-900/90">
-                      Pas de binaire iOS distribuable tant que le programme Apple Developer n’est pas actif.
+                      Pas d’installation APK sur iOS. Utilisez la web app plein écran :
                     </p>
                     <ul className="mt-3 space-y-3">
                       {IOS_OPTIONS.map((item) => (
@@ -258,7 +324,7 @@ export const AppDownloadGatePage = () => {
                       ))}
                     </ul>
                     <Button asChild variant="outline" className="mt-4 w-full bg-white">
-                      <Link to="/app">Voir les options d’installation web (PWA)</Link>
+                      <Link to="/app">Installer la web app (PWA)</Link>
                     </Button>
                   </div>
                 </div>
@@ -266,9 +332,9 @@ export const AppDownloadGatePage = () => {
 
               <div className="mt-4 grid gap-2">
                 {[
-                  'Ne pas indexer ni partager cette URL sur les réseaux sociaux.',
+                  'Ne pas partager cette URL publiquement.',
                   'Même compte Greffio sur web, Android et future app iOS.',
-                  'Biométrie et notifications natives disponibles sur Android.',
+                  'L’app charge le site live — les mises à jour métier passent par le web.',
                 ].map((point) => (
                   <div key={point} className="flex items-center gap-2 text-sm">
                     <BadgeCheck className="h-4 w-4 shrink-0 text-emerald-600" />

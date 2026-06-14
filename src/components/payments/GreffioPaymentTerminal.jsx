@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, Building2, CreditCard, LockKeyhole, ShieldCheck, Smartphone } from 'lucide-react';
-import { MolliePaymentTrustFooter, MollieSecureTrustBadge } from '@/components/payments/MollieSecureTrustBadge.jsx';
+import { MolliePaymentTrustFooter } from '@/components/payments/MollieSecureTrustBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { PaymentBrandBadges } from '@/components/layout/PaymentBrandBadges.jsx';
 import { LegalAcceptanceCheckbox } from '@/components/payments/LegalAcceptanceCheckbox.jsx';
@@ -35,6 +35,7 @@ export const GreffioPaymentTerminal = ({
   payButtonLabel = 'Payer en ligne',
   requireLegalAcceptance = true,
   variant = 'panel',
+  showTrustFooter = true,
   className,
 }) => {
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -194,7 +195,6 @@ export const GreffioPaymentTerminal = ({
           ) : (
             <p className="text-sm text-muted-foreground">Chargement du formulaire carte…</p>
           )}
-          <MollieSecureTrustBadge centered={false} />
           {nativeApp ? (
             <p className="rounded-lg bg-[#f8fbff] px-3 py-2 text-xs leading-5 text-muted-foreground">
               Sur l&apos;app mobile, la vérification 3-D Secure s&apos;ouvre dans le navigateur système puis vous ramène dans Greffio.
@@ -243,7 +243,7 @@ export const GreffioPaymentTerminal = ({
         <ArrowRight className="h-4 w-4" />
       </Button>
 
-      <MolliePaymentTrustFooter />
+      {showTrustFooter ? <MolliePaymentTrustFooter /> : null}
     </div>
   );
 
@@ -258,7 +258,7 @@ export const GreffioPaymentTerminal = ({
   return (
     <section
       className={cn(
-        'relative mx-auto w-full max-w-2xl overflow-hidden rounded-[28px] border border-[#cfe0f5]',
+        'relative mx-auto w-full max-w-2xl rounded-[28px] border border-[#cfe0f5]',
         'shadow-[0_28px_80px_rgba(30,77,140,0.14)]',
         className,
       )}

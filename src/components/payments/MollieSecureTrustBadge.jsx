@@ -7,25 +7,25 @@ const MOLLIE_WORDMARK_SRC = '/images/payments/mollie-wordmark.svg';
 export const MollieSecureTrustBadge = ({ className, centered = true }) => (
   <p
     className={cn(
-      'inline-flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-5 text-muted-foreground',
-      centered && 'justify-center',
+      'inline-flex max-w-full flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-xs leading-5 text-muted-foreground',
+      centered && 'mx-auto',
       className,
     )}
   >
     <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden />
-    <span>Paiements sécurisés effectués par</span>
+    <span className="shrink-0">Paiements sécurisés effectués par</span>
     <img
       src={MOLLIE_WORDMARK_SRC}
       alt="mollie"
-      className="h-[14px] w-auto shrink-0 translate-y-[0.5px]"
-      width={52}
-      height={14}
+      className="h-4 max-w-[4.5rem] shrink-0 object-contain object-left"
+      width={72}
+      height={16}
     />
   </p>
 );
 
 export const MolliePaymentTrustFooter = ({ className }) => (
-  <div className={cn('space-y-2 text-center', className)}>
+  <div className={cn('space-y-2 overflow-visible px-1 text-center', className)}>
     <MollieSecureTrustBadge className="w-full" />
     <p className="text-[11px] leading-5 text-muted-foreground/85">
       Données chiffrées · Aucun stockage de carte côté Greffio

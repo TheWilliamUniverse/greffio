@@ -75,8 +75,10 @@ import {
 import { lightQuestionnaireHaptic } from '@/utils/questionnaireHaptics.js';
 import {
   getCatalogFormsForFamily,
-  mapCatalogFormToFormeJuridique,
+  normalizeQuestionnaireFormFamilyFields,
+  QUESTIONNAIRE_FORM_FAMILY_AUTRES,
 } from '@/lib/questionnaireFormFamilies.js';
+import { getFormAvailability, SERVICE_AVAILABILITY } from '@/config/catalog.js';
 import {
   resolveDemarchePreset,
   resolveLegalFormFromContext,
@@ -97,6 +99,8 @@ const defaultData = {
   email: '',
   phone: '',
   typeFormalite: '',
+  formeJuridiqueFamillePrimary: '',
+  formeJuridiqueFamilleSecondary: '',
   formeJuridiqueFamille: '',
   connaissezFormeJuridique: '',
   comparateurIgnore: false,
@@ -120,6 +124,13 @@ const defaultData = {
 };
 
 const fieldClass = 'h-14 rounded-2xl border-2 border-border bg-white px-4 text-base font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/12';
+
+const getFormAvailabilityLabel = (formKey) => {
+  const availability = getFormAvailability(formKey);
+  if (availability === SERVICE_AVAILABILITY.AVAILABLE_NOW) return 'Disponible';
+  if (availability === SERVICE_AVAILABILITY.COMING_SOON) return 'Bientôt';
+  return 'Sur devis';
+};
 const STEP_TITLES_BY_ID = Object.freeze({
   contact: 'Type de déclarant',
   demarche: 'Type de formalité',
@@ -539,6 +550,7 @@ export const QuestionnairePage = () => {
         };
 
         const resume = mergedData._resume || {};
+        mergedData = normalizeQuestionnaireFormFamilyFields(mergedData);
         const resumeResult = startNewQuestionnaire
           ? { ...resolveNewStartPosition(mergedData), demarcheCategory: inferDemarcheCategory(mergedData.typeFormalite), categoryConfirmed: false }
           : resolveResumePosition(mergedData, resume);
@@ -680,11 +692,26 @@ export const QuestionnairePage = () => {
       if (field.key === 'typeFormalite') {
         const preset = resolveDemarchePreset(value);
         if (preset.formeJuridique) next.formeJuridique = preset.formeJuridique;
+        next.formeJuridiqueFamillePrimary = '';
+        next.formeJuridiqueFamilleSecondary = '';
         next.formeJuridiqueFamille = '';
         next.connaissezFormeJuridique = '';
         next.comparateurIgnore = false;
       }
-      if (field.key === 'formeJuridiqueFamille') {
+      if (field.key === 'formeJuridiqueFamillePrimary') {
+        next.connaissezFormeJuridique = '';
+        next.comparateurIgnore = false;
+        next.formeJuridique = '';
+        next.formeJuridiqueFamilleSecondary = '';
+        if (value === QUESTIONNAIRE_FORM_FAMILY_AUTRES) {
+          next.formeJuridiqueFamille = '';
+        } else {
+          next.formeJuridiqueFamille = value;
+        }
+      }
+      if (field.key === 'formeJuridiqueFamilleSecondary') {
+        next.formeJuridiqueFamille = value;
+        next.formeJuridiqueFamilleSecondary = value;
         next.connaissezFormeJuridique = '';
         next.comparateurIgnore = false;
         next.formeJuridique = '';
@@ -926,10 +953,15 @@ export const QuestionnairePage = () => {
       return <QuestionnaireRecapPanel formData={formData} />;
     }
 
-    if (field.type === 'form_family_picker') {
+    if (field.type === 'form_family_picker' || field.type === 'form_family_secondary_picker') {
+      const isSecondary = field.type === 'form_family_secondary_picker';
+      const pickerValue = isSecondary
+        ? (formData.formeJuridiqueFamilleSecondary || formData.formeJuridiqueFamille || '')
+        : (formData.formeJuridiqueFamillePrimary || '');
       const familyPicker = (
         <LegalFormFamilyPicker
-          value={formData.formeJuridiqueFamille || ''}
+          tier={isSecondary ? 'secondary' : 'primary'}
+          value={pickerValue}
           onSelect={(family) => handleTapFieldUpdate(field, family)}
           mobilePresentation={isMobileChoicePresentation}
           progressPercent={progress}
@@ -984,14 +1016,14 @@ export const QuestionnairePage = () => {
             gridClassName="grid grid-cols-1 gap-2.5"
           >
             {forms.map((form) => {
-              const mapped = mapCatalogFormToFormeJuridique(form);
+              const availabilityLabel = getFormAvailabilityLabel(form.key);
               return (
                 <MobileChoiceTile
                   key={form.key}
                   title={form.label}
-                  description={form.description}
-                  selected={String(formData.formeJuridique || '') === String(mapped)}
-                  onSelect={() => handleTapFieldUpdate(field, mapped)}
+                  description={`${availabilityLabel} · ${form.description}`}
+                  selected={String(formData.formeJuridique || '') === String(form.label)}
+                  onSelect={() => handleTapFieldUpdate(field, form.label)}
                 />
               );
             })}
@@ -1004,16 +1036,28 @@ export const QuestionnairePage = () => {
           <p className="text-sm font-semibold text-primary">{formData.formeJuridiqueFamille}</p>
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {forms.map((form) => {
-              const mapped = mapCatalogFormToFormeJuridique(form);
+              const availabilityLabel = getFormAvailabilityLabel(form.key);
+              const selected = String(formData.formeJuridique || '') === String(form.label);
               return (
-                <ChoiceCard
+                <button
                   key={form.key}
-                  compact
-                  selected={String(formData.formeJuridique || '') === String(mapped)}
-                  title={form.label}
-                  description={form.description}
-                  onClick={() => handleTapFieldUpdate(field, mapped)}
-                />
+                  type="button"
+                  onClick={() => handleTapFieldUpdate(field, form.label)}
+                  className={cn(
+                    'rounded-2xl border p-4 text-left transition',
+                    selected
+                      ? 'border-primary bg-[hsl(var(--greffio-citron))] shadow-elevation-md'
+                      : 'border-border bg-white hover:border-primary/40 hover:shadow-elevation-sm',
+                  )}
+                >
+                  <span className="flex items-start justify-between gap-2">
+                    <strong className="text-base">{form.label}</strong>
+                    <span className="rounded-full bg-white px-2 py-1 text-[11px] font-bold uppercase text-primary">
+                      {availabilityLabel}
+                    </span>
+                  </span>
+                  <span className="mt-2 block text-xs leading-5 text-muted-foreground">{form.description}</span>
+                </button>
               );
             })}
           </div>

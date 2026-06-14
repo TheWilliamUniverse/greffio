@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, FileText, LockKeyhole, ShieldCheck } from 'lucide-react';
+import { ArrowRight, CheckCircle2, FileText, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button.jsx';
 import { checkoutDossierPayment } from '@/api/payments.js';
@@ -167,7 +167,7 @@ export const MobilePaymentPage = () => {
     : resourceOrder?.serviceTitle || selectedOffer.title;
 
   return (
-    <MobilePageContainer>
+    <MobilePageContainer className="[--mobile-page-bottom-extra:2.75rem]">
       {pspStatus === 'paid' ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
           <CheckCircle2 className="mb-2 h-5 w-5" />
@@ -248,14 +248,10 @@ export const MobilePaymentPage = () => {
       <section className="rounded-2xl border border-border bg-muted/40 p-4 text-sm leading-6 text-muted-foreground">
         <div className="mb-2 flex items-center gap-2 font-bold text-foreground">
           <ShieldCheck className="h-4 w-4 text-primary" />
-          Retour Mollie sécurisé
+          Paiement sécurisé
         </div>
         Sur l’application, le paiement s’ouvre dans le navigateur sécurisé de votre téléphone.
         Après validation, vous revenez automatiquement dans Greffio pour la confirmation.
-        <div className="mt-3 flex items-center gap-2 text-xs">
-          <LockKeyhole className="h-4 w-4 text-primary" />
-          Carte bancaire via Mollie – chiffrement TLS et confirmation serveur.
-        </div>
       </section>
 
       {resourceLanding ? (
@@ -287,6 +283,7 @@ export const MobilePaymentPage = () => {
           onPay={handleCheckout}
           isCreatingPayment={isCreatingPayment}
           payButtonLabel="Payer en ligne"
+          className="mb-1"
         />
       ) : null}
 

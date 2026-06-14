@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { COOKIE_CONSENT_KEY } from '../src/config/cookieCatalog.js';
 
 const DOSSIER_ID = 'e2e-forme-flow';
 const MOBILE_VIEWPORT = { width: 390, height: 844 };
@@ -21,13 +22,15 @@ const resumeQuestionnaire = {
   email: 'jean.dupont@example.com',
   phone: '0600000000',
   typeFormalite: 'creation_societe',
+  formeJuridiqueFamillePrimary: '',
+  formeJuridiqueFamilleSecondary: '',
   formeJuridiqueFamille: '',
   connaissezFormeJuridique: '',
   comparateurIgnore: false,
   formeJuridique: '',
   _resume: {
     stepId: 'forme',
-    fieldKey: 'formeJuridiqueFamille',
+    fieldKey: 'formeJuridiqueFamillePrimary',
     categoryConfirmed: true,
   },
 };
@@ -112,21 +115,32 @@ const mockQuestionnaireApis = async (page) => {
 
 const dismissCookieBanner = async (page) => {
   const refuse = page.getByRole('button', { name: /Refuser le non essentiel/i });
-  if (await refuse.isVisible({ timeout: 3000 }).catch(() => false)) {
+  if (await refuse.isVisible({ timeout: 1500 }).catch(() => false)) {
     await refuse.click();
+    return;
+  }
+  const accept = page.getByRole('button', { name: /Accepter tout/i });
+  if (await accept.isVisible({ timeout: 500 }).catch(() => false)) {
+    await accept.click();
   }
 };
 
 test.beforeEach(async ({ context, page }) => {
   await context.clearCookies();
-  await page.addInitScript((user) => {
+  await page.addInitScript(({ user, consentKey }) => {
     localStorage.clear();
     sessionStorage.clear();
     localStorage.setItem('greffio_user', JSON.stringify(user));
     localStorage.setItem('greffio_token', 'e2e-access-token');
     localStorage.setItem('greffio_refresh_token', 'e2e-refresh-token');
-    localStorage.setItem('greffio_cookie_consent', 'essential');
-  }, e2eUser);
+    localStorage.setItem(consentKey, JSON.stringify({
+      essential: true,
+      functional: true,
+      analytics: false,
+      marketing: false,
+      decidedAt: new Date().toISOString(),
+    }));
+  }, { user: e2eUser, consentKey: COOKIE_CONSENT_KEY });
   await mockQuestionnaireApis(page);
 });
 
@@ -144,7 +158,10 @@ test.describe('questionnaire mobile — flux catégorie puis forme', () => {
 
     await expect(page.getByText(/Comparez les formes avant de choisir/i)).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole('link', { name: /Lancer le comparateur/i })).toBeVisible();
-    await page.getByRole('button', { name: /Ignorer pour l'instant/i }).click();
+    await dismissCookieBanner(page);
+    const ignoreButton = page.getByRole('button', { name: /Ignorer pour l'instant/i });
+    await ignoreButton.scrollIntoViewIfNeeded();
+    await ignoreButton.click();
 
     await expect(page.getByText(/Dénomination/i)).toBeVisible({ timeout: 15_000 });
   });
@@ -162,6 +179,23 @@ test.describe('questionnaire mobile — flux catégorie puis forme', () => {
 
     await expect(page.getByRole('heading', { name: /Forme juridique \*/i })).toBeVisible({ timeout: 10_000 });
     await page.getByRole('radio', { name: /^SAS\b/i }).first().click();
+
+    await expect(page.getByText(/Dénomination/i)).toBeVisible({ timeout: 15_000 });
+  });
+
+  test('Autres → catégorie secondaire → forme GAEC', async ({ page }) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await page.goto(`/questionnaire?dossierId=${DOSSIER_ID}`);
+    await dismissCookieBanner(page);
+
+    await expect(page.getByText('Quelle catégorie correspond à votre projet ?')).toBeVisible({ timeout: 20_000 });
+    await page.getByRole('radio', { name: /^Autres\b/i }).click();
+
+    await expect(page.getByText('Précisez votre catégorie')).toBeVisible({ timeout: 10_000 });
+    await page.getByRole('radio', { name: /Agricole/i }).click();
+
+    await expect(page.getByRole('heading', { name: /Forme juridique \*/i })).toBeVisible({ timeout: 10_000 });
+    await page.getByRole('radio', { name: /^GAEC\b/i }).click();
 
     await expect(page.getByText(/Dénomination/i)).toBeVisible({ timeout: 15_000 });
   });

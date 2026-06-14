@@ -24,12 +24,16 @@ export const StepLayout = ({
 }) => {
   const nativeApp = isCapacitorNative();
   const mobileShell = nativeApp || isMobileBrowserViewport();
+  const tapToAdvanceMobile = mobileShell && hideContinueButton;
   const bottomNavVar = nativeApp ? 'var(--bottom-nav-height)' : 'var(--bottom-nav-height-web, 3.5rem)';
-  const stickyBottomStyle = mobileShell
+  const stickyBottomStyle = mobileShell && !tapToAdvanceMobile
     ? { bottom: `calc(${bottomNavVar} + env(safe-area-inset-bottom))` }
     : undefined;
   const actionBarClass = mobileShell
-    ? 'sticky z-20 border-t border-border bg-white/95 px-4 py-4 backdrop-blur-sm md:static md:bg-background md:px-6 md:py-5 md:backdrop-blur-none lg:px-8'
+    ? cn(
+      'border-t border-border bg-white/95 px-4 py-4 backdrop-blur-sm md:static md:bg-background md:px-6 md:py-5 md:backdrop-blur-none lg:px-8',
+      'sticky z-20',
+    )
     : 'flex flex-wrap items-center justify-between gap-3 border-t border-border bg-background px-6 py-5 md:px-8';
 
   return (
@@ -55,6 +59,16 @@ export const StepLayout = ({
       'border-b border-border bg-gradient-to-br from-secondary/40 via-white to-white',
       compactMobile ? 'px-4 py-3' : 'px-6 py-6 md:px-8',
     )}>
+      {tapToAdvanceMobile ? (
+        <div className={cn('flex', compactMobile ? 'mb-2' : 'mb-3')}>
+          <QuestionBackButton
+            type="button"
+            onClick={onBack}
+            disabled={!canGoBack}
+            className={compactMobile ? 'h-10 px-4 text-xs' : undefined}
+          />
+        </div>
+      ) : null}
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
           {!compactMobile ? (
@@ -80,17 +94,22 @@ export const StepLayout = ({
       </div>
     </div>
 
-    <div className={cn(compactMobile ? 'space-y-3 p-4' : 'space-y-6 p-6 md:p-8 md:pt-7')}>
+    <div className={cn(
+      compactMobile ? 'space-y-3 p-4' : 'space-y-6 p-6 md:p-8 md:pt-7',
+      mobileShell && !tapToAdvanceMobile && 'pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0',
+    )}>
       {children}
       {!compactMobile ? securityNode : null}
     </div>
 
-    <div className={cn(actionBarClass, hideContinueButton && mobileShell ? 'justify-start' : 'flex flex-wrap items-center justify-between gap-3')} style={stickyBottomStyle}>
-      <QuestionBackButton type="button" onClick={onBack} disabled={!canGoBack} />
-      {!hideContinueButton ? (
-        <QuestionContinueButton type="button" label={continueLabel} onClick={onNext} disabled={!canGoNext} />
-      ) : null}
-    </div>
+    {!tapToAdvanceMobile ? (
+      <div className={cn(actionBarClass, 'flex flex-wrap items-center justify-between gap-3')} style={stickyBottomStyle}>
+        <QuestionBackButton type="button" onClick={onBack} disabled={!canGoBack} />
+        {!hideContinueButton ? (
+          <QuestionContinueButton type="button" label={continueLabel} onClick={onNext} disabled={!canGoNext} />
+        ) : null}
+      </div>
+    ) : null}
   </section>
   );
 };

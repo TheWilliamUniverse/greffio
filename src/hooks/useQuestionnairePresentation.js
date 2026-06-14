@@ -4,7 +4,7 @@ export const resolveQuestionMode = (field) => {
   if (!field) return 'unknown';
   if (field.type === 'recap_summary') return 'recap';
   if (field.type === 'beneficial_owners_picker' || field.type === 'associates_minor_panel') return 'composite';
-  if (field.type === 'form_family_picker') return 'form_family';
+  if (field.type === 'form_family_picker' || field.type === 'form_family_secondary_picker') return 'form_family';
   if (field.type === 'comparateur_cta') return 'comparateur';
   if (field.key === 'typeFormalite') return 'composite';
   if (field.type === 'select' || field.type === 'checkbox') return 'choice';

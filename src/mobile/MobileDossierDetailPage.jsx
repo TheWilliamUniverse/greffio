@@ -273,7 +273,7 @@ export const MobileDossierDetailPage = () => {
         onDownload={() => {
           void downloadPreview().then((result) => {
             if (result.ok) {
-              toast.success('Choisissez l’application de destination dans le menu système.');
+              toast.success('Document enregistré dans l’application Fichiers.');
               return;
             }
             toast.error(result.error || 'Impossible de télécharger ce document.');

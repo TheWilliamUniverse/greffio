@@ -1,7 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { Filesystem, Directory } from '@capacitor/filesystem';
-import { Share } from '@capacitor/share';
 import { FileOpener } from '@capawesome-team/capacitor-file-opener';
 import { downloadDossierDocument } from '@/api/documents.js';
 import { apiGet } from '@/api/client.js';
@@ -31,11 +30,6 @@ const isPdfHeader = async (blob) => {
   } catch (_error) {
     return false;
   }
-};
-
-const isShareCancelled = (error) => {
-  const message = String(error?.message || error || '').toLowerCase();
-  return message.includes('cancel') || message.includes('abort') || message.includes('dismiss');
 };
 
 const isPluginAvailable = (name) => {
@@ -128,35 +122,38 @@ const openNativePdfUri = async (uri) => {
     return;
   }
 
-  if (isPluginAvailable('Share')) {
-    await Share.share({
-      files: [uri],
-      title: 'document.pdf',
-    });
-    return;
-  }
-
   throw new Error('DOCUMENT_OPEN_UNAVAILABLE');
 };
 
-const exportNativePdfUri = async (uri, filename) => {
-  if (!uri) throw new Error('DOCUMENT_OPEN_UNAVAILABLE');
+const readCachedPdfBase64 = async ({ path, directory = Directory.Cache, blob } = {}) => {
+  if (blob) return blobToBase64(await normalizePdfBlob(blob));
+  if (!path || !isPluginAvailable('Filesystem')) throw new Error('DOCUMENT_DOWNLOAD_FAILED');
+  const { data } = await Filesystem.readFile({ path, directory });
+  return data;
+};
+
+const saveNativePdfToDocuments = async ({ path, directory = Directory.Cache, filename, blob } = {}) => {
   const safeName = sanitizeFilename(filename);
+  const base64 = await readCachedPdfBase64({ path, directory, blob });
+  const documentsPath = `Greffio/${Date.now()}-${safeName}`;
 
-  if (isPluginAvailable('Share')) {
-    try {
-      await Share.share({
-        files: [uri],
-        title: safeName,
-      });
-      return;
-    } catch (shareError) {
-      if (isShareCancelled(shareError)) return;
-      throw shareError;
-    }
-  }
+  await Filesystem.writeFile({
+    path: documentsPath,
+    data: base64,
+    directory: Directory.Documents,
+    recursive: true,
+  });
 
-  throw new Error('DOCUMENT_OPEN_UNAVAILABLE');
+  const { uri } = await Filesystem.getUri({
+    path: documentsPath,
+    directory: Directory.Documents,
+  });
+
+  return {
+    path: documentsPath,
+    directory: Directory.Documents,
+    fileUri: uri,
+  };
 };
 
 const shareCachedPdfNative = async ({
@@ -179,8 +176,12 @@ const shareCachedPdfNative = async ({
     return cached;
   }
 
-  await exportNativePdfUri(uri, filename);
-  return cached;
+  return saveNativePdfToDocuments({
+    path: cached.path,
+    directory: cached.directory,
+    filename,
+    blob,
+  });
 };
 
 const fetchSignedDownloadUrl = async ({ dossierId, docKey } = {}) => {
@@ -337,7 +338,10 @@ export const mapDocumentPreviewError = (error) => {
     return 'Le serveur n’a pas renvoyé un PDF valide. Réessayez ou contactez le support.';
   }
   if (code === 'DOCUMENT_OPEN_UNAVAILABLE') {
-    return 'Impossible d’ouvrir ou d’enregistrer ce PDF via une autre application. Réessayez ou mettez à jour l’application Greffio.';
+    return 'Impossible d’ouvrir ce PDF dans une autre application. Réessayez ou mettez à jour l’application Greffio.';
+  }
+  if (code === 'DOCUMENT_SAVE_UNAVAILABLE') {
+    return 'Impossible d’enregistrer ce PDF sur votre appareil pour le moment.';
   }
   if (code === 'DOCUMENT_DOWNLOAD_FAILED' || code === 'AUTH_TOKEN_MISSING') {
     return 'Impossible de récupérer ce document pour le moment.';
