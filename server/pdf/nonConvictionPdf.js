@@ -7,6 +7,7 @@ import {
   formatFiliationClause,
   normalizeDeclarationFields,
 } from '../documents/declarationNonCondamnation/formatters.js';
+import { applyDraftWatermarkToAllPages } from './pdfLayoutPremium.js';
 
 const outputDir = path.resolve(process.cwd(), 'server', 'data', 'generated', 'declarations');
 if (!fs.existsSync(outputDir)) {
@@ -184,7 +185,7 @@ const drawBulletList = (page, font, y, items) => {
   return y;
 };
 
-export const generateNonConvictionPdf = async ({ filename, fields: rawFields = {} }) => {
+export const generateNonConvictionPdf = async ({ filename, fields: rawFields = {}, isDraft = true }) => {
   const fields = normalizeDeclarationFields(rawFields);
   const targetPath = path.join(outputDir, filename);
   const pdfDoc = await PDFDocument.create();
@@ -288,6 +289,10 @@ export const generateNonConvictionPdf = async ({ filename, fields: rawFields = {
     font,
     color: COLOR_MUTED,
   });
+
+  if (isDraft) {
+    applyDraftWatermarkToAllPages(pdfDoc, { font, fontBold });
+  }
 
   const pdfBytes = await pdfDoc.save();
   fs.writeFileSync(targetPath, pdfBytes);

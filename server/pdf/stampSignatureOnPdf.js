@@ -1,5 +1,7 @@
 import fs from 'node:fs';
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, rgb } from 'pdf-lib';
+import { loadPdfFonts } from './pdfFonts.js';
+import { replaceDraftWatermarkWithSignedBadge } from './pdfLayoutPremium.js';
 
 const buildProofFingerprint = (documentId = '') => {
   const seed = String(documentId || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase() || 'GRF';
@@ -89,8 +91,7 @@ export const stampSignatureOnPdf = async ({
   const pages = pdfDoc.getPages();
   const page = pages[pages.length - 1];
   const { width } = page.getSize();
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const { font, fontBold } = await loadPdfFonts(pdfDoc);
 
   const isSubscribersLayout = layout === 'subscribers_list_official';
   const isFormalityPowersLayout = layout === 'formality_powers_official';
@@ -106,6 +107,16 @@ export const stampSignatureOnPdf = async ({
     : (isSubscribersLayout ? 118 : (isOfficialLayout ? 228 : 168));
 
   const safeSignerName = pdfSafeText(signerFullName, 'Signataire');
+
+  pages.forEach((pdfPage) => {
+    replaceDraftWatermarkWithSignedBadge({
+      page: pdfPage,
+      font,
+      fontBold,
+      pageWidth: pdfPage.getWidth(),
+      pageHeight: pdfPage.getHeight(),
+    });
+  });
 
   const proof = pdfSafeText(buildProofFingerprint(documentId));
   const signedLabel = formatSignatureTimestampFr(signedAtIso);

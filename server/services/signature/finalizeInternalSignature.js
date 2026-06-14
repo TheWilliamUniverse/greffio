@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { stampSignatureOnPdf } from '../../pdf/stampSignatureOnPdf.js';
 import { persistSignedNonConvictionPdf } from '../nonConvictionDocumentService.js';

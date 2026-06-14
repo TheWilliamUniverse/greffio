@@ -238,8 +238,88 @@ const getLatestSignatureByDossier = async (dossierId) => {
   `).get(dossierId) || null;
 };
 
+const listSignaturesByDossier = async (dossierId) => {
+  if (hasPostgres) {
+    const result = await query(`
+      SELECT
+        id,
+        dossier_id AS "dossierId",
+        document_id AS "documentId",
+        signer_name AS "signerName",
+        signer_email AS "signerEmail",
+        signature_level AS "signatureLevel",
+        provider,
+        status,
+        signed_at AS "signedAt",
+        original_hash_sha256 AS "originalHashSha256",
+        signed_hash_sha256 AS "signedHashSha256",
+        proof_id AS "proofId",
+        proof_certificate_path AS "proofCertificatePath",
+        evidence_json AS "evidenceJson",
+        created_at AS "createdAt"
+      FROM signatures
+      WHERE dossier_id = $1
+      ORDER BY created_at ASC
+    `, [dossierId]).catch(async () => {
+      const fallback = await query(`
+        SELECT
+          id,
+          dossier_id AS "dossierId",
+          document_id AS "documentId",
+          status,
+          signed_at AS "signedAt",
+          evidence_json AS "evidenceJson",
+          created_at AS "createdAt"
+        FROM signatures
+        WHERE dossier_id = $1
+        ORDER BY created_at ASC
+      `, [dossierId]);
+      return fallback;
+    });
+    return result.rows || [];
+  }
+  try {
+    return sqlite.prepare(`
+      SELECT
+        id,
+        dossier_id AS dossierId,
+        document_id AS documentId,
+        signer_name AS signerName,
+        signer_email AS signerEmail,
+        signature_level AS signatureLevel,
+        provider,
+        status,
+        signed_at AS signedAt,
+        original_hash_sha256 AS originalHashSha256,
+        signed_hash_sha256 AS signedHashSha256,
+        proof_id AS proofId,
+        proof_certificate_path AS proofCertificatePath,
+        evidence_json AS evidenceJson,
+        created_at AS createdAt
+      FROM signatures
+      WHERE dossier_id = ?
+      ORDER BY created_at ASC
+    `).all(dossierId);
+  } catch (_error) {
+    return sqlite.prepare(`
+      SELECT
+        id,
+        dossier_id AS dossierId,
+        document_id AS documentId,
+        status,
+        signed_at AS signedAt,
+        evidence_json AS evidenceJson,
+        created_at AS createdAt
+      FROM signatures
+      WHERE dossier_id = ?
+      ORDER BY created_at ASC
+    `).all(dossierId);
+  }
+};
+
 export {
   createSignatureRecord,
   getLatestSignatureByDocumentId,
   getLatestSignatureByDossier,
+  listSignaturesByDossier,
 };

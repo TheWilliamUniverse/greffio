@@ -1,6 +1,7 @@
 import QRCode from 'qrcode';
-import { rgb, StandardFonts } from 'pdf-lib';
+import { degrees, rgb } from 'pdf-lib';
 import { formatFrenchDate } from './nonConvictionPdf.js';
+import { loadPdfFonts } from './pdfFonts.js';
 
 export const PAGE_WIDTH = 595.28;
 export const PAGE_HEIGHT = 841.89;
@@ -321,8 +322,75 @@ export const drawVerificationBlock = ({
   }
 };
 
-export const loadStandardFonts = async (pdfDoc) => ({
-  font: await pdfDoc.embedFont(StandardFonts.Helvetica),
-  fontBold: await pdfDoc.embedFont(StandardFonts.HelveticaBold),
-  fontItalic: await pdfDoc.embedFont(StandardFonts.HelveticaOblique),
-});
+export const loadStandardFonts = loadPdfFonts;
+
+export const drawDraftWatermark = ({
+  page,
+  font,
+  fontBold,
+  pageWidth = PAGE_WIDTH,
+  pageHeight = PAGE_HEIGHT,
+}) => {
+  const watermarkColor = rgb(0.78, 0.82, 0.88);
+  const subColor = rgb(0.72, 0.76, 0.82);
+  const centerX = pageWidth / 2;
+  const centerY = pageHeight / 2;
+
+  page.drawText('BROUILLON', {
+    x: centerX - 108,
+    y: centerY + 18,
+    size: 48,
+    font: fontBold,
+    color: watermarkColor,
+    rotate: degrees(45),
+    opacity: 0.28,
+  });
+  page.drawText('NON SIGNÉ', {
+    x: centerX - 62,
+    y: centerY - 28,
+    size: 18,
+    font,
+    color: subColor,
+    rotate: degrees(45),
+    opacity: 0.32,
+  });
+};
+
+export const applyDraftWatermarkToAllPages = (pdfDoc, fonts) => {
+  pdfDoc.getPages().forEach((page) => {
+    drawDraftWatermark({
+      page,
+      font: fonts.font,
+      fontBold: fonts.fontBold,
+      pageWidth: page.getWidth(),
+      pageHeight: page.getHeight(),
+    });
+  });
+};
+
+export const replaceDraftWatermarkWithSignedBadge = ({
+  page,
+  font,
+  fontBold,
+  pageWidth = PAGE_WIDTH,
+  pageHeight = PAGE_HEIGHT,
+}) => {
+  const centerX = pageWidth / 2;
+  const centerY = pageHeight / 2;
+  page.drawRectangle({
+    x: centerX - 150,
+    y: centerY - 70,
+    width: 300,
+    height: 140,
+    color: rgb(1, 1, 1),
+    borderWidth: 0,
+  });
+  page.drawText('DOCUMENT SIGNÉ', {
+    x: centerX - 78,
+    y: centerY + 6,
+    size: 14,
+    font: fontBold,
+    color: rgb(0.12, 0.35, 0.62),
+    opacity: 0.85,
+  });
+};

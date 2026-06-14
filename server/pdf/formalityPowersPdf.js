@@ -7,6 +7,7 @@ import {
   CONTENT_WIDTH,
   COLOR_MUTED,
   COLOR_TEXT,
+  applyDraftWatermarkToAllPages,
   drawHeaderBand,
   drawLabelValue,
   drawPageFooter,
@@ -49,6 +50,7 @@ export const generateFormalityPowersPdf = async ({
   documentId = null,
   verifyToken = null,
   appUrl = null,
+  isDraft = true,
 }) => {
   const targetPath = path.join(outputDir, filename);
   const pdfDoc = await PDFDocument.create();
@@ -213,6 +215,10 @@ export const generateFormalityPowersPdf = async ({
     pageTotal: 1,
     leftText: 'Greffio · Pouvoirs pour formalités · Annexe 3',
   });
+
+  if (isDraft) {
+    applyDraftWatermarkToAllPages(pdfDoc, { font, fontBold });
+  }
 
   fs.writeFileSync(targetPath, await pdfDoc.save());
   return targetPath;

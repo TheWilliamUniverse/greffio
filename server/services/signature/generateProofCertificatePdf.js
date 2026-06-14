@@ -1,5 +1,6 @@
 import fs from 'node:fs';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, rgb } from 'pdf-lib';
+import { loadPdfFonts } from '../../pdf/pdfFonts.js';
 
 const drawLine = (page, font, text, y, size = 10) => {
   page.drawText(String(text || ''), {
@@ -20,8 +21,7 @@ export const generateSignatureProofCertificatePdf = async ({
 }) => {
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([595, 842]);
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const { font, fontBold } = await loadPdfFonts(pdfDoc);
 
   page.drawText('Greffio', { x: 56, y: 780, size: 22, font: fontBold, color: rgb(0.05, 0.2, 0.45) });
   page.drawText('Certificat de preuve de signature électronique', {

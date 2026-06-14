@@ -29,6 +29,7 @@ export const buildDocumentPreviewBuffer = async ({ docKey, fields = {} } = {}) =
     return readPreviewBuffer(generateNonConvictionPdf, {
       filename: `preview_non_conviction_${Date.now()}.pdf`,
       fields: validation.normalized || fields,
+      isDraft: true,
     });
   }
 
@@ -48,5 +49,6 @@ export const buildDocumentPreviewBuffer = async ({ docKey, fields = {} } = {}) =
   return readPreviewBuffer(editableConfig.generatePdf, {
     filename: `preview_${key}_${Date.now()}.pdf`,
     fields: validation.normalized || fields,
+    isDraft: true,
   });
 };
