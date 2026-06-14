@@ -38,6 +38,7 @@ export const createSignatureRequest = async ({
   fields = {},
   expiresAt,
   otpRequired = null,
+  initialEvidence = {},
 }) => {
   const createdAt = nowIso();
   const resolvedOtpRequired = otpRequired === null
@@ -65,7 +66,7 @@ export const createSignatureRequest = async ({
     signedAt: null,
     ipAddress: null,
     userAgent: null,
-    evidenceJson: JSON.stringify({}),
+    evidenceJson: JSON.stringify(initialEvidence || {}),
     auditJson: JSON.stringify([{ at: createdAt, type: 'created' }]),
     consentTextVersion: null,
     consentTextSnapshot: null,

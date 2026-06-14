@@ -8,8 +8,7 @@ export const registerPublicDocumentVerifyRoutes = (app) => {
         documentId: req.params.documentId,
         token: req.query.token || null,
       });
-      const statusCode = payload.status === 'not_found' ? 404 : 200;
-      return res.status(statusCode).json(payload);
+      return res.status(200).json(payload);
     } catch (error) {
       console.error('DOCUMENT_VERIFY_FAILED', error);
       return res.status(500).json({ ok: false, error: 'DOCUMENT_VERIFY_FAILED' });

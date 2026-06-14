@@ -96,6 +96,8 @@ export const persistNonConvictionPdfForDossier = async ({
     updated,
     filename,
     storageUrl: uploadResult.storageUrl,
+    verifyToken,
+    documentId: updated?.id || documentId,
   };
 };
 

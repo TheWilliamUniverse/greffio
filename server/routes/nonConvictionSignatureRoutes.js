@@ -27,6 +27,7 @@ import { finalizeInternalSignature } from '../services/signature/finalizeInterna
 import { getSignatureConsentText } from '../services/signature/signatureConsent.js';
 import { shouldUseSignwellForSignature } from '../services/signature/signatureProvider.js';
 import { getSignwellDocumentBySignatureRequestId } from '../signwellStore.js';
+import { buildDocumentVerifyUrl } from '../services/documentIntegrityService.js';
 
 export const registerNonConvictionSignatureRoutes = (app, {
   requireAuth,
@@ -56,6 +57,8 @@ export const registerNonConvictionSignatureRoutes = (app, {
       sha256: result.sha256,
       updated: result.updated,
       filename: result.filename,
+      verifyToken: result.verifyToken,
+      documentId: result.documentId,
     };
   };
 
@@ -84,7 +87,7 @@ export const registerNonConvictionSignatureRoutes = (app, {
     }
 
     try {
-      const { pdfPath, sha256, updated } = await persistDraftPdf({
+      const { pdfPath, sha256, updated, verifyToken } = await persistDraftPdf({
         dossier,
         fields: { ...validation.normalized, signerEmail, signatureFullName: signerFullName },
       });
@@ -101,6 +104,7 @@ export const registerNonConvictionSignatureRoutes = (app, {
         sha256Draft: sha256,
         fields: { ...validation.normalized, signerEmail, signatureFullName: signerFullName },
         expiresAt,
+        initialEvidence: verifyToken ? { verifyToken, documentId: updated?.id || null } : {},
       });
 
       if (shouldUseSignwellForSignature()) {
@@ -206,7 +210,7 @@ export const registerNonConvictionSignatureRoutes = (app, {
     const normalizedFields = validation.normalized || fields;
 
     try {
-      const { pdfPath, sha256: sha256Draft, updated } = await persistDraftPdf({
+      const { pdfPath, sha256: sha256Draft, updated, verifyToken } = await persistDraftPdf({
         dossier,
         fields: { ...normalizedFields, signerEmail, signatureFullName: signerFullName },
       });
@@ -316,7 +320,17 @@ export const registerNonConvictionSignatureRoutes = (app, {
           userId: req.auth.sub,
         });
       }
-      return res.json({ ok: true, status: 'signed', sha256Signed, documents: await listDossierDocuments(dossier.id) });
+      return res.json({
+        ok: true,
+        status: 'signed',
+        sha256Signed,
+        verifyUrl: buildDocumentVerifyUrl({
+          appUrl,
+          documentId: updated?.id,
+          verifyToken,
+        }),
+        documents: await listDossierDocuments(dossier.id),
+      });
     } catch (error) {
       console.error('SIGN_NOW_FAILED', error);
       let errorCode = 'SIGN_NOW_FAILED';
@@ -393,6 +407,13 @@ export const registerNonConvictionSignatureRoutes = (app, {
         ok: true,
         status: 'signed',
         proofId: result.proofId,
+        signedAt: new Date().toISOString(),
+        documentTitle: getEditableDocumentConfig(request.docKey)?.publicDocumentTitle || 'Document Greffio',
+        verifyUrl: buildDocumentVerifyUrl({
+          appUrl,
+          documentId: request.documentId || request.evidence?.documentId,
+          verifyToken: request.evidence?.verifyToken,
+        }),
         downloads: {
           signedDocumentUrl: `/api/signature/public/${req.params.token}/signed-document`,
           proofCertificateUrl: `/api/signature/public/${req.params.token}/proof-certificate`,

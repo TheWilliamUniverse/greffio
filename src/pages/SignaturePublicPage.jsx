@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { CheckCircle2, Download, FileSignature } from 'lucide-react';
+import { FileSignature } from 'lucide-react';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
-import { Button } from '@/components/ui/button.jsx';
 import { SignatureAdoptPanel } from '@/components/signature/SignatureAdoptPanel.jsx';
 import { SignatureDocumentAcknowledge } from '@/components/signature/SignatureDocumentAcknowledge.jsx';
 import { SignatureOtpStep } from '@/components/signature/SignatureOtpStep.jsx';
+import { SignedDocumentSuccessPanel } from '@/components/signature/SignedDocumentSuccessPanel.jsx';
 import {
   fetchPublicSignatureSession,
   getPublicProofCertificateUrl,
@@ -15,6 +15,7 @@ import {
 } from '@/api/nonConviction.js';
 import { mapSignaturePublicError } from '@/utils/signaturePublicErrors.js';
 import { PdfPreviewPanel } from '@/components/documents/PdfPreviewPanel.jsx';
+import { runtimeConfig } from '@/config/runtime.js';
 
 export const SignaturePublicPage = () => {
   const { token } = useParams();
@@ -25,8 +26,11 @@ export const SignaturePublicPage = () => {
   const [error, setError] = useState('');
   const [previewAcknowledged, setPreviewAcknowledged] = useState(false);
   const [previewBlobUrl, setPreviewBlobUrl] = useState('');
+  const [signedBlobUrl, setSignedBlobUrl] = useState('');
   const [step, setStep] = useState('adopt');
   const [proofId, setProofId] = useState('');
+  const [verifyUrl, setVerifyUrl] = useState('');
+  const [signedAt, setSignedAt] = useState(null);
   const pendingSignRef = useRef(null);
 
   const otpRequired = Boolean(session?.signature?.otpRequired) && !session?.signature?.otpVerified;
@@ -39,6 +43,8 @@ export const SignaturePublicPage = () => {
         if (payload.status === 'signed') {
           setDone(true);
           setProofId(payload.proofId || '');
+          setVerifyUrl(payload.verifyUrl || '');
+          setSignedAt(payload.signedAt || null);
         }
       } catch (err) {
         setError(mapSignaturePublicError(err?.payload?.error || err?.code, err?.message));
@@ -77,9 +83,35 @@ export const SignaturePublicPage = () => {
     };
   }, [token, session]);
 
-  useEffect(() => () => {
-    if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);
-  }, [previewBlobUrl]);
+  useEffect(() => {
+    if (!done || !token) return undefined;
+    let cancelled = false;
+    const loadSignedPdf = async () => {
+      try {
+        const response = await fetch(getPublicSignedDocumentUrl(token));
+        if (!response.ok) return;
+        const blob = await response.blob();
+        if (cancelled) return;
+        setSignedBlobUrl((current) => {
+          if (current) URL.revokeObjectURL(current);
+          return URL.createObjectURL(blob);
+        });
+      } catch (_error) {
+        // optional preview
+      }
+    };
+    void loadSignedPdf();
+    return () => {
+      cancelled = true;
+    };
+  }, [done, token]);
+
+  useEffect(() => {
+    return () => {
+      if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);
+      if (signedBlobUrl) URL.revokeObjectURL(signedBlobUrl);
+    };
+  }, [previewBlobUrl, signedBlobUrl]);
 
   const finalizeSign = async (payload) => {
     setSigning(true);
@@ -87,6 +119,8 @@ export const SignaturePublicPage = () => {
     try {
       const result = await submitPublicSignature(token, { ...payload, previewAcknowledged: true });
       setProofId(result?.proofId || '');
+      setVerifyUrl(result?.verifyUrl || '');
+      setSignedAt(result?.signedAt || new Date().toISOString());
       setDone(true);
       setStep('adopt');
     } catch (err) {
@@ -131,6 +165,7 @@ export const SignaturePublicPage = () => {
   if (error && !session) {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#f6f8fc] p-6 text-center">
+        <GreffioLogo variant="wordmark" className="mb-6 text-2xl" />
         <p className="max-w-sm text-sm text-destructive">{error}</p>
       </div>
     );
@@ -138,30 +173,24 @@ export const SignaturePublicPage = () => {
 
   if (done) {
     return (
-      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#f6f8fc] px-6 py-10 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-          <CheckCircle2 className="h-9 w-9" />
+      <div className="min-h-[100dvh] bg-[#f6f8fc] px-4 py-8">
+        <div className="mx-auto mb-8 flex justify-center">
+          <GreffioLogo variant="wordmark" className="text-2xl" />
         </div>
-        <h1 className="mt-5 text-2xl font-extrabold text-foreground">Document signé avec succès</h1>
-        <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-          Votre document a été signé électroniquement via Greffio. Une preuve de signature a été générée et votre dossier a été mis à jour.
-        </p>
-        {proofId ? (
-          <p className="mt-3 text-xs font-bold text-primary">Preuve {proofId}</p>
-        ) : null}
-        <div className="mt-6 flex w-full max-w-sm flex-col gap-3">
-          <Button asChild className="h-12 rounded-2xl">
-            <a href={getPublicSignedDocumentUrl(token)} target="_blank" rel="noreferrer">
-              Télécharger le document signé
-              <Download className="h-4 w-4" />
-            </a>
-          </Button>
-          <Button asChild variant="outline" className="h-12 rounded-2xl bg-white">
-            <a href={getPublicProofCertificateUrl(token)} target="_blank" rel="noreferrer">
-              Télécharger le certificat de preuve
-            </a>
-          </Button>
-        </div>
+        <SignedDocumentSuccessPanel
+          layout="page"
+          documentLabel={session?.documentTitle || 'Document Greffio'}
+          signerName={session?.signerFullName || ''}
+          signedAt={signedAt}
+          proofId={proofId}
+          verifyUrl={verifyUrl}
+          previewBlobUrl={signedBlobUrl}
+          previewFilename="document-signe-greffio.pdf"
+          downloadHref={getPublicSignedDocumentUrl(token)}
+          secondaryHref={getPublicProofCertificateUrl(token)}
+          continueHref={`${runtimeConfig.appUrl}/documents`}
+          continueLabel="Fermer"
+        />
       </div>
     );
   }

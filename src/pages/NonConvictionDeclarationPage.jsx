@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { SignatureAdoptPanel } from '@/components/signature/SignatureAdoptPanel.jsx';
 import { GreffioSignatureInfoBanner } from '@/components/signature/GreffioSignatureInfoBanner.jsx';
+import { SignedDocumentSuccessPanel } from '@/components/signature/SignedDocumentSuccessPanel.jsx';
 import { downloadDossierDocument, previewDossierDocumentPdf } from '@/api/documents.js';
 import {
   loadNonConvictionEditor,
@@ -17,6 +18,7 @@ import {
   signNonConvictionNow,
 } from '@/api/nonConviction.js';
 import { runtimeConfig } from '@/config/runtime.js';
+import { buildSignedDocumentResult } from '@/utils/signedDocumentResult.js';
 import { getDocumentEditorLoadErrorMessage } from '@/utils/documentEditorErrors.js';
 import { DocumentEditorLoadGate } from '@/components/documents/DocumentEditorLoadGate.jsx';
 import { MobileStickyFormActions } from '@/mobile/ui/MobileStickyFormActions.jsx';
@@ -56,6 +58,7 @@ export const NonConvictionDeclarationPage = () => {
   const [previewBlobUrl, setPreviewBlobUrl] = useState('');
   const [saving, setSaving] = useState(false);
   const [signMode, setSignMode] = useState(null);
+  const [signedResult, setSignedResult] = useState(null);
   const nativeApp = isCapacitorNative();
 
   useMobileSignatureOverlay(Boolean(signMode), () => setSignMode(null));
@@ -142,7 +145,7 @@ export const NonConvictionDeclarationPage = () => {
         setPreviewKey((k) => k + 1);
       }
       await saveNonConvictionDraft(dossierId, normalized);
-      await signNonConvictionNow(dossierId, {
+      const signResult = await signNonConvictionNow(dossierId, {
         fields: normalized,
         ...signaturePayload,
         previewAcknowledged: true,
@@ -155,12 +158,21 @@ export const NonConvictionDeclarationPage = () => {
           dossierId,
           docKey: 'manager_non_conviction',
           cacheBust: true,
+          inline: true,
         });
+        const nextBlobUrl = URL.createObjectURL(blob);
         setPreviewBlobUrl((current) => {
           if (current) URL.revokeObjectURL(current);
-          return URL.createObjectURL(blob);
+          return nextBlobUrl;
         });
         setPreviewKey((k) => k + 1);
+        setSignedResult(buildSignedDocumentResult({
+          apiResult: signResult,
+          signaturePayload,
+          documentLabel: 'Déclaration de non-condamnation et filiation',
+          previewBlobUrl: nextBlobUrl,
+          previewFilename: 'Declaration_non_condamnation_signee.pdf',
+        }));
       } catch (downloadError) {
         toast.warning(mapError(downloadError));
       }
@@ -556,6 +568,36 @@ export const NonConvictionDeclarationPage = () => {
             }}
           />
         </MobileSignatureOverlay>
+
+        {signedResult ? (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-[#f6f8fc]/95 p-4 backdrop-blur-sm">
+            <SignedDocumentSuccessPanel
+              layout="page"
+              documentLabel={signedResult.documentLabel}
+              signerName={signedResult.signerName}
+              signedAt={signedResult.signedAt}
+              proofId={signedResult.proofId}
+              verifyUrl={signedResult.verifyUrl}
+              previewBlobUrl={signedResult.previewBlobUrl}
+              previewFilename={signedResult.previewFilename}
+              onDownload={async () => {
+                const { blob } = await downloadDossierDocument({
+                  dossierId,
+                  docKey: 'manager_non_conviction',
+                  cacheBust: true,
+                });
+                const url = URL.createObjectURL(blob);
+                const anchor = document.createElement('a');
+                anchor.href = url;
+                anchor.download = signedResult.previewFilename;
+                anchor.click();
+                URL.revokeObjectURL(url);
+              }}
+              onContinue={() => setSignedResult(null)}
+              continueLabel="Continuer l'édition"
+            />
+          </div>
+        ) : null}
       </main>
     </div>
   );

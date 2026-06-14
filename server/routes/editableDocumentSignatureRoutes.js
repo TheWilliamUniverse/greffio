@@ -19,6 +19,7 @@ import { shouldUseSignwellForSignature } from '../services/signature/signaturePr
 import { finalizeInternalSignature } from '../services/signature/finalizeInternalSignature.js';
 import { getSignatureConsentText } from '../services/signature/signatureConsent.js';
 import { getDeclarationErrorMessage } from '../documents/declarationNonCondamnation/formatters.js';
+import { buildDocumentVerifyUrl } from '../services/documentIntegrityService.js';
 
 export const registerEditableDocumentSignatureRoutes = (app, {
   requireAuth,
@@ -65,7 +66,7 @@ export const registerEditableDocumentSignatureRoutes = (app, {
       }
 
       try {
-        const { pdfPath, sha256, updated } = await persistDraft({
+        const { pdfPath, sha256, updated, verifyToken } = await persistDraft({
           dossier,
           config,
           fields: { ...validation.normalized, signerEmail, signatureFullName: signerFullName },
@@ -83,6 +84,7 @@ export const registerEditableDocumentSignatureRoutes = (app, {
           sha256Draft: sha256,
           fields: { ...validation.normalized, signerEmail, signatureFullName: signerFullName },
           expiresAt,
+          initialEvidence: verifyToken ? { verifyToken, documentId: updated?.id || null } : {},
         });
 
         if (shouldUseSignwellForSignature()) {
@@ -181,7 +183,7 @@ export const registerEditableDocumentSignatureRoutes = (app, {
       const normalizedFields = validation.normalized || fields;
 
       try {
-        const { pdfPath, sha256: sha256Draft, updated } = await persistDraft({
+        const { pdfPath, sha256: sha256Draft, updated, verifyToken } = await persistDraft({
           dossier,
           config,
           fields: { ...normalizedFields, signerEmail, signatureFullName: signerFullName },
@@ -256,6 +258,7 @@ export const registerEditableDocumentSignatureRoutes = (app, {
           fields: { ...normalizedFields, signerEmail, signatureFullName: signerFullName },
           expiresAt,
           otpRequired: false,
+          initialEvidence: verifyToken ? { verifyToken, documentId: updated?.id || null } : {},
         });
 
         const result = await finalizeInternalSignature({
@@ -284,6 +287,11 @@ export const registerEditableDocumentSignatureRoutes = (app, {
           status: 'signed',
           sha256Signed: result.sha256Signed,
           proofId: result.proofId,
+          verifyUrl: buildDocumentVerifyUrl({
+            appUrl,
+            documentId: updated?.id,
+            verifyToken,
+          }),
           documents: await listDossierDocuments(dossier.id),
         });
       } catch (error) {

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { SignatureAdoptPanel } from '@/components/signature/SignatureAdoptPanel.jsx';
 import { GreffioSignatureInfoBanner } from '@/components/signature/GreffioSignatureInfoBanner.jsx';
+import { SignedDocumentSuccessPanel } from '@/components/signature/SignedDocumentSuccessPanel.jsx';
 import { downloadDossierDocument, previewDossierDocumentPdf } from '@/api/documents.js';
 import {
   loadEditableDocumentEditor,
@@ -26,6 +27,7 @@ import { isCapacitorNative } from '@/utils/platform.js';
 import { triggerMobileHaptic } from '@/utils/mobileHaptics.js';
 import { cn } from '@/lib/utils.js';
 import { runtimeConfig } from '@/config/runtime.js';
+import { buildSignedDocumentResult } from '@/utils/signedDocumentResult.js';
 
 const DOC_KEY = 'formality_powers';
 
@@ -54,6 +56,7 @@ export const FormalityPowersPage = () => {
   const [previewKey, setPreviewKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [signMode, setSignMode] = useState(null);
+  const [signedResult, setSignedResult] = useState(null);
   const nativeApp = isCapacitorNative();
 
   useMobileSignatureOverlay(Boolean(signMode), () => setSignMode(null));
@@ -121,17 +124,25 @@ export const FormalityPowersPage = () => {
         setPreviewKey((value) => value + 1);
       }
       await saveEditableDocumentDraft(dossierId, DOC_KEY, fields);
-      await signEditableDocumentNow(dossierId, DOC_KEY, {
+      const signResult = await signEditableDocumentNow(dossierId, DOC_KEY, {
         fields,
         ...signaturePayload,
         previewAcknowledged: true,
       });
       const { blob } = await downloadDossierDocument({ dossierId, docKey: DOC_KEY, cacheBust: true, inline: true });
+      const nextBlobUrl = URL.createObjectURL(blob);
       setPreviewBlobUrl((current) => {
         if (current) URL.revokeObjectURL(current);
-        return URL.createObjectURL(blob);
+        return nextBlobUrl;
       });
       setPreviewKey((value) => value + 1);
+      setSignedResult(buildSignedDocumentResult({
+        apiResult: signResult,
+        signaturePayload,
+        documentLabel: 'Pouvoirs pour formalités',
+        previewBlobUrl: nextBlobUrl,
+        previewFilename: 'Pouvoirs_formalites_signes.pdf',
+      }));
       toast.success('Signature enregistrée. Votre document est maintenant enregistré dans le dossier.');
       void triggerMobileHaptic('success');
       setSignMode(null);
@@ -290,6 +301,32 @@ export const FormalityPowersPage = () => {
             }}
           />
         </MobileSignatureOverlay>
+
+        {signedResult ? (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-[#f6f8fc]/95 p-4 backdrop-blur-sm">
+            <SignedDocumentSuccessPanel
+              layout="page"
+              documentLabel={signedResult.documentLabel}
+              signerName={signedResult.signerName}
+              signedAt={signedResult.signedAt}
+              proofId={signedResult.proofId}
+              verifyUrl={signedResult.verifyUrl}
+              previewBlobUrl={signedResult.previewBlobUrl}
+              previewFilename={signedResult.previewFilename}
+              onDownload={async () => {
+                const { blob } = await downloadDossierDocument({ dossierId, docKey: DOC_KEY, cacheBust: true });
+                const url = URL.createObjectURL(blob);
+                const anchor = document.createElement('a');
+                anchor.href = url;
+                anchor.download = signedResult.previewFilename;
+                anchor.click();
+                URL.revokeObjectURL(url);
+              }}
+              onContinue={() => setSignedResult(null)}
+              continueLabel="Continuer l'édition"
+            />
+          </div>
+        ) : null}
       </main>
     </div>
   );

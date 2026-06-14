@@ -112,6 +112,7 @@ export const finalizeInternalSignature = async ({
     ipAddress,
     userAgent,
     evidence: {
+      ...(request.evidence && typeof request.evidence === 'object' ? request.evidence : {}),
       consent: true,
       consentTextVersion,
       consentTextSnapshot,
@@ -123,6 +124,8 @@ export const finalizeInternalSignature = async ({
       proofCertificatePath,
       visualSignatureMode,
       otpVerified: otpRequired,
+      signedAt: signedAtIso,
+      documentId: request.documentId || request.evidence?.documentId || null,
     },
   });
 

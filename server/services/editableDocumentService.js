@@ -90,7 +90,7 @@ export const persistEditableDocumentPdf = async ({
     }
   }
 
-  return { pdfPath, buffer, sha256, updated, filename, storageUrl: uploadResult.storageUrl };
+  return { pdfPath, buffer, sha256, updated, filename, storageUrl: uploadResult.storageUrl, verifyToken, documentId: updated?.id || documentId };
 };
 
 export const persistSignedEditableDocumentPdf = async ({

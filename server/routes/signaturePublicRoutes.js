@@ -14,6 +14,16 @@ import { sendWithProvider } from '../emails/provider.js';
 import { isSignwellConfigured } from '../services/signature/signwell.service.js';
 import { getSignwellDocumentBySignatureRequestId } from '../signwellStore.js';
 import { SIGNWELL_PROVIDER } from '../services/signature/signwellOrchestrator.js';
+import { buildDocumentVerifyUrl } from '../services/documentIntegrityService.js';
+
+const resolveVerifyUrl = (request, appUrl) => {
+  const evidence = request?.evidence || {};
+  return buildDocumentVerifyUrl({
+    appUrl,
+    documentId: request?.documentId || evidence.documentId,
+    verifyToken: evidence.verifyToken,
+  });
+};
 
 const publicTokenError = () => ({
   ok: false,
@@ -21,7 +31,7 @@ const publicTokenError = () => ({
   message: 'Ce lien de signature est invalide, expiré ou déjà utilisé. Veuillez demander un nouveau lien à Greffio.',
 });
 
-export const registerSignaturePublicRoutes = (app, { getDossier, strictPublicRateLimitMiddleware }) => {
+export const registerSignaturePublicRoutes = (app, { getDossier, strictPublicRateLimitMiddleware, appUrl = null }) => {
   const loadRequest = async (req) => {
     const request = await getSignatureRequestByTokenHash(hashSigningToken(req.params.token));
     if (!request) return { error: publicTokenError(), status: 404 };
@@ -54,7 +64,10 @@ export const registerSignaturePublicRoutes = (app, { getDossier, strictPublicRat
         ok: true,
         status: 'signed',
         signerFullName: request.signerFullName,
+        documentTitle: getEditableDocumentConfig(request.docKey)?.publicDocumentTitle || 'Document Greffio',
         proofId: request.proofId || evidence.proofId,
+        signedAt: request.signedAt || evidence.signedAt || null,
+        verifyUrl: resolveVerifyUrl(request, appUrl),
         downloads: {
           signedDocumentUrl: `/api/signature/public/${req.params.token}/signed-document`,
           proofCertificateUrl: `/api/signature/public/${req.params.token}/proof-certificate`,

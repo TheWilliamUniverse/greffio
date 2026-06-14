@@ -126,6 +126,7 @@ import { generateMandatePdf } from './pdf/mandatePdf.js';
 import {
   computeSha256,
   createDocumentVerifyToken,
+  buildDocumentVerifyUrl,
   recordDocumentHashAfterSignature,
   recordDocumentHashBeforeSignature,
 } from './services/documentIntegrityService.js';
@@ -2315,6 +2316,11 @@ app.post('/api/dossiers/:dossierId/mandate/sign', requireAuth, async (req, res) 
       userAgent,
       documentHash,
       documentVersion,
+      verifyUrl: buildDocumentVerifyUrl({
+        appUrl: process.env.GREFFIO_APP_URL || process.env.APP_URL,
+        documentId,
+        verifyToken,
+      }),
     },
     mandatePdf: {
       filename,
@@ -2785,6 +2791,7 @@ registerEditableDocumentSignatureRoutes(app, {
 registerSignaturePublicRoutes(app, {
   getDossier,
   strictPublicRateLimitMiddleware,
+  appUrl,
 });
 
 registerNonConvictionSignatureRoutes(app, {

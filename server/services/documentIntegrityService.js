@@ -69,42 +69,24 @@ export const recordDocumentHashAfterSignature = async ({ documentId, buffer }) =
   return hash;
 };
 
+const GENERIC_VERIFY_FAILURE = {
+  ok: true,
+  status: 'unverified',
+  verified: false,
+  message: 'Ce lien ne permet pas de confirmer l\'authenticité du document. Utilisez le QR code ou le lien complet figurant sur le PDF signé Greffio.',
+};
+
 export const verifyDocumentPublic = async ({ documentId, token = null }) => {
   const doc = await getDocumentById(documentId);
-  if (!doc) {
-    return {
-      ok: true,
-      status: 'not_found',
-      verified: false,
-      message: 'Document introuvable.',
-    };
-  }
-
-  const base = {
-    ok: true,
-    status: 'found',
-    documentId: doc.id,
-    documentLabel: doc.label,
-    docKey: doc.docKey,
-    verified: false,
-  };
-
-  if (!token) {
-    return {
-      ...base,
-      message: 'Jeton de vérification requis pour afficher les détails.',
-    };
+  if (!doc || !token) {
+    return GENERIC_VERIFY_FAILURE;
   }
 
   const tokenValid = Boolean(
     doc.verifyTokenHash && hashDocumentVerifyToken(token) === doc.verifyTokenHash,
   );
   if (!tokenValid) {
-    return {
-      ...base,
-      status: 'invalid_token',
-      message: 'Jeton de vérification invalide.',
-    };
+    return GENERIC_VERIFY_FAILURE;
   }
 
   const referenceHash = doc.documentHashAfterSignature || doc.documentHashBeforeSignature;
