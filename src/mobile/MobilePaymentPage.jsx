@@ -280,6 +280,7 @@ export const MobilePaymentPage = () => {
 
       {currentUser && amountCents > 0 && !loadingResourceOrder && !resourceLanding ? (
         <GreffioPaymentTerminal
+          variant="card"
           amountCents={amountCents}
           amountLabel={amountLabel}
           offerLabel={terminalOfferLabel}

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowRight, BadgeEuro, CheckCircle2, FileText, LockKeyhole, ReceiptText } from 'lucide-react';
+import { ArrowRight, CheckCircle2, FileText, LockKeyhole, ReceiptText } from 'lucide-react';
 import { toast } from 'sonner';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
@@ -8,6 +8,7 @@ import { checkoutDossierPayment } from '@/api/payments.js';
 import { inferCustomerType } from '@/utils/customerType.js';
 import { checkoutResourceOrder, checkoutCartPayment, getResourceOrder } from '@/api/resources.js';
 import { formatResourcePrice, getCatalogItemById, getProcessingLabel } from '@/config/resourceServices.js';
+import { CheckoutOrderSummary } from '@/components/payments/CheckoutOrderSummary.jsx';
 import { GreffioPaymentTerminal } from '@/components/payments/GreffioPaymentTerminal.jsx';
 import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
 import { formatEuroCents, resolveOfferAmountCents } from '@/config/paymentOffers.js';
@@ -175,6 +176,30 @@ export const PaymentPage = () => {
     ? `Panier boutique (${cartOrders.length} article${cartOrders.length > 1 ? 's' : ''})`
     : resourceOrder?.serviceTitle || resourceLanding?.title || selectedOffer.title;
 
+  const summaryLineItems = isCartFlow
+    ? cartOrders.map((order) => ({
+        id: order.id,
+        label: order.serviceTitle,
+        amount: `${Number(order.priceTtc || 0).toFixed(2).replace('.', ',')} €`,
+      }))
+    : resourceOrder
+      ? [{
+          id: resourceOrder.id,
+          label: resourceOrder.serviceTitle,
+          amount: resourcePriceLabel,
+        }]
+      : resourceLanding
+        ? [{
+            id: resourceLanding.id,
+            label: resourceLanding.title,
+            amount: formatResourcePrice(resourceLanding.priceTtc),
+          }]
+        : [{
+            id: offerName,
+            label: selectedOffer.title,
+            amount: selectedOffer.price,
+          }];
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-white px-6 py-4">
@@ -186,7 +211,7 @@ export const PaymentPage = () => {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_390px] lg:px-8">
+      <main className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_390px] lg:items-start lg:px-8">
         <section className="space-y-6">
           <div className="rounded-md bg-[hsl(var(--greffio-blue))] p-6 text-white shadow-elevation-md md:p-8">
             <p className="text-sm font-bold uppercase text-white/70">Paiement sécurisé</p>
@@ -201,198 +226,111 @@ export const PaymentPage = () => {
           </div>
 
           {isResourceFlow ? (
-            <>
-              <section className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
-                <div className="mb-4 flex items-center gap-3">
-                  <FileText className="h-6 w-6 text-primary" />
-                  <h2 className="text-xl font-extrabold">Récapitulatif</h2>
+            <section className="grid gap-3 md:grid-cols-3">
+              {[
+                { title: '1. Paiement', text: 'Carte bancaire via Mollie – montant TTC affiché.' },
+                { title: '2. Traitement', text: 'L’équipe Greffio lance la demande auprès du greffe ou organisme concerné.' },
+                { title: '3. Livraison', text: 'Document disponible dans votre espace, avec notification par email.' },
+              ].map((step) => (
+                <div key={step.title} className="rounded-md border border-border bg-white p-4 shadow-elevation-sm">
+                  <CheckCircle2 className="mb-3 h-5 w-5 text-emerald-600" />
+                  <p className="text-sm font-extrabold">{step.title}</p>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">{step.text}</p>
                 </div>
-                <dl className="divide-y divide-border text-sm">
-                  {isCartFlow ? (
-                    cartOrders.map((order) => (
-                      <div key={order.id} className="flex justify-between gap-4 py-3">
-                        <dt className="text-muted-foreground">{order.serviceTitle}</dt>
-                        <dd className="text-right font-semibold">
-                          {`${Number(order.priceTtc || 0).toFixed(2).replace('.', ',')} €`}
-                        </dd>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="flex justify-between gap-4 py-3">
-                      <dt className="text-muted-foreground">Document / service</dt>
-                      <dd className="text-right font-semibold">
-                        {resourceOrder?.serviceTitle || resourceLanding?.title}
-                      </dd>
-                    </div>
-                  )}
-                  {orderReference && (
-                    <div className="flex justify-between gap-4 py-3">
-                      <dt className="text-muted-foreground">Référence</dt>
-                      <dd className="text-right font-semibold text-primary">{orderReference}</dd>
-                    </div>
-                  )}
-                  {resourceOrder?.companyName && (
-                    <div className="flex justify-between gap-4 py-3">
-                      <dt className="text-muted-foreground">Entreprise</dt>
-                      <dd className="text-right font-semibold">{resourceOrder.companyName}</dd>
-                    </div>
-                  )}
-                  {resourceOrder?.siren && (
-                    <div className="flex justify-between gap-4 py-3">
-                      <dt className="text-muted-foreground">SIREN / SIRET</dt>
-                      <dd className="text-right font-semibold">{resourceOrder.siren}</dd>
-                    </div>
-                  )}
-                  {catalogService?.estimatedDelay && (
-                    <div className="flex justify-between gap-4 py-3">
-                      <dt className="text-muted-foreground">Délai estimatif</dt>
-                      <dd className="text-right font-semibold">{catalogService.estimatedDelay}</dd>
-                    </div>
-                  )}
-                  {catalogService && (
-                    <div className="flex justify-between gap-4 py-3">
-                      <dt className="text-muted-foreground">Traitement</dt>
-                      <dd className="text-right font-semibold">{getProcessingLabel(catalogService)}</dd>
-                    </div>
-                  )}
-                </dl>
-              </section>
-
-              <section className="grid gap-3 md:grid-cols-3">
-                {[
-                  { title: '1. Paiement', text: 'Carte bancaire via Mollie – montant TTC affiché.' },
-                  { title: '2. Traitement', text: 'L’équipe Greffio lance la demande auprès du greffe ou organisme concerné.' },
-                  { title: '3. Livraison', text: 'Document disponible dans votre espace, avec notification par email.' },
-                ].map((step) => (
-                  <div key={step.title} className="rounded-md border border-border bg-white p-4 shadow-elevation-sm">
-                    <CheckCircle2 className="mb-3 h-5 w-5 text-emerald-600" />
-                    <p className="text-sm font-extrabold">{step.title}</p>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{step.text}</p>
-                  </div>
-                ))}
-              </section>
-
-              {currentUser && amountCents > 0 ? (
-                <GreffioPaymentTerminal
-                  amountCents={amountCents}
-                  amountLabel={amountLabel}
-                  offerLabel={terminalOfferLabel}
-                  onPay={handleCheckout}
-                  isCreatingPayment={isCreatingPayment}
-                  payButtonLabel="Payer en ligne"
-                />
-              ) : null}
-            </>
+              ))}
+            </section>
           ) : (
-            <>
-              {currentUser && amountCents > 0 ? (
-                <GreffioPaymentTerminal
-                  amountCents={amountCents}
-                  amountLabel={amountLabel}
-                  offerLabel={selectedOffer.title}
-                  onPay={handleCheckout}
-                  isCreatingPayment={isCreatingPayment}
-                  payButtonLabel="Payer en ligne"
-                />
-              ) : null}
-              <TotalCostSimulator />
-            </>
+            <TotalCostSimulator />
           )}
+
+          {currentUser && amountCents > 0 ? (
+            <GreffioPaymentTerminal
+              variant="panel"
+              amountCents={amountCents}
+              amountLabel={amountLabel}
+              offerLabel={isResourceFlow ? terminalOfferLabel : selectedOffer.title}
+              onPay={handleCheckout}
+              isCreatingPayment={isCreatingPayment}
+              payButtonLabel="Payer en ligne"
+            />
+          ) : null}
         </section>
 
-        <aside className="space-y-5">
-          <section className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
-            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-md bg-secondary text-primary">
-              <BadgeEuro className="h-5 w-5" />
+        <CheckoutOrderSummary
+          lineItems={summaryLineItems}
+          totalAmount={isCartFlow || resourceOrder ? resourcePriceLabel : (resourceLanding ? formatResourcePrice(resourceLanding.priceTtc) : selectedOffer.price)}
+        >
+          {orderReference ? (
+            <p className="text-xs font-semibold text-primary">Réf. {orderReference}</p>
+          ) : null}
+          {resourceOrder?.companyName ? (
+            <p className="text-sm text-muted-foreground">{resourceOrder.companyName}</p>
+          ) : null}
+          {resourceOrder?.siren ? (
+            <p className="text-sm text-muted-foreground">SIREN / SIRET : {resourceOrder.siren}</p>
+          ) : null}
+          {catalogService?.estimatedDelay ? (
+            <p className="text-sm text-muted-foreground">Délai estimatif : {catalogService.estimatedDelay}</p>
+          ) : null}
+          {catalogService ? (
+            <p className="text-sm text-muted-foreground">{getProcessingLabel(catalogService)}</p>
+          ) : null}
+          <div className="space-y-3 border-t border-border pt-4 text-sm text-muted-foreground">
+            <div className="flex gap-2">
+              <ReceiptText className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <span>{isResourceFlow ? 'TVA incluse – document administratif' : selectedOffer.tax}</span>
             </div>
-            {resourceOrder ? (
-              <>
-                <p className="text-sm font-bold uppercase text-primary">Votre commande</p>
-                <h2 className="mt-1 text-2xl font-extrabold">{resourceOrder.serviceTitle}</h2>
-                {loadingResourceOrder ? (
-                  <PageLoadingState
-                    compact
-                    className="mt-3"
-                    label="Chargement…"
-                    description="Préparation du paiement."
-                  />
-                ) : (
-                  <>
-                    <p className="mt-3 text-4xl font-extrabold">{resourcePriceLabel}</p>
-                    {orderReference ? (
-                      <p className="mt-2 text-xs font-semibold text-primary">{orderReference}</p>
-                    ) : null}
-                    {resourceOrder.companyName && (
-                      <p className="mt-1 text-sm text-muted-foreground">{resourceOrder.companyName}</p>
-                    )}
-                  </>
-                )}
-              </>
-            ) : resourceLanding ? (
-              <>
-                <p className="text-sm font-bold uppercase text-primary">Document sélectionné</p>
-                <h2 className="mt-1 text-2xl font-extrabold">{resourceLanding.title}</h2>
-                <p className="mt-3 text-4xl font-extrabold">{formatResourcePrice(resourceLanding.priceTtc)}</p>
-              </>
-            ) : (
-              <>
-                <p className="text-sm font-bold uppercase text-primary">Offre sélectionnée</p>
-                <h2 className="mt-1 text-2xl font-extrabold">{selectedOffer.title}</h2>
-                <p className="mt-3 text-4xl font-extrabold">{selectedOffer.price}</p>
-              </>
-            )}
-            <div className="mt-5 space-y-3 text-sm text-muted-foreground">
+            {!isResourceFlow ? (
               <div className="flex gap-2">
-                <ReceiptText className="mt-0.5 h-4 w-4 text-primary" />
-                <span>{isResourceFlow ? 'TVA incluse – document administratif' : selectedOffer.tax}</span>
+                <FileText className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <span>{selectedOffer.legalFees}</span>
               </div>
-              {!isResourceFlow && (
-                <div className="flex gap-2">
-                  <FileText className="mt-0.5 h-4 w-4 text-primary" />
-                  <span>{selectedOffer.legalFees}</span>
-                </div>
-              )}
-              <div className="flex gap-2">
-                <LockKeyhole className="mt-0.5 h-4 w-4 text-primary" />
-                <span>Paiement carte via Mollie – chiffrement TLS.</span>
-              </div>
+            ) : null}
+            <div className="flex gap-2">
+              <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <span>Paiement carte via Mollie – chiffrement TLS.</span>
             </div>
-            {resourceLanding && (
-              <>
-                <p className="mt-5 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
-                  Indiquez d’abord l’entreprise concernée (SIREN, dénomination) pour finaliser cette commande.
-                </p>
-                <Button asChild className="mt-3 w-full justify-between">
-                  <Link to={currentUser ? '/boutique' : '/ressources'}>
-                    Compléter ma commande
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </Button>
-              </>
-            )}
-            {!isResourceFlow && !currentUser && (
-              <Button asChild className="mt-6 w-full justify-between">
-                <Link to={`/signup?service=${service}`}>
-                  Créer le compte et payer
+          </div>
+          {loadingResourceOrder ? (
+            <PageLoadingState
+              compact
+              className="mt-2"
+              label="Chargement…"
+              description="Préparation du paiement."
+            />
+          ) : null}
+          {resourceLanding ? (
+            <>
+              <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                Indiquez d’abord l’entreprise concernée (SIREN, dénomination) pour finaliser cette commande.
+              </p>
+              <Button asChild className="w-full justify-between">
+                <Link to={currentUser ? '/boutique' : '/ressources'}>
+                  Compléter ma commande
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
-            )}
-            {resourceOrder && (
-              <Button asChild variant="outline" className="mt-3 w-full">
-                <Link to={currentUser ? '/boutique/commandes' : '/ressources'}>
-                  {currentUser ? 'Mes commandes' : 'Retour aux ressources'}
-                </Link>
-              </Button>
-            )}
-          </section>
-
-          {catalogService?.description && resourceOrder && (
-            <section className="rounded-md border border-border bg-muted/50 p-5 text-sm leading-6 text-muted-foreground">
-              {catalogService.description}
-            </section>
-          )}
-        </aside>
+            </>
+          ) : null}
+          {!isResourceFlow && !currentUser ? (
+            <Button asChild className="w-full justify-between">
+              <Link to={`/signup?service=${service}`}>
+                Créer le compte et payer
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          ) : null}
+          {resourceOrder ? (
+            <Button asChild variant="outline" className="w-full bg-white">
+              <Link to={currentUser ? '/boutique/commandes' : '/ressources'}>
+                {currentUser ? 'Mes commandes' : 'Retour aux ressources'}
+              </Link>
+            </Button>
+          ) : null}
+          {catalogService?.description && resourceOrder ? (
+            <p className="text-sm leading-6 text-muted-foreground">{catalogService.description}</p>
+          ) : null}
+        </CheckoutOrderSummary>
       </main>
     </div>
   );

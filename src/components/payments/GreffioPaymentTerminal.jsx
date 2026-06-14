@@ -33,6 +33,7 @@ export const GreffioPaymentTerminal = ({
   isCreatingPayment = false,
   payButtonLabel = 'Payer en ligne',
   requireLegalAcceptance = true,
+  variant = 'panel',
   className,
 }) => {
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -45,6 +46,7 @@ export const GreffioPaymentTerminal = ({
   const [localError, setLocalError] = useState(null);
   const cardFormRef = useRef(null);
   const nativeApp = isCapacitorNative();
+  const isCard = variant === 'card';
 
   useEffect(() => {
     let cancelled = false;
@@ -119,6 +121,144 @@ export const GreffioPaymentTerminal = ({
     }
   };
 
+  const paymentBody = (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-lg font-extrabold text-[hsl(var(--greffio-blue-900))]">Options de paiement</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {offerLabel} — choisissez votre moyen de paiement sécurisé.
+        </p>
+      </div>
+
+      <fieldset className="space-y-2">
+        <legend className="sr-only">Moyen de paiement</legend>
+        {methods.map((method) => {
+          const Icon = METHOD_ICONS[method.id] || CreditCard;
+          const active = method.id === selectedMethodId;
+          const inputId = `greffio-payment-method-${method.id}`;
+          return (
+            <label
+              key={method.id}
+              htmlFor={inputId}
+              className={cn(
+                'flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition',
+                active
+                  ? 'border-[hsl(var(--greffio-blue))] bg-white shadow-[0_8px_24px_rgba(30,77,140,0.08)]'
+                  : 'border-border bg-white/90 hover:border-[#b9d0ef]',
+              )}
+            >
+              <input
+                id={inputId}
+                type="radio"
+                name="greffio-payment-method"
+                value={method.id}
+                checked={active}
+                onChange={() => setSelectedMethodId(method.id)}
+                className="h-4 w-4 shrink-0 accent-[hsl(var(--greffio-blue))]"
+              />
+              {method.image?.svg || method.image?.size2x ? (
+                <img
+                  src={method.image.svg || method.image.size2x}
+                  alt=""
+                  className="h-6 w-auto shrink-0 object-contain"
+                />
+              ) : (
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[hsl(var(--greffio-blue))]/10 text-[hsl(var(--greffio-blue))]">
+                  <Icon className="h-4 w-4" />
+                </span>
+              )}
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-extrabold text-[hsl(var(--greffio-blue-900))]">
+                  {resolveMethodLabel(method)}
+                </span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  {method.checkoutMode === 'embedded' ? 'Formulaire Greffio' : 'Page sécurisée Mollie'}
+                </span>
+              </span>
+            </label>
+          );
+        })}
+      </fieldset>
+
+      {isEmbeddedCard ? (
+        <div className="space-y-4 rounded-xl border border-[#dbe7f7] bg-white p-4 sm:p-5">
+          <PaymentBrandBadges compact floating />
+          {profileId ? (
+            <MollieCardForm
+              ref={cardFormRef}
+              profileId={profileId}
+              testmode={testmode}
+              onReadyChange={setCardReady}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">Chargement du formulaire carte…</p>
+          )}
+          <p className="inline-flex items-center gap-2 text-xs leading-5 text-muted-foreground">
+            <LockKeyhole className="h-4 w-4 shrink-0 text-[hsl(var(--greffio-blue))]" />
+            Paiements sécurisés effectués par Mollie
+          </p>
+          {nativeApp ? (
+            <p className="rounded-lg bg-[#f8fbff] px-3 py-2 text-xs leading-5 text-muted-foreground">
+              Sur l&apos;app mobile, la vérification 3-D Secure s&apos;ouvre dans le navigateur système puis vous ramène dans Greffio.
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-[#dbe7f7] bg-[#f8fbff] px-4 py-4 text-sm leading-6 text-muted-foreground">
+          {(() => {
+            const HostedIcon = METHOD_ICONS[selectedMethodId] || CreditCard;
+            return (
+              <p className="flex items-start gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[hsl(var(--greffio-blue))]/10 text-[hsl(var(--greffio-blue))]">
+                  <HostedIcon className="h-4 w-4" />
+                </span>
+                <span>
+                  Vous serez redirigé vers la page sécurisée Mollie pour finaliser{' '}
+                  <span className="font-semibold text-foreground">{resolveMethodLabel(selectedMethod)}</span>.
+                  {nativeApp ? ' Sur mobile, le navigateur système s\'ouvrira automatiquement.' : ''}
+                </span>
+              </p>
+            );
+          })()}
+        </div>
+      )}
+
+      {requireLegalAcceptance ? (
+        <LegalAcceptanceCheckbox checked={termsAccepted} onChange={setTermsAccepted} />
+      ) : null}
+
+      {localError ? (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          {localError}
+        </p>
+      ) : null}
+
+      <Button
+        type="button"
+        className="h-12 w-full justify-between rounded-xl text-base font-bold"
+        onClick={() => void handlePay()}
+        disabled={payDisabled}
+      >
+        {isCreatingPayment
+          ? 'Traitement du paiement…'
+          : `${payButtonLabel}${amountLabel ? ` – ${amountLabel}` : ''}`}
+        <ArrowRight className="h-4 w-4" />
+      </Button>
+
+      <p className="text-center text-xs leading-5 text-muted-foreground">
+        Paiement traité par Mollie · Données chiffrées · Aucun stockage de carte côté Greffio
+      </p>
+    </div>
+  );
+
+  if (!isCard) {
+    return (
+      <section className={cn('rounded-xl border border-border bg-white p-5 shadow-elevation-sm sm:p-6', className)}>
+        {paymentBody}
+      </section>
+    );
+  }
+
   return (
     <section
       className={cn(
@@ -136,22 +276,13 @@ export const GreffioPaymentTerminal = ({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <div className="mb-3 flex items-center gap-3">
-              <img
-                src={paymentLogo}
-                alt=""
-                aria-hidden
-                className="h-8 w-auto"
-              />
+              <img src={paymentLogo} alt="" aria-hidden className="h-8 w-auto" />
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Paiement sécurisé</p>
             </div>
             <h2 className="text-2xl font-extrabold text-[hsl(var(--greffio-blue-900))]">
               Régler en toute sécurité
             </h2>
-            <p className="mt-2 max-w-lg text-sm leading-6 text-muted-foreground">
-              {offerLabel} – choisissez votre moyen de paiement. Carte intégrée Greffio ou redirection Mollie selon la méthode.
-            </p>
           </div>
-
           <div className="rounded-2xl border border-white/80 bg-white/90 px-4 py-3 text-center sm:min-w-[180px] sm:text-right">
             <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Montant TTC</p>
             <p className="mt-0.5 text-3xl font-extrabold text-[hsl(var(--greffio-blue-900))]">{amountLabel || '–'}</p>
@@ -159,132 +290,8 @@ export const GreffioPaymentTerminal = ({
         </div>
       </div>
 
-      <div className="relative space-y-4 px-5 py-6 sm:px-7">
-        {methods.length > 1 ? (
-          <div className="grid gap-2 sm:grid-cols-2">
-            {methods.map((method) => {
-              const Icon = METHOD_ICONS[method.id] || CreditCard;
-              const active = method.id === selectedMethodId;
-              return (
-                <button
-                  key={method.id}
-                  type="button"
-                  onClick={() => setSelectedMethodId(method.id)}
-                  className={cn(
-                    'flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition',
-                    active
-                      ? 'border-[hsl(var(--greffio-blue))] bg-white shadow-[0_12px_32px_rgba(30,77,140,0.08)]'
-                      : 'border-[#dbe7f7] bg-white/80 hover:border-[#b9d0ef]',
-                  )}
-                >
-                  {method.image?.svg || method.image?.size2x ? (
-                    <img
-                      src={method.image.svg || method.image.size2x}
-                      alt=""
-                      className="h-6 w-6 shrink-0 object-contain"
-                    />
-                  ) : (
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--greffio-blue))]/10 text-[hsl(var(--greffio-blue))]">
-                      <Icon className="h-4 w-4" />
-                    </span>
-                  )}
-                  <span className="min-w-0">
-                    <span className="block text-sm font-extrabold text-[hsl(var(--greffio-blue-900))]">
-                      {resolveMethodLabel(method)}
-                    </span>
-                    <span className="mt-0.5 block text-xs text-muted-foreground">
-                      {method.checkoutMode === 'embedded' ? 'Formulaire Greffio' : 'Page sécurisée Mollie'}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
-
-        <div className="rounded-2xl border border-[#dbe7f7] bg-white px-4 py-5 shadow-[0_12px_32px_rgba(30,77,140,0.06)] sm:px-5">
-          {isEmbeddedCard ? (
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--greffio-blue))] text-white">
-                  <CreditCard className="h-5 w-5" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-base font-extrabold text-[hsl(var(--greffio-blue-900))]">Carte bancaire</p>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    Saisie sécurisée Mollie Components – données carte jamais stockées chez Greffio.
-                  </p>
-                  <div className="mt-4">
-                    <PaymentBrandBadges compact floating />
-                  </div>
-                </div>
-              </div>
-              {profileId ? (
-                <MollieCardForm
-                  ref={cardFormRef}
-                  profileId={profileId}
-                  testmode={testmode}
-                  onReadyChange={setCardReady}
-                />
-              ) : (
-                <p className="text-sm text-muted-foreground">Chargement du formulaire carte…</p>
-              )}
-              {nativeApp ? (
-                <p className="rounded-xl bg-[#f8fbff] px-3 py-2 text-xs leading-5 text-muted-foreground">
-                  Sur l&apos;app mobile, la vérification 3-D Secure s&apos;ouvre dans le navigateur système puis vous ramène dans Greffio.
-                </p>
-              ) : null}
-            </div>
-          ) : (
-            <div className="flex items-start gap-3">
-              {(() => {
-                const HostedIcon = METHOD_ICONS[selectedMethodId] || CreditCard;
-                return (
-                  <>
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--greffio-blue))] text-white">
-                      <HostedIcon className="h-5 w-5" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-base font-extrabold text-[hsl(var(--greffio-blue-900))]">
-                        {resolveMethodLabel(selectedMethod)}
-                      </p>
-                      <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                        Vous serez redirigé vers la page sécurisée Mollie pour finaliser ce moyen de paiement.
-                        {nativeApp ? ' Sur mobile, le navigateur système s\'ouvrira automatiquement.' : ''}
-                      </p>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          )}
-        </div>
-
-        {requireLegalAcceptance ? (
-          <LegalAcceptanceCheckbox checked={termsAccepted} onChange={setTermsAccepted} />
-        ) : null}
-
-        {localError ? (
-          <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            {localError}
-          </p>
-        ) : null}
-
-        <Button
-          type="button"
-          className="h-12 w-full justify-between rounded-xl text-base font-bold"
-          onClick={() => void handlePay()}
-          disabled={payDisabled}
-        >
-          {isCreatingPayment
-            ? 'Traitement du paiement…'
-            : `${payButtonLabel}${amountLabel ? ` – ${amountLabel}` : ''}`}
-          <ArrowRight className="h-4 w-4" />
-        </Button>
-
-        <p className="text-center text-xs leading-5 text-muted-foreground">
-          Paiement traité par Mollie · Données chiffrées · Aucun stockage de carte côté Greffio
-        </p>
+      <div className="relative px-5 py-6 sm:px-7">
+        {paymentBody}
       </div>
 
       <div className="flex flex-wrap items-center justify-center gap-4 border-t border-white/70 bg-white/60 px-5 py-4 text-xs text-muted-foreground sm:justify-between">
