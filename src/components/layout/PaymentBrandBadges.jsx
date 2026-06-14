@@ -7,13 +7,28 @@ import {
 } from '@/config/paymentBrands.js';
 
 /** Footer sombre : markSrc (Visa = visa-mark.svg verrouillé). Checkout : checkoutSrc. */
+const withAssetVersion = (src, version = '20260614') => {
+  if (!src || src.includes('?')) return src;
+  return `${src}?v=${version}`;
+};
+
 const resolveBrandSrc = (brand, { inverse, floating }) => {
-  if (floating) return brand.checkoutSrc || brand.markSrc || brand.src;
-  if (inverse) {
-    if (brand.id === 'visa') return brand.markSrc;
-    return brand.markSrc || brand.checkoutSrc || brand.src;
+  let src;
+  if (floating) src = brand.checkoutSrc || brand.markSrc || brand.src;
+  else if (inverse) {
+    if (brand.id === 'visa') src = brand.markSrc;
+    else src = brand.markSrc || brand.checkoutSrc || brand.src;
+  } else {
+    src = brand.src;
   }
-  return brand.src;
+  return inverse ? withAssetVersion(src) : src;
+};
+
+const FOOTER_INVERSE_BRAND_CLASS = {
+  visa: 'h-8 w-[2.75rem]',
+  mastercard: 'h-8 w-10',
+  cb: 'h-8 w-10',
+  amex: 'h-8 w-[4.75rem]',
 };
 
 const resolveBrandList = ({ brandIds, inverse, floating }) => {
@@ -66,11 +81,13 @@ export const PaymentBrandBadges = ({
             alt=""
             aria-hidden="true"
             className={cn(
-              'w-auto max-w-none object-contain',
+              'object-contain',
               floating || inverse
-                ? (compact ? 'h-6' : 'h-7')
-                : (compact ? 'h-5' : 'h-6'),
-              inverse && 'opacity-90',
+                ? (inverse && FOOTER_INVERSE_BRAND_CLASS[brand.id]
+                  ? FOOTER_INVERSE_BRAND_CLASS[brand.id]
+                  : (compact ? 'h-6 w-auto max-w-[4.5rem]' : 'h-7 w-auto max-w-[5rem]'))
+                : (compact ? 'h-5 w-auto max-w-[4rem]' : 'h-6 w-auto max-w-[4.5rem]'),
+              inverse && brand.id !== 'amex' && 'opacity-90',
             )}
             loading="lazy"
             decoding="async"

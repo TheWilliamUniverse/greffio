@@ -96,12 +96,19 @@ export const useDossierDocumentPreview = () => {
     if (!previewDoc?.blob) return { ok: false, error: 'Aucun document à télécharger.' };
     setDownloading(true);
     try {
-      await savePdfBlobToDevice(previewDoc.blob, previewDoc.filename, {
+      const cached = await savePdfBlobToDevice(previewDoc.blob, previewDoc.filename, {
         cachePath: previewDoc.cachePath,
         cacheDirectory: previewDoc.cacheDirectory,
         dossierId: previewDoc.dossierId,
         docKey: previewDoc.docKey,
       });
+      if (cached?.path) {
+        setPreviewDoc((current) => (current ? {
+          ...current,
+          cachePath: cached.path,
+          cacheDirectory: cached.directory,
+        } : current));
+      }
       return { ok: true };
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -118,7 +125,7 @@ export const useDossierDocumentPreview = () => {
     if (!previewDoc) return { ok: false, error: 'Aucun document à ouvrir.' };
     setDownloading(true);
     try {
-      await openCachedPdfInSystemViewer({
+      const cached = await openCachedPdfInSystemViewer({
         path: previewDoc.cachePath,
         directory: previewDoc.cacheDirectory,
         filename: previewDoc.filename,
@@ -126,6 +133,13 @@ export const useDossierDocumentPreview = () => {
         dossierId: previewDoc.dossierId,
         docKey: previewDoc.docKey,
       });
+      if (cached?.path) {
+        setPreviewDoc((current) => (current ? {
+          ...current,
+          cachePath: cached.path,
+          cacheDirectory: cached.directory,
+        } : current));
+      }
       return { ok: true };
     } catch (error) {
       if (import.meta.env.DEV) {

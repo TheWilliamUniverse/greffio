@@ -273,7 +273,7 @@ export const MobileDossierDetailPage = () => {
         onDownload={() => {
           void downloadPreview().then((result) => {
             if (result.ok) {
-              toast.success('Choisissez « Enregistrer » dans le menu pour sauvegarder le PDF.');
+              toast.success('Choisissez « Enregistrer dans Fichiers » ou Drive dans le menu partage.');
               return;
             }
             toast.error(result.error || 'Impossible de télécharger ce document.');

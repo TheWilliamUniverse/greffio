@@ -101,6 +101,21 @@ const sharePdfBlobWithWebApi = async (blob, filename, dialogTitle) => {
   return true;
 };
 
+const ensureCachedPdfPath = async ({
+  blob,
+  filename,
+  cachePath,
+  cacheDirectory = Directory.Cache,
+} = {}) => {
+  if (cachePath && isPluginAvailable('Filesystem')) {
+    return { path: cachePath, directory: cacheDirectory };
+  }
+  if (!blob || !isPluginAvailable('Filesystem')) {
+    throw new Error('DOCUMENT_OPEN_UNAVAILABLE');
+  }
+  return writePdfBlobToCache(blob, filename);
+};
+
 const shareCachedPdfNative = async ({
   path,
   directory = Directory.Cache,
@@ -108,27 +123,36 @@ const shareCachedPdfNative = async ({
   blob,
   dialogTitle,
 }) => {
-  if (!path) throw new Error('DOCUMENT_DOWNLOAD_FAILED');
-
-  const { uri } = await Filesystem.getUri({ path, directory });
+  const cached = await ensureCachedPdfPath({
+    blob,
+    filename,
+    cachePath: path,
+    cacheDirectory: directory,
+  });
+  const { uri } = await Filesystem.getUri({
+    path: cached.path,
+    directory: cached.directory,
+  });
   const safeName = sanitizeFilename(filename);
+  const shareTitle = dialogTitle || 'Partager le PDF';
 
   if (isPluginAvailable('Share')) {
     try {
       await Share.share({
         files: [uri],
+        url: uri,
         title: safeName,
-        dialogTitle: dialogTitle || 'Partager le PDF',
+        dialogTitle: shareTitle,
       });
-      return;
+      return cached;
     } catch (shareError) {
-      if (isShareCancelled(shareError)) return;
+      if (isShareCancelled(shareError)) return cached;
     }
   }
 
   if (blob) {
-    const shared = await sharePdfBlobWithWebApi(blob, safeName, dialogTitle);
-    if (shared) return;
+    const shared = await sharePdfBlobWithWebApi(blob, safeName, shareTitle);
+    if (shared) return cached;
   }
 
   throw new Error('DOCUMENT_OPEN_UNAVAILABLE');
@@ -168,46 +192,33 @@ export const openCachedPdfInSystemViewer = async ({
   dossierId,
   docKey,
 } = {}) => {
-  const signedUrl = await fetchSignedDownloadUrl({ dossierId, docKey });
-  if (signedUrl) {
-    await openExternalPdfUrl(signedUrl);
-    return;
-  }
-
   if (!isCapacitorNative()) {
     if (blob) {
       const shared = await sharePdfBlobWithWebApi(blob, filename, 'Ouvrir le PDF');
-      if (shared) return;
+      if (shared) return null;
+    }
+    const signedUrl = await fetchSignedDownloadUrl({ dossierId, docKey });
+    if (signedUrl) {
+      await openExternalPdfUrl(signedUrl);
+      return null;
     }
     throw new Error('DOCUMENT_OPEN_UNAVAILABLE');
   }
 
-  if (blob) {
-    const shared = await sharePdfBlobWithWebApi(blob, filename, 'Ouvrir avec…');
-    if (shared) return;
-  }
-
-  if (path && isPluginAvailable('Filesystem')) {
-    await shareCachedPdfNative({
+  if (blob || path) {
+    return shareCachedPdfNative({
       path,
       directory,
       filename,
       blob,
       dialogTitle: 'Ouvrir avec…',
     });
-    return;
   }
 
-  if (blob && isPluginAvailable('Filesystem')) {
-    const cached = await writePdfBlobToCache(blob, filename);
-    await shareCachedPdfNative({
-      path: cached.path,
-      directory: cached.directory,
-      filename,
-      blob,
-      dialogTitle: 'Ouvrir avec…',
-    });
-    return;
+  const signedUrl = await fetchSignedDownloadUrl({ dossierId, docKey });
+  if (signedUrl) {
+    await openExternalPdfUrl(signedUrl);
+    return null;
   }
 
   throw new Error('DOCUMENT_OPEN_UNAVAILABLE');
@@ -230,6 +241,21 @@ export const createPdfPreviewSource = async (blob, filename) => {
       cacheDirectory: null,
       nativePreview: false,
       cleanup: () => URL.revokeObjectURL(src),
+    };
+  }
+
+  if (isPluginAvailable('Filesystem')) {
+    const cached = await writePdfBlobToCache(pdfBlob, filename);
+    return {
+      src: null,
+      blob: pdfBlob,
+      arrayBuffer,
+      cachePath: cached.path,
+      cacheDirectory: cached.directory,
+      nativePreview: true,
+      cleanup: () => {
+        void removeCachedPdf({ path: cached.path, directory: cached.directory });
+      },
     };
   }
 
@@ -265,39 +291,16 @@ export const savePdfBlobToDevice = async (blob, filename, {
     anchor.click();
     anchor.remove();
     URL.revokeObjectURL(url);
-    return;
+    return null;
   }
 
-  const signedUrl = await fetchSignedDownloadUrl({ dossierId, docKey });
-  if (signedUrl) {
-    await openExternalPdfUrl(signedUrl);
-    return;
-  }
-
-  const shared = await sharePdfBlobWithWebApi(blob, safeName, 'Enregistrer le PDF');
-  if (shared) return;
-
-  let path = cachePath;
-  let directory = cacheDirectory;
-
-  if (!path && isPluginAvailable('Filesystem')) {
-    const cached = await writePdfBlobToCache(blob, safeName);
-    path = cached.path;
-    directory = cached.directory;
-  }
-
-  if (path) {
-    await shareCachedPdfNative({
-      path,
-      directory,
-      filename: safeName,
-      blob,
-      dialogTitle: 'Enregistrer le PDF',
-    });
-    return;
-  }
-
-  throw new Error('DOCUMENT_OPEN_UNAVAILABLE');
+  return shareCachedPdfNative({
+    path: cachePath,
+    directory: cacheDirectory,
+    filename: safeName,
+    blob,
+    dialogTitle: 'Enregistrer le PDF',
+  });
 };
 
 export const fetchDossierDocumentBlob = async ({ dossierId, docKey, inline = true } = {}) => {
@@ -311,7 +314,7 @@ export const mapDocumentPreviewError = (error) => {
     return 'Le serveur n’a pas renvoyé un PDF valide. Réessayez ou contactez le support.';
   }
   if (code === 'DOCUMENT_OPEN_UNAVAILABLE') {
-    return 'Ouvrez le PDF via le menu de partage de votre téléphone, ou mettez à jour l’application Greffio.';
+    return 'Utilisez le menu « Partager » de votre téléphone pour ouvrir ou enregistrer le PDF (ex. Drive, Fichiers, Adobe).';
   }
   if (code === 'DOCUMENT_DOWNLOAD_FAILED' || code === 'AUTH_TOKEN_MISSING') {
     return 'Impossible de récupérer ce document pour le moment.';

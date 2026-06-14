@@ -44,18 +44,24 @@ export const PdfJsCanvasViewer = ({
         const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
         if (cancelled) return;
 
-        const scale = typeof window !== 'undefined' && window.devicePixelRatio > 1 ? 1.35 : 1.15;
+        const pixelRatio = typeof window !== 'undefined'
+          ? Math.min(Math.max(window.devicePixelRatio || 1, 2), 3)
+          : 2;
+        const layoutScale = 1.2;
 
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
           if (cancelled) return;
           const page = await pdf.getPage(pageNum);
-          const viewport = page.getViewport({ scale });
+          const viewport = page.getViewport({ scale: layoutScale });
           const canvas = document.createElement('canvas');
           const context = canvas.getContext('2d');
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
+          canvas.width = Math.floor(viewport.width * pixelRatio);
+          canvas.height = Math.floor(viewport.height * pixelRatio);
+          canvas.style.width = `${Math.floor(viewport.width)}px`;
+          canvas.style.height = `${Math.floor(viewport.height)}px`;
           canvas.className = 'mx-auto mb-3 block max-w-full rounded-lg bg-white shadow-sm';
           container.appendChild(canvas);
+          context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
           await page.render({ canvasContext: context, viewport }).promise;
         }
       } catch (renderError) {
