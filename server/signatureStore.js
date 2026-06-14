@@ -121,6 +121,81 @@ const createSignatureRecord = async ({
   return record;
 };
 
+const getLatestSignatureByDocumentId = async (documentId) => {
+  if (hasPostgres) {
+    const result = await query(`
+      SELECT
+        id,
+        dossier_id AS "dossierId",
+        document_id AS "documentId",
+        signer_name AS "signerName",
+        signer_email AS "signerEmail",
+        signature_level AS "signatureLevel",
+        status,
+        signed_at AS "signedAt",
+        original_hash_sha256 AS "originalHashSha256",
+        signed_hash_sha256 AS "signedHashSha256",
+        proof_id AS "proofId"
+      FROM signatures
+      WHERE document_id = $1
+      ORDER BY signed_at DESC NULLS LAST, created_at DESC
+      LIMIT 1
+    `, [documentId]).catch(async () => {
+      const fallback = await query(`
+        SELECT
+          id,
+          dossier_id AS "dossierId",
+          document_id AS "documentId",
+          status,
+          signed_at AS "signedAt",
+          evidence_json AS "evidenceJson",
+          created_at AS "createdAt"
+        FROM signatures
+        WHERE document_id = $1
+        ORDER BY created_at DESC
+        LIMIT 1
+      `, [documentId]);
+      return fallback;
+    });
+    return result.rows[0] || null;
+  }
+  try {
+    return sqlite.prepare(`
+      SELECT
+        id,
+        dossier_id AS dossierId,
+        document_id AS documentId,
+        signer_name AS signerName,
+        signer_email AS signerEmail,
+        signature_level AS signatureLevel,
+        status,
+        signed_at AS signedAt,
+        original_hash_sha256 AS originalHashSha256,
+        signed_hash_sha256 AS signedHashSha256,
+        proof_id AS proofId
+      FROM signatures
+      WHERE document_id = ?
+      ORDER BY signed_at DESC, created_at DESC
+      LIMIT 1
+    `).get(documentId) || null;
+  } catch (_error) {
+    return sqlite.prepare(`
+      SELECT
+        id,
+        dossier_id AS dossierId,
+        document_id AS documentId,
+        status,
+        signed_at AS signedAt,
+        evidence_json AS evidenceJson,
+        created_at AS createdAt
+      FROM signatures
+      WHERE document_id = ?
+      ORDER BY created_at DESC
+      LIMIT 1
+    `).get(documentId) || null;
+  }
+};
+
 const getLatestSignatureByDossier = async (dossierId) => {
   if (hasPostgres) {
     const result = await query(`
@@ -165,5 +240,6 @@ const getLatestSignatureByDossier = async (dossierId) => {
 
 export {
   createSignatureRecord,
+  getLatestSignatureByDocumentId,
   getLatestSignatureByDossier,
 };

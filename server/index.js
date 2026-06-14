@@ -90,6 +90,7 @@ import {
   updateOpsResourceOrderStatus,
 } from './resourcesApi.js';
 import { createResourceOrderCheckout } from './resourcesCheckout.js';
+import { createCartPayment, prepareCartOrders } from './resourcesCartCheckout.js';
 import { getResourceOrderById } from './resourceOrderStore.js';
 import { handleResourceOrderPaymentPaid } from './services/resourcePaymentWebhook.js';
 import { registerGooglePayRoutes } from './routes/googlePayRoutes.js';
@@ -121,8 +122,13 @@ import { upsertPushDeviceToken, revokePushDeviceToken } from './pushStore.js';
 import { uploadPdfOnly } from './uploads.js';
 import { analyzeDocument } from './documentAnalysis.js';
 import { createSignatureRecord, getLatestSignatureByDossier } from './signatureStore.js';
-import { buildMandateText } from './mandateTemplate.js';
 import { generateMandatePdf } from './pdf/mandatePdf.js';
+import {
+  computeSha256,
+  createDocumentVerifyToken,
+  recordDocumentHashAfterSignature,
+  recordDocumentHashBeforeSignature,
+} from './services/documentIntegrityService.js';
 import { generateNonConvictionPdf, validateNonConvictionFields } from './pdf/nonConvictionPdf.js';
 import {
   NON_CONVICTION_SCHEMA_VERSION,
@@ -158,6 +164,7 @@ import { registerOpsRoutes } from './routes/opsRoutes.js';
 import { registerWebhookRoutes } from './routes/webhookRoutes.js';
 import { createDossierMessageHub } from './messaging/dossierMessageHub.js';
 import { registerEditableDocumentSignatureRoutes } from './routes/editableDocumentSignatureRoutes.js';
+import { registerPublicDocumentVerifyRoutes } from './routes/publicDocumentVerifyRoutes.js';
 import { registerSignwellRoutes, ensureSignwellWebhookRegistered } from './routes/signwellRoutes.js';
 import {
   getEditableDocumentConfig,
@@ -533,10 +540,50 @@ app.post('/api/resources/orders/:orderId/checkout', requireAuth, async (req, res
       orderId: req.params.orderId,
       userId: req.auth.sub,
       appUrl,
+      mollieMethod: req.body?.mollieMethod || null,
+      cardToken: req.body?.cardToken || null,
     });
     return res.json({ ok: true, ...payload });
   } catch (error) {
     const code = error?.paymentCode || error?.message || 'CHECKOUT_ERROR';
+    return res.status(error?.status || 500).json({
+      ok: false,
+      error: code,
+      message: error?.message,
+    });
+  }
+});
+
+app.post('/api/resources/cart/prepare', requireAuth, async (req, res) => {
+  try {
+    const user = await getUserById(req.auth.sub);
+    const payload = await prepareCartOrders({
+      userId: req.auth.sub,
+      items: req.body?.items || [],
+      appUrl,
+      customerName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '',
+    });
+    return res.json({ ok: true, ...payload });
+  } catch (error) {
+    return res.status(error?.status || 500).json({
+      ok: false,
+      error: error?.message || 'CART_PREPARE_FAILED',
+    });
+  }
+});
+
+app.post('/api/resources/cart/pay', requireAuth, async (req, res) => {
+  try {
+    const payload = await createCartPayment({
+      userId: req.auth.sub,
+      orderIds: req.body?.orderIds || [],
+      appUrl,
+      mollieMethod: req.body?.mollieMethod || null,
+      cardToken: req.body?.cardToken || null,
+    });
+    return res.json({ ok: true, ...payload });
+  } catch (error) {
+    const code = error?.paymentCode || error?.message || 'CART_PAY_FAILED';
     return res.status(error?.status || 500).json({
       ok: false,
       error: code,
@@ -2160,12 +2207,11 @@ app.post('/api/dossiers/:dossierId/mandate/sign', requireAuth, async (req, res) 
   const signedAt = new Date().toISOString();
   const ipAddress = req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() || req.socket.remoteAddress || null;
   const userAgent = req.headers['user-agent'] || null;
-  const mandateText = buildMandateText({
-    dossier,
-    signerFullName: String(signerFullName).trim(),
-    acceptedAt: signedAt,
-  });
-  const documentHash = createHash('sha256').update(`${mandateText}|${signedAt}|${signerFullName}`).digest('hex');
+  await ensureDossierDocuments(dossier.id);
+  const mandateDocuments = await listDossierDocuments(dossier.id);
+  const mandateDoc = mandateDocuments.find((item) => item.docKey === 'proxy_mandate');
+  const documentId = mandateDoc?.id || null;
+  const { raw: verifyToken, hash: verifyTokenHash } = createDocumentVerifyToken();
   const safeReference = String(dossier.reference || dossier.id).replace(/[^a-zA-Z0-9_-]/g, '_');
   const filename = `Procuration_Greffio_${safeReference}_${Date.now()}.pdf`;
   const pdfPath = await generateMandatePdf({
@@ -2174,7 +2220,8 @@ app.post('/api/dossiers/:dossierId/mandate/sign', requireAuth, async (req, res) 
     signerFullName: String(signerFullName).trim(),
     signedAtIso: signedAt,
     evidence: {
-      documentHash,
+      documentId,
+      verifyToken,
       ipAddress,
       userAgent,
       documentVersion,
@@ -2182,21 +2229,41 @@ app.post('/api/dossiers/:dossierId/mandate/sign', requireAuth, async (req, res) 
     },
     appUrl: process.env.GREFFIO_APP_URL || process.env.APP_URL,
   });
+  const pdfBuffer = fs.readFileSync(pdfPath);
+  const documentHash = computeSha256(pdfBuffer);
+
+  if (documentId) {
+    await recordDocumentHashBeforeSignature({
+      documentId,
+      buffer: pdfBuffer,
+      verifyTokenHash,
+      verifyToken,
+    }).catch(() => {});
+    await recordDocumentHashAfterSignature({
+      documentId,
+      buffer: pdfBuffer,
+    }).catch(() => {});
+  }
 
   await createSignatureRecord({
     dossierId: dossier.id,
+    documentId,
     signerUserId: req.auth.sub,
+    signerName: String(signerFullName).trim(),
     signatureType: 'electronic_simple',
     status: 'signed',
     signedAt,
     ipAddress,
     userAgent,
+    originalHashSha256: documentHash,
+    signedHashSha256: documentHash,
     evidence: {
       documentHash,
       documentVersion,
       consentTextAccepted: true,
       signerFullName: String(signerFullName).trim(),
       pdfPath,
+      verifyTokenIssued: Boolean(documentId),
     },
   });
 
@@ -2205,10 +2272,18 @@ app.post('/api/dossiers/:dossierId/mandate/sign', requireAuth, async (req, res) 
     docKey: 'proxy_mandate',
     status: DOCUMENT_STATUSES.VALID,
     filename,
-    fileSizeBytes: fs.statSync(pdfPath).size,
+    fileSizeBytes: pdfBuffer.length,
     mimeType: 'application/pdf',
     storageUrl: pdfPath,
+    sha256: documentHash,
     reviewerId: req.auth.sub,
+    metadata: {
+      ...(mandateDoc?.metadata && typeof mandateDoc.metadata === 'object' ? mandateDoc.metadata : {}),
+      signedAt,
+      documentHash,
+      documentVersion,
+      signerFullName: String(signerFullName).trim(),
+    },
   });
 
   await transitionDossierStatus({
@@ -2693,6 +2768,8 @@ app.post('/api/webhooks/didit', express.text({ type: '*/*' }), createDiditWebhoo
 
 app.use('/api/verification', verificationRouter);
 app.use('/api/identity', identityRouter);
+
+registerPublicDocumentVerifyRoutes(app);
 
 registerEditableDocumentSignatureRoutes(app, {
   requireAuth,

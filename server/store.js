@@ -663,6 +663,146 @@ const updateDossierDocument = async ({
   return next;
 };
 
+const mapDocumentRow = (row) => {
+  if (!row) return null;
+  return {
+    ...row,
+    required: row.required === undefined ? undefined : Boolean(row.required),
+    metadata: parseJsonMetadata(row.metadataJson),
+    documentHashBeforeSignature: row.documentHashBeforeSignature || null,
+    documentHashAfterSignature: row.documentHashAfterSignature || null,
+    verifyTokenHash: row.verifyTokenHash || null,
+  };
+};
+
+const getDocumentById = async (documentId) => {
+  if (hasPostgres) {
+    const result = await query(`
+      SELECT
+        id,
+        dossier_id AS "dossierId",
+        doc_key AS "docKey",
+        label,
+        required,
+        status,
+        filename,
+        sha256,
+        metadata_json AS "metadataJson",
+        reviewed_at AS "reviewedAt",
+        document_hash_before_signature AS "documentHashBeforeSignature",
+        document_hash_after_signature AS "documentHashAfterSignature",
+        verify_token_hash AS "verifyTokenHash"
+      FROM documents
+      WHERE id = $1
+      LIMIT 1
+    `, [documentId]).catch(async () => {
+      const fallback = await query(`
+        SELECT
+          id,
+          dossier_id AS "dossierId",
+          doc_key AS "docKey",
+          label,
+          required,
+          status,
+          filename,
+          sha256,
+          metadata_json AS "metadataJson",
+          reviewed_at AS "reviewedAt"
+        FROM documents
+        WHERE id = $1
+        LIMIT 1
+      `, [documentId]);
+      return fallback;
+    });
+    return mapDocumentRow(result.rows[0]);
+  }
+  const row = sqlite.prepare(`
+    SELECT
+      id,
+      dossier_id AS dossierId,
+      doc_key AS docKey,
+      label,
+      required,
+      status,
+      filename,
+      sha256,
+      metadata_json AS metadataJson,
+      reviewed_at AS reviewedAt,
+      document_hash_before_signature AS documentHashBeforeSignature,
+      document_hash_after_signature AS documentHashAfterSignature,
+      verify_token_hash AS verifyTokenHash
+    FROM documents
+    WHERE id = ?
+    LIMIT 1
+  `).get(documentId);
+  return mapDocumentRow(row);
+};
+
+const updateDocumentIntegrity = async ({
+  documentId,
+  documentHashBeforeSignature = undefined,
+  documentHashAfterSignature = undefined,
+  verifyTokenHash = undefined,
+}) => {
+  const sets = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (documentHashBeforeSignature !== undefined) {
+    sets.push(`document_hash_before_signature = $${paramIndex++}`);
+    values.push(documentHashBeforeSignature);
+  }
+  if (documentHashAfterSignature !== undefined) {
+    sets.push(`document_hash_after_signature = $${paramIndex++}`);
+    values.push(documentHashAfterSignature);
+  }
+  if (verifyTokenHash !== undefined) {
+    sets.push(`verify_token_hash = $${paramIndex++}`);
+    values.push(verifyTokenHash);
+  }
+  if (!sets.length) return null;
+
+  const updatedAt = nowIso();
+  sets.push(`updated_at = $${paramIndex++}`);
+  values.push(updatedAt);
+  values.push(documentId);
+
+  if (hasPostgres) {
+    await query(`
+      UPDATE documents
+      SET ${sets.join(', ')}
+      WHERE id = $${paramIndex}
+    `, values).catch(() => null);
+    return getDocumentById(documentId);
+  }
+
+  const sqliteSets = [];
+  const sqliteParams = { documentId, updatedAt };
+  if (documentHashBeforeSignature !== undefined) {
+    sqliteSets.push('document_hash_before_signature = @documentHashBeforeSignature');
+    sqliteParams.documentHashBeforeSignature = documentHashBeforeSignature;
+  }
+  if (documentHashAfterSignature !== undefined) {
+    sqliteSets.push('document_hash_after_signature = @documentHashAfterSignature');
+    sqliteParams.documentHashAfterSignature = documentHashAfterSignature;
+  }
+  if (verifyTokenHash !== undefined) {
+    sqliteSets.push('verify_token_hash = @verifyTokenHash');
+    sqliteParams.verifyTokenHash = verifyTokenHash;
+  }
+  sqliteSets.push('updated_at = @updatedAt');
+  try {
+    sqlite.prepare(`
+      UPDATE documents
+      SET ${sqliteSets.join(', ')}
+      WHERE id = @documentId
+    `).run(sqliteParams);
+  } catch (_error) {
+    return null;
+  }
+  return getDocumentById(documentId);
+};
+
 const clearDossierDocumentAttachment = async ({
   dossierId,
   docKey,
@@ -1976,6 +2116,8 @@ export {
   ensureDossierDocuments,
   syncDocumentRequirements,
   listDossierDocuments,
+  getDocumentById,
+  updateDocumentIntegrity,
   updateDossierDocument,
   clearDossierDocumentAttachment,
   DOCUMENT_STATUSES,

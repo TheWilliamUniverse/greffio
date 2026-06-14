@@ -282,6 +282,9 @@ const ensurePostgresDocumentColumns = async () => {
   await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS sha256 TEXT;`);
   await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS metadata_json TEXT;`);
   await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS editor_schema_version TEXT;`);
+  await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS document_hash_before_signature TEXT;`);
+  await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS document_hash_after_signature TEXT;`);
+  await query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS verify_token_hash TEXT;`);
   await query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS customer_id TEXT;`);
   await query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS customer_type TEXT;`);
   await query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS invoice_id TEXT;`);

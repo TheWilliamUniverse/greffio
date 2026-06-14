@@ -1,6 +1,11 @@
 import fs from 'node:fs';
 import { createHash } from 'node:crypto';
 import {
+  createDocumentVerifyToken,
+  recordDocumentHashAfterSignature,
+  recordDocumentHashBeforeSignature,
+} from './documentIntegrityService.js';
+import {
   deleteDocumentFromConfiguredStorage,
   uploadDocumentToConfiguredStorage,
 } from './objectStorage.js';
@@ -26,9 +31,27 @@ export const persistEditableDocumentPdf = async ({
 
   const safeReference = String(dossier.reference || dossier.id).replace(/[^a-zA-Z0-9_-]/g, '_');
   const filename = `${filenamePrefix}_${safeReference}_${Date.now()}.pdf`;
-  const pdfPath = await generatePdf({ filename, fields });
+  const documentId = existing?.id || null;
+  const { raw: verifyToken, hash: verifyTokenHash } = createDocumentVerifyToken();
+
+  const pdfPath = await generatePdf({
+    filename,
+    fields,
+    documentId,
+    verifyToken,
+    appUrl: process.env.GREFFIO_APP_URL || process.env.APP_URL || null,
+  });
   const buffer = fs.readFileSync(pdfPath);
   const sha256 = createHash('sha256').update(buffer).digest('hex');
+
+  if (documentId) {
+    await recordDocumentHashBeforeSignature({
+      documentId,
+      buffer,
+      verifyTokenHash,
+      verifyToken,
+    }).catch(() => {});
+  }
 
   const uploadResult = await uploadDocumentToConfiguredStorage({
     dossierId: dossier.id,
@@ -116,6 +139,13 @@ export const persistSignedEditableDocumentPdf = async ({
       ...metadataExtra,
     },
   });
+
+  if (existing?.id) {
+    await recordDocumentHashAfterSignature({
+      documentId: existing.id,
+      buffer,
+    }).catch(() => {});
+  }
 
   if (previousStorageUrl && previousStorageUrl !== uploadResult.storageUrl) {
     try {

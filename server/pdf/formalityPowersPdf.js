@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { formatFrenchDate } from './nonConvictionPdf.js';
+import { buildDocumentVerifyUrl } from '../services/documentIntegrityService.js';
 import {
   CONTENT_WIDTH,
   COLOR_MUTED,
@@ -42,16 +43,11 @@ const resolveLegalFormLabel = (code) => {
   return LEGAL_FORM_LABELS[key] || key || 'forme sociale';
 };
 
-const resolveVerifyUrl = (appUrl, documentId) => {
-  const base = String(appUrl || process.env.GREFFIO_APP_URL || 'https://greffio.fr').replace(/\/$/, '');
-  if (!documentId) return null;
-  return `${base}/verify/document/${encodeURIComponent(documentId)}`;
-};
-
 export const generateFormalityPowersPdf = async ({
   filename,
   fields = {},
   documentId = null,
+  verifyToken = null,
   appUrl = null,
 }) => {
   const targetPath = path.join(outputDir, filename);
@@ -68,7 +64,7 @@ export const generateFormalityPowersPdf = async ({
   const dateFr = formatFrenchDate(fields.statementDate) || '____ / ____ / ______';
   const signatoryName = pdfSafe(fields.signatoryName || fields.signatureFullName || 'Le signataire');
   const signatoryTitle = pdfSafe(fields.signatoryTitle || 'Le Président');
-  const verifyUrl = resolveVerifyUrl(appUrl, documentId);
+  const verifyUrl = buildDocumentVerifyUrl({ appUrl, documentId, verifyToken });
   const qrImage = await embedQrCode(pdfDoc, verifyUrl);
 
   const title = pdfSafe(fields.title || 'POUVOIRS POUR FORMALITÉS');

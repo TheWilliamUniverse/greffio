@@ -2,6 +2,11 @@ import fs from 'node:fs';
 import { createHash } from 'node:crypto';
 import { generateNonConvictionPdf } from '../pdf/nonConvictionPdf.js';
 import {
+  createDocumentVerifyToken,
+  recordDocumentHashAfterSignature,
+  recordDocumentHashBeforeSignature,
+} from './documentIntegrityService.js';
+import {
   deleteDocumentFromConfiguredStorage,
   uploadDocumentToConfiguredStorage,
 } from './objectStorage.js';
@@ -26,9 +31,26 @@ export const persistNonConvictionPdfForDossier = async ({
 
   const safeReference = String(dossier.reference || dossier.id).replace(/[^a-zA-Z0-9_-]/g, '_');
   const filename = `Declaration_non_condamnation_${safeReference}_${Date.now()}.pdf`;
-  const pdfPath = await generateNonConvictionPdf({ filename, fields });
+  const documentId = existing?.id || null;
+  const { raw: verifyToken, hash: verifyTokenHash } = createDocumentVerifyToken();
+  const pdfPath = await generateNonConvictionPdf({
+    filename,
+    fields,
+    documentId,
+    verifyToken,
+    appUrl: process.env.GREFFIO_APP_URL || process.env.APP_URL || null,
+  });
   const buffer = fs.readFileSync(pdfPath);
   const sha256 = createHash('sha256').update(buffer).digest('hex');
+
+  if (documentId) {
+    await recordDocumentHashBeforeSignature({
+      documentId,
+      buffer,
+      verifyTokenHash,
+      verifyToken,
+    }).catch(() => {});
+  }
 
   const uploadResult = await uploadDocumentToConfiguredStorage({
     dossierId: dossier.id,
@@ -121,6 +143,13 @@ export const persistSignedNonConvictionPdf = async ({
       ...metadataExtra,
     },
   });
+
+  if (existing?.id) {
+    await recordDocumentHashAfterSignature({
+      documentId: existing.id,
+      buffer,
+    }).catch(() => {});
+  }
 
   if (previousStorageUrl && previousStorageUrl !== uploadResult.storageUrl) {
     try {

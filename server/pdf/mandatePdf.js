@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { resolveFormalityPublicLabel } from '../domain/formalityLabels.js';
+import { buildDocumentVerifyUrl } from '../services/documentIntegrityService.js';
 import {
   CONTENT_WIDTH,
   COLOR_MUTED,
@@ -44,12 +45,6 @@ const resolveLegalFormLabel = (code) => {
   return LEGAL_FORM_LABELS[key] || key || 'À préciser';
 };
 
-const resolveVerifyUrl = (appUrl, documentHash) => {
-  const base = String(appUrl || process.env.GREFFIO_APP_URL || 'https://greffio.fr').replace(/\/$/, '');
-  if (!documentHash) return null;
-  return `${base}/verify/document/${documentHash.slice(0, 32)}`;
-};
-
 const generateMandatePdf = async ({
   filename,
   dossier = {},
@@ -75,7 +70,11 @@ const generateMandatePdf = async ({
   const signer = pdfSafe(signerFullName);
   const signedAtFr = formatFrenchDateTime(signedAtIso || evidence?.signedAt);
   const documentHash = evidence?.documentHash || '';
-  const verifyUrl = resolveVerifyUrl(appUrl, documentHash);
+  const verifyUrl = buildDocumentVerifyUrl({
+    appUrl,
+    documentId: evidence?.documentId,
+    verifyToken: evidence?.verifyToken,
+  });
   const qrImage = await embedQrCode(pdfDoc, verifyUrl);
 
   drawHeaderBand({
@@ -283,7 +282,7 @@ const generateMandatePdf = async ({
     pdfDoc,
     qrImage,
     verifyUrl,
-    proofId: documentHash,
+    proofId: evidence?.documentId || documentHash,
     font,
     fontBold,
     yBottom: MARGIN_PT + 18,
