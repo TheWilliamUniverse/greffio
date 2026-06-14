@@ -64,6 +64,7 @@ import { FormalityPowersPage } from '@/pages/FormalityPowersPage.jsx';
 import { DocumentCompletionEntry } from '@/mobile/entries/DocumentCompletionEntry.jsx';
 import { SignaturePublicPage } from '@/pages/SignaturePublicPage.jsx';
 import { SignWellCallbackPage } from '@/pages/SignWellCallbackPage.jsx';
+import { DocumentVerifyPage } from '@/pages/DocumentVerifyPage.jsx';
 import { InterfacesPage } from '@/pages/InterfacesPage.jsx';
 import { ServiceLandingPage } from '@/pages/ServiceLandingPage.jsx';
 import { ServicesEntry } from '@/mobile/entries/ServicesEntry.jsx';
@@ -217,6 +218,7 @@ function AppRoutes() {
             <Route path="/ops-legacy" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><Navigate to="/ops/cockpit" replace /></ProtectedRoute>} />
             <Route path="/ops-observability" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><OpsMobileEntry>{withSuspense(LazyOpsLookupObservabilityPage, 'Chargement observabilité…')}</OpsMobileEntry></ProtectedRoute>} />
             <Route path="/paiement/verification" element={<PaymentVerificationPage />} />
+            <Route path="/verify/document/:id" element={<DocumentVerifyPage />} />
 
             <Route path="/dashboard" element={<ProtectedRoute><DashboardEntry /></ProtectedRoute>} />
             <Route path="/mobile/search" element={<ProtectedRoute><MobileSearchPage /></ProtectedRoute>} />

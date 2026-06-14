@@ -1,3 +1,6 @@
+import { resolveFormalityPublicLabel } from './domain/formalityLabels.js';
+import { formatFrenchDateTime } from './pdf/pdfLayoutPremium.js';
+
 const buildMandateText = ({
   dossier,
   signerFullName,
@@ -5,6 +8,13 @@ const buildMandateText = ({
 }) => {
   const company = dossier?.companyName || dossier?.denomination || 'Société en formation';
   const ref = dossier?.reference || dossier?.id || 'N/A';
+  const formalityLabel = resolveFormalityPublicLabel({
+    service: dossier?.service,
+    typeFormalite: dossier?.typeFormalite,
+    formeJuridique: dossier?.formeJuridique || dossier?.legalForm,
+    legalForm: dossier?.legalForm,
+  });
+  const acceptedAtFr = formatFrenchDateTime(acceptedAt) || acceptedAt;
 
   return `
 PROCURATION / MANDAT GREFFIO
@@ -22,7 +32,7 @@ Le Mandant autorise Greffio à préparer, déposer, suivre et, si nécessaire, r
 
 FORMALITE
 Entreprise: ${company}
-Type: ${dossier?.typeFormalite || dossier?.service || 'Formalité de création/modification'}
+Type: ${formalityLabel}
 Forme juridique: ${dossier?.legalForm || dossier?.formeJuridique || 'À préciser'}
 
 LIMITES
@@ -33,7 +43,7 @@ Je reconnais avoir lu et compris la procuration ci-dessus. J’autorise WILLIAM 
 
 SIGNATURE
 Signataire: ${signerFullName}
-Date de signature: ${acceptedAt}
+Date de signature: ${acceptedAtFr}
   `.trim();
 };
 

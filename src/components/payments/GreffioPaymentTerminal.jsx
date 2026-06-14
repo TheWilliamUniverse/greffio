@@ -35,7 +35,7 @@ export const GreffioPaymentTerminal = ({
               Régler en toute sécurité
             </h2>
             <p className="mt-2 max-w-lg text-sm leading-6 text-muted-foreground">
-              {offerLabel} – redirection vers la page sécurisée Mollie pour finaliser le règlement.
+              {offerLabel} – redirection vers la page sécurisée Mollie (carte, CB, Apple Pay selon appareil).
             </p>
           </div>
 

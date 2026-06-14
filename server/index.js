@@ -2170,14 +2170,17 @@ app.post('/api/dossiers/:dossierId/mandate/sign', requireAuth, async (req, res) 
   const filename = `Procuration_Greffio_${safeReference}_${Date.now()}.pdf`;
   const pdfPath = await generateMandatePdf({
     filename,
-    bodyText: mandateText,
-    signatureSummary: `Signé électroniquement par ${signerFullName} le ${signedAt}`,
+    dossier,
+    signerFullName: String(signerFullName).trim(),
+    signedAtIso: signedAt,
     evidence: {
       documentHash,
       ipAddress,
       userAgent,
       documentVersion,
+      signedAt,
     },
+    appUrl: process.env.GREFFIO_APP_URL || process.env.APP_URL,
   });
 
   await createSignatureRecord({
