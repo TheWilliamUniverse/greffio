@@ -46,6 +46,7 @@ export const useDossierDocumentPreview = () => {
           label: label || filename,
           filename,
           blob: previewSource.blob,
+          arrayBuffer: previewSource.arrayBuffer,
           previewSrc: previewSource.src,
           nativePreview: previewSource.nativePreview,
           cachePath: previewSource.cachePath,
@@ -79,6 +80,8 @@ export const useDossierDocumentPreview = () => {
       await savePdfBlobToDevice(previewDoc.blob, previewDoc.filename, {
         cachePath: previewDoc.cachePath,
         cacheDirectory: previewDoc.cacheDirectory,
+        dossierId: previewDoc.dossierId,
+        docKey: previewDoc.docKey,
       });
       return { ok: true };
     } catch (error) {
@@ -96,16 +99,14 @@ export const useDossierDocumentPreview = () => {
     if (!previewDoc) return { ok: false, error: 'Aucun document à ouvrir.' };
     setDownloading(true);
     try {
-      if (previewDoc.cachePath) {
-        await openCachedPdfInSystemViewer({
-          path: previewDoc.cachePath,
-          directory: previewDoc.cacheDirectory,
-          filename: previewDoc.filename,
-          blob: previewDoc.blob,
-        });
-        return { ok: true };
-      }
-      await savePdfBlobToDevice(previewDoc.blob, previewDoc.filename);
+      await openCachedPdfInSystemViewer({
+        path: previewDoc.cachePath,
+        directory: previewDoc.cacheDirectory,
+        filename: previewDoc.filename,
+        blob: previewDoc.blob,
+        dossierId: previewDoc.dossierId,
+        docKey: previewDoc.docKey,
+      });
       return { ok: true };
     } catch (error) {
       if (import.meta.env.DEV) {

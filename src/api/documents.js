@@ -153,10 +153,17 @@ export const downloadDossierDocument = async ({ dossierId, docKey, cacheBust = f
     throw error;
   }
 
+  const contentDisposition = response.headers.get('content-disposition') || '';
+  const nameMatch = contentDisposition.match(/filename="([^"]+)"/i);
+  const filename = nameMatch?.[1] || `${docKey}.pdf`;
+  const blob = await response.blob();
+
   const contentType = response.headers.get('content-type') || '';
-  if (!contentType.includes('pdf') && !contentType.includes('octet-stream')) {
-    const error = new Error('DOCUMENT_DOWNLOAD_FAILED');
-    error.code = 'DOCUMENT_DOWNLOAD_FAILED';
+  const header = await blob.slice(0, 5).text().catch(() => '');
+  const looksLikePdf = header.startsWith('%PDF');
+  if (!looksLikePdf && !contentType.includes('pdf') && !contentType.includes('octet-stream')) {
+    const error = new Error('DOCUMENT_NOT_PDF');
+    error.code = 'DOCUMENT_NOT_PDF';
     error.contentType = contentType;
     if (import.meta.env.DEV) {
       // eslint-disable-next-line no-console
@@ -165,10 +172,6 @@ export const downloadDossierDocument = async ({ dossierId, docKey, cacheBust = f
     throw error;
   }
 
-  const contentDisposition = response.headers.get('content-disposition') || '';
-  const nameMatch = contentDisposition.match(/filename="([^"]+)"/i);
-  const filename = nameMatch?.[1] || `${docKey}.pdf`;
-  const blob = await response.blob();
   return { filename, blob };
 };
 

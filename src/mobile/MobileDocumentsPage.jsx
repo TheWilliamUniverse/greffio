@@ -74,6 +74,7 @@ export const MobileDocumentsPage = () => {
   const { data: dossierPayload, isLoading: loadingDossier, isError, refetch } = useDossierQuery(dossierId);
   const {
     previewDoc,
+    previewError,
     loadingDocKey,
     downloading: previewDownloading,
     openPreview,
@@ -470,8 +471,9 @@ export const MobileDocumentsPage = () => {
         open={Boolean(previewDoc)}
         title={previewDoc?.label}
         previewSrc={previewDoc?.previewSrc}
+        previewArrayBuffer={previewDoc?.arrayBuffer}
         filename={previewDoc?.filename}
-        nativePreview={previewDoc?.nativePreview}
+        error={previewError}
         downloading={previewDownloading}
         onClose={closePreview}
         onDownload={() => {
