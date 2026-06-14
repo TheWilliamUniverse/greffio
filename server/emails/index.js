@@ -3,7 +3,7 @@ import { getDossier } from '../store.js';
 import { shouldSendDossierEmail } from './dossierEmailPolicy.js';
 import { resolveMinReminderDays, shouldSendReminderForUser } from './dossierReminderPolicy.js';
 
-const defaultClientUrl = process.env.APP_URL || 'https://greffio.willentreprises.com';
+const defaultClientUrl = process.env.GREFFIO_APP_URL || process.env.APP_URL || 'https://greffio.willentreprises.com';
 
 const resolveReference = (dossier) => dossier?.reference || dossier?.id || 'DOSSIER';
 

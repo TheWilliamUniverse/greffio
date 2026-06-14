@@ -208,3 +208,26 @@ export const saveDossierDocumentEditor = async ({ dossierId, docKey, fields }) =
     throw mapped;
   }
 };
+
+export const fetchDocumentSignSession = async (documentId) => (
+  apiGet(`/api/documents/${encodeURIComponent(documentId)}/sign-session`)
+);
+
+export const getDocumentSignPreviewUrl = (documentId) => (
+  `${runtimeConfig.apiBaseUrl}/api/documents/${encodeURIComponent(documentId)}/sign-preview`
+);
+
+export const downloadDocumentSignPreview = async (documentId) => {
+  const response = await apiFetch(
+    `/api/documents/${encodeURIComponent(documentId)}/sign-preview`,
+    { parseJson: false },
+  );
+  if (!response.ok) {
+    throw new Error('SIGNATURE_PDF_NOT_FOUND');
+  }
+  return response.blob();
+};
+
+export const submitDocumentSignature = async (documentId, body) => (
+  apiPost(`/api/documents/${encodeURIComponent(documentId)}/sign`, body)
+);

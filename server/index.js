@@ -75,6 +75,7 @@ import {
   addOpsNote,
   upsertPayment,
   ensureDossierDocuments,
+  getDocumentById,
 } from './store.js';
 import { DOSSIER_DOCUMENT_MAX_BYTES } from './config/uploadLimits.js';
 import { resolveDossierDocumentPlan } from './domain/formalityDocuments.js';
@@ -152,6 +153,10 @@ import { logStructured } from './utils/structuredLog.js';
 import { draftStatutesDocument } from './services/statutesDrafting.js';
 import { buildSimulatorStatutesPreview } from './services/simulatorStatutesPreviewService.js';
 import { buildDocumentPreviewBuffer } from './services/documentEditorPreviewService.js';
+import {
+  buildDossierAuditZipBuffer,
+  buildDossierAuditZipFilename,
+} from './services/dossierAuditExportService.js';
 import { generateStatutesPdf } from './pdf/statutesPdf.js';
 import {
   buildStatutesPdfForDossier,
@@ -166,6 +171,8 @@ import { registerWebhookRoutes } from './routes/webhookRoutes.js';
 import { createDossierMessageHub } from './messaging/dossierMessageHub.js';
 import { registerEditableDocumentSignatureRoutes } from './routes/editableDocumentSignatureRoutes.js';
 import { registerPublicDocumentVerifyRoutes } from './routes/publicDocumentVerifyRoutes.js';
+import { registerDocumentSignRoutes } from './routes/documentSignRoutes.js';
+import { notifyMandateReadyForSignature } from './services/mandateSignatureService.js';
 import { registerSignwellRoutes, ensureSignwellWebhookRegistered } from './routes/signwellRoutes.js';
 import {
   getEditableDocumentConfig,
@@ -281,7 +288,7 @@ const turnstileContact = createTurnstileMiddleware('contact');
 const turnstileForgotPassword = createTurnstileMiddleware('forgot_password');
 const turnstileResetPassword = createTurnstileMiddleware('reset_password');
 
-const appUrl = process.env.APP_URL || 'https://greffio.willentreprises.com';
+const appUrl = process.env.GREFFIO_APP_URL || process.env.APP_URL || 'https://greffio.willentreprises.com';
 
 const maybeSendLoginAlertEmail = async (req, user, extraTags = []) => {
   if (!shouldSendLoginAlert(user)) return;
@@ -1530,6 +1537,30 @@ app.post('/api/dossiers/:dossierId/transition', requireAuth, requireRole(['ADMIN
   if (!transition.ok) {
     return res.status(409).json({ ok: false, ...transition });
   }
+
+  if (nextStatus === DOSSIER_STATUSES.MANDATE_PENDING_SIGNATURE) {
+    try {
+      const dossier = transition.dossier;
+      const owner = dossier.userId ? await getUserById(dossier.userId) : null;
+      const dossierData = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+      const toEmail = owner?.email || dossierData.email || null;
+      if (toEmail) {
+        await notifyMandateReadyForSignature({
+          dossier,
+          userId: dossier.userId,
+          signerEmail: toEmail,
+          ensureDossierDocuments,
+          updateDossierDocument,
+          listDossierDocuments,
+          DOCUMENT_STATUSES,
+          appUrl,
+        });
+      }
+    } catch (mandateEmailError) {
+      console.error('[transition] mandate signature email failed:', mandateEmailError?.message || mandateEmailError);
+    }
+  }
+
   return res.json({ ok: true, dossier: transition.dossier, event: transition.event });
 });
 
@@ -2348,6 +2379,27 @@ app.get('/api/dossiers/:dossierId/mandate/pdf', requireAuth, async (req, res) =>
   return fs.createReadStream(mandateDoc.storageUrl).pipe(res);
 });
 
+app.get('/api/dossiers/:dossierId/audit-export', requireAuth, async (req, res) => {
+  const access = await resolveDossierAccess(req, req.params.dossierId);
+  if (!access.ok) return res.status(access.status).json({ ok: false, error: access.error });
+  const { dossier } = access;
+
+  try {
+    const zipBuffer = await buildDossierAuditZipBuffer({
+      dossier,
+      listDossierDocuments,
+    });
+    const downloadName = buildDossierAuditZipFilename(dossier);
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.send(zipBuffer);
+  } catch (error) {
+    console.error('DOSSIER_AUDIT_EXPORT_FAILED', error);
+    return res.status(500).json({ ok: false, error: 'DOSSIER_AUDIT_EXPORT_FAILED' });
+  }
+});
+
 app.post('/api/statutes/preview-draft', statutesPreviewDraftLimiter, async (req, res) => {
   try {
     const { preview } = buildSimulatorStatutesPreview(req.body || {});
@@ -2794,6 +2846,18 @@ registerSignaturePublicRoutes(app, {
   appUrl,
 });
 
+registerDocumentSignRoutes(app, {
+  requireAuth,
+  getDocumentById,
+  getDossier,
+  ensureDossierDocuments,
+  updateDossierDocument,
+  listDossierDocuments,
+  DOCUMENT_STATUSES,
+  transitionDossierStatus,
+  appUrl,
+});
+
 registerNonConvictionSignatureRoutes(app, {
   requireAuth,
   isInternalRole,
@@ -2803,6 +2867,7 @@ registerNonConvictionSignatureRoutes(app, {
   listDossierDocuments,
   DOCUMENT_STATUSES,
   createSignatureRecord,
+  transitionDossierStatus,
   appUrl,
 });
 

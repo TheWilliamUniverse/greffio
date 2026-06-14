@@ -22,6 +22,11 @@ import {
 } from './signatureUtils.js';
 import { GREFFIO_INTERNAL_PROVIDER } from './signatureProvider.js';
 import { recordDossierSignatureTimelineEvent } from '../../store.js';
+import { regenerateCleanSigningPdf } from '../regenerateSigningPdf.js';
+import {
+  PROXY_MANDATE_DOC_KEY,
+  finalizeSignedMandatePdf,
+} from '../mandateSignatureService.js';
 
 export const finalizeInternalSignature = async ({
   request,
@@ -42,6 +47,8 @@ export const finalizeInternalSignature = async ({
   updateDossierDocument,
   listDossierDocuments,
   DOCUMENT_STATUSES,
+  actorId = null,
+  transitionDossierStatus = null,
 }) => {
   if (!previewAcknowledged) {
     const error = new Error('SIGNATURE_PREVIEW_REQUIRED');
@@ -66,12 +73,101 @@ export const finalizeInternalSignature = async ({
 
   const proofId = request.proofId || generateSignatureProofId();
   const signedAtIso = new Date().toISOString();
+
+  if (request.docKey === PROXY_MANDATE_DOC_KEY) {
+    const mandateResult = await finalizeSignedMandatePdf({
+      dossier,
+      signerFullName,
+      signedAtIso,
+      ipAddress,
+      userAgent,
+      documentId: request.documentId || request.evidence?.documentId || null,
+      appUrl,
+      updateDossierDocument,
+      listDossierDocuments,
+      DOCUMENT_STATUSES,
+      transitionDossierStatus,
+      actorId,
+    });
+
+    await markSignatureRequestSigned({
+      id: request.id,
+      signedPdfPath: mandateResult.pdfPath,
+      sha256Signed: mandateResult.documentHash,
+      ipAddress,
+      userAgent,
+      evidence: {
+        ...(request.evidence && typeof request.evidence === 'object' ? request.evidence : {}),
+        consent: true,
+        consentTextVersion,
+        consentTextSnapshot,
+        previewAcknowledged,
+        signerFullName,
+        sha256Draft: request.sha256Draft,
+        sha256Signed: mandateResult.documentHash,
+        proofId,
+        visualSignatureMode,
+        otpVerified: Boolean(Number(request.otpRequired ?? 0)),
+        signedAt: signedAtIso,
+        documentId: request.documentId || request.evidence?.documentId || null,
+      },
+    });
+
+    await updateSignatureRequestFields(request.id, {
+      proofId,
+      consentTextVersion,
+      consentTextSnapshot,
+      consentAcceptedAt: signedAtIso,
+      documentAcknowledgedAt: previewAcknowledged ? signedAtIso : null,
+      otpVerified: Number(request.otpRequired ?? 0) ? 1 : 0,
+    });
+
+    await recordSignatureAuditEvent({
+      signatureRequestId: request.id,
+      eventType: 'request_signed',
+      actorType: 'signer',
+      actorEmail: signerEmail,
+      ipAddress,
+      userAgent,
+      metadata: { proofId, sha256Signed: mandateResult.documentHash },
+    });
+
+    void sendTransactionalEmail({
+      to: { email: signerEmail, name: signerFullName },
+      templateKey: 'mandate_signed',
+      variables: {
+        prenom: signerFullName.split(' ')[0] || 'Client',
+        reference_dossier: dossier?.reference || dossier?.id,
+      },
+      dossierId: request.dossierId,
+      tags: ['signature', PROXY_MANDATE_DOC_KEY],
+    });
+
+    return {
+      status: 'signed',
+      proofId,
+      sha256Signed: mandateResult.documentHash,
+      signedPdfPath: mandateResult.pdfPath,
+      verifyUrl: mandateResult.verifyUrl,
+    };
+  }
+
   const proofLine = buildGreffioProofLine({ proofId, signedAtIso });
   const signedFilename = draftPdfPath.replace(/\.pdf$/i, `_signed_${Date.now()}.pdf`);
   const layout = getEditableDocumentConfig(request.docKey)?.signatureLayout || 'non_conviction_official';
 
+  let signingInputPath = draftPdfPath;
+  try {
+    const cleanPdfPath = await regenerateCleanSigningPdf({ request, appUrl });
+    if (cleanPdfPath && fs.existsSync(cleanPdfPath)) {
+      signingInputPath = cleanPdfPath;
+    }
+  } catch (regenerateError) {
+    console.warn('REGENERATE_CLEAN_SIGNING_PDF_FAILED', regenerateError?.message || regenerateError);
+  }
+
   await stampSignatureOnPdf({
-    inputPath: draftPdfPath,
+    inputPath: signingInputPath,
     outputPath: signedFilename,
     signerFullName,
     signedAtIso,

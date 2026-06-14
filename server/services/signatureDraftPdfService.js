@@ -4,6 +4,10 @@ import {
   NON_CONVICTION_DOC_KEY,
   persistNonConvictionPdfForDossier,
 } from './nonConvictionDocumentService.js';
+import {
+  PROXY_MANDATE_DOC_KEY,
+  generateMandateDraftPdf,
+} from './mandateSignatureService.js';
 import { persistEditableDocumentPdf } from './editableDocumentService.js';
 
 /**
@@ -51,6 +55,21 @@ export const ensureSignatureDraftPdf = async ({
       },
     });
     return result.pdfPath;
+  }
+
+  if (request.docKey === PROXY_MANDATE_DOC_KEY) {
+    const signerFullName = request.signerFullName
+      || request.fields?.signerFullName
+      || dossier.companyName
+      || 'Client Greffio';
+    const { pdfPath } = await generateMandateDraftPdf({
+      dossier,
+      signerFullName,
+      documentId: request.documentId || null,
+      verifyToken: request.evidence?.verifyToken || null,
+      appUrl: process.env.GREFFIO_APP_URL || process.env.APP_URL,
+    });
+    return pdfPath;
   }
 
   if (request.docKey === NON_CONVICTION_DOC_KEY) {

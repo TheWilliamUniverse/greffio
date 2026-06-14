@@ -15,6 +15,12 @@ import { isSignwellConfigured } from '../services/signature/signwell.service.js'
 import { getSignwellDocumentBySignatureRequestId } from '../signwellStore.js';
 import { SIGNWELL_PROVIDER } from '../services/signature/signwellOrchestrator.js';
 import { buildDocumentVerifyUrl } from '../services/documentIntegrityService.js';
+import { PROXY_MANDATE_DOC_KEY } from '../services/mandateSignatureService.js';
+
+const resolvePublicDocumentTitle = (docKey) => {
+  if (docKey === PROXY_MANDATE_DOC_KEY) return 'Procuration Greffio';
+  return getEditableDocumentConfig(docKey)?.publicDocumentTitle || 'Document Greffio';
+};
 
 const resolveVerifyUrl = (request, appUrl) => {
   const evidence = request?.evidence || {};
@@ -64,7 +70,7 @@ export const registerSignaturePublicRoutes = (app, { getDossier, strictPublicRat
         ok: true,
         status: 'signed',
         signerFullName: request.signerFullName,
-        documentTitle: getEditableDocumentConfig(request.docKey)?.publicDocumentTitle || 'Document Greffio',
+        documentTitle: resolvePublicDocumentTitle(request.docKey),
         proofId: request.proofId || evidence.proofId,
         signedAt: request.signedAt || evidence.signedAt || null,
         verifyUrl: resolveVerifyUrl(request, appUrl),
@@ -97,7 +103,7 @@ export const registerSignaturePublicRoutes = (app, { getDossier, strictPublicRat
       signerEmail: request.signerEmail,
       signerEmailMasked: maskEmail(request.signerEmail),
       companyName: dossier?.companyName || dossier?.denomination || 'Greffio',
-      documentTitle: editableConfig?.publicDocumentTitle || 'Document Greffio',
+      documentTitle: resolvePublicDocumentTitle(request.docKey),
       pdfUrl: `/api/signature/public/${req.params.token}/pdf`,
       provider: useSignwell ? SIGNWELL_PROVIDER : 'internal',
       signwellSigningUrl: signwellRecord?.signingUrl || null,

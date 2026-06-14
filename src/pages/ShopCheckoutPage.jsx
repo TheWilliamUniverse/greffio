@@ -1,0 +1,270 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Loader2, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { Sidebar } from '@/components/Sidebar.jsx';
+import { GreffioLogo } from '@/components/GreffioLogo.jsx';
+import { Button } from '@/components/ui/button.jsx';
+import { LegalAcceptanceCheckbox } from '@/components/payments/LegalAcceptanceCheckbox.jsx';
+import { GreffioPaymentTerminal } from '@/components/payments/GreffioPaymentTerminal.jsx';
+import { formatResourcePrice } from '@/config/resourceServices.js';
+import { prepareCartOrders, checkoutCartPayment } from '@/api/resources.js';
+import { useShopCart } from '@/hooks/useShopCart.js';
+import { useAuth } from '@/hooks/useAuth.js';
+import { openPaymentCheckoutUrl } from '@/utils/paymentCheckoutNavigation.js';
+import { resolvePaymentCheckoutErrorMessage } from '@/utils/paymentErrors.js';
+import { cn } from '@/lib/utils.js';
+
+export const ShopCheckoutPage = () => {
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const {
+    items,
+    totalTtc,
+    setQuantity,
+    removeLine,
+    clearCart,
+    updateLineMeta,
+  } = useShopCart();
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const [preparing, setPreparing] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [orderIds, setOrderIds] = useState([]);
+
+  const needsDetails = useMemo(
+    () => items.some(
+      (line) => line.catalog?.requiresSiren !== false || line.catalog?.requiresCompany !== false,
+    ),
+    [items],
+  );
+
+  useEffect(() => {
+    if (!items.length) {
+      navigate('/boutique', { replace: true });
+    }
+  }, [items.length, navigate]);
+
+  const handlePrepareOrders = async () => {
+    if (!termsAccepted) {
+      toast.error('Acceptez les CGU et CGV pour continuer.');
+      return false;
+    }
+    if (!currentUser) {
+      toast.error('Connectez-vous pour commander.');
+      return false;
+    }
+    if (needsDetails && !showDetails) {
+      setShowDetails(true);
+      return false;
+    }
+    if (orderIds.length) return true;
+
+    setPreparing(true);
+    try {
+      const cartItems = items.map((line) => ({
+        serviceId: line.serviceId,
+        quantity: line.quantity || 1,
+        companyName: line.companyName?.trim() || null,
+        siren: line.siren?.replace(/\s/g, '') || null,
+        dossierId: line.dossierId || null,
+        notes: line.notes?.trim() || null,
+      }));
+      const payload = await prepareCartOrders(cartItems);
+      const ids = payload?.orderIds || [];
+      const payable = (payload?.orders || []).filter((order) => Number(order.priceTtc) > 0);
+      if (!ids.length) {
+        toast.error('Impossible de préparer le panier.');
+        return false;
+      }
+      if (!payable.length) {
+        clearCart();
+        toast.success('Demande enregistrée. Notre équipe vous recontacte sous peu.');
+        navigate('/boutique/commandes');
+        return false;
+      }
+      setOrderIds(ids);
+      return true;
+    } catch (_error) {
+      toast.error('Impossible d\'enregistrer la commande pour le moment.');
+      return false;
+    } finally {
+      setPreparing(false);
+    }
+  };
+
+  const handlePay = async ({ method, cardToken } = {}) => {
+    const ready = await handlePrepareOrders();
+    if (!ready) return;
+    setPaying(true);
+    try {
+      const payload = await checkoutCartPayment({
+        orderIds,
+        mollieMethod: method,
+        cardToken,
+      });
+      if (payload.checkoutUrl) {
+        clearCart();
+        await openPaymentCheckoutUrl(payload.checkoutUrl);
+        return;
+      }
+      throw new Error('CHECKOUT_URL_MISSING');
+    } catch (error) {
+      toast.error(resolvePaymentCheckoutErrorMessage(error));
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  if (!items.length) {
+    return null;
+  }
+
+  const amountCents = Math.round(totalTtc * 100);
+  const isBusy = preparing || paying;
+
+  return (
+    <div className="flex min-h-[calc(100vh-4rem)] bg-[var(--we-bg)]">
+      <Sidebar />
+      <div className="flex flex-1 flex-col">
+        <header className="border-b border-border bg-white px-6 py-4">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <GreffioLogo variant="mark" to="/boutique" className="hidden sm:block" />
+              <div>
+                <p className="text-sm font-bold uppercase text-primary">Boutique Greffio</p>
+                <h1 className="text-xl font-extrabold">Finaliser ma commande</h1>
+              </div>
+            </div>
+            <Button variant="outline" className="bg-white" asChild>
+              <Link to="/boutique">
+                <ArrowLeft className="h-4 w-4" />
+                Retour boutique
+              </Link>
+            </Button>
+          </div>
+        </header>
+
+        <main className="mx-auto grid w-full max-w-7xl min-h-0 flex-1 grid-cols-1 gap-0 px-4 py-6 md:grid-cols-[1fr_320px] lg:px-8">
+          <section className="space-y-3 overflow-y-auto pr-0 md:pr-6">
+            {items.map((line) => (
+              <div key={line.id} className="rounded-xl border border-border bg-white p-4 shadow-elevation-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-bold text-foreground">{line.catalog?.title}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {formatResourcePrice(line.unitPriceTtc)} · {line.catalog?.estimatedDelay}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 text-muted-foreground hover:text-destructive"
+                    onClick={() => removeLine(line.id)}
+                    aria-label="Retirer du panier"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="mt-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => setQuantity(line.id, Number(line.quantity || 1) - 1)} aria-label="Diminuer">
+                      <Minus className="h-3.5 w-3.5" />
+                    </Button>
+                    <span className="min-w-[2rem] text-center text-sm font-bold">{line.quantity || 1}</span>
+                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => setQuantity(line.id, Number(line.quantity || 1) + 1)} aria-label="Augmenter">
+                      <Plus className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  <p className="text-sm font-extrabold text-primary">{formatResourcePrice(line.lineTotalTtc)}</p>
+                </div>
+                {showDetails && (line.catalog?.requiresSiren !== false || line.catalog?.requiresCompany !== false) ? (
+                  <div className="mt-3 space-y-2 border-t border-border pt-3">
+                    {line.catalog?.requiresSiren !== false ? (
+                      <label className="block text-xs">
+                        SIREN ou SIRET
+                        <input
+                          className="mt-1 h-9 w-full rounded-md border border-input px-3 text-sm"
+                          value={line.siren || ''}
+                          onChange={(event) => updateLineMeta(line.id, { siren: event.target.value })}
+                          placeholder="123 456 789"
+                        />
+                      </label>
+                    ) : null}
+                    {line.catalog?.requiresCompany !== false ? (
+                      <label className="block text-xs">
+                        Nom de l&apos;entreprise
+                        <input
+                          className="mt-1 h-9 w-full rounded-md border border-input px-3 text-sm"
+                          value={line.companyName || ''}
+                          onChange={(event) => updateLineMeta(line.id, { companyName: event.target.value })}
+                          placeholder="Dénomination sociale"
+                        />
+                      </label>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </section>
+
+          <aside className={cn('mt-6 flex flex-col rounded-xl border border-border bg-white shadow-elevation-sm md:mt-0')}>
+            <div className="flex-1 space-y-4 px-5 py-5">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Récapitulatif</p>
+              <ul className="space-y-2 text-sm">
+                {items.map((line) => (
+                  <li key={`sum-${line.id}`} className="flex justify-between gap-2">
+                    <span className="truncate text-muted-foreground">
+                      {line.catalog?.title} × {line.quantity || 1}
+                    </span>
+                    <span className="shrink-0 font-semibold">{formatResourcePrice(line.lineTotalTtc)}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="border-t border-border pt-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Total TTC</span>
+                  <span className="text-2xl font-extrabold text-[hsl(var(--greffio-blue-900))]">
+                    {formatResourcePrice(totalTtc)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4 border-t border-border px-5 py-5">
+              <LegalAcceptanceCheckbox checked={termsAccepted} onChange={setTermsAccepted} />
+              {showDetails || !needsDetails ? (
+                <GreffioPaymentTerminal
+                  amountCents={amountCents}
+                  amountLabel={formatResourcePrice(totalTtc)}
+                  offerLabel={`Panier boutique (${items.length} article${items.length > 1 ? 's' : ''})`}
+                  onPay={handlePay}
+                  isCreatingPayment={isBusy}
+                  payButtonLabel={orderIds.length ? 'Payer via Mollie' : 'Valider et payer'}
+                  requireLegalAcceptance={false}
+                />
+              ) : (
+                <Button type="button" className="w-full" disabled={!termsAccepted || isBusy} onClick={() => void handlePrepareOrders()}>
+                  {isBusy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Continuer
+                </Button>
+              )}
+              <Button type="button" variant="outline" className="w-full bg-white" asChild>
+                <Link to="/boutique/commandes">Voir mes commandes</Link>
+              </Button>
+            </div>
+          </aside>
+        </main>
+
+        {!items.length ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
+            <ShoppingBag className="h-10 w-10 text-muted-foreground" />
+            <p className="font-bold">Panier vide</p>
+            <Button asChild><Link to="/boutique">Retour à la boutique</Link></Button>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+};

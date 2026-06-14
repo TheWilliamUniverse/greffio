@@ -39,6 +39,7 @@ export const registerNonConvictionSignatureRoutes = (app, {
   DOCUMENT_STATUSES,
   createSignatureRecord,
   appUrl,
+  transitionDossierStatus = null,
 }) => {
   const persistDraftPdf = async ({ dossier, fields }) => {
     const result = await persistNonConvictionPdfForDossier({
@@ -402,13 +403,17 @@ export const registerNonConvictionSignatureRoutes = (app, {
         updateDossierDocument,
         listDossierDocuments,
         DOCUMENT_STATUSES,
+        transitionDossierStatus,
+        actorId: null,
       });
       return res.json({
         ok: true,
         status: 'signed',
         proofId: result.proofId,
         signedAt: new Date().toISOString(),
-        documentTitle: getEditableDocumentConfig(request.docKey)?.publicDocumentTitle || 'Document Greffio',
+        documentTitle: request.docKey === 'proxy_mandate'
+          ? 'Procuration Greffio'
+          : (getEditableDocumentConfig(request.docKey)?.publicDocumentTitle || 'Document Greffio'),
         verifyUrl: buildDocumentVerifyUrl({
           appUrl,
           documentId: request.documentId || request.evidence?.documentId,

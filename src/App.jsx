@@ -49,6 +49,7 @@ import { AccountDeletionPage } from '@/pages/AccountDeletionPage.jsx';
 import { DataDeletionPage } from '@/pages/DataDeletionPage.jsx';
 import { ResourcesPage } from '@/pages/ResourcesPage.jsx';
 import { ClientShopPage } from '@/pages/ClientShopPage.jsx';
+import { ShopCheckoutPage } from '@/pages/ShopCheckoutPage.jsx';
 import { ClientOrdersPage } from '@/pages/ClientOrdersPage.jsx';
 import { ResourceGuidePage } from '@/pages/ResourceGuidePage.jsx';
 import { LegalFormComparatorPage } from '@/pages/LegalFormComparatorPage.jsx';
@@ -63,6 +64,7 @@ import { SubscribersListPage } from '@/pages/SubscribersListPage.jsx';
 import { FormalityPowersPage } from '@/pages/FormalityPowersPage.jsx';
 import { DocumentCompletionEntry } from '@/mobile/entries/DocumentCompletionEntry.jsx';
 import { SignaturePublicPage } from '@/pages/SignaturePublicPage.jsx';
+import { DocumentSignPage } from '@/pages/DocumentSignPage.jsx';
 import { SignatureCallbackPage } from '@/pages/SignatureCallbackPage.jsx';
 import { DocumentVerifyPage } from '@/pages/DocumentVerifyPage.jsx';
 import { InterfacesPage } from '@/pages/InterfacesPage.jsx';
@@ -228,12 +230,13 @@ function AppRoutes() {
             <Route path="/documents" element={<ProtectedRoute><DocumentsEntry /></ProtectedRoute>} />
             <Route path="/assistant-documents" element={<ProtectedRoute><DocumentCompletionEntry /></ProtectedRoute>} />
             <Route path="/boutique" element={<ProtectedRoute><ClientShopPage /></ProtectedRoute>} />
-            <Route path="/boutique/commandes" element={<ProtectedRoute><ClientOrdersPage /></ProtectedRoute>} />
+            <Route path="/boutique/checkout" element={<ProtectedRoute><ShopCheckoutPage /></ProtectedRoute>} />
             <Route path="/boutique/commandes" element={<ProtectedRoute><ClientOrdersPage /></ProtectedRoute>} />
             <Route path="/dossier/:dossierId/declaration-non-condamnation" element={<ProtectedRoute>{withSuspense(LazyNonConvictionDeclarationPage, 'Chargement déclaration…')}</ProtectedRoute>} />
             <Route path="/dossier/:dossierId/liste-souscripteurs" element={<ProtectedRoute><SubscribersListPage /></ProtectedRoute>} />
             <Route path="/dossier/:dossierId/pouvoirs-formalites" element={<ProtectedRoute><FormalityPowersPage /></ProtectedRoute>} />
             <Route path="/statuts" element={<ProtectedRoute><StatutsEntry /></ProtectedRoute>} />
+            <Route path="/documents/:id/sign" element={<ProtectedRoute><DocumentSignPage /></ProtectedRoute>} />
             <Route path="/signature/:token" element={<SignaturePublicPage />} />
             <Route path="/callback" element={<SignatureCallbackPage />} />
             <Route path="/chat" element={<ProtectedRoute><ChatEntry /></ProtectedRoute>} />

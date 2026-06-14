@@ -12,7 +12,6 @@ import {
 import { Button } from '@/components/ui/button.jsx';
 import { LegalAcceptanceCheckbox } from '@/components/payments/LegalAcceptanceCheckbox.jsx';
 import { formatResourcePrice } from '@/config/resourceServices.js';
-import { prepareCartOrders } from '@/api/resources.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { cn } from '@/lib/utils.js';
 
@@ -32,7 +31,7 @@ export const ShopCartDrawer = ({
   const [submitting, setSubmitting] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
 
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (!termsAccepted) {
       toast.error('Acceptez les CGU et CGV pour continuer.');
       return;
@@ -51,43 +50,8 @@ export const ShopCartDrawer = ({
       return;
     }
 
-    setSubmitting(true);
-    try {
-      const cartItems = items.map((line) => ({
-        serviceId: line.serviceId,
-        quantity: line.quantity || 1,
-        companyName: line.companyName?.trim() || null,
-        siren: line.siren?.replace(/\s/g, '') || null,
-        dossierId: line.dossierId || null,
-        notes: line.notes?.trim() || null,
-      }));
-      const payload = await prepareCartOrders(cartItems);
-      const orderIds = payload?.orderIds || [];
-      const payable = (payload?.orders || []).filter((order) => Number(order.priceTtc) > 0);
-
-      clearCart();
-      onOpenChange(false);
-      setShowDetails(false);
-      setTermsAccepted(false);
-
-      if (!orderIds.length) {
-        toast.error('Impossible de préparer le panier.');
-        return;
-      }
-
-      if (payable.length) {
-        toast.success('Commande enregistrée. Finalisez le paiement.');
-        navigate(`/paiement?cartOrders=${orderIds.join(',')}`);
-        return;
-      }
-
-      toast.success('Demande enregistrée. Notre équipe vous recontacte sous peu.');
-      navigate('/boutique/commandes');
-    } catch (_error) {
-      toast.error('Impossible d\'enregistrer la commande pour le moment.');
-    } finally {
-      setSubmitting(false);
-    }
+    onOpenChange(false);
+    navigate('/boutique/checkout');
   };
 
   return (
@@ -227,10 +191,10 @@ export const ShopCartDrawer = ({
                   type="button"
                   className="w-full"
                   disabled={submitting || !termsAccepted}
-                  onClick={() => void handleCheckout()}
+                  onClick={handleCheckout}
                 >
                   {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {showDetails ? 'Valider et payer' : 'Continuer la commande'}
+                  {showDetails ? 'Aller au paiement' : 'Continuer la commande'}
                 </Button>
                 <Button type="button" variant="outline" className="w-full bg-white" asChild>
                   <Link to="/boutique/commandes">Voir mes commandes</Link>

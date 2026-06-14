@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { FileText, Mail, PenLine } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { PdfPreviewPanel } from '@/components/documents/PdfPreviewPanel.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
-import { SignatureAdoptPanel } from '@/components/signature/SignatureAdoptPanel.jsx';
-import { GreffioSignatureInfoBanner } from '@/components/signature/GreffioSignatureInfoBanner.jsx';
+import { GreffioSignatureActionBlock } from '@/components/signature/GreffioSignatureActionBlock.jsx';
 import { SignedDocumentSuccessPanel } from '@/components/signature/SignedDocumentSuccessPanel.jsx';
 import { downloadDossierDocument, previewDossierDocumentPdf } from '@/api/documents.js';
 import {
@@ -20,7 +19,6 @@ import {
 import { getDocumentEditorLoadErrorMessage } from '@/utils/documentEditorErrors.js';
 import { DocumentEditorLoadGate } from '@/components/documents/DocumentEditorLoadGate.jsx';
 import { MobileStickyFormActions } from '@/mobile/ui/MobileStickyFormActions.jsx';
-import { MobileSignatureOverlay } from '@/mobile/ui/MobileSignatureOverlay.jsx';
 import { MobileSignableDocumentHeader } from '@/mobile/ui/MobileSignableDocumentShell.jsx';
 import { useMobileSignatureOverlay } from '@/mobile/hooks/useMobileSignatureOverlay.js';
 import { isCapacitorNative } from '@/utils/platform.js';
@@ -218,7 +216,6 @@ export const FormalityPowersPage = () => {
                 Document séparé des statuts – confère les pouvoirs au mandataire pour le dépôt guichet unique et les formalités d’immatriculation.
               </p>
             ) : null}
-            {!nativeApp ? <GreffioSignatureInfoBanner className="mt-3" /> : null}
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <Label>Société</Label>
@@ -263,20 +260,19 @@ export const FormalityPowersPage = () => {
               ))}
             </div>
 
-            <MobileStickyFormActions>
-              <Button className="h-11 flex-1 sm:flex-none" onClick={() => void onGeneratePreview()} disabled={saving}>
-                <FileText className="h-4 w-4" />
-                {saving ? 'Génération…' : 'Générer l’aperçu'}
-              </Button>
-              <Button variant="outline" className="h-11 flex-1 bg-white sm:flex-none" onClick={() => setSignMode('immediate')}>
-                <PenLine className="h-4 w-4" />
-                Signer maintenant
-              </Button>
-              <Button variant="outline" className="h-11 flex-1 bg-white sm:flex-none" onClick={() => setSignMode('email')}>
-                <Mail className="h-4 w-4" />
-                Envoyer pour signature
-              </Button>
-            </MobileStickyFormActions>
+            <GreffioSignatureActionBlock
+              saving={saving}
+              signMode={signMode}
+              onGeneratePreview={onGeneratePreview}
+              onSignModeChange={setSignMode}
+              onSignConfirm={(mode, payload) => {
+                if (mode === 'email') void onSendEmail(payload);
+                else void onSignNow(payload);
+              }}
+              defaultSignerName={fields.signatureFullName || fields.signatoryName || ''}
+              defaultSignerEmail={fields.signerEmail || ''}
+              showInfoBanner={!nativeApp}
+            />
           </section>
 
           <PdfPreviewPanel
@@ -284,23 +280,6 @@ export const FormalityPowersPage = () => {
             filename="Pouvoirs_formalites.pdf"
           />
         </div>
-
-        <MobileSignatureOverlay
-          open={Boolean(signMode)}
-          footerHint={signMode === 'email' ? `Lien sécurisé via ${runtimeConfig.appUrl || 'Greffio'}.` : ''}
-        >
-          <SignatureAdoptPanel
-            defaultName={fields.signatureFullName || fields.signatoryName || ''}
-            defaultEmail={fields.signerEmail || ''}
-            subtitle="Signature électronique Greffio – horodatée et traçable"
-            loading={saving}
-            onCancel={() => setSignMode(null)}
-            onConfirm={(payload) => {
-              if (signMode === 'email') void onSendEmail(payload);
-              else void onSignNow(payload);
-            }}
-          />
-        </MobileSignatureOverlay>
 
         {signedResult ? (
           <div className="fixed inset-0 z-50 overflow-y-auto bg-[#f6f8fc]/95 p-4 backdrop-blur-sm">

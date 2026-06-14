@@ -249,3 +249,102 @@ export const markSignatureRequestOpened = async (id, ipAddress) => {
   await updateSignatureRequestFields(id, { openedAt });
   await appendSignatureAudit(id, { type: 'opened', ipAddress });
 };
+
+export const getPendingSignatureRequestByDocumentId = async (documentId) => {
+  const id = String(documentId || '').trim();
+  if (!id) return null;
+  if (hasPostgres) {
+    const result = await query(`
+      SELECT
+        id,
+        dossier_id AS "dossierId",
+        document_id AS "documentId",
+        doc_key AS "docKey",
+        token_hash AS "tokenHash",
+        signer_email AS "signerEmail",
+        signer_full_name AS "signerFullName",
+        status,
+        draft_pdf_path AS "draftPdfPath",
+        signed_pdf_path AS "signedPdfPath",
+        sha256_draft AS "sha256Draft",
+        sha256_signed AS "sha256Signed",
+        fields_json AS "fieldsJson",
+        expires_at AS "expiresAt",
+        signed_at AS "signedAt",
+        ip_address AS "ipAddress",
+        user_agent AS "userAgent",
+        evidence_json AS "evidenceJson",
+        audit_json AS "auditJson",
+        created_at AS "createdAt",
+        updated_at AS "updatedAt"
+      FROM signature_requests
+      WHERE document_id = $1 AND status = 'pending'
+      ORDER BY created_at DESC
+      LIMIT 1
+    `, [id]);
+    return parseRow(result.rows[0]);
+  }
+  const row = sqlite.prepare(`
+    SELECT
+      id, dossier_id AS dossierId, document_id AS documentId, doc_key AS docKey,
+      token_hash AS tokenHash, signer_email AS signerEmail, signer_full_name AS signerFullName,
+      status, draft_pdf_path AS draftPdfPath, signed_pdf_path AS signedPdfPath,
+      sha256_draft AS sha256Draft, sha256_signed AS sha256Signed, fields_json AS fieldsJson,
+      expires_at AS expiresAt, signed_at AS signedAt, ip_address AS ipAddress,
+      user_agent AS userAgent, evidence_json AS evidenceJson, audit_json AS auditJson,
+      created_at AS createdAt, updated_at AS updatedAt
+    FROM signature_requests
+    WHERE document_id = ? AND status = 'pending'
+    ORDER BY created_at DESC
+    LIMIT 1
+  `).get(id);
+  return parseRow(row);
+};
+
+export const listSignatureRequestsByDossier = async (dossierId) => {
+  if (hasPostgres) {
+    const result = await query(`
+      SELECT
+        id,
+        dossier_id AS "dossierId",
+        document_id AS "documentId",
+        doc_key AS "docKey",
+        token_hash AS "tokenHash",
+        signer_email AS "signerEmail",
+        signer_full_name AS "signerFullName",
+        status,
+        draft_pdf_path AS "draftPdfPath",
+        signed_pdf_path AS "signedPdfPath",
+        proof_certificate_path AS "proofCertificatePath",
+        sha256_draft AS "sha256Draft",
+        sha256_signed AS "sha256Signed",
+        fields_json AS "fieldsJson",
+        expires_at AS "expiresAt",
+        signed_at AS "signedAt",
+        ip_address AS "ipAddress",
+        user_agent AS "userAgent",
+        evidence_json AS "evidenceJson",
+        audit_json AS "auditJson",
+        created_at AS "createdAt",
+        updated_at AS "updatedAt"
+      FROM signature_requests
+      WHERE dossier_id = $1
+      ORDER BY created_at ASC
+    `, [dossierId]);
+    return result.rows.map((row) => parseRow(row));
+  }
+  return sqlite.prepare(`
+    SELECT
+      id, dossier_id AS dossierId, document_id AS documentId, doc_key AS docKey,
+      token_hash AS tokenHash, signer_email AS signerEmail, signer_full_name AS signerFullName,
+      status, draft_pdf_path AS draftPdfPath, signed_pdf_path AS signedPdfPath,
+      proof_certificate_path AS proofCertificatePath,
+      sha256_draft AS sha256Draft, sha256_signed AS sha256Signed, fields_json AS fieldsJson,
+      expires_at AS expiresAt, signed_at AS signedAt, ip_address AS ipAddress,
+      user_agent AS userAgent, evidence_json AS evidenceJson, audit_json AS auditJson,
+      created_at AS createdAt, updated_at AS updatedAt
+    FROM signature_requests
+    WHERE dossier_id = ?
+    ORDER BY created_at ASC
+  `).all(dossierId).map((row) => parseRow(row));
+};
