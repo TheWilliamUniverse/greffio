@@ -27,6 +27,8 @@ export const initiatePayment = async ({
   flow,
   returnUrl,
   cancelUrl,
+  mollieMethod,
+  cardToken,
 }) => apiPost('/api/payments', {
   customerType,
   amount,
@@ -40,9 +42,17 @@ export const initiatePayment = async ({
   flow,
   returnUrl,
   cancelUrl,
+  mollieMethod,
+  cardToken,
 });
 
-export const checkoutDossierPayment = async ({ dossierId, offerCode, customerType }) => {
+export const checkoutDossierPayment = async ({
+  dossierId,
+  offerCode,
+  customerType,
+  mollieMethod,
+  cardToken,
+}) => {
   const normalized = String(customerType || '').toLowerCase();
   if (normalized === 'b2c') {
     return initiatePayment({
@@ -52,6 +62,8 @@ export const checkoutDossierPayment = async ({ dossierId, offerCode, customerTyp
       flow: 'b2c_card',
       returnUrl: `${runtimeConfig.appUrl}/paiement/verification?dossierId=${encodeURIComponent(dossierId)}`,
       cancelUrl: `${runtimeConfig.appUrl}/paiement?offer=${encodeURIComponent(offerCode || 'Dossier Standard')}`,
+      mollieMethod,
+      cardToken,
     });
   }
   return createPayment({ dossierId, offerCode, customerType });

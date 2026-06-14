@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button.jsx';
 import { LegalAcceptanceCheckbox } from '@/components/payments/LegalAcceptanceCheckbox.jsx';
 import { formatResourcePrice } from '@/config/resourceServices.js';
-import { createResourceOrder } from '@/api/resources.js';
+import { prepareCartOrders } from '@/api/resources.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { cn } from '@/lib/utils.js';
 
@@ -53,49 +53,34 @@ export const ShopCartDrawer = ({
 
     setSubmitting(true);
     try {
-      const created = [];
-      for (const line of items) {
-        const payload = await createResourceOrder({
-          serviceId: line.serviceId,
-          companyName: line.companyName?.trim() || null,
-          siren: line.siren?.replace(/\s/g, '') || null,
-          dossierId: line.dossierId || null,
-          email: currentUser.email,
-          notes: line.notes?.trim() || null,
-        });
-        const order = payload?.order;
-        if (order) {
-          for (let i = 1; i < Number(line.quantity || 1); i += 1) {
-            const extra = await createResourceOrder({
-              serviceId: line.serviceId,
-              companyName: line.companyName?.trim() || null,
-              siren: line.siren?.replace(/\s/g, '') || null,
-              dossierId: line.dossierId || null,
-              email: currentUser.email,
-              notes: line.notes?.trim() || null,
-            });
-            if (extra?.order) created.push(extra.order);
-          }
-          created.push(order);
-        }
-      }
+      const cartItems = items.map((line) => ({
+        serviceId: line.serviceId,
+        quantity: line.quantity || 1,
+        companyName: line.companyName?.trim() || null,
+        siren: line.siren?.replace(/\s/g, '') || null,
+        dossierId: line.dossierId || null,
+        notes: line.notes?.trim() || null,
+      }));
+      const payload = await prepareCartOrders(cartItems);
+      const orderIds = payload?.orderIds || [];
+      const payable = (payload?.orders || []).filter((order) => Number(order.priceTtc) > 0);
 
       clearCart();
       onOpenChange(false);
       setShowDetails(false);
       setTermsAccepted(false);
 
-      const payable = created.filter((order) => Number(order.priceTtc) > 0);
-      if (payable.length === 1) {
+      if (!orderIds.length) {
+        toast.error('Impossible de préparer le panier.');
+        return;
+      }
+
+      if (payable.length) {
         toast.success('Commande enregistrée. Finalisez le paiement.');
-        navigate(`/paiement?resourceOrder=${payable[0].id}&service=${payable[0].serviceId}`);
+        navigate(`/paiement?cartOrders=${orderIds.join(',')}`);
         return;
       }
-      if (payable.length > 1) {
-        toast.success(`${created.length} commandes enregistrées. Réglez-les depuis Mes commandes.`);
-        navigate('/boutique/commandes');
-        return;
-      }
+
       toast.success('Demande enregistrée. Notre équipe vous recontacte sous peu.');
       navigate('/boutique/commandes');
     } catch (_error) {

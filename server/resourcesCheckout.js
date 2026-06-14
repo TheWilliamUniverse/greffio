@@ -18,6 +18,8 @@ export const createResourceOrderCheckout = async ({
   orderId,
   userId,
   appUrl,
+  mollieMethod = null,
+  cardToken = null,
 }) => {
   const order = await getResourceOrderById(orderId);
   if (!order) {
@@ -63,10 +65,13 @@ export const createResourceOrderCheckout = async ({
       userId,
       offerCode: `resource:${order.serviceId}`,
       flow: PAYMENT_FLOWS.RESOURCE,
+      mollieMethod,
+      cardToken,
       metadata: {
         resourceOrderId: order.id,
         publicReference: publicRef || null,
-        paymentMethod: 'card',
+        paymentMethod: mollieMethod || 'creditcard',
+        mollieMethod: mollieMethod || null,
         paymentFlow: PAYMENT_FLOWS.RESOURCE,
       },
     });
@@ -102,5 +107,6 @@ export const createResourceOrderCheckout = async ({
     order: await getResourceOrderById(order.id),
     payment,
     checkoutUrl,
+    checkoutMode: result.checkoutMode || 'hosted',
   };
 };

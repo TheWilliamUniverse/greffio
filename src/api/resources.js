@@ -19,6 +19,16 @@ export const listResourceOrders = async () => apiGet('/api/resources/orders');
 
 export const getResourceOrder = async (orderId) => apiGet(`/api/resources/orders/${orderId}`);
 
-export const checkoutResourceOrder = async (orderId) => apiPost(`/api/resources/orders/${orderId}/checkout`);
+export const checkoutResourceOrder = async (orderId, { mollieMethod, cardToken } = {}) => apiPost(
+  `/api/resources/orders/${orderId}/checkout`,
+  { mollieMethod, cardToken },
+);
+
+export const prepareCartOrders = async (items) => apiPost('/api/resources/cart/prepare', { items });
+
+export const checkoutCartPayment = async ({ orderIds, mollieMethod, cardToken }) => apiPost(
+  '/api/resources/cart/pay',
+  { orderIds, mollieMethod, cardToken },
+);
 
 export const createResourceOrder = async (payload) => apiPost('/api/resources/orders', payload);

@@ -2,6 +2,8 @@ import {
   createMolliePayment,
   isMollieConfigured,
   isMolliePaidStatus,
+  listMollieMethods,
+  normalizeMollieMethod,
   retrieveMolliePayment,
 } from '../../mollie.js';
 import { resolveMolliePaymentRedirectUrl, resolveMollieWebhookUrl } from '../../config/mollieUrls.js';
@@ -9,6 +11,7 @@ import { PAYMENT_PROVIDERS, PAYMENT_STATUSES, PaymentError } from '../types.js';
 
 /**
  * Adapter Mollie — PSP principal Greffio (B2C carte, B2B, factures).
+ * Checkout avancé : Methods API + Components (carte) + hosted (Apple Pay, virement).
  */
 export class MolliePaymentAdapter {
   constructor() {
@@ -17,6 +20,17 @@ export class MolliePaymentAdapter {
 
   isConfigured() {
     return isMollieConfigured();
+  }
+
+  async listMethods({ amount, currency = 'EUR', locale = 'fr_FR' } = {}) {
+    if (!this.isConfigured()) {
+      throw new PaymentError('MOLLIE_NOT_CONFIGURED', 'MOLLIE_API_KEY manquant.', 503);
+    }
+    return listMollieMethods({
+      amountTotalCents: amount,
+      currency,
+      locale,
+    });
   }
 
   /**
@@ -43,7 +57,16 @@ export class MolliePaymentAdapter {
         invoiceId: input.invoiceId,
       });
 
-    const method = input.metadata?.mollieMethod || input.metadata?.paymentMethod || null;
+    const methodHint = input.mollieMethod
+      || input.metadata?.mollieMethod
+      || input.metadata?.paymentMethod
+      || null;
+    const cardToken = input.cardToken || input.metadata?.cardToken || null;
+    const method = methodHint ? normalizeMollieMethod(methodHint) : null;
+
+    if (method === 'creditcard' && !cardToken) {
+      // Pré-sélection carte sans token : hosted Mollie (fallback).
+    }
 
     const created = await createMolliePayment({
       amountTotalCents: input.amount,
@@ -52,7 +75,8 @@ export class MolliePaymentAdapter {
       metadata,
       redirectUrl,
       webhookUrl: resolveMollieWebhookUrl(),
-      method: typeof method === 'string' && method !== 'card' ? method : null,
+      method,
+      cardToken,
     });
 
     return {
@@ -60,6 +84,7 @@ export class MolliePaymentAdapter {
       provider: this.provider,
       providerPaymentId: created.providerPaymentId,
       checkoutUrl: created.checkoutUrl,
+      checkoutMode: created.checkoutMode,
       status: this.mapStatus(created.status),
       raw: created.raw,
     };

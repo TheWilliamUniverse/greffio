@@ -1,4 +1,4 @@
-import { retrieveMolliePayment, isMolliePaidStatus } from '../mollie.js';
+import { retrieveMolliePayment, isMolliePaidStatus, listMollieMethods, getMollieProfileId, isMollieTestMode } from '../mollie.js';
 import { resolveMollieUrls } from '../config/mollieUrls.js';
 
 /**
@@ -43,9 +43,39 @@ export const registerMollieRoutes = (app, deps = {}) => {
     return res.json({
       ok: true,
       configured: Boolean(process.env.MOLLIE_API_KEY),
+      profileId: getMollieProfileId(),
+      testmode: isMollieTestMode(),
       webhookUrl: urls.webhookUrl,
       callbackUrl: urls.callbackUrl,
       apiPublicUrl: urls.apiPublicUrl,
     });
+  });
+
+  app.get('/api/mollie/methods', async (req, res) => {
+    if (!process.env.MOLLIE_API_KEY) {
+      return res.status(503).json({ ok: false, error: 'MOLLIE_NOT_CONFIGURED' });
+    }
+    try {
+      const amount = Number(req.query.amount || 0);
+      const currency = String(req.query.currency || 'EUR').toUpperCase();
+      const locale = String(req.query.locale || 'fr_FR');
+      const methods = await listMollieMethods({
+        amountTotalCents: Number.isFinite(amount) && amount > 0 ? Math.round(amount) : null,
+        currency,
+        locale,
+      });
+      return res.json({
+        ok: true,
+        methods,
+        profileId: getMollieProfileId(),
+        testmode: isMollieTestMode(),
+      });
+    } catch (error) {
+      return res.status(502).json({
+        ok: false,
+        error: 'MOLLIE_METHODS_FAILED',
+        message: error?.message,
+      });
+    }
   });
 };

@@ -4,6 +4,7 @@ import {
   PAYMENT_PROVIDERS,
   PaymentError,
 } from './types.js';
+import { getMollieProfileId, isMollieTestMode } from '../mollie.js';
 
 const B2B_PROVIDER_PRIORITY = Object.freeze([
   PAYMENT_PROVIDERS.GOCARDLESS,
@@ -120,6 +121,12 @@ export class PaymentProviderResolver {
         mollie: mollieEnabled,
         manualTransfer: manualTransferEnabled,
       },
+      mollie: mollieConfigured ? {
+        profileId: getMollieProfileId(),
+        testmode: isMollieTestMode(),
+        componentsEnabled: isB2c,
+        methodsApi: '/api/mollie/methods',
+      } : null,
       defaultProvider: this.resolve(customerType),
       flows: {
         b2cCard: PAYMENT_FLOWS.B2C_CARD,

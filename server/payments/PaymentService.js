@@ -110,7 +110,10 @@ export class PaymentService {
       providerPaymentId: creationResult.providerPaymentId || null,
       providerCheckoutUrl: creationResult.checkoutUrl || null,
       providerPayload: creationResult.raw || {},
-      paymentMethod: null,
+      paymentMethod: normalizedInput.mollieMethod
+        || normalizedInput.metadata?.mollieMethod
+        || normalizedInput.metadata?.paymentMethod
+        || null,
       metadata: normalizedInput.metadata || null,
     });
 
@@ -119,6 +122,7 @@ export class PaymentService {
       provider: providerName,
       providerPaymentId: creationResult.providerPaymentId || null,
       checkoutUrl: creationResult.checkoutUrl || null,
+      checkoutMode: creationResult.checkoutMode || null,
       status: creationResult.status || PAYMENT_STATUSES.PENDING,
       payment: persisted,
     };

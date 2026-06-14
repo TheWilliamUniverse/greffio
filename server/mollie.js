@@ -1,4 +1,5 @@
 const MOLLIE_API_BASE = 'https://api.mollie.com/v2';
+const DEFAULT_MOLLIE_PROFILE_ID = 'pfl_Q6vFPJDb7P';
 
 const getMollieApiKey = () => {
   const key = process.env.MOLLIE_API_KEY || '';
@@ -7,6 +8,43 @@ const getMollieApiKey = () => {
 };
 
 export const isMollieConfigured = () => Boolean(process.env.MOLLIE_API_KEY);
+
+/** Profile ID public (Mollie Components) – jamais confondre avec la clé API. */
+export const getMollieProfileId = () => (
+  process.env.MOLLIE_PROFILE_ID || DEFAULT_MOLLIE_PROFILE_ID
+).trim();
+
+export const isMollieTestMode = () => {
+  const key = process.env.MOLLIE_API_KEY || '';
+  return key.startsWith('test_') || process.env.MOLLIE_TESTMODE === 'true';
+};
+
+/** Méthodes Mollie autorisées en checkout Greffio intégré (embedded ou hosted). */
+export const MOLLIE_EMBEDDED_METHODS = Object.freeze(['creditcard']);
+export const MOLLIE_HOSTED_METHODS = Object.freeze([
+  'applepay',
+  'banktransfer',
+  'paypal',
+  'ideal',
+  'bancontact',
+  'eps',
+  'klarnapaylater',
+  'klarnapaynow',
+  'klarnasliceit',
+]);
+
+export const normalizeMollieMethod = (method) => {
+  const raw = String(method || '').trim().toLowerCase();
+  if (!raw || raw === 'card') return 'creditcard';
+  return raw;
+};
+
+export const resolveMollieCheckoutMode = (method, cardToken) => {
+  const normalized = normalizeMollieMethod(method);
+  if (normalized === 'creditcard' && cardToken) return 'embedded_3ds';
+  if (MOLLIE_EMBEDDED_METHODS.includes(normalized)) return 'embedded';
+  return 'hosted';
+};
 
 const mollieRequest = async (method, path, body = null) => {
   const response = await fetch(`${MOLLIE_API_BASE}${path}`, {
@@ -43,7 +81,40 @@ const formatMollieAmount = (amountTotalCents, currency = 'EUR') => ({
 });
 
 /**
- * Crée un paiement Mollie (checkout hosted : carte, iDEAL, etc.).
+ * Liste les méthodes de paiement actives (Methods API).
+ */
+export const listMollieMethods = async ({
+  amountTotalCents,
+  currency = 'EUR',
+  locale = 'fr_FR',
+  includeWallets = 'applepay',
+} = {}) => {
+  const params = new URLSearchParams();
+  if (Number.isFinite(amountTotalCents) && amountTotalCents > 0) {
+    params.set('amount[currency]', currency);
+    params.set('amount[value]', (amountTotalCents / 100).toFixed(2));
+  }
+  if (locale) params.set('locale', locale);
+  if (includeWallets) params.set('includeWallets', includeWallets);
+
+  const query = params.toString();
+  const path = query ? `/methods?${query}` : '/methods';
+  const payload = await mollieRequest('GET', path);
+  const methods = Array.isArray(payload?._embedded?.methods) ? payload._embedded.methods : [];
+
+  return methods.map((item) => ({
+    id: item.id,
+    description: item.description,
+    minimumAmount: item.minimumAmount || null,
+    maximumAmount: item.maximumAmount || null,
+    image: item.image || null,
+    pricing: item.pricing || null,
+    checkoutMode: MOLLIE_EMBEDDED_METHODS.includes(item.id) ? 'embedded' : 'hosted',
+  }));
+};
+
+/**
+ * Crée un paiement Mollie (Components carte, hosted Apple Pay / virement, etc.).
  */
 export const createMolliePayment = async ({
   amountTotalCents,
@@ -53,6 +124,7 @@ export const createMolliePayment = async ({
   redirectUrl,
   webhookUrl,
   method = null,
+  cardToken = null,
 }) => {
   const body = {
     amount: formatMollieAmount(amountTotalCents, currency),
@@ -61,13 +133,16 @@ export const createMolliePayment = async ({
     webhookUrl,
     metadata,
   };
-  if (method) body.method = method;
+  const normalizedMethod = method ? normalizeMollieMethod(method) : null;
+  if (normalizedMethod) body.method = normalizedMethod;
+  if (cardToken) body.cardToken = cardToken;
 
   const payment = await mollieRequest('POST', '/payments', body);
   return {
     providerPaymentId: payment.id,
     status: payment.status,
     checkoutUrl: payment._links?.checkout?.href || null,
+    checkoutMode: resolveMollieCheckoutMode(normalizedMethod, cardToken),
     paidAt: payment.paidAt || null,
     raw: payment,
   };

@@ -112,6 +112,8 @@ export const registerPaymentsRoutes = (app, deps) => {
         returnUrl,
         cancelUrl,
         metadata,
+        mollieMethod,
+        cardToken,
       } = req.body || {};
 
       const orderId = orderIdRaw || resourceOrderId || null;
@@ -164,6 +166,7 @@ export const registerPaymentsRoutes = (app, deps) => {
           dossierId: dossier?.id,
           offerCode: normalizedOffer,
           paymentFlow: inferredFlow,
+          mollieMethod: mollieMethod || metadata?.mollieMethod || null,
         },
         returnUrl,
         cancelUrl,
@@ -171,12 +174,15 @@ export const registerPaymentsRoutes = (app, deps) => {
         userId: req.auth?.sub,
         offerCode: normalizedOffer,
         flow: inferredFlow,
+        mollieMethod,
+        cardToken,
       });
 
       return res.json({
         ok: true,
         payment: result.payment,
         checkoutUrl: result.checkoutUrl,
+        checkoutMode: result.checkoutMode || null,
         provider: result.provider,
         status: result.status,
       });

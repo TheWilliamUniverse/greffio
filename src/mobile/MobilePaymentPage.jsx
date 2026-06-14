@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button.jsx';
 import { checkoutDossierPayment } from '@/api/payments.js';
 import { inferCustomerType } from '@/utils/customerType.js';
-import { checkoutResourceOrder, getResourceOrder } from '@/api/resources.js';
+import { checkoutResourceOrder, checkoutCartPayment, getResourceOrder } from '@/api/resources.js';
 import { formatResourcePrice, getCatalogItemById, getProcessingLabel } from '@/config/resourceServices.js';
 import { GreffioPaymentTerminal } from '@/components/payments/GreffioPaymentTerminal.jsx';
 import { formatEuroCents, resolveOfferAmountCents } from '@/config/paymentOffers.js';
@@ -35,11 +35,17 @@ export const MobilePaymentPage = () => {
   const offerName = searchParams.get('offer') || 'Dossier Standard';
   const service = searchParams.get('service') || 'creation';
   const resourceOrderId = searchParams.get('resourceOrder');
+  const cartOrdersParam = searchParams.get('cartOrders');
+  const cartOrderIds = useMemo(
+    () => (cartOrdersParam ? cartOrdersParam.split(',').map((id) => id.trim()).filter(Boolean) : []),
+    [cartOrdersParam],
+  );
   const pspStatus = searchParams.get('status');
   const selectedOffer = offers[offerName] || offers['Dossier Standard'];
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
   const [resourceOrder, setResourceOrder] = useState(null);
-  const [loadingResourceOrder, setLoadingResourceOrder] = useState(Boolean(resourceOrderId));
+  const [cartOrders, setCartOrders] = useState([]);
+  const [loadingResourceOrder, setLoadingResourceOrder] = useState(Boolean(resourceOrderId || cartOrderIds.length));
   const { data: dossiers = [], isLoading: dossiersLoading, isError: dossiersError, dataUpdatedAt } = useDossiersQuery(currentUser?.id);
 
   const activeDossier = useMemo(() => {
@@ -61,17 +67,27 @@ export const MobilePaymentPage = () => {
     && ['document', 'pack', 'service'].includes(catalogService.kind)
     ? catalogService
     : null;
-  const isResourceFlow = Boolean(resourceOrderId || resourceLanding);
-  const orderReference = formatOrderPublicReference(resourceOrder);
+  const isCartFlow = cartOrderIds.length > 0;
+  const isResourceFlow = Boolean(resourceOrderId || resourceLanding || isCartFlow);
+  const orderReference = formatOrderPublicReference(resourceOrder)
+    || (cartOrders[0] ? formatOrderPublicReference(cartOrders[0]) : null);
 
   useEffect(() => {
-    if (!resourceOrderId) {
+    if (!resourceOrderId && !cartOrderIds.length) {
       setLoadingResourceOrder(false);
       return undefined;
     }
     let cancelled = false;
     const load = async () => {
       try {
+        if (cartOrderIds.length) {
+          const loaded = await Promise.all(cartOrderIds.map((id) => getResourceOrder(id)));
+          if (!cancelled) {
+            setCartOrders(loaded.map((payload) => payload.order).filter(Boolean));
+            setResourceOrder(null);
+          }
+          return;
+        }
         const payload = await getResourceOrder(resourceOrderId);
         if (!cancelled) setResourceOrder(payload.order);
       } catch (_error) {
@@ -82,13 +98,25 @@ export const MobilePaymentPage = () => {
     };
     void load();
     return () => { cancelled = true; };
-  }, [resourceOrderId]);
+  }, [resourceOrderId, cartOrderIds]);
 
-  const handleCheckout = async () => {
+  const handleCheckout = async ({ method, cardToken } = {}) => {
     try {
       setIsCreatingPayment(true);
+      if (isCartFlow) {
+        const payload = await checkoutCartPayment({
+          orderIds: cartOrderIds,
+          mollieMethod: method,
+          cardToken,
+        });
+        if (payload.checkoutUrl) {
+          await openPaymentCheckoutUrl(payload.checkoutUrl);
+          return;
+        }
+        throw new Error('CHECKOUT_URL_MISSING');
+      }
       if (resourceOrderId) {
-        const payload = await checkoutResourceOrder(resourceOrderId);
+        const payload = await checkoutResourceOrder(resourceOrderId, { mollieMethod: method, cardToken });
         if (payload.checkoutUrl) {
           await openPaymentCheckoutUrl(payload.checkoutUrl);
           return;
@@ -104,6 +132,8 @@ export const MobilePaymentPage = () => {
         dossierId,
         offerCode: offerName,
         customerType,
+        mollieMethod: method,
+        cardToken,
       });
       if (payload.checkoutUrl) {
         await openPaymentCheckoutUrl(payload.checkoutUrl);
@@ -119,15 +149,22 @@ export const MobilePaymentPage = () => {
 
   if (dossiersLoading && !resourceOrderId) return <MobilePageSkeleton />;
 
-  const resourcePriceLabel = resourceOrder
-    ? `${Number(resourceOrder.priceTtc || 0).toFixed(2).replace('.', ',')} € TTC`
-    : null;
-  const amountCents = resourceOrder
-    ? Math.round(Number(resourceOrder.priceTtc || 0) * 100)
-    : resourceLanding
-      ? 0
-      : resolveOfferAmountCents(offerName);
-  const amountLabel = resourceOrder ? resourcePriceLabel : formatEuroCents(amountCents);
+  const resourcePriceLabel = isCartFlow
+    ? `${(cartOrders.reduce((sum, order) => sum + Number(order.priceTtc || 0), 0)).toFixed(2).replace('.', ',')} € TTC`
+    : resourceOrder
+      ? `${Number(resourceOrder.priceTtc || 0).toFixed(2).replace('.', ',')} € TTC`
+      : null;
+  const amountCents = isCartFlow
+    ? cartOrders.reduce((sum, order) => sum + Math.round(Number(order.priceTtc || 0) * 100), 0)
+    : resourceOrder
+      ? Math.round(Number(resourceOrder.priceTtc || 0) * 100)
+      : resourceLanding
+        ? 0
+        : resolveOfferAmountCents(offerName);
+  const amountLabel = isCartFlow || resourceOrder ? resourcePriceLabel : formatEuroCents(amountCents);
+  const terminalOfferLabel = isCartFlow
+    ? `Panier boutique (${cartOrders.length} article${cartOrders.length > 1 ? 's' : ''})`
+    : resourceOrder?.serviceTitle || selectedOffer.title;
 
   return (
     <MobilePageContainer>
@@ -152,7 +189,13 @@ export const MobilePaymentPage = () => {
       <section className="rounded-2xl bg-[hsl(var(--greffio-blue))] p-5 text-white shadow-lg">
         <p className="text-xs font-bold uppercase text-white/70">Paiement sécurisé</p>
         <h1 className="mt-2 text-2xl font-extrabold">
-          {resourceOrder ? resourceOrder.serviceTitle : resourceLanding ? resourceLanding.title : selectedOffer.title}
+          {isCartFlow
+            ? `Panier (${cartOrders.length} article${cartOrders.length > 1 ? 's' : ''})`
+            : resourceOrder
+              ? resourceOrder.serviceTitle
+              : resourceLanding
+                ? resourceLanding.title
+                : selectedOffer.title}
         </h1>
         <p className="mt-3 text-3xl font-extrabold">
           {resourceOrder
@@ -169,21 +212,36 @@ export const MobilePaymentPage = () => {
         ) : null}
       </section>
 
-      {isResourceFlow && resourceOrder ? (
+      {isResourceFlow && (resourceOrder || isCartFlow) ? (
         <section className="rounded-2xl border border-border bg-white p-4 shadow-sm">
           <div className="mb-2 flex items-center gap-2">
             <FileText className="h-4 w-4 text-primary" />
             <p className="text-sm font-extrabold">Récapitulatif</p>
           </div>
-          {resourceOrder.companyName ? (
-            <p className="text-sm text-muted-foreground">{resourceOrder.companyName}</p>
-          ) : null}
-          {catalogService?.estimatedDelay ? (
-            <p className="mt-1 text-xs text-muted-foreground">Délai : {catalogService.estimatedDelay}</p>
-          ) : null}
-          {catalogService ? (
-            <p className="mt-1 text-xs text-muted-foreground">{getProcessingLabel(catalogService)}</p>
-          ) : null}
+          {isCartFlow ? (
+            <ul className="space-y-1 text-sm text-muted-foreground">
+              {cartOrders.map((order) => (
+                <li key={order.id} className="flex justify-between gap-2">
+                  <span>{order.serviceTitle}</span>
+                  <span className="font-semibold text-foreground">
+                    {`${Number(order.priceTtc || 0).toFixed(2).replace('.', ',')} €`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <>
+              {resourceOrder.companyName ? (
+                <p className="text-sm text-muted-foreground">{resourceOrder.companyName}</p>
+              ) : null}
+              {catalogService?.estimatedDelay ? (
+                <p className="mt-1 text-xs text-muted-foreground">Délai : {catalogService.estimatedDelay}</p>
+              ) : null}
+              {catalogService ? (
+                <p className="mt-1 text-xs text-muted-foreground">{getProcessingLabel(catalogService)}</p>
+              ) : null}
+            </>
+          )}
         </section>
       ) : null}
 
@@ -224,8 +282,8 @@ export const MobilePaymentPage = () => {
         <GreffioPaymentTerminal
           amountCents={amountCents}
           amountLabel={amountLabel}
-          offerLabel={resourceOrder?.serviceTitle || selectedOffer.title}
-          onPayByCard={handleCheckout}
+          offerLabel={terminalOfferLabel}
+          onPay={handleCheckout}
           isCreatingPayment={isCreatingPayment}
           payButtonLabel="Payer en ligne"
         />

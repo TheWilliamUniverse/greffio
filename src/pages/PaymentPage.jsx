@@ -6,7 +6,7 @@ import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { checkoutDossierPayment } from '@/api/payments.js';
 import { inferCustomerType } from '@/utils/customerType.js';
-import { checkoutResourceOrder, getResourceOrder } from '@/api/resources.js';
+import { checkoutResourceOrder, checkoutCartPayment, getResourceOrder } from '@/api/resources.js';
 import { formatResourcePrice, getCatalogItemById, getProcessingLabel } from '@/config/resourceServices.js';
 import { GreffioPaymentTerminal } from '@/components/payments/GreffioPaymentTerminal.jsx';
 import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
@@ -34,11 +34,17 @@ export const PaymentPage = () => {
   const offerName = searchParams.get('offer') || 'Dossier Standard';
   const service = searchParams.get('service') || 'creation';
   const resourceOrderId = searchParams.get('resourceOrder');
+  const cartOrdersParam = searchParams.get('cartOrders');
+  const cartOrderIds = useMemo(
+    () => (cartOrdersParam ? cartOrdersParam.split(',').map((id) => id.trim()).filter(Boolean) : []),
+    [cartOrdersParam],
+  );
   const selectedOffer = offers[offerName] || offers['Dossier Standard'];
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
   const [resourceOrder, setResourceOrder] = useState(null);
+  const [cartOrders, setCartOrders] = useState([]);
   const [activeDossier, setActiveDossier] = useState(null);
-  const [loadingResourceOrder, setLoadingResourceOrder] = useState(Boolean(resourceOrderId));
+  const [loadingResourceOrder, setLoadingResourceOrder] = useState(Boolean(resourceOrderId || cartOrderIds.length));
   const customerType = useMemo(
     () => inferCustomerType(currentUser, activeDossier),
     [currentUser, activeDossier],
@@ -52,17 +58,27 @@ export const PaymentPage = () => {
     && ['document', 'pack', 'service'].includes(catalogService.kind)
     ? catalogService
     : null;
-  const isResourceFlow = Boolean(resourceOrderId || resourceLanding);
-  const orderReference = formatOrderPublicReference(resourceOrder);
+  const isCartFlow = cartOrderIds.length > 0;
+  const isResourceFlow = Boolean(resourceOrderId || resourceLanding || isCartFlow);
+  const orderReference = formatOrderPublicReference(resourceOrder)
+    || (cartOrders[0] ? formatOrderPublicReference(cartOrders[0]) : null);
 
   useEffect(() => {
-    if (!resourceOrderId) {
+    if (!resourceOrderId && !cartOrderIds.length) {
       setLoadingResourceOrder(false);
       return undefined;
     }
     let cancelled = false;
     const load = async () => {
       try {
+        if (cartOrderIds.length) {
+          const loaded = await Promise.all(cartOrderIds.map((id) => getResourceOrder(id)));
+          if (!cancelled) {
+            setCartOrders(loaded.map((payload) => payload.order).filter(Boolean));
+            setResourceOrder(null);
+          }
+          return;
+        }
         const payload = await getResourceOrder(resourceOrderId);
         if (!cancelled) setResourceOrder(payload.order);
       } catch (_error) {
@@ -73,7 +89,7 @@ export const PaymentPage = () => {
     };
     void load();
     return () => { cancelled = true; };
-  }, [resourceOrderId]);
+  }, [resourceOrderId, cartOrderIds]);
 
   useEffect(() => {
     const dossierId = getCurrentDossierId();
@@ -95,11 +111,23 @@ export const PaymentPage = () => {
     return () => { cancelled = true; };
   }, [currentUser?.id]);
 
-  const handleCheckout = async () => {
+  const handleCheckout = async ({ method, cardToken } = {}) => {
     try {
       setIsCreatingPayment(true);
+      if (isCartFlow) {
+        const payload = await checkoutCartPayment({
+          orderIds: cartOrderIds,
+          mollieMethod: method,
+          cardToken,
+        });
+        if (payload.checkoutUrl) {
+          await openPaymentCheckoutUrl(payload.checkoutUrl);
+          return;
+        }
+        throw new Error('CHECKOUT_URL_MISSING');
+      }
       if (resourceOrderId) {
-        const payload = await checkoutResourceOrder(resourceOrderId);
+        const payload = await checkoutResourceOrder(resourceOrderId, { mollieMethod: method, cardToken });
         if (payload.checkoutUrl) {
           await openPaymentCheckoutUrl(payload.checkoutUrl);
           return;
@@ -115,6 +143,8 @@ export const PaymentPage = () => {
         dossierId,
         offerCode: offerName,
         customerType,
+        mollieMethod: method,
+        cardToken,
       });
       if (payload.checkoutUrl) {
         await openPaymentCheckoutUrl(payload.checkoutUrl);
@@ -128,15 +158,22 @@ export const PaymentPage = () => {
     }
   };
 
-  const amountCents = resourceOrder
-    ? Math.round(Number(resourceOrder.priceTtc || 0) * 100)
-    : resourceLanding
-      ? 0
-      : resolveOfferAmountCents(offerName);
-  const resourcePriceLabel = resourceOrder
-    ? `${Number(resourceOrder.priceTtc || 0).toFixed(2).replace('.', ',')} € TTC`
-    : null;
-  const amountLabel = resourceOrder ? resourcePriceLabel : formatEuroCents(amountCents);
+  const amountCents = isCartFlow
+    ? cartOrders.reduce((sum, order) => sum + Math.round(Number(order.priceTtc || 0) * 100), 0)
+    : resourceOrder
+      ? Math.round(Number(resourceOrder.priceTtc || 0) * 100)
+      : resourceLanding
+        ? 0
+        : resolveOfferAmountCents(offerName);
+  const resourcePriceLabel = isCartFlow
+    ? `${(amountCents / 100).toFixed(2).replace('.', ',')} € TTC`
+    : resourceOrder
+      ? `${Number(resourceOrder.priceTtc || 0).toFixed(2).replace('.', ',')} € TTC`
+      : null;
+  const amountLabel = isCartFlow || resourceOrder ? resourcePriceLabel : formatEuroCents(amountCents);
+  const terminalOfferLabel = isCartFlow
+    ? `Panier boutique (${cartOrders.length} article${cartOrders.length > 1 ? 's' : ''})`
+    : resourceOrder?.serviceTitle || resourceLanding?.title || selectedOffer.title;
 
   return (
     <div className="min-h-screen bg-background">
@@ -171,12 +208,23 @@ export const PaymentPage = () => {
                   <h2 className="text-xl font-extrabold">Récapitulatif</h2>
                 </div>
                 <dl className="divide-y divide-border text-sm">
-                  <div className="flex justify-between gap-4 py-3">
-                    <dt className="text-muted-foreground">Document / service</dt>
-                    <dd className="text-right font-semibold">
-                      {resourceOrder?.serviceTitle || resourceLanding?.title}
-                    </dd>
-                  </div>
+                  {isCartFlow ? (
+                    cartOrders.map((order) => (
+                      <div key={order.id} className="flex justify-between gap-4 py-3">
+                        <dt className="text-muted-foreground">{order.serviceTitle}</dt>
+                        <dd className="text-right font-semibold">
+                          {`${Number(order.priceTtc || 0).toFixed(2).replace('.', ',')} €`}
+                        </dd>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex justify-between gap-4 py-3">
+                      <dt className="text-muted-foreground">Document / service</dt>
+                      <dd className="text-right font-semibold">
+                        {resourceOrder?.serviceTitle || resourceLanding?.title}
+                      </dd>
+                    </div>
+                  )}
                   {orderReference && (
                     <div className="flex justify-between gap-4 py-3">
                       <dt className="text-muted-foreground">Référence</dt>
@@ -228,8 +276,8 @@ export const PaymentPage = () => {
                 <GreffioPaymentTerminal
                   amountCents={amountCents}
                   amountLabel={amountLabel}
-                  offerLabel={resourceOrder?.serviceTitle || resourceLanding?.title || selectedOffer.title}
-                  onPayByCard={handleCheckout}
+                  offerLabel={terminalOfferLabel}
+                  onPay={handleCheckout}
                   isCreatingPayment={isCreatingPayment}
                   payButtonLabel="Payer en ligne"
                 />
@@ -242,7 +290,7 @@ export const PaymentPage = () => {
                   amountCents={amountCents}
                   amountLabel={amountLabel}
                   offerLabel={selectedOffer.title}
-                  onPayByCard={handleCheckout}
+                  onPay={handleCheckout}
                   isCreatingPayment={isCreatingPayment}
                   payButtonLabel="Payer en ligne"
                 />
