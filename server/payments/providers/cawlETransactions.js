@@ -76,7 +76,14 @@ export function buildETransactionsCheckoutActionUrl(serverHost, config) {
 }
 
 /** @param {NodeJS.ProcessEnv} [env] */
+export function isCawlEnabled(env = process.env) {
+  const raw = String(env.CAWL_ENABLED || '').trim().toLowerCase();
+  return raw === 'true' || raw === '1' || raw === 'yes';
+}
+
+/** @param {NodeJS.ProcessEnv} [env] */
 export function isCawlETransactionsConfigured(env = process.env) {
+  if (!isCawlEnabled(env)) return false;
   const cfg = resolveCawlETransactionsConfig(env);
   return Boolean(cfg.pbxSite && cfg.pbxRang && cfg.pbxIdentifiant && cfg.hmacKeyHex);
 }

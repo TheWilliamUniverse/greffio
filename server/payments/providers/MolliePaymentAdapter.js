@@ -6,11 +6,9 @@ import {
 } from '../../mollie.js';
 import { resolveMolliePaymentRedirectUrl, resolveMollieWebhookUrl } from '../../config/mollieUrls.js';
 import { PAYMENT_PROVIDERS, PAYMENT_STATUSES, PaymentError } from '../types.js';
-import { CUSTOMER_TYPES } from '../types.js';
 
 /**
- * Adapter Mollie — paiements B2B (iDEAL, carte pro) et factures.
- * Interdit en B2C : les particuliers passent par CAWL.
+ * Adapter Mollie — PSP principal Greffio (B2C carte, B2B, factures).
  */
 export class MolliePaymentAdapter {
   constructor() {
@@ -25,13 +23,6 @@ export class MolliePaymentAdapter {
    * @param {import('../types.js').CreatePaymentInput & { internalPaymentId: string }} input
    */
   async createPayment(input) {
-    if (input.customerType === CUSTOMER_TYPES.B2C && !input.invoiceId) {
-      throw new PaymentError(
-        'MOLLIE_FORBIDDEN_FOR_B2C',
-        'Mollie est réservé aux paiements B2B et factures. Utiliser CAWL pour le B2C.',
-        409,
-      );
-    }
     if (!this.isConfigured()) {
       throw new PaymentError('MOLLIE_NOT_CONFIGURED', 'MOLLIE_API_KEY manquant.', 503);
     }

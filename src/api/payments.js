@@ -12,7 +12,7 @@ export const createPayment = async ({ dossierId, offerCode, userId, customerType
 });
 
 /**
- * Endpoint multi-prestataires (CAWL B2C / GoCardless B2B / virement manuel).
+ * Endpoint multi-prestataires (Mollie B2C / GoCardless B2B / virement manuel).
  */
 export const initiatePayment = async ({
   customerType,
@@ -24,6 +24,7 @@ export const initiatePayment = async ({
   offerCode,
   description,
   metadata,
+  flow,
   returnUrl,
   cancelUrl,
 }) => apiPost('/api/payments', {
@@ -36,6 +37,7 @@ export const initiatePayment = async ({
   offerCode,
   description,
   metadata,
+  flow,
   returnUrl,
   cancelUrl,
 });
@@ -47,6 +49,7 @@ export const checkoutDossierPayment = async ({ dossierId, offerCode, customerTyp
       dossierId,
       offerCode,
       customerType: 'b2c',
+      flow: 'b2c_card',
       returnUrl: `${runtimeConfig.appUrl}/paiement/verification?dossierId=${encodeURIComponent(dossierId)}`,
       cancelUrl: `${runtimeConfig.appUrl}/paiement?offer=${encodeURIComponent(offerCode || 'Dossier Standard')}`,
     });

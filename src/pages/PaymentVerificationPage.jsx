@@ -9,14 +9,17 @@ export const PaymentVerificationPage = () => {
   const dossierId = searchParams.get('dossierId');
   const resourceOrderId = searchParams.get('resourceOrderId');
   const paymentId = searchParams.get('paymentId');
-  const provider = searchParams.get('provider') || 'carte bancaire';
+  const provider = searchParams.get('provider') || searchParams.get('status') || 'mollie';
+  const providerLabel = provider === 'mollie' || provider === 'paid' || provider === 'open'
+    ? 'Mollie'
+    : 'carte bancaire';
 
   const stateCopy = useMemo(() => ({
     icon: <CircleCheckBig className="h-6 w-6" />,
     tone: 'text-emerald-700 bg-emerald-100',
     title: 'Retour paiement effectué',
-    description: `Votre retour ${provider} a été enregistré. Greffio attend la confirmation serveur avant de lancer la suite.`,
-  }), [provider]);
+    description: `Votre retour ${providerLabel} a été enregistré. Greffio attend la confirmation serveur avant de lancer la suite.`,
+  }), [providerLabel]);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.08),transparent_42%),linear-gradient(180deg,#f8fbff_0%,#ffffff_55%,#eef4ff_100%)] px-4 py-10 sm:px-6 lg:px-8">

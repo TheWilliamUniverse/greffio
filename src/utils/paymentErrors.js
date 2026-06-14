@@ -1,6 +1,8 @@
 const CONFIGURATION_ERRORS = new Set([
   'GOCARDLESS_FORBIDDEN_FOR_B2C',
-  'B2C_REQUIRES_CAWL',
+  'B2C_REQUIRES_MOLLIE',
+  'MOLLIE_NOT_CONFIGURED',
+  'CAWL_DISABLED',
   'PAYMENT_PROVIDER_NOT_CONFIGURED',
   'CAWL_NOT_CONFIGURED',
   'CAWL_WORLDLINE_NOT_CONFIGURED',
@@ -14,7 +16,7 @@ const TRANSIENT_ERRORS = new Set([
 ]);
 
 /**
- * Message utilisateur pour les erreurs de checkout paiement (carte / CAWL).
+ * Message utilisateur pour les erreurs de checkout paiement (Mollie).
  * @param {Error & { payload?: { error?: string }, status?: number }} error
  */
 export const resolvePaymentCheckoutErrorMessage = (error) => {

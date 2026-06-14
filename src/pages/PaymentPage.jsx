@@ -48,7 +48,7 @@ export const PaymentPage = () => {
     if (showB2BProviders) {
       return methods.filter((method) => ['gocardless-checkout', 'sepa-transfer', 'sepa-debit'].includes(method.id));
     }
-    return methods.filter((method) => ['google-pay', 'cards'].includes(method.id));
+    return methods.filter((method) => method.id === 'mollie-card');
   }, [showB2BProviders]);
 
   const catalogService = resourceOrder?.serviceId
@@ -165,8 +165,8 @@ export const PaymentPage = () => {
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-white/92">
               {isResourceFlow
-                ? 'Paiement express par Google Pay ou carte, avec confirmation serveur. Dès validation, l’équipe Greffio traite votre commande et dépose le document dans votre espace.'
-                : 'Paiement sécurisé par Google Pay ou carte bancaire, avec vérification serveur avant validation du dossier.'}
+                ? 'Paiement sécurisé par carte via Mollie, avec confirmation serveur. Dès validation, l’équipe Greffio traite votre commande et dépose le document dans votre espace.'
+                : 'Paiement sécurisé par carte via Mollie, avec vérification serveur avant validation du dossier.'}
             </p>
           </div>
 
@@ -213,7 +213,7 @@ export const PaymentPage = () => {
 
               <section className="grid gap-3 md:grid-cols-3">
                 {[
-                  { title: '1. Paiement express', text: 'Google Pay ou carte bancaire – montant TTC, sans frais cachés.' },
+                  { title: '1. Paiement sécurisé', text: 'Carte bancaire via Mollie – montant TTC, sans frais cachés.' },
                   { title: '2. Traitement Greffio', text: 'Notre équipe lance la demande auprès du greffe ou de l’organisme concerné.' },
                   { title: '3. Document dans votre espace', text: 'Vous le retrouvez dans « Documents », avec une notification par email.' },
                 ].map((step) => (
@@ -235,7 +235,7 @@ export const PaymentPage = () => {
                   offerCode={offerName}
                   onPayByCard={handleCheckout}
                   isCreatingPayment={isCreatingPayment}
-                  cardButtonLabel="Payer par carte bancaire"
+                  payButtonLabel="Payer avec Mollie"
                 />
               ) : null}
             </>
@@ -264,7 +264,7 @@ export const PaymentPage = () => {
                 </div>
                 <div className="grid gap-3 md:grid-cols-3">
                   {[
-                    'Paiement immédiat par carte ou wallet pour les offres standard.',
+                    'Paiement immédiat par carte via Mollie pour les offres standard.',
                     'Virement SEPA pour comptes pros, cabinets et montants élevés.',
                     'Prélèvement SEPA pour abonnements et offres récurrentes.',
                   ].map((item) => (
@@ -334,7 +334,7 @@ export const PaymentPage = () => {
                 <LockKeyhole className="mt-0.5 h-4 w-4 text-primary" />
                 <span>
                   {isResourceFlow || !showB2BProviders
-                    ? 'Paiement Google Pay / carte – chiffrement TLS et confirmation serveur.'
+                    ? 'Paiement carte via Mollie – chiffrement TLS et confirmation serveur.'
                     : 'Paiement sécurisé professionnel (SEPA / virement).'}
                 </span>
               </div>
@@ -370,7 +370,7 @@ export const PaymentPage = () => {
                 offerCode={offerName}
                 onPayByCard={handleCheckout}
                 isCreatingPayment={isCreatingPayment}
-                cardButtonLabel="Payer maintenant"
+                payButtonLabel="Payer avec Mollie"
               />
             ) : null}
             {(showB2BProviders || (resourceOrder && !currentUser)) && !resourceLanding ? (
@@ -382,10 +382,10 @@ export const PaymentPage = () => {
               disabled={isCreatingPayment || (resourceOrderId && loadingResourceOrder)}
             >
               {isCreatingPayment
-                ? 'Initialisation...'
+                ? 'Redirection vers Mollie…'
                 : resourceOrder
-                  ? 'Payer par carte bancaire'
-                  : 'Payer maintenant'}
+                  ? 'Payer avec Mollie'
+                  : 'Payer avec Mollie'}
               <ArrowRight className="h-4 w-4" />
             </Button>
             ) : null}

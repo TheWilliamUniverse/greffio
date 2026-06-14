@@ -31,6 +31,7 @@ const buildService = (overrides = {}) => {
     return persisted;
   };
   const providers = {
+    [PAYMENT_PROVIDERS.MOLLIE]: overrides.mollie || makeAdapter(PAYMENT_PROVIDERS.MOLLIE),
     [PAYMENT_PROVIDERS.CAWL]: overrides.cawl || makeAdapter(PAYMENT_PROVIDERS.CAWL),
     [PAYMENT_PROVIDERS.GOCARDLESS]: overrides.gocardless || makeAdapter(PAYMENT_PROVIDERS.GOCARDLESS),
     [PAYMENT_PROVIDERS.MANUAL_BANK_TRANSFER]: makeAdapter(PAYMENT_PROVIDERS.MANUAL_BANK_TRANSFER),
@@ -38,7 +39,7 @@ const buildService = (overrides = {}) => {
   };
   const resolver = new PaymentProviderResolver({
     configuredProviders: new Set([
-      PAYMENT_PROVIDERS.CAWL,
+      PAYMENT_PROVIDERS.MOLLIE,
       PAYMENT_PROVIDERS.GOCARDLESS,
     ]),
   });
@@ -46,15 +47,15 @@ const buildService = (overrides = {}) => {
   return { service, stored };
 };
 
-test('B2C → utilise CAWL', async () => {
+test('B2C → utilise Mollie', async () => {
   const { service, stored } = buildService();
   const result = await service.createPayment({
     customerId: 'cust_1',
     customerType: CUSTOMER_TYPES.B2C,
     amount: 9900,
   });
-  assert.equal(result.provider, PAYMENT_PROVIDERS.CAWL);
-  assert.equal(stored[0].provider, PAYMENT_PROVIDERS.CAWL);
+  assert.equal(result.provider, PAYMENT_PROVIDERS.MOLLIE);
+  assert.equal(stored[0].provider, PAYMENT_PROVIDERS.MOLLIE);
   assert.equal(stored[0].customerType, CUSTOMER_TYPES.B2C);
 });
 
@@ -113,15 +114,15 @@ test('customerId peut être dérivé de userId', async () => {
     customerType: CUSTOMER_TYPES.B2C,
     amount: 490,
   });
-  assert.equal(result.provider, PAYMENT_PROVIDERS.CAWL);
+  assert.equal(result.provider, PAYMENT_PROVIDERS.MOLLIE);
   assert.equal(stored[0].customerId, 'user_42');
   assert.equal(stored[0].userId, 'user_42');
 });
 
 test('echec adapter → PaymentError propre', async () => {
   const { service } = buildService({
-    cawl: {
-      provider: PAYMENT_PROVIDERS.CAWL,
+    mollie: {
+      provider: PAYMENT_PROVIDERS.MOLLIE,
       isConfigured: () => true,
       createPayment: async () => { throw new Error('network down'); },
       getPaymentStatus: async () => PAYMENT_STATUSES.PENDING,

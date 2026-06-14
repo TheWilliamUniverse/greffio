@@ -1,6 +1,6 @@
 import { computePaymentAmounts, computeResourcePaymentAmounts } from '../pricing.js';
 import { getPaymentService } from '../payments/paymentServiceFactory.js';
-import { isCawlETransactionsConfigured } from '../payments/providers/cawlETransactions.js';
+import { isCawlETransactionsConfigured, isCawlEnabled } from '../payments/providers/cawlETransactions.js';
 import {
   handleWorldlineEndpointVerification,
   isCawlWorldlineConfigured,
@@ -10,6 +10,7 @@ import {
 } from '../payments/providers/cawlWorldlineConnect.js';
 import {
   CUSTOMER_TYPES,
+  PAYMENT_FLOWS,
   PAYMENT_PROVIDERS,
   PAYMENT_STATUSES,
   PaymentError,
@@ -73,8 +74,22 @@ export const registerPaymentsRoutes = (app, deps) => {
     return CUSTOMER_TYPES.B2C;
   };
 
+  app.get('/api/payments/terminal-config', async (req, res) => {
+    try {
+      const hint = String(req.query.customerType || CUSTOMER_TYPES.B2C).toLowerCase();
+      const customerType = hint === CUSTOMER_TYPES.B2B ? CUSTOMER_TYPES.B2B : CUSTOMER_TYPES.B2C;
+      const terminal = service.resolver.describeTerminalConfig(customerType);
+      return res.json({
+        ok: true,
+        terminal,
+        providers: service.describeProviders(),
+      });
+    } catch (error) {
+      return handlePaymentError(res, error, 'PAYMENT_TERMINAL_CONFIG_FAILED');
+    }
+  });
+
   /**
-   * Endpoint multi-prestataires (CAWL B2C / GoCardless B2B / virement manuel).
    *
    * NB : la route historique `POST /api/payments/create` reste en place pour
    * les dossiers Greffio et continue d'utiliser GoCardless directement. Tous
@@ -93,6 +108,7 @@ export const registerPaymentsRoutes = (app, deps) => {
         currency = 'EUR',
         description,
         customerType: customerTypeHint,
+        flow: flowHint,
         returnUrl,
         cancelUrl,
         metadata,
@@ -129,6 +145,12 @@ export const registerPaymentsRoutes = (app, deps) => {
         return res.status(400).json({ ok: false, error: 'AMOUNT_OR_DOSSIER_REQUIRED' });
       }
 
+      const inferredFlow = flowHint
+        || (orderId ? PAYMENT_FLOWS.RESOURCE : null)
+        || (dossierId && customerType === CUSTOMER_TYPES.B2C ? PAYMENT_FLOWS.B2C_CARD : null)
+        || (dossierId ? PAYMENT_FLOWS.DOSSIER : null)
+        || (invoiceId ? PAYMENT_FLOWS.INVOICE : null);
+
       const result = await service.createPayment({
         customerId: req.auth?.sub,
         customerType,
@@ -141,12 +163,14 @@ export const registerPaymentsRoutes = (app, deps) => {
           ...(metadata && typeof metadata === 'object' ? metadata : {}),
           dossierId: dossier?.id,
           offerCode: normalizedOffer,
+          paymentFlow: inferredFlow,
         },
         returnUrl,
         cancelUrl,
         dossierId: dossier?.id,
         userId: req.auth?.sub,
         offerCode: normalizedOffer,
+        flow: inferredFlow,
       });
 
       return res.json({
@@ -216,6 +240,9 @@ export const registerPaymentsRoutes = (app, deps) => {
    * Le frontend redirige ici via checkoutUrl ; PBX_HMAC est recalculé à la volée.
    */
   app.get('/api/payments/:id/cawl/checkout', async (req, res) => {
+    if (!isCawlEnabled()) {
+      return res.status(410).send('CAWL est désactivé. Utilisez Mollie pour payer.');
+    }
     try {
       const payment = await store.getPaymentById(req.params.id);
       if (!payment) return res.status(404).send('Paiement introuvable.');
@@ -248,6 +275,9 @@ export const registerPaymentsRoutes = (app, deps) => {
   });
 
   const handleCawlWebhook = async (req, res) => {
+    if (!isCawlEnabled()) {
+      return res.status(410).json({ ok: false, error: 'CAWL_DISABLED', message: 'CAWL est désactivé.' });
+    }
     if (!isCawlETransactionsConfigured() && process.env.NODE_ENV === 'production') {
       return res.status(503).json({ ok: false, error: 'CAWL_NOT_CONFIGURED' });
     }
@@ -332,6 +362,9 @@ export const registerPaymentsRoutes = (app, deps) => {
   app.get('/api/webhooks/cawl', handleCawlWebhook);
 
   const handleCawlWorldlineWebhook = async (req, res) => {
+    if (!isCawlEnabled()) {
+      return res.status(410).json({ ok: false, error: 'CAWL_DISABLED', message: 'CAWL est désactivé.' });
+    }
     const endpointCheck = handleWorldlineEndpointVerification(req.headers);
     if (endpointCheck) {
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');

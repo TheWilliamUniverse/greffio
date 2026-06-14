@@ -52,11 +52,19 @@ export class PaymentService {
     this._validateInput(normalizedInput);
 
     const internalPaymentId = randomUUID();
+    const flow = normalizedInput.flow || normalizedInput.metadata?.paymentFlow || null;
     const providerName = normalizedInput.providerOverride
       ? normalizedInput.providerOverride
-      : (normalizedInput.invoiceId && this.providers[PAYMENT_PROVIDERS.MOLLIE]?.isConfigured?.())
-        ? PAYMENT_PROVIDERS.MOLLIE
-        : this.resolver.resolve(normalizedInput.customerType);
+      : flow
+        ? this.resolver.resolveForFlow(flow, normalizedInput.customerType, {
+          providerHint: normalizedInput.providerHint,
+          invoiceId: normalizedInput.invoiceId,
+        })
+        : (normalizedInput.invoiceId && this.providers[PAYMENT_PROVIDERS.MOLLIE]?.isConfigured?.())
+          ? PAYMENT_PROVIDERS.MOLLIE
+          : this.resolver.resolve(normalizedInput.customerType, {
+            providerHint: normalizedInput.providerHint,
+          });
 
     this.resolver.assertProviderAllowedForCustomerType(providerName, normalizedInput.customerType);
 

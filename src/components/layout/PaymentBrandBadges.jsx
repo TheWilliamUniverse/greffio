@@ -3,12 +3,6 @@ import { cn } from '@/lib/utils.js';
 
 const BRANDS = [
   {
-    id: 'googlepay',
-    label: 'Google Pay',
-    className: 'bg-[#000] text-white',
-    mark: 'G Pay',
-  },
-  {
     id: 'visa',
     label: 'Visa',
     className: 'bg-[#1a1f71] text-white',
@@ -19,6 +13,12 @@ const BRANDS = [
     label: 'Mastercard',
     className: 'bg-[#252525] text-white',
     mark: 'MC',
+  },
+  {
+    id: 'secure',
+    label: '3-D Secure',
+    className: 'bg-[hsl(var(--greffio-blue))] text-white',
+    mark: '3DS',
   },
 ];
 

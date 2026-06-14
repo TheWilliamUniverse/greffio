@@ -12,11 +12,11 @@ export const CUSTOMER_TYPES = Object.freeze({
 
 /**
  * Providers supportés ou réservés (stubs futurs).
- * - cawl                : PSP principal B2C
+ * - mollie              : PSP principal (B2C carte, B2B, factures)
+ * - cawl                : legacy dormant (CAWL_ENABLED=true)
  * - gocardless          : SEPA / virement, autorisé uniquement en B2B
  * - qonto               : rapprochement bancaire, jamais PSP B2C
  * - manual_bank_transfer: virement manuel B2B
- * - mollie              : B2B / factures (iDEAL, carte pro)
  * - amazon_pay          : valeur historique en base uniquement (intégration retirée)
  * - stripe / payplug    : providers futurs (non actifs)
  */
@@ -31,6 +31,21 @@ export const PAYMENT_PROVIDERS = Object.freeze({
 });
 
 export const PAYMENT_PROVIDER_LIST = Object.freeze(Object.values(PAYMENT_PROVIDERS));
+
+/**
+ * Flux métier Greffio – source unique pour le routing PSP (voir PaymentProviderResolver).
+ */
+export const PAYMENT_FLOWS = Object.freeze({
+  B2C_CARD: 'b2c_card',
+  B2C_WALLET: 'b2c_wallet',
+  B2B_SEPA: 'b2b_sepa',
+  INVOICE: 'invoice',
+  RESOURCE: 'resource',
+  DOSSIER: 'dossier',
+  FORMALITY: 'formality',
+});
+
+export const PAYMENT_FLOW_LIST = Object.freeze(Object.values(PAYMENT_FLOWS));
 
 /** Statuts internes normalisés. Ne jamais exposer les statuts bruts des PSP. */
 export const PAYMENT_STATUSES = Object.freeze({

@@ -1,5 +1,5 @@
 import { getPaymentService } from './payments/paymentServiceFactory.js';
-import { CUSTOMER_TYPES, PaymentError } from './payments/types.js';
+import { CUSTOMER_TYPES, PAYMENT_FLOWS, PaymentError } from './payments/types.js';
 import { computeResourcePaymentAmounts } from './pricing.js';
 import { getResourceOrderById, updateResourceOrder } from './resourceOrderStore.js';
 import { upsertPayment } from './store.js';
@@ -58,7 +58,8 @@ export const createResourceOrderCheckout = async ({
       cancelUrl: `${appUrl}/paiement?resourceOrder=${order.id}&service=${order.serviceId}`,
       userId,
       offerCode: `resource:${order.serviceId}`,
-      metadata: { resourceOrderId: order.id, paymentMethod: 'card' },
+      flow: PAYMENT_FLOWS.RESOURCE,
+      metadata: { resourceOrderId: order.id, paymentMethod: 'card', paymentFlow: PAYMENT_FLOWS.RESOURCE },
     });
   } catch (error) {
     rethrowPaymentError(error);

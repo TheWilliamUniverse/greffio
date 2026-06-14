@@ -62,7 +62,7 @@ export const MobilePaymentPage = () => {
     if (showB2BProviders) {
       return methods.filter((method) => ['gocardless-checkout', 'sepa-transfer', 'sepa-debit'].includes(method.id));
     }
-    return methods.filter((method) => ['google-pay', 'cards'].includes(method.id));
+    return methods.filter((method) => method.id === 'mollie-card');
   }, [showB2BProviders]);
 
   useEffect(() => {
@@ -181,13 +181,13 @@ export const MobilePaymentPage = () => {
       <section className="rounded-2xl border border-border bg-muted/40 p-4 text-sm leading-6 text-muted-foreground">
         <div className="mb-2 flex items-center gap-2 font-bold text-foreground">
           <ShieldCheck className="h-4 w-4 text-primary" />
-          Retour PSP sécurisé
+          Retour Mollie sécurisé
         </div>
-        Après validation chez le prestataire de paiement, vous revenez automatiquement sur Greffio.
+        Après validation sur la page Mollie, vous revenez automatiquement sur Greffio.
         Le statut est vérifié côté serveur avant confirmation du dossier.
         <div className="mt-3 flex items-center gap-2 text-xs">
           <LockKeyhole className="h-4 w-4 text-primary" />
-          {showB2BProviders ? 'Paiement professionnel SEPA / virement.' : 'Google Pay / carte bancaire – chiffrement TLS.'}
+          {showB2BProviders ? 'Paiement professionnel SEPA / virement.' : 'Carte bancaire via Mollie – chiffrement TLS.'}
         </div>
       </section>
 
@@ -221,7 +221,7 @@ export const MobilePaymentPage = () => {
           offerCode={offerName}
           onPayByCard={handleCheckout}
           isCreatingPayment={isCreatingPayment}
-          cardButtonLabel={resourceOrder ? 'Payer par carte bancaire' : 'Payer maintenant'}
+          payButtonLabel={resourceOrder ? 'Payer avec Mollie' : 'Payer avec Mollie'}
         />
       ) : null}
 
@@ -234,10 +234,8 @@ export const MobilePaymentPage = () => {
         disabled={isCreatingPayment || (resourceOrderId && loadingResourceOrder)}
       >
         {isCreatingPayment
-          ? 'Redirection sécurisée…'
-          : resourceOrder
-            ? 'Payer par carte bancaire'
-            : 'Payer maintenant'}
+          ? 'Redirection vers Mollie…'
+          : 'Payer avec Mollie'}
         <ArrowRight className="h-4 w-4" />
       </Button>
       ) : null}

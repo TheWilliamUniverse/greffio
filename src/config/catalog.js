@@ -94,17 +94,11 @@ export const SERVICE_AVAILABILITY = Object.freeze({
 
 export const PAYMENT_METHODS = [
   {
-    id: 'google-pay',
-    name: 'Google Pay',
-    type: 'Paiement express',
-    description: 'Réglez en un geste avec les cartes enregistrées dans Google Pay. Idéal sur mobile et desktop.',
+    id: 'mollie-card',
+    name: 'Carte bancaire',
+    type: 'Paiement sécurisé',
+    description: 'Visa, Mastercard et autres moyens via Mollie – redirection sécurisée et confirmation serveur.',
     recommended: true,
-  },
-  {
-    id: 'cards',
-    name: 'Visa · Mastercard',
-    type: 'Carte bancaire',
-    description: 'Cartes bancaires acceptées via les wallets et prestataires sécurisés – confirmation serveur avant validation du dossier.',
   },
   {
     id: 'gocardless-checkout',
