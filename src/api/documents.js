@@ -157,6 +157,11 @@ export const downloadDossierDocument = async ({ dossierId, docKey, cacheBust = f
   if (!contentType.includes('pdf') && !contentType.includes('octet-stream')) {
     const error = new Error('DOCUMENT_DOWNLOAD_FAILED');
     error.code = 'DOCUMENT_DOWNLOAD_FAILED';
+    error.contentType = contentType;
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.warn('[downloadDossierDocument] unexpected content-type', { dossierId, docKey, contentType });
+    }
     throw error;
   }
 

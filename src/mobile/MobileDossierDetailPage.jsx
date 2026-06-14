@@ -26,6 +26,7 @@ import { DossierDeleteAction } from '@/components/dossiers/DossierDeleteAction.j
 import { MobileDocumentPreviewSheet } from '@/mobile/ui/MobileDocumentPreviewSheet.jsx';
 import { useDossierDocumentPreview } from '@/hooks/useDossierDocumentPreview.js';
 import { cn } from '@/lib/utils.js';
+import { toast } from 'sonner';
 
 const SECTION_PILLS = [
   { id: 'resume', label: 'Résumé' },
@@ -199,7 +200,9 @@ export const MobileDossierDetailPage = () => {
             navigate(item.to(id));
           }}
           onDocumentPreview={({ docKey, label }) => {
-            void openPreview({ dossierId: id, docKey, label });
+            void openPreview({ dossierId: id, docKey, label }).then((result) => {
+              if (!result.ok) toast.error(result.error || 'Impossible d’afficher ce document.');
+            });
           }}
           previewLoadingDocKey={loadingDocKey}
         />
@@ -256,14 +259,27 @@ export const MobileDossierDetailPage = () => {
         onUploaded={() => refetch()}
       />
       <MobileDocumentPreviewSheet
-        open={Boolean(previewDoc?.previewSrc)}
+        open={Boolean(previewDoc)}
         title={previewDoc?.label}
         previewSrc={previewDoc?.previewSrc}
         filename={previewDoc?.filename}
+        nativePreview={previewDoc?.nativePreview}
         downloading={previewDownloading}
         onClose={closePreview}
-        onDownload={() => { void downloadPreview(); }}
-        onOpenExternal={() => { void openPreviewInSystemViewer(); }}
+        onDownload={() => {
+          void downloadPreview().then((result) => {
+            if (result.ok) {
+              toast.success('Choisissez « Enregistrer » dans le menu pour sauvegarder le PDF.');
+              return;
+            }
+            toast.error(result.error || 'Impossible de télécharger ce document.');
+          });
+        }}
+        onOpenExternal={() => {
+          void openPreviewInSystemViewer().then((result) => {
+            if (!result.ok) toast.error(result.error || 'Impossible d’ouvrir ce document.');
+          });
+        }}
       />
     </MobilePageContainer>
   );

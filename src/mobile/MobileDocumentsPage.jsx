@@ -42,6 +42,7 @@ import { useDossierDocumentPreview } from '@/hooks/useDossierDocumentPreview.js'
 import { parseJsonField } from '@/utils/jsonField.js';
 import { resolveDocumentUserAction } from '@/utils/onlineDocumentStatus.js';
 import { triggerMobileHaptic } from '@/utils/mobileHaptics.js';
+import { toast } from 'sonner';
 import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 
 const FILTERS = ['Tous', 'Validés', 'En attente', 'Brouillons'];
@@ -215,9 +216,11 @@ export const MobileDocumentsPage = () => {
   const openDocumentPreview = async ({ docKey, label }) => {
     if (!dossierId || !docKey) return;
     setUploadError('');
-    const ok = await openPreview({ dossierId, docKey, label });
-    if (!ok) {
-      setUploadError('Impossible d’afficher l’aperçu de ce document pour le moment.');
+    const result = await openPreview({ dossierId, docKey, label });
+    if (!result.ok) {
+      const message = result.error || 'Impossible d’afficher l’aperçu de ce document pour le moment.';
+      setUploadError(message);
+      toast.error(message);
     }
   };
 
@@ -464,20 +467,30 @@ export const MobileDocumentsPage = () => {
       )}
       </MobilePageContainer>
       <MobileDocumentPreviewSheet
-        open={Boolean(previewDoc?.previewSrc)}
+        open={Boolean(previewDoc)}
         title={previewDoc?.label}
         previewSrc={previewDoc?.previewSrc}
         filename={previewDoc?.filename}
+        nativePreview={previewDoc?.nativePreview}
         downloading={previewDownloading}
         onClose={closePreview}
         onDownload={() => {
-          void downloadPreview().then((ok) => {
-            if (!ok) setUploadError('Impossible de télécharger ce document pour le moment.');
+          void downloadPreview().then((result) => {
+            if (result.ok) {
+              toast.success('Choisissez « Enregistrer » dans le menu pour sauvegarder le PDF.');
+              return;
+            }
+            const message = result.error || 'Impossible de télécharger ce document pour le moment.';
+            setUploadError(message);
+            toast.error(message);
           });
         }}
         onOpenExternal={() => {
-          void openPreviewInSystemViewer().then((ok) => {
-            if (!ok) setUploadError('Impossible d’ouvrir ce document pour le moment.');
+          void openPreviewInSystemViewer().then((result) => {
+            if (result.ok) return;
+            const message = result.error || 'Impossible d’ouvrir ce document pour le moment.';
+            setUploadError(message);
+            toast.error(message);
           });
         }}
       />

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   createPdfPreviewSource,
   fetchDossierDocumentBlob,
+  mapDocumentPreviewError,
   openCachedPdfInSystemViewer,
   savePdfBlobToDevice,
 } from '@/utils/dossierDocumentFile.js';
@@ -14,10 +15,12 @@ const releasePreview = (preview) => {
 
 export const useDossierDocumentPreview = () => {
   const [previewDoc, setPreviewDoc] = useState(null);
+  const [previewError, setPreviewError] = useState('');
   const [loadingDocKey, setLoadingDocKey] = useState(null);
   const [downloading, setDownloading] = useState(false);
 
   const closePreview = useCallback(() => {
+    setPreviewError('');
     setPreviewDoc((current) => {
       releasePreview(current);
       return null;
@@ -29,8 +32,9 @@ export const useDossierDocumentPreview = () => {
   }, [previewDoc]);
 
   const openPreview = useCallback(async ({ dossierId, docKey, label }) => {
-    if (!dossierId || !docKey) return false;
+    if (!dossierId || !docKey) return { ok: false, error: 'Paramètres document manquants.' };
     setLoadingDocKey(docKey);
+    setPreviewError('');
     try {
       const { filename, blob } = await fetchDossierDocumentBlob({ dossierId, docKey, inline: true });
       const previewSource = await createPdfPreviewSource(blob, filename);
@@ -43,50 +47,72 @@ export const useDossierDocumentPreview = () => {
           filename,
           blob: previewSource.blob,
           previewSrc: previewSource.src,
+          nativePreview: previewSource.nativePreview,
           cachePath: previewSource.cachePath,
           cacheDirectory: previewSource.cacheDirectory,
           cleanup: previewSource.cleanup,
         };
       });
-      return true;
-    } catch (_error) {
-      return false;
+      return { ok: true };
+    } catch (error) {
+      const message = mapDocumentPreviewError(error);
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.warn('[DossierDocumentPreview] open failed', {
+          docKey,
+          dossierId,
+          code: error?.code || error?.message,
+          contentType: error?.contentType,
+        });
+      }
+      setPreviewError(message);
+      return { ok: false, error: message };
     } finally {
       setLoadingDocKey(null);
     }
   }, []);
 
   const downloadPreview = useCallback(async () => {
-    if (!previewDoc?.blob) return false;
+    if (!previewDoc?.blob) return { ok: false, error: 'Aucun document à télécharger.' };
     setDownloading(true);
     try {
       await savePdfBlobToDevice(previewDoc.blob, previewDoc.filename, {
         cachePath: previewDoc.cachePath,
         cacheDirectory: previewDoc.cacheDirectory,
       });
-      return true;
-    } catch (_error) {
-      return false;
+      return { ok: true };
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.warn('[DossierDocumentPreview] download failed', error);
+      }
+      return { ok: false, error: mapDocumentPreviewError(error) };
     } finally {
       setDownloading(false);
     }
   }, [previewDoc]);
 
   const openPreviewInSystemViewer = useCallback(async () => {
-    if (!previewDoc) return false;
+    if (!previewDoc) return { ok: false, error: 'Aucun document à ouvrir.' };
     setDownloading(true);
     try {
       if (previewDoc.cachePath) {
         await openCachedPdfInSystemViewer({
           path: previewDoc.cachePath,
           directory: previewDoc.cacheDirectory,
+          filename: previewDoc.filename,
+          blob: previewDoc.blob,
         });
-        return true;
+        return { ok: true };
       }
       await savePdfBlobToDevice(previewDoc.blob, previewDoc.filename);
-      return true;
-    } catch (_error) {
-      return false;
+      return { ok: true };
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.warn('[DossierDocumentPreview] open external failed', error);
+      }
+      return { ok: false, error: mapDocumentPreviewError(error) };
     } finally {
       setDownloading(false);
     }
@@ -94,6 +120,7 @@ export const useDossierDocumentPreview = () => {
 
   return {
     previewDoc,
+    previewError,
     loadingDocKey,
     downloading,
     openPreview,
