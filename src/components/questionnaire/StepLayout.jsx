@@ -19,6 +19,7 @@ export const StepLayout = ({
   continueLabel = 'Continuer',
   onEnterNext,
   hideContinueButton = false,
+  compactMobile = false,
   children,
 }) => {
   const nativeApp = isCapacitorNative();
@@ -50,26 +51,38 @@ export const StepLayout = ({
       onEnterNext();
     }}
   >
-    <div className="border-b border-border bg-gradient-to-br from-secondary/40 via-white to-white px-6 py-6 md:px-8">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-xs font-extrabold uppercase tracking-wide text-primary">Réf. : {reference}</p>
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[hsl(var(--greffio-blue-900))] md:text-[1.65rem]">{title}</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{description}</p>
+    <div className={cn(
+      'border-b border-border bg-gradient-to-br from-secondary/40 via-white to-white',
+      compactMobile ? 'px-4 py-3' : 'px-6 py-6 md:px-8',
+    )}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          {!compactMobile ? (
+            <>
+              <p className="text-xs font-extrabold uppercase tracking-wide text-primary">Réf. : {reference}</p>
+              <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-[hsl(var(--greffio-blue-900))] md:text-[1.65rem]">{title}</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{description}</p>
+            </>
+          ) : (
+            <>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{reference}</p>
+              <p className="mt-0.5 text-xs font-semibold text-primary">{title}</p>
+            </>
+          )}
         </div>
-        {progressNode}
+        {!compactMobile ? progressNode : null}
       </div>
-      <div className="mt-4 flex items-center justify-between gap-4">
-        <div className="h-2.5 w-full max-w-md overflow-hidden rounded-full bg-background ring-1 ring-border">
+      <div className={cn('flex items-center justify-between gap-4', compactMobile ? 'mt-2' : 'mt-4')}>
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-background ring-1 ring-border">
           <div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
         </div>
         <div className="shrink-0">{autosaveNode}</div>
       </div>
     </div>
 
-    <div className="space-y-6 p-6 md:p-8 md:pt-7">
+    <div className={cn(compactMobile ? 'space-y-3 p-4' : 'space-y-6 p-6 md:p-8 md:pt-7')}>
       {children}
-      {securityNode}
+      {!compactMobile ? securityNode : null}
     </div>
 
     <div className={cn(actionBarClass, hideContinueButton && mobileShell ? 'justify-start' : 'flex flex-wrap items-center justify-between gap-3')} style={stickyBottomStyle}>

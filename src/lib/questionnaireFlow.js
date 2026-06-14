@@ -1,4 +1,4 @@
-import { isLegallyMinor } from '@/config/minorAssociateRules.js';
+import { isLegallyMinor, validateDirectorEligibility } from '@/config/minorAssociateRules.js';
 import { ASSOCIATE_TYPES, isAssociateEntryComplete } from '@/utils/associateEntry.js';
 import { resolveDemarchePreset } from '@/utils/formalityMapping.js';
 import {
@@ -517,6 +517,13 @@ export const isFieldValueValid = (field, value, formData = {}) => {
   const normalized = String(value).trim();
   if (!normalized) return false;
   if (field.type === 'email') return normalized.includes('@');
+  if (field.type === 'textarea' && field.key === 'activite') {
+    return normalized.length >= 12;
+  }
+  if (field.type === 'number' || field.key === 'capital') {
+    const amount = Number(normalized.replace(',', '.'));
+    return Number.isFinite(amount) && amount > 0;
+  }
   return true;
 };
 
@@ -553,31 +560,49 @@ export const resolveResumePosition = (formData = {}, resume = {}) => {
     };
   }
 
+  if (resume?.stepId) {
+    const savedStepIndex = applicable.findIndex((entry) => entry.id === resume.stepId);
+    if (savedStepIndex >= 0) {
+      const savedStep = applicable[savedStepIndex];
+      const fields = getVisibleFieldsForStep(savedStep, formData);
+      if (resume?.fieldKey && fields.length) {
+        const savedFieldIndex = fields.findIndex((field) => field.key === resume.fieldKey);
+        if (savedFieldIndex >= 0) {
+          return {
+            stepIndex: savedStepIndex,
+            fieldIndex: savedFieldIndex,
+            ...sharedMeta,
+          };
+        }
+      }
+      if (fields.length) {
+        const firstInvalid = fields.findIndex(
+          (field) => !isFieldValueValid(field, formData[field.key], formData),
+        );
+        return {
+          stepIndex: savedStepIndex,
+          fieldIndex: firstInvalid >= 0 ? firstInvalid : Math.max(fields.length - 1, 0),
+          ...sharedMeta,
+        };
+      }
+      return { stepIndex: savedStepIndex, fieldIndex: 0, ...sharedMeta };
+    }
+  }
+
   let stepIndex = 0;
   let fieldIndex = 0;
 
-  if (resume?.stepId) {
-    const savedIndex = applicable.findIndex((entry) => entry.id === resume.stepId);
-    if (savedIndex >= 0) {
-      const firstIncomplete = applicable.findIndex((entry) => !isStepComplete(entry, formData));
-      stepIndex = firstIncomplete >= 0 ? firstIncomplete : savedIndex;
+  for (let index = 0; index < applicable.length; index += 1) {
+    if (!isStepComplete(applicable[index], formData)) {
+      stepIndex = index;
+      break;
     }
-  } else {
-    for (let index = 0; index < applicable.length; index += 1) {
-      if (!isStepComplete(applicable[index], formData)) {
-        stepIndex = index;
-        break;
-      }
-      if (index === applicable.length - 1) stepIndex = index;
-    }
+    if (index === applicable.length - 1) stepIndex = index;
   }
 
   const step = applicable[stepIndex] || applicable[0];
   const fields = getVisibleFieldsForStep(step, formData);
-  if (resume?.fieldKey && fields.length) {
-    const savedField = fields.findIndex((field) => field.key === resume.fieldKey);
-    if (savedField >= 0) fieldIndex = savedField;
-  } else if (fields.length) {
+  if (fields.length) {
     for (let index = 0; index < fields.length; index += 1) {
       if (!isFieldValueValid(fields[index], formData[fields[index].key], formData)) {
         fieldIndex = index;
@@ -593,6 +618,29 @@ export const resolveResumePosition = (formData = {}, resume = {}) => {
   };
 };
 
+export const resolveContinueBlockMessage = (step, formData, activeField, visibleFields = []) => {
+  if (activeField) {
+    const fieldMessage = getFieldValidationMessage(
+      activeField,
+      formData[activeField.key],
+      formData,
+    );
+    if (fieldMessage) return fieldMessage;
+  }
+  const invalidField = visibleFields.find(
+    (field) => !isFieldValueValid(field, formData[field.key], formData),
+  );
+  if (invalidField) {
+    return getFieldValidationMessage(invalidField, formData[invalidField.key], formData)
+      || `Complétez « ${invalidField.label} » avant de continuer.`;
+  }
+  if (step?.id === 'gouvernance') {
+    const directorCheck = validateDirectorEligibility(formData);
+    if (!directorCheck.ok && directorCheck.message) return directorCheck.message;
+  }
+  return 'Complétez les informations demandées avant de continuer.';
+};
+
 export const getFieldValidationMessage = (field, value, formData = {}) => {
   if (!field?.required) return '';
   if (isFieldValueValid(field, value, formData)) return '';
@@ -605,6 +653,8 @@ export const getFieldValidationMessage = (field, value, formData = {}) => {
   if (field.key === 'connaissezFormeJuridique') return 'Indiquez si vous connaissez déjà la forme juridique visée.';
   if (field.key === 'typeFormalite') return 'Choisissez la formalité correspondant à votre projet.';
   if (field.key === 'formeJuridique') return 'Indiquez la forme juridique de votre structure.';
+  if (field.key === 'activite') return 'Décrivez l’activité en au moins 12 caractères.';
+  if (field.key === 'capital') return 'Indiquez un capital social en euros (nombre positif).';
   if (field.key === 'dirigeant') return 'Le dirigeant doit être identifié conformément à la réglementation.';
   if (field.type === 'associates_minor_panel') return 'Renseignez au moins un associé complet (identité et parts).';
   return `${field.label || 'Ce champ'} est requis pour constituer votre dossier.`;

@@ -39,6 +39,7 @@ import {
   isStepComplete,
   resolveMobileFieldGroups,
   resolveResumePosition,
+  resolveContinueBlockMessage,
 } from '@/lib/questionnaireFlow.js';
 import {
   completeQuestionnaireStep,
@@ -140,6 +141,7 @@ const normalizeFormalityToService = (typeFormalite, formeJuridique) => (
 
 const sanitizeSiren = (value) => String(value || '').replace(/\D/g, '').slice(0, 9);
 const sanitizeCompanyIdentifier = (value) => String(value || '').replace(/\D/g, '').slice(0, 14);
+const sanitizeAmountInput = (value) => String(value || '').replace(/[^\d.,]/g, '').replace(',', '.');
 const makeUiReference = () => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let block = '';
@@ -218,6 +220,7 @@ export const QuestionnairePage = () => {
     fieldGroups,
   });
   const hideContinueOnMobile = presentation.shouldHideStickyContinue;
+  const isCompactMobileStep = isMobileChoicePresentation && hideContinueOnMobile && activeGroup.length === 1;
   const continueLabel = isLastGroupInStep && stepIndex >= QUESTIONNAIRE_FLOW.length - 1
     ? 'Terminer le questionnaire'
     : isLastGroupInStep
@@ -714,14 +717,12 @@ export const QuestionnairePage = () => {
   const goNext = async () => {
     setStepError('');
     if (!canContinue) {
-      const message = activeField
-        ? getFieldValidationMessage(activeField, formData[activeField.key], formData)
-        : 'Complétez les informations demandées avant de continuer.';
+      const message = resolveContinueBlockMessage(step, formData, activeField, visibleStepFields);
       setStepError(message);
       if (activeField?.key) {
         setTouchedFields((current) => ({ ...current, [activeField.key]: true }));
       }
-      toast.error(message);
+      if (message) toast.error(message);
       return;
     }
     if (!isLastGroupInStep) {
@@ -878,9 +879,11 @@ export const QuestionnairePage = () => {
     inlineMessage,
     inputType = 'text',
     subtitle,
-    hint = 'Appuyez sur Suivant lorsque c’est prêt.',
+    hint = isCompactMobileStep ? 'Touchez la flèche pour continuer.' : 'Appuyez sur Suivant lorsque c’est prêt.',
     extra,
-  }) => (
+  }) => {
+    const isNumericField = field.type === 'number' || field.key === 'capital';
+    return (
     <MobileInputStep
       key={field.key}
       kicker={STEP_TITLES_BY_ID[step.id] || step.title}
@@ -893,22 +896,28 @@ export const QuestionnairePage = () => {
       fieldId={field.key}
       value={value}
       placeholder={field.placeholder || ''}
-      inputMode={resolveFieldInputMode(field)}
-      inputType={inputType}
+      inputMode={isNumericField ? 'decimal' : resolveFieldInputMode(field)}
+      inputType={isNumericField ? 'text' : inputType}
+      compact={isCompactMobileStep}
+      showProgressBar={!isCompactMobileStep}
+      showStepMeta={!isCompactMobileStep}
       canAdvance={!invalid && isFieldValueValid(field, value, formData)}
       invalid={invalid}
       errorMessage={invalid ? inlineMessage : ''}
       onChange={(nextValue) => {
         const sanitized = field.key === 'companySiren' || field.key === 'existingBusinessSiren'
           ? sanitizeCompanyIdentifier(nextValue)
-          : nextValue;
+          : isNumericField
+            ? sanitizeAmountInput(nextValue)
+            : nextValue;
         updateField(field, sanitized);
       }}
       onAdvance={goNext}
     >
       {extra}
     </MobileInputStep>
-  );
+    );
+  };
 
   const renderQuestionField = (field) => {
     if (!field) return null;
@@ -1341,6 +1350,10 @@ export const QuestionnairePage = () => {
             value={value}
             placeholder={field.placeholder || ''}
             minLength={minLength}
+            compact={isCompactMobileStep}
+            showProgressBar={!isCompactMobileStep}
+            showStepMeta={!isCompactMobileStep}
+            hint={isCompactMobileStep ? 'Touchez la flèche pour continuer.' : undefined}
             onChange={(nextValue) => updateField(field, nextValue)}
             onAdvance={goNext}
             canAdvance={canAdvanceTextarea}
@@ -1417,9 +1430,17 @@ export const QuestionnairePage = () => {
   };
 
   return (
-    <div ref={wizardTopRef} className="mx-auto max-w-4xl px-4 py-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-10 lg:px-8">
+    <div
+      ref={wizardTopRef}
+      className={cn(
+        'mx-auto max-w-4xl',
+        isCompactMobileStep
+          ? 'px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]'
+          : 'px-4 py-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-10 lg:px-8',
+      )}
+    >
       <StepLayout
-        title={step.title}
+        title={STEP_TITLES_BY_ID[step.id] || step.title}
         description={step.description}
         reference={reference}
         progress={progress}
@@ -1430,9 +1451,10 @@ export const QuestionnairePage = () => {
         onNext={goNext}
         onEnterNext={goNext}
         canGoBack={stepIndex > 0 || safeGroupIndex > 0}
-        canGoNext
+        canGoNext={canContinue}
         continueLabel={continueLabel}
         hideContinueButton={hideContinueOnMobile}
+        compactMobile={isCompactMobileStep}
       >
         {stepError ? (
           <QuestionnaireNotice variant="error" title="Enregistrement">
@@ -1440,13 +1462,15 @@ export const QuestionnairePage = () => {
           </QuestionnaireNotice>
         ) : null}
 
-        <ProgressiveStepChips
-          steps={PROGRESSIVE_STEPS}
-          activeIndex={stepIndex}
-          revealThroughIndex={stepIndex}
-        />
+        {!isCompactMobileStep ? (
+          <ProgressiveStepChips
+            steps={PROGRESSIVE_STEPS}
+            activeIndex={stepIndex}
+            revealThroughIndex={stepIndex}
+          />
+        ) : null}
 
-        {fieldGroups.length > 1 ? (
+        {fieldGroups.length > 1 && !isCompactMobileStep ? (
           <p className="text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Question {safeGroupIndex + 1} sur {fieldGroups.length}
             <span className="mx-2 text-border">·</span>
@@ -1475,7 +1499,7 @@ export const QuestionnairePage = () => {
             transition={{ duration: 0.22 }}
             className={cn(
               isMobileChoicePresentation && hideContinueOnMobile
-                ? 'min-h-0 bg-transparent p-0'
+                ? 'min-h-0 border-0 bg-transparent p-0 shadow-none'
                 : 'min-h-[12rem] rounded-xl border border-border bg-muted/30 p-5 md:p-6',
             )}
           >
@@ -1511,22 +1535,26 @@ export const QuestionnairePage = () => {
         ) : null}
       </StepLayout>
 
-      <div className="mt-4 rounded-md border border-border bg-white p-4 text-xs text-muted-foreground">
-        Contact Greffio: {runtimeConfig.supportPhone} – {runtimeConfig.supportEmail}
-      </div>
-      {!canContinue && !stepError && !hideContinueOnMobile ? (
-        <QuestionnaireNotice variant="vigilance" title="Pour continuer" className="mt-3">
-          Répondez à la question ci-dessus, puis cliquez sur « {continueLabel} ».
-        </QuestionnaireNotice>
+      {!isCompactMobileStep ? (
+        <>
+          <div className="mt-4 rounded-md border border-border bg-white p-4 text-xs text-muted-foreground">
+            Contact Greffio: {runtimeConfig.supportPhone} – {runtimeConfig.supportEmail}
+          </div>
+          {!canContinue && !stepError && !hideContinueOnMobile ? (
+            <QuestionnaireNotice variant="vigilance" title="Pour continuer" className="mt-3">
+              Répondez à la question ci-dessus, puis cliquez sur « {continueLabel} ».
+            </QuestionnaireNotice>
+          ) : null}
+          {!canContinue && !stepError && hideContinueOnMobile ? (
+            <QuestionnaireNotice variant="vigilance" title="Pour continuer" className="mt-3">
+              Touchez votre réponse pour passer à la suite.
+            </QuestionnaireNotice>
+          ) : null}
+          <div className="mt-3 rounded-md border border-border bg-muted p-3 text-xs text-muted-foreground">
+            Greffio est un service privé indépendant d’assistance aux démarches administratives des entreprises. Greffio n’est pas un service officiel de l’État, des greffes des tribunaux de commerce ou d’Infogreffe.
+          </div>
+        </>
       ) : null}
-      {!canContinue && !stepError && hideContinueOnMobile ? (
-        <QuestionnaireNotice variant="vigilance" title="Pour continuer" className="mt-3">
-          Touchez votre réponse pour passer à la suite.
-        </QuestionnaireNotice>
-      ) : null}
-      <div className="mt-3 rounded-md border border-border bg-muted p-3 text-xs text-muted-foreground">
-        Greffio est un service privé indépendant d’assistance aux démarches administratives des entreprises. Greffio n’est pas un service officiel de l’État, des greffes des tribunaux de commerce ou d’Infogreffe.
-      </div>
     </div>
   );
 };

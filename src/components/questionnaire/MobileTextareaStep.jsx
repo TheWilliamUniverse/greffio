@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useRef } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils.js';
+import { useMobileKeyboardInset } from '@/hooks/useMobileKeyboardInset.js';
 
 export const MobileTextareaStep = ({
   kicker,
@@ -19,12 +20,17 @@ export const MobileTextareaStep = ({
   canAdvance = false,
   invalid = false,
   errorMessage = '',
+  compact = false,
+  showProgressBar = true,
+  showStepMeta = true,
 }) => {
   const generatedId = useId();
   const textareaRef = useRef(null);
   const resolvedId = fieldId || generatedId;
   const errorId = `${resolvedId}-error`;
   const charCount = String(value || '').trim().length;
+
+  useMobileKeyboardInset(compact);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -34,18 +40,25 @@ export const MobileTextareaStep = ({
   }, [resolvedId]);
 
   return (
-    <div className="mobile-textarea-step flex min-h-[min(58vh,520px)] w-full flex-col">
-      <header className="shrink-0 space-y-1.5">
-        {kicker ? (
+    <div
+      className={cn(
+        'mobile-textarea-step flex w-full flex-col',
+        compact
+          ? 'gap-3 pb-[var(--greffio-keyboard-inset,0px)]'
+          : 'min-h-[min(58vh,520px)]',
+      )}
+    >
+      <header className={cn('shrink-0', compact ? 'space-y-1' : 'space-y-1.5')}>
+        {!compact && kicker ? (
           <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">{kicker}</p>
         ) : null}
         <h2 className="font-display text-xl font-extrabold leading-snug tracking-tight text-[hsl(var(--greffio-blue-900))]">
           {title}
         </h2>
-        {subtitle ? (
+        {!compact && subtitle ? (
           <p className="text-sm leading-relaxed text-muted-foreground">{subtitle}</p>
         ) : null}
-        {typeof progressPercent === 'number' ? (
+        {!compact && showProgressBar && typeof progressPercent === 'number' ? (
           <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-[#e8f0fa]">
             <div
               className="h-full rounded-full bg-primary transition-all duration-300"
@@ -55,19 +68,20 @@ export const MobileTextareaStep = ({
         ) : null}
       </header>
 
-      <div className="flex flex-1 flex-col justify-center py-4 sm:py-6">
+      <div className={cn(compact ? 'pt-1' : 'flex flex-1 flex-col justify-center py-4 sm:py-6')}>
         <div className="relative mx-auto w-full max-w-md">
           <textarea
             ref={textareaRef}
             id={resolvedId}
             value={value}
             placeholder={placeholder}
-            rows={5}
+            rows={compact ? 4 : 5}
             aria-invalid={invalid || undefined}
             aria-describedby={errorMessage ? errorId : undefined}
             onChange={(event) => onChange?.(event.target.value)}
             className={cn(
-              'min-h-[140px] w-full rounded-2xl border-2 bg-white px-4 py-3 text-base font-medium shadow-sm',
+              'w-full rounded-2xl border-2 bg-white px-4 py-3 text-base font-medium shadow-sm',
+              compact ? 'min-h-[112px]' : 'min-h-[140px]',
               invalid ? 'border-red-400' : 'border-[#d4e2f5] focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/12',
             )}
           />
