@@ -42,6 +42,10 @@ export const createResourceOrderCheckout = async ({
   }
 
   const amounts = computeResourcePaymentAmounts(order.priceTtcCents);
+  const publicRef = order.metadata?.publicReference || order.publicReference;
+  const description = publicRef
+    ? `Greffio – ${order.serviceTitle} (${publicRef})`
+    : `Greffio – ${order.serviceTitle}`;
   const redirectUrl = `${appUrl}/paiement/verification?resourceOrderId=${order.id}`;
 
   const service = getPaymentService({ upsertPayment });
@@ -53,13 +57,18 @@ export const createResourceOrderCheckout = async ({
       amount: amounts.amountTotalCents,
       currency: amounts.currency,
       orderId: order.id,
-      description: `Greffio ${order.serviceTitle}`,
+      description,
       returnUrl: redirectUrl,
       cancelUrl: `${appUrl}/paiement?resourceOrder=${order.id}&service=${order.serviceId}`,
       userId,
       offerCode: `resource:${order.serviceId}`,
       flow: PAYMENT_FLOWS.RESOURCE,
-      metadata: { resourceOrderId: order.id, paymentMethod: 'card', paymentFlow: PAYMENT_FLOWS.RESOURCE },
+      metadata: {
+        resourceOrderId: order.id,
+        publicReference: publicRef || null,
+        paymentMethod: 'card',
+        paymentFlow: PAYMENT_FLOWS.RESOURCE,
+      },
     });
   } catch (error) {
     rethrowPaymentError(error);

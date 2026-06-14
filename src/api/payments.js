@@ -2,7 +2,7 @@ import { apiGet, apiPost } from '@/api/client.js';
 import { runtimeConfig } from '@/config/runtime.js';
 
 /**
- * Endpoint legacy – flow dossiers B2B Greffio (GoCardless / virement).
+ * Endpoint checkout paiement dossier Greffio (Mollie).
  */
 export const createPayment = async ({ dossierId, offerCode, userId, customerType }) => apiPost('/api/payments/create', {
   dossierId,

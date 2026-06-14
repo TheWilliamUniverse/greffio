@@ -21,6 +21,7 @@ import { useNavigate } from 'react-router-dom';
 import { listDossiers } from '@/api/dossiers.js';
 import { lookupCompanyBySiren } from '@/api/company.js';
 import { useAuth } from '@/hooks/useAuth.js';
+import { LegalAcceptanceCheckbox } from '@/components/payments/LegalAcceptanceCheckbox.jsx';
 import { toast } from 'sonner';
 
 export const ServiceOrderDrawer = ({ open, onOpenChange, service }) => {
@@ -36,6 +37,7 @@ export const ServiceOrderDrawer = ({ open, onOpenChange, service }) => {
   const [loadingDossiers, setLoadingDossiers] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [orderSaved, setOrderSaved] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   // Lookup automatique : SIREN/SIRET saisi → dénomination préremplie (comme l'outil de recherche)
   const [lookupState, setLookupState] = useState('idle');
   const [lookupCompany, setLookupCompany] = useState(null);
@@ -50,6 +52,7 @@ export const ServiceOrderDrawer = ({ open, onOpenChange, service }) => {
   useEffect(() => {
     if (!open || !service) return;
     setOrderSaved(false);
+    setTermsAccepted(false);
     setCompanyName('');
     setSiren('');
     setNotes('');
@@ -118,6 +121,10 @@ export const ServiceOrderDrawer = ({ open, onOpenChange, service }) => {
   const handleSubmit = async () => {
     if (!isAuthenticated) return;
     if (!service) return;
+    if (canPay && !termsAccepted) {
+      toast.error('Acceptez les CGU et CGV pour continuer.');
+      return;
+    }
     setSubmitting(true);
     try {
       const payload = await createResourceOrder({
@@ -282,8 +289,12 @@ export const ServiceOrderDrawer = ({ open, onOpenChange, service }) => {
                   </p>
                 )}
 
+                {canPay ? (
+                  <LegalAcceptanceCheckbox checked={termsAccepted} onChange={setTermsAccepted} />
+                ) : null}
+
                 <SheetFooter className="mt-2 flex-col gap-2 sm:flex-col sm:space-x-0">
-                  <Button type="submit" className="w-full" disabled={submitting}>
+                  <Button type="submit" className="w-full" disabled={submitting || (canPay && !termsAccepted)}>
                     {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {canPay ? 'Payer et commander' : orderable ? 'Enregistrer ma demande' : 'Demander une alerte'}
                   </Button>

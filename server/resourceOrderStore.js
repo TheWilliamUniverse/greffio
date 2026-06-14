@@ -1,10 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { hasPostgres, query, sqlite } from './dbClient.js';
+import { resolveResourceOrderPublicReference } from './utils/resourceOrderReference.js';
+import { makeResourceOrderPublicReference } from './utils/resourceOrderReference.js';
 
 const nowIso = () => new Date().toISOString();
 
 const mapRow = (row) => {
   if (!row) return null;
+  const metadata = row.metadata_json ? JSON.parse(row.metadata_json) : (row.metadata || {});
   return {
     id: row.id,
     userId: row.user_id || row.userId,
@@ -21,7 +24,12 @@ const mapRow = (row) => {
     notes: row.notes || null,
     paymentId: row.payment_id || row.paymentId || null,
     providerRef: row.provider_ref || row.providerRef || null,
-    metadata: row.metadata_json ? JSON.parse(row.metadata_json) : (row.metadata || {}),
+    metadata,
+    publicReference: resolveResourceOrderPublicReference({
+      metadata,
+      serviceTitle: row.service_title || row.serviceTitle,
+      createdAt: row.created_at || row.createdAt,
+    }),
     createdAt: row.created_at || row.createdAt,
     updatedAt: row.updated_at || row.updatedAt,
     paidAt: row.paid_at || row.paidAt || null,
@@ -43,6 +51,11 @@ export const createResourceOrder = async ({
   notes,
   metadata = {},
 }) => {
+  const publicReference = makeResourceOrderPublicReference();
+  const orderMetadata = {
+    ...metadata,
+    publicReference,
+  };
   const order = {
     id: randomUUID(),
     userId,
@@ -58,7 +71,7 @@ export const createResourceOrder = async ({
     notes: notes || null,
     paymentId: null,
     providerRef: null,
-    metadata,
+    metadata: orderMetadata,
     createdAt: nowIso(),
     updatedAt: nowIso(),
     paidAt: null,

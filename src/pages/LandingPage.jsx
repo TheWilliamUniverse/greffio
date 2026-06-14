@@ -58,7 +58,7 @@ const howItWorks = [
   },
   {
     title: '3. Signature et paiement',
-    text: 'Les documents sont finalisés, vous signez le mandat et validez le paiement sécurisé via GoCardless.',
+    text: 'Les documents sont finalisés, vous signez le mandat et validez le paiement sécurisé via Mollie.',
   },
   {
     title: '4. Dépôt et suivi',

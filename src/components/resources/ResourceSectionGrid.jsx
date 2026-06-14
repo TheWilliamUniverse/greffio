@@ -7,6 +7,8 @@ export const ResourceSectionGrid = ({
   subtitle,
   items,
   onAction,
+  onQuickOrder,
+  shopMode = false,
   columns = 'md:grid-cols-2 xl:grid-cols-3',
   highlight = false,
 }) => (
@@ -24,7 +26,13 @@ export const ResourceSectionGrid = ({
     </div>
     <div className={`grid gap-4 ${columns}`}>
       {items.map((item) => (
-        <ResourceServiceCard key={item.id} item={item} onAction={onAction} />
+        <ResourceServiceCard
+          key={item.id}
+          item={item}
+          onAction={onAction}
+          shopMode={shopMode}
+          onQuickOrder={onQuickOrder}
+        />
       ))}
     </div>
   </section>

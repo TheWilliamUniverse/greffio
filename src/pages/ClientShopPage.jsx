@@ -1,16 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, ShoppingBag } from 'lucide-react';
+import { ArrowRight, Package, ShoppingBag } from 'lucide-react';
+import { toast } from 'sonner';
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { MobileSidebarDrawer, MobileSidebarTrigger } from '@/components/MobileSidebarDrawer.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { ResourcesSearchBar } from '@/components/resources/ResourcesSearchBar.jsx';
 import { ResourceSectionGrid } from '@/components/resources/ResourceSectionGrid.jsx';
 import { ServiceOrderDrawer } from '@/components/resources/ServiceOrderDrawer.jsx';
+import { ShopCartButton } from '@/components/boutique/ShopCartButton.jsx';
+import { ShopCartDrawer } from '@/components/boutique/ShopCartDrawer.jsx';
+import { useShopCart } from '@/hooks/useShopCart.js';
 import { getGuideById } from '@/config/resourceGuides.js';
 import {
   CERTIFIED_COPIES,
   getCatalogItemById,
+  isResourceOrderable,
   OFFICIAL_DOCUMENTS,
   PACKS,
   QUICK_TOOLS,
@@ -29,6 +34,17 @@ export const ClientShopPage = () => {
   const [userDossiers, setUserDossiers] = useState([]);
   const [orderService, setOrderService] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
+  const {
+    items: cartItems,
+    itemCount,
+    totalTtc,
+    addItem,
+    setQuantity,
+    removeLine,
+    clearCart,
+    updateLineMeta,
+  } = useShopCart();
 
   useEffect(() => {
     if (!isAuthenticated) return undefined;
@@ -56,6 +72,19 @@ export const ClientShopPage = () => {
     setDrawerOpen(true);
   }, []);
 
+  const handleAddToCart = useCallback((item) => {
+    const catalogItem = item?.id ? getCatalogItemById(item.id) || item : item;
+    if (!isResourceOrderable(catalogItem) || !catalogItem.priceTtc || Number(catalogItem.priceTtc) <= 0) {
+      openService(catalogItem);
+      return;
+    }
+    const added = addItem(catalogItem.id);
+    if (added) {
+      toast.success(`${catalogItem.title} ajouté au panier.`);
+      setCartOpen(true);
+    }
+  }, [addItem, openService]);
+
   const handleResourceAction = useCallback((item) => {
     if (item.kind === 'guide') {
       const match = getGuideById(item.id);
@@ -76,8 +105,8 @@ export const ClientShopPage = () => {
       navigate(item.legacyLink);
       return;
     }
-    openService(item);
-  }, [navigate, openService]);
+    handleAddToCart(item);
+  }, [navigate, handleAddToCart]);
 
   const handleSelectResult = useCallback((result) => {
     setQuery(result.title);
@@ -93,6 +122,7 @@ export const ClientShopPage = () => {
           <div className="mb-5 flex items-center justify-between gap-3 md:hidden">
             <MobileSidebarTrigger onClick={() => setIsMobileNavOpen(true)} />
             <p className="truncate text-sm font-semibold text-muted-foreground">Boutique Greffio</p>
+            <ShopCartButton itemCount={itemCount} onClick={() => setCartOpen(true)} className="h-9 px-3" />
           </div>
 
           <section className="rounded-md border border-border bg-white p-6 shadow-elevation-sm">
@@ -106,16 +136,24 @@ export const ClientShopPage = () => {
                   Documents officiels et packs
                 </h1>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Commandez vos extraits, copies certifiées et ensembles documentaires sans quitter votre espace.
-                  Chaque commande peut être rattachée à l’un de vos dossiers.
+                  Ajoutez vos documents au panier, finalisez la commande et suivez le statut dans Mes commandes.
                 </p>
               </div>
-              <Button asChild variant="outline" className="bg-white">
-                <Link to="/ressources">
-                  Guides et outils gratuits
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <ShopCartButton itemCount={itemCount} onClick={() => setCartOpen(true)} className="hidden md:inline-flex" />
+                <Button asChild variant="outline" className="bg-white">
+                  <Link to="/boutique/commandes">
+                    <Package className="h-4 w-4" />
+                    Mes commandes
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" className="bg-white">
+                  <Link to="/ressources">
+                    Guides gratuits
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
             </div>
             <div className="mt-5">
               <ResourcesSearchBar
@@ -145,6 +183,8 @@ export const ClientShopPage = () => {
             subtitle="Extraits et attestations pour sécuriser vos démarches."
             items={sortFreeFirst(OFFICIAL_DOCUMENTS)}
             onAction={handleResourceAction}
+            shopMode
+            onQuickOrder={openService}
           />
 
           <ResourceSectionGrid
@@ -153,6 +193,8 @@ export const ClientShopPage = () => {
             subtitle="Reproductions certifiées et pièces déposées au registre."
             items={sortFreeFirst(CERTIFIED_COPIES)}
             onAction={handleResourceAction}
+            shopMode
+            onQuickOrder={openService}
           />
 
           <ResourceSectionGrid
@@ -162,6 +204,8 @@ export const ClientShopPage = () => {
             items={sortFreeFirst(PACKS)}
             onAction={handleResourceAction}
             columns="md:grid-cols-2 xl:grid-cols-3"
+            shopMode
+            onQuickOrder={openService}
           />
 
           <section className="mt-14 rounded-xl border border-border bg-secondary/50 p-6">
@@ -190,6 +234,16 @@ export const ClientShopPage = () => {
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
         service={orderService}
+      />
+      <ShopCartDrawer
+        open={cartOpen}
+        onOpenChange={setCartOpen}
+        items={cartItems}
+        totalTtc={totalTtc}
+        setQuantity={setQuantity}
+        removeLine={removeLine}
+        clearCart={clearCart}
+        updateLineMeta={updateLineMeta}
       />
     </div>
   );

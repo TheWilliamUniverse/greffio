@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 16" role="img" aria-label="Cartes Bancaires">
+  <rect width="48" height="16" rx="2" fill="#0f4c81"/>
+  <text x="24" y="11" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="7" font-weight="700">CB</text>
+</svg>

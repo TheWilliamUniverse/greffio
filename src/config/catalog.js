@@ -97,32 +97,8 @@ export const PAYMENT_METHODS = [
     id: 'mollie-card',
     name: 'Carte bancaire',
     type: 'Paiement sécurisé',
-    description: 'Visa, Mastercard et autres moyens via Mollie – redirection sécurisée et confirmation serveur.',
+    description: 'Visa, Mastercard, CB et autres moyens via Mollie – redirection sécurisée.',
     recommended: true,
-  },
-  {
-    id: 'gocardless-checkout',
-    name: 'GoCardless',
-    type: 'Comptes professionnels',
-    description: 'Prélèvement SEPA ou virement pour cabinets et sociétés clientes, avec webhook serveur.',
-  },
-  {
-    id: 'sepa-transfer',
-    name: 'Virement SEPA',
-    type: 'Comptes professionnels',
-    description: 'Utile pour les cabinets, sociétés clientes et paiements de frais importants.',
-  },
-  {
-    id: 'sepa-debit',
-    name: 'Prélèvement SEPA',
-    type: 'Abonnements et récurrence',
-    description: 'Adapté aux offres mensuelles, comptes cabinets et services récurrents.',
-  },
-  {
-    id: 'optional',
-    name: 'Options futures',
-    type: 'À activer',
-    description: 'Autres moyens de paiement selon conversion et éligibilité marchand.',
   },
 ];
 

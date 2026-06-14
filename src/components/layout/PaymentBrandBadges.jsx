@@ -2,24 +2,14 @@ import React from 'react';
 import { cn } from '@/lib/utils.js';
 
 const BRANDS = [
-  {
-    id: 'visa',
-    label: 'Visa',
-    className: 'bg-[#1a1f71] text-white',
-    mark: 'VISA',
-  },
-  {
-    id: 'mastercard',
-    label: 'Mastercard',
-    className: 'bg-[#252525] text-white',
-    mark: 'MC',
-  },
-  {
-    id: 'secure',
-    label: '3-D Secure',
-    className: 'bg-[hsl(var(--greffio-blue))] text-white',
-    mark: '3DS',
-  },
+  { id: 'visa', label: 'Visa', src: '/images/payments/visa.svg' },
+  { id: 'mastercard', label: 'Mastercard', src: '/images/payments/mastercard.svg' },
+  { id: 'cb', label: 'Cartes Bancaires', src: '/images/payments/cb.svg' },
+  { id: 'amex', label: 'American Express', src: '/images/payments/amex.svg' },
+  { id: 'apple-pay', label: 'Apple Pay', src: '/images/payments/apple-pay.svg' },
+  { id: 'google-pay', label: 'Google Pay', src: '/images/payments/google-pay.svg' },
+  { id: 'sepa', label: 'SEPA', src: '/images/payments/sepa.svg' },
+  { id: 'mollie', label: 'Mollie', src: '/images/payments/mollie.svg' },
 ];
 
 export const PaymentBrandBadges = ({ compact = false, className }) => (
@@ -30,19 +20,17 @@ export const PaymentBrandBadges = ({ compact = false, className }) => (
         title={brand.label}
         aria-label={brand.label}
         className={cn(
-          'inline-flex min-h-[28px] items-center justify-center rounded-md px-2.5 text-[10px] font-extrabold uppercase tracking-wide',
-          compact ? 'min-w-[44px]' : 'min-w-[52px]',
-          brand.className,
+          'inline-flex items-center justify-center overflow-hidden rounded-md border border-white/10 bg-white/95',
+          compact ? 'h-7 w-[52px]' : 'h-8 w-[60px]',
         )}
       >
-        {brand.id === 'mastercard' ? (
-          <span className="flex items-center gap-0.5" aria-hidden="true">
-            <span className="h-3 w-3 rounded-full bg-[#eb001b]" />
-            <span className="-ml-1.5 h-3 w-3 rounded-full bg-[#f79e1b]" />
-          </span>
-        ) : (
-          brand.mark
-        )}
+        <img
+          src={brand.src}
+          alt=""
+          aria-hidden="true"
+          className="h-full w-full object-contain"
+          loading="lazy"
+        />
       </span>
     ))}
   </div>

@@ -10,7 +10,11 @@
       "greffio.willentreprises.com",
       "*.willentreprises.com",
       "willentreprises.com",
-      "api.greffio.willentreprises.com"
+      "api.greffio.willentreprises.com",
+      "mollie.com",
+      "*.mollie.com",
+      "pay.mollie.nl",
+      "www.mollie.com"
     ]
   },
   "android": {

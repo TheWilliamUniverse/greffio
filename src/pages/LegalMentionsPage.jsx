@@ -9,8 +9,8 @@ import { PAYMENT_METHODS } from '@/config/businessCatalog.js';
 import { PublisherLegalBlock } from '@/components/legal/PublisherLegalBlock.jsx';
 import { PUBLISHER_LEGAL_NAME, PUBLISHER_RCS } from '@/config/publisher.js';
 
-const Section = ({ title, children }) => (
-  <section className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
+const Section = ({ title, id, children }) => (
+  <section id={id} className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
     <h2 className="text-lg font-extrabold text-foreground">{title}</h2>
     <div className="mt-3 space-y-3 text-sm leading-7 text-muted-foreground">{children}</div>
   </section>
@@ -39,7 +39,7 @@ export const LegalMentionsPage = () => (
         {[
           { icon: Scale, title: 'Éditeur', text: `${PUBLISHER_LEGAL_NAME} · ${PUBLISHER_RCS}` },
           { icon: ShieldCheck, title: 'Marque', text: `Greffio est une marque déposée détenue par ${PUBLISHER_LEGAL_NAME}.` },
-          { icon: CreditCard, title: 'Paiements', text: 'Google Pay, carte bancaire et prélèvement SEPA professionnel.' },
+          { icon: CreditCard, title: 'Paiements', text: 'Carte bancaire via Mollie (Visa, Mastercard, CB, Apple Pay, Google Pay selon appareil).' },
         ].map((item) => (
           <div key={item.title} className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
             <item.icon className="mb-4 h-6 w-6 text-primary" />
@@ -61,13 +61,13 @@ export const LegalMentionsPage = () => (
         <p>Selon la nature de la demande, Greffio peut réaliser les formalités via le Guichet unique (INPI) ou recourir à des partenaires et sous-traitants spécialisés pour l’obtention de certains documents et services.</p>
       </Section>
 
-      <Section title="Conditions générales d’utilisation">
+      <Section title="Conditions générales d’utilisation" id="cgu">
         <p>L’utilisateur s’engage à fournir des informations exactes, complètes et à jour. Les pièces déposées dans le coffre documentaire doivent être lisibles, authentiques et pertinentes pour la démarche concernée.</p>
         <p>L’accès à l’espace client, à l’espace professionnel et à l’espace équipe est personnel. L’activation de l’authentification multifacteur est recommandée pour les comptes traitant des dossiers ou documents sensibles.</p>
         <p>Le fil partagé permet de tracer les messages, demandes de pièces, validations et commentaires entre le client, l’équipe Greffio et les partenaires autorisés.</p>
       </Section>
 
-      <Section title="Conditions générales de vente">
+      <Section title="Conditions générales de vente" id="cgv">
         <p>Les prix affichés dans l’application correspondent aux prestations Greffio et peuvent être indiqués hors taxes. Les frais légaux, frais d’annonce légale, frais de greffe, frais bancaires ou coûts de tiers restent distincts lorsqu’ils ne sont pas expressément inclus.</p>
         <p>La commande est confirmée après validation de l’offre et, le cas échéant, paiement. Lorsque le client demande l’exécution immédiate d’une prestation numérique ou personnalisée, il reconnaît que certaines prestations peuvent commencer avant l’expiration du délai légal de rétractation.</p>
         <p>Greffio ne garantit pas les délais dépendant d’administrations, greffes, banques, journaux d’annonces légales ou plateformes tierces, mais fournit un suivi et des relances lorsque cela est prévu dans l’offre choisie.</p>
@@ -77,7 +77,7 @@ export const LegalMentionsPage = () => (
         <div className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
           <BadgeEuro className="mb-4 h-6 w-6 text-primary" />
           <h2 className="text-lg font-extrabold">Moyens de paiement</h2>
-          <p className="mt-3 text-sm leading-7 text-muted-foreground">Les paiements B2C peuvent être traités via Google Pay ou carte bancaire, avec confirmation serveur avant validation du dossier. Les paiements professionnels peuvent utiliser le prélèvement SEPA via GoCardless.</p>
+          <p className="mt-3 text-sm leading-7 text-muted-foreground">Les paiements sont traités via Mollie : carte bancaire (Visa, Mastercard, CB), Apple Pay ou Google Pay selon votre appareil. Les libellés de facturation mentionnent le produit commandé et une référence Greffio lisible.</p>
           <div className="mt-4 grid gap-2">
             {PAYMENT_METHODS.map((method) => (
               <div key={method.id} className="rounded-md bg-muted p-3 text-sm">

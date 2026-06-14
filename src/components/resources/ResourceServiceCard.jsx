@@ -12,12 +12,15 @@ export const ResourceServiceCard = ({
   item,
   variant = 'default',
   onAction,
+  shopMode = false,
+  onQuickOrder,
   className,
 }) => {
   const isPack = item.kind === 'pack';
   const isGuide = item.kind === 'guide';
   const isFree = !item.priceTtc || Number(item.priceTtc) <= 0;
   const orderable = isResourceOrderable(item);
+  const showCart = shopMode && orderable && !isFree;
 
   return (
     <article
@@ -63,16 +66,39 @@ export const ResourceServiceCard = ({
       </div>
       <p className="mt-1 text-xs text-muted-foreground">{getProcessingLabel(item)}</p>
 
-      <Button
-        type="button"
-        variant={orderable || isGuide ? 'default' : 'outline'}
-        size="sm"
-        className="mt-5 w-full justify-between"
-        onClick={() => onAction?.(item)}
-      >
-        {item.actionLabel || 'Découvrir'}
-        <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-      </Button>
+      {showCart ? (
+        <div className="mt-5 space-y-2">
+          <Button
+            type="button"
+            size="sm"
+            className="w-full justify-between"
+            onClick={() => onAction?.(item)}
+          >
+            Ajouter au panier
+            <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => onQuickOrder?.(item)}
+          >
+            Commander maintenant
+          </Button>
+        </div>
+      ) : (
+        <Button
+          type="button"
+          variant={orderable || isGuide ? 'default' : 'outline'}
+          size="sm"
+          className="mt-5 w-full justify-between"
+          onClick={() => onAction?.(item)}
+        >
+          {item.actionLabel || 'Découvrir'}
+          <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+        </Button>
+      )}
     </article>
   );
 };

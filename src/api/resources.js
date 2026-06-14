@@ -15,6 +15,8 @@ export const searchResourceServices = async (query) => {
 
 export const fetchResourceConfig = async () => publicGet('/api/resources/config');
 
+export const listResourceOrders = async () => apiGet('/api/resources/orders');
+
 export const getResourceOrder = async (orderId) => apiGet(`/api/resources/orders/${orderId}`);
 
 export const checkoutResourceOrder = async (orderId) => apiPost(`/api/resources/orders/${orderId}/checkout`);

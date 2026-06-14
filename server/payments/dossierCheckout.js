@@ -13,10 +13,7 @@ const rethrowPaymentError = (error) => {
   throw error;
 };
 
-/**
- * Checkout dossier Greffio via PaymentService.
- * B2C → Mollie via POST /api/payments. B2B → GoCardless / Mollie / virement.
- */
+/** Checkout dossier Greffio via PaymentService (Mollie). */
 export const createDossierCheckout = async ({
   dossier,
   offerCode,

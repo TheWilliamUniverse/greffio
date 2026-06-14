@@ -1,13 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, LockKeyhole, ShieldCheck } from 'lucide-react';
+import { ArrowRight, CheckCircle2, FileText, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button.jsx';
-import { PAYMENT_METHODS } from '@/config/businessCatalog.js';
 import { checkoutDossierPayment } from '@/api/payments.js';
-import { inferCustomerType, isB2B } from '@/utils/customerType.js';
+import { inferCustomerType } from '@/utils/customerType.js';
 import { checkoutResourceOrder, getResourceOrder } from '@/api/resources.js';
-import { formatResourcePrice, getCatalogItemById } from '@/config/resourceServices.js';
+import { formatResourcePrice, getCatalogItemById, getProcessingLabel } from '@/config/resourceServices.js';
 import { GreffioPaymentTerminal } from '@/components/payments/GreffioPaymentTerminal.jsx';
 import { formatEuroCents, resolveOfferAmountCents } from '@/config/paymentOffers.js';
 import { getCurrentDossierId } from '@/utils/sessionStore.js';
@@ -18,6 +17,8 @@ import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
 import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
 import { OfflineDataBanner } from '@/components/system/OfflineDataBanner.jsx';
 import { resolvePaymentCheckoutErrorMessage } from '@/utils/paymentErrors.js';
+import { openPaymentCheckoutUrl } from '@/utils/paymentCheckoutNavigation.js';
+import { formatOrderPublicReference } from '@/utils/orderReference.js';
 
 const offers = {
   'Statuts gratuits': { title: 'Statuts gratuits', price: '0€', tax: 'Aucun paiement requis' },
@@ -51,19 +52,17 @@ export const MobilePaymentPage = () => {
     () => inferCustomerType(currentUser, activeDossier),
     [currentUser, activeDossier],
   );
-  const showB2BProviders = isB2B(customerType);
-  // Lien direct /paiement?service=<doc> sans commande créée : afficher le bon document, pas l'offre dossier.
-  const landingCatalogItem = !resourceOrderId ? getCatalogItemById(service) : null;
-  const resourceLanding = landingCatalogItem && ['document', 'pack', 'service'].includes(landingCatalogItem.kind)
-    ? landingCatalogItem
+
+  const catalogService = resourceOrder?.serviceId
+    ? getCatalogItemById(resourceOrder.serviceId)
+    : getCatalogItemById(service);
+  const resourceLanding = !resourceOrderId
+    && catalogService
+    && ['document', 'pack', 'service'].includes(catalogService.kind)
+    ? catalogService
     : null;
-  const mainMethods = useMemo(() => {
-    const methods = PAYMENT_METHODS.filter((method) => method.id !== 'optional');
-    if (showB2BProviders) {
-      return methods.filter((method) => ['gocardless-checkout', 'sepa-transfer', 'sepa-debit'].includes(method.id));
-    }
-    return methods.filter((method) => method.id === 'mollie-card');
-  }, [showB2BProviders]);
+  const isResourceFlow = Boolean(resourceOrderId || resourceLanding);
+  const orderReference = formatOrderPublicReference(resourceOrder);
 
   useEffect(() => {
     if (!resourceOrderId) {
@@ -91,7 +90,7 @@ export const MobilePaymentPage = () => {
       if (resourceOrderId) {
         const payload = await checkoutResourceOrder(resourceOrderId);
         if (payload.checkoutUrl) {
-          window.location.href = payload.checkoutUrl;
+          await openPaymentCheckoutUrl(payload.checkoutUrl);
           return;
         }
         throw new Error('CHECKOUT_URL_MISSING');
@@ -107,8 +106,7 @@ export const MobilePaymentPage = () => {
         customerType,
       });
       if (payload.checkoutUrl) {
-        window.sessionStorage.setItem('greffio_payment_return', window.location.pathname + window.location.search);
-        window.location.href = payload.checkoutUrl;
+        await openPaymentCheckoutUrl(payload.checkoutUrl);
         return;
       }
       throw new Error('CHECKOUT_URL_MISSING');
@@ -166,28 +164,39 @@ export const MobilePaymentPage = () => {
         <p className="mt-2 text-sm text-white/85">
           {resourceOrder || resourceLanding ? 'Commande document – TVA incluse' : selectedOffer.tax}
         </p>
+        {orderReference ? (
+          <p className="mt-2 text-xs font-semibold text-white/80">{orderReference}</p>
+        ) : null}
       </section>
 
-      <section className="space-y-3">
-        {mainMethods.slice(0, 2).map((method) => (
-          <div key={method.id} className="rounded-2xl border border-border bg-white p-4 shadow-sm">
-            <p className="text-xs font-bold uppercase text-primary">{method.type}</p>
-            <p className="mt-1 text-base font-extrabold">{method.name}</p>
-            <p className="mt-2 text-sm text-muted-foreground">{method.description}</p>
+      {isResourceFlow && resourceOrder ? (
+        <section className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+          <div className="mb-2 flex items-center gap-2">
+            <FileText className="h-4 w-4 text-primary" />
+            <p className="text-sm font-extrabold">Récapitulatif</p>
           </div>
-        ))}
-      </section>
+          {resourceOrder.companyName ? (
+            <p className="text-sm text-muted-foreground">{resourceOrder.companyName}</p>
+          ) : null}
+          {catalogService?.estimatedDelay ? (
+            <p className="mt-1 text-xs text-muted-foreground">Délai : {catalogService.estimatedDelay}</p>
+          ) : null}
+          {catalogService ? (
+            <p className="mt-1 text-xs text-muted-foreground">{getProcessingLabel(catalogService)}</p>
+          ) : null}
+        </section>
+      ) : null}
 
       <section className="rounded-2xl border border-border bg-muted/40 p-4 text-sm leading-6 text-muted-foreground">
         <div className="mb-2 flex items-center gap-2 font-bold text-foreground">
           <ShieldCheck className="h-4 w-4 text-primary" />
           Retour Mollie sécurisé
         </div>
-        Après validation sur la page Mollie, vous revenez automatiquement sur Greffio.
-        Le statut est vérifié côté serveur avant confirmation du dossier.
+        Sur l’application, le paiement s’ouvre dans le navigateur sécurisé de votre téléphone.
+        Après validation, vous revenez automatiquement dans Greffio pour la confirmation.
         <div className="mt-3 flex items-center gap-2 text-xs">
           <LockKeyhole className="h-4 w-4 text-primary" />
-          {showB2BProviders ? 'Paiement professionnel SEPA / virement.' : 'Carte bancaire via Mollie – chiffrement TLS.'}
+          Carte bancaire via Mollie – chiffrement TLS et confirmation serveur.
         </div>
       </section>
 
@@ -211,33 +220,15 @@ export const MobilePaymentPage = () => {
         />
       ) : null}
 
-      {currentUser && (resourceOrder || !showB2BProviders) && amountCents > 0 && !loadingResourceOrder ? (
+      {currentUser && amountCents > 0 && !loadingResourceOrder && !resourceLanding ? (
         <GreffioPaymentTerminal
           amountCents={amountCents}
           amountLabel={amountLabel}
           offerLabel={resourceOrder?.serviceTitle || selectedOffer.title}
-          dossierId={!resourceOrderId ? getCurrentDossierId() : undefined}
-          resourceOrderId={resourceOrderId || undefined}
-          offerCode={offerName}
           onPayByCard={handleCheckout}
           isCreatingPayment={isCreatingPayment}
-          payButtonLabel={resourceOrder ? 'Payer avec Mollie' : 'Payer avec Mollie'}
+          payButtonLabel="Payer en ligne"
         />
-      ) : null}
-
-      {(showB2BProviders || (resourceOrder && !currentUser)) && !resourceLanding ? (
-      <Button
-        type="button"
-        variant="default"
-        className="h-12 w-full text-base"
-        onClick={handleCheckout}
-        disabled={isCreatingPayment || (resourceOrderId && loadingResourceOrder)}
-      >
-        {isCreatingPayment
-          ? 'Redirection vers Mollie…'
-          : 'Payer avec Mollie'}
-        <ArrowRight className="h-4 w-4" />
-      </Button>
       ) : null}
 
       {!currentUser ? (
@@ -246,8 +237,14 @@ export const MobilePaymentPage = () => {
         </Button>
       ) : null}
 
+      {resourceOrder ? (
+        <Button asChild variant="ghost" className="h-11 w-full">
+          <Link to="/boutique/commandes">Mes commandes</Link>
+        </Button>
+      ) : null}
+
       <Button asChild variant="ghost" className="h-11 w-full">
-        <Link to={resourceOrder || resourceLanding ? '/ressources' : '/tarifs'}>Retour</Link>
+        <Link to={resourceOrder || resourceLanding ? '/boutique' : '/tarifs'}>Retour</Link>
       </Button>
     </MobilePageContainer>
   );
