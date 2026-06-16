@@ -165,6 +165,10 @@ test.describe('questionnaire mobile – flux catégorie puis forme', () => {
     await expect(page.getByText('Choisissez une famille de formalité')).toBeVisible({ timeout: 20_000 });
     await page.getByRole('radio', { name: /Immatriculer une nouvelle structure/i }).click();
 
+    await expect(page.getByText(/forme juridique sera choisie/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('button', { name: /Changer de famille/i })).toBeVisible();
+    await page.getByRole('button', { name: /Étape suivante/i }).click();
+
     await expect(page.getByText('Quelle catégorie correspond à votre projet ?')).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole('radio', { name: /Créer une SASU/i })).toHaveCount(0);
     await page.getByRole('radio', { name: /Formes les plus courantes/i }).click();

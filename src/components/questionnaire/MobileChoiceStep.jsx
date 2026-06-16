@@ -5,7 +5,9 @@ import { cn } from '@/lib/utils.js';
 export const MobileChoiceTile = ({
   title,
   description,
+  kicker,
   icon: Icon,
+  imageSrc,
   iconTone = 'bg-secondary',
   selected = false,
   onSelect,
@@ -32,7 +34,24 @@ export const MobileChoiceTile = ({
       className,
     )}
   >
-    {Icon ? (
+    {imageSrc ? (
+      <span
+        className={cn(
+          'mb-2.5 shrink-0 overflow-hidden rounded-xl',
+          compact ? 'h-11 w-11' : 'h-12 w-12',
+        )}
+      >
+        <img
+          src={imageSrc}
+          alt=""
+          width={48}
+          height={48}
+          className="h-full w-full object-cover"
+          loading="lazy"
+          decoding="async"
+        />
+      </span>
+    ) : Icon ? (
       <span
         className={cn(
           'mb-2.5 flex shrink-0 items-center justify-center rounded-xl text-primary',
@@ -41,6 +60,11 @@ export const MobileChoiceTile = ({
         )}
       >
         <Icon className={compact ? 'h-4 w-4' : 'h-5 w-5'} strokeWidth={2.2} aria-hidden />
+      </span>
+    ) : null}
+    {kicker ? (
+      <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary/70">
+        {kicker}
       </span>
     ) : null}
     <span

@@ -76,6 +76,12 @@ export const DemarchePicker = ({
   const selectedLabel = DEMARCHE_CATALOG.find((item) => item.key === value)?.label;
   const shouldSkipCreationTiles = categoryFirst && categoryConfirmed && primaryCategory === 'creation';
 
+  const resetPrimaryCategory = () => {
+    setCategoryConfirmed(false);
+    setActiveCategory('all');
+    onChange('');
+  };
+
   useEffect(() => {
     if (!shouldSkipCreationTiles || value === CREATION_AUTO_FORMALITY) return;
     onChange(CREATION_AUTO_FORMALITY);
@@ -91,7 +97,6 @@ export const DemarchePicker = ({
           if (categoryId === 'creation') {
             onChange(CREATION_AUTO_FORMALITY);
             onSkipCreationTiles?.();
-            if (mobilePresentation) onAdvance?.();
           }
           if (categoryId) setCategoryConfirmed(true);
         }}
@@ -105,29 +110,40 @@ export const DemarchePicker = ({
     if (mobilePresentation) onAdvance?.();
   };
 
-  if (shouldSkipCreationTiles && mobilePresentation) {
-    return null;
-  }
+  if (shouldSkipCreationTiles) {
+    const confirmationCard = (
+      <div className="flex items-center gap-2 rounded-xl border border-primary/25 bg-secondary/60 px-3 py-3 text-sm">
+        <Check className="h-4 w-4 shrink-0 text-primary" />
+        <span>
+          <span className="font-semibold text-foreground">Créer une société</span>
+          <span className="text-muted-foreground"> – la forme juridique sera choisie à l&apos;étape suivante.</span>
+        </span>
+      </div>
+    );
 
-  if (shouldSkipCreationTiles && !mobilePresentation) {
+    if (mobilePresentation) {
+      return (
+        <div className="space-y-3">
+          <FormalityCategoryBackButton onClick={resetPrimaryCategory} />
+          <MobileChoiceStep
+            kicker="Votre démarche"
+            title="Créer une société"
+            subtitle="La forme juridique sera choisie à l'étape suivante."
+            hint="Appuyez sur Continuer pour passer à la suite."
+            gridClassName="grid grid-cols-1 gap-2.5"
+          >
+            {confirmationCard}
+          </MobileChoiceStep>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-4">
         {categoryFirst && categoryConfirmed ? (
-          <FormalityCategoryBackButton
-            onClick={() => {
-              setCategoryConfirmed(false);
-              setActiveCategory('all');
-              onChange('');
-            }}
-          />
+          <FormalityCategoryBackButton onClick={resetPrimaryCategory} />
         ) : null}
-        <div className="flex items-center gap-2 rounded-xl border border-primary/25 bg-secondary/60 px-3 py-3 text-sm">
-          <Check className="h-4 w-4 shrink-0 text-primary" />
-          <span>
-            <span className="font-semibold text-foreground">Créer une société</span>
-            <span className="text-muted-foreground"> – la forme juridique sera choisie à l&apos;étape suivante.</span>
-          </span>
-        </div>
+        {confirmationCard}
       </div>
     );
   }
@@ -136,13 +152,7 @@ export const DemarchePicker = ({
     return (
       <div className="space-y-3">
         {categoryFirst && categoryConfirmed ? (
-          <FormalityCategoryBackButton
-            onClick={() => {
-              setCategoryConfirmed(false);
-              setActiveCategory('all');
-              onChange('');
-            }}
-          />
+          <FormalityCategoryBackButton onClick={resetPrimaryCategory} />
         ) : null}
         <MobileChoiceStep
           kicker="Formalité"
@@ -169,13 +179,7 @@ export const DemarchePicker = ({
   return (
     <div className="space-y-4">
       {categoryFirst && categoryConfirmed ? (
-        <FormalityCategoryBackButton
-          onClick={() => {
-            setCategoryConfirmed(false);
-            setActiveCategory('all');
-            onChange('');
-          }}
-        />
+        <FormalityCategoryBackButton onClick={resetPrimaryCategory} />
       ) : null}
 
       <div className="relative">

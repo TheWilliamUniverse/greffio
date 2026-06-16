@@ -16,11 +16,14 @@ export const FormalityCategoryPicker = ({ value, onChange, onContinue, mobilePre
       >
         {PRIMARY_FORMALITY_CATEGORIES.map((category) => {
           const selected = value === category.id;
+          const visual = getCategoryVisual(category.id);
           return (
             <MobileChoiceTile
               key={category.id}
+              kicker={category.kicker}
               title={category.label}
               description={category.description}
+              imageSrc={visual.icon}
               selected={selected}
               compact
               onSelect={() => {

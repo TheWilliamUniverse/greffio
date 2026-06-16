@@ -899,6 +899,19 @@ export const QuestionnairePage = () => {
       associatesWizardRef.current.goBackLocally();
       return;
     }
+    if (
+      step.id === 'demarche'
+      && isAuthenticated
+      && demarcheCategoryConfirmed
+      && activeField?.key === 'typeFormalite'
+    ) {
+      setDemarcheCategoryConfirmed(false);
+      if (demarcheCategory === 'creation') {
+        setDemarcheCategory('');
+      }
+      setFormData((current) => ({ ...current, typeFormalite: '' }));
+      return;
+    }
     if (safeGroupIndex > 0) {
       setGroupIndex((current) => Math.max(0, current - 1));
       return;
