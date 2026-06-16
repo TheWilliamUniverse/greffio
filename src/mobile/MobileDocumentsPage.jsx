@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   FilePlus2,
@@ -44,6 +44,11 @@ import { resolveDocumentUserAction } from '@/utils/onlineDocumentStatus.js';
 import { triggerMobileHaptic } from '@/utils/mobileHaptics.js';
 import { toast } from 'sonner';
 import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
+import {
+  readDossierIdFromSearchParams,
+  resolveDocumentsDossierId,
+  shouldOpenDocumentsDossierPicker,
+} from '@/utils/documentsDossierContext.js';
 
 const FILTERS = ['Tous', 'Validés', 'En attente', 'Brouillons'];
 
@@ -55,6 +60,7 @@ const ONLINE_DOC_EDITOR_PATHS = {
 
 export const MobileDocumentsPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { currentUser } = useAuth();
   const internalView = isInternalUser(currentUser);
   const { setVaultPickerOpen } = useMobileShellOverlay();
@@ -68,7 +74,9 @@ export const MobileDocumentsPage = () => {
   const [uploadingDocKey, setUploadingDocKey] = useState(null);
   const [uploadError, setUploadError] = useState('');
   const [deletingDocKey, setDeletingDocKey] = useState(null);
-  const [dossierId, setDossierId] = useState(() => getCurrentDossierId());
+  const [dossierId, setDossierId] = useState(() => (
+    readDossierIdFromSearchParams(searchParams) || getCurrentDossierId()
+  ));
   const [pickerOpen, setPickerOpen] = useState(false);
   const { data: dossiersList = [], isLoading: loadingDossiers } = useDossiersQuery(currentUser?.id);
   const { data: dossierPayload, isLoading: loadingDossier, isError, refetch } = useDossierQuery(dossierId);
@@ -84,18 +92,28 @@ export const MobileDocumentsPage = () => {
   } = useDossierDocumentPreview();
 
   useEffect(() => {
+    const fromUrl = readDossierIdFromSearchParams(searchParams);
+    if (fromUrl) {
+      saveCurrentDossierId(fromUrl);
+      setDossierId(fromUrl);
+    }
     if (loadingDossiers || internalView) return;
     const items = Array.isArray(dossiersList) ? dossiersList : [];
-    if (items.length <= 1) {
-      if (items.length === 1) {
-        saveCurrentDossierId(items[0].id);
-        setDossierId(items[0].id);
-      }
-      setPickerOpen(false);
-      return;
+    const dossierIds = items.map((item) => item.id).filter(Boolean);
+    if (!fromUrl) {
+      const nextId = resolveDocumentsDossierId({
+        searchParams,
+        dossierIds,
+        fallbackId: getCurrentDossierId(),
+      });
+      if (nextId) setDossierId(nextId);
     }
-    setPickerOpen(true);
-  }, [loadingDossiers, dossiersList, internalView]);
+    setPickerOpen(shouldOpenDocumentsDossierPicker({
+      searchParams,
+      dossierCount: items.length,
+      internalView,
+    }));
+  }, [loadingDossiers, dossiersList, internalView, searchParams]);
 
   useEffect(() => {
     const open = pickerOpen && !internalView;

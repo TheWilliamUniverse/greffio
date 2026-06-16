@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Archive, CheckCircle2, Eye, FilePlus2, FileText, FormInput, Search, ShieldCheck, Trash2, Upload } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar.jsx';
@@ -11,7 +11,6 @@ import { normalizeUploadToPdfWithMessage, ensurePdfFilename } from '@/utils/docu
 import { isEiLikeFormality } from '@/config/formalities.js';
 import { getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.js';
 import { DossierVaultPickerOverlay } from '@/components/dossiers/DossierVaultPickerOverlay.jsx';
-import { syncCurrentDossierId } from '@/utils/documentEditorErrors.js';
 import {
   deleteDossierDocument,
   downloadDossierDocument,
@@ -35,9 +34,15 @@ import { queryKeys } from '@/hooks/queries/queryKeys.js';
 import { isInternalUser } from '@/utils/roles.js';
 import { getDocumentStatusLabel, getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 import { documentHasFile, filterClientActionRequiredDocuments, filterClientVisibleDocuments, formatDocumentRejectionHint, resolveClientDocumentStatus } from '@/utils/documentWorkflow.js';
+import {
+  readDossierIdFromSearchParams,
+  resolveDocumentsDossierId,
+  shouldOpenDocumentsDossierPicker,
+} from '@/utils/documentsDossierContext.js';
 
 export const DocumentsPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { currentUser } = useAuth();
   const internalView = isInternalUser(currentUser);
@@ -56,7 +61,9 @@ export const DocumentsPage = () => {
   const [previewLoadingDocKey, setPreviewLoadingDocKey] = useState(null);
   const rowUploadRef = useRef(null);
   const pendingUploadDocKey = useRef(null);
-  const [resolvedDossierId, setResolvedDossierId] = useState(() => getCurrentDossierId());
+  const [resolvedDossierId, setResolvedDossierId] = useState(() => (
+    readDossierIdFromSearchParams(searchParams) || getCurrentDossierId()
+  ));
   const [pickerOpen, setPickerOpen] = useState(false);
   const {
     data: dossierPayload,
@@ -135,24 +142,28 @@ export const DocumentsPage = () => {
   const types = useMemo(() => ['Tous', ...new Set(normalizedDocuments.map((document) => document.type))], [normalizedDocuments]);
 
   useEffect(() => {
+    const fromUrl = readDossierIdFromSearchParams(searchParams);
+    if (fromUrl) {
+      saveCurrentDossierId(fromUrl);
+      setResolvedDossierId(fromUrl);
+    }
     if (loadingDossiers || internalView) return;
     const items = Array.isArray(dossiersList) ? dossiersList : [];
-    if (items.length <= 1) {
-      if (items.length === 1) {
-        saveCurrentDossierId(items[0].id);
-        setResolvedDossierId(items[0].id);
-      }
-      setPickerOpen(false);
-      return;
+    const dossierIds = items.map((item) => item.id).filter(Boolean);
+    if (!fromUrl) {
+      const nextId = resolveDocumentsDossierId({
+        searchParams,
+        dossierIds,
+        fallbackId: getCurrentDossierId(),
+      });
+      if (nextId) setResolvedDossierId(nextId);
     }
-    setPickerOpen(true);
-  }, [loadingDossiers, dossiersList, internalView]);
-
-  useEffect(() => {
-    const dossierIds = dossiersList.map((item) => item.id).filter(Boolean);
-    const dossierId = syncCurrentDossierId(dossierIds);
-    setResolvedDossierId(dossierId);
-  }, [dossiersList]);
+    setPickerOpen(shouldOpenDocumentsDossierPicker({
+      searchParams,
+      dossierCount: items.length,
+      internalView,
+    }));
+  }, [loadingDossiers, dossiersList, internalView, searchParams]);
 
   const handlePickDossier = (dossier) => {
     saveCurrentDossierId(dossier.id);

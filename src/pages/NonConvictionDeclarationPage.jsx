@@ -18,6 +18,7 @@ import {
 } from '@/api/nonConviction.js';
 import { runtimeConfig } from '@/config/runtime.js';
 import { buildSignedDocumentResult } from '@/utils/signedDocumentResult.js';
+import { downloadSignedDocument } from '@/utils/signedDocumentDownload.js';
 import { getDocumentEditorLoadErrorMessage } from '@/utils/documentEditorErrors.js';
 import { NonConvictionEditorForm } from '@/components/documents/NonConvictionEditorForm.jsx';
 import { DocumentEditorLoadGate } from '@/components/documents/DocumentEditorLoadGate.jsx';
@@ -172,6 +173,7 @@ export const NonConvictionDeclarationPage = () => {
           signaturePayload,
           documentLabel: 'Déclaration de non-condamnation et filiation',
           previewBlobUrl: nextBlobUrl,
+          previewBlob: blob,
           previewFilename: 'Declaration_non_condamnation_signee.pdf',
         }));
       } catch (downloadError) {
@@ -326,21 +328,19 @@ export const NonConvictionDeclarationPage = () => {
               proofId={signedResult.proofId}
               verifyUrl={signedResult.verifyUrl}
               previewBlobUrl={signedResult.previewBlobUrl}
+              previewBlob={signedResult.previewBlob}
               previewFilename={signedResult.previewFilename}
+              dossierId={dossierId}
+              docKey="manager_non_conviction"
               onDownload={async () => {
-                const { blob } = await downloadDossierDocument({
+                await downloadSignedDocument({
+                  blob: signedResult.previewBlob,
+                  filename: signedResult.previewFilename,
                   dossierId,
                   docKey: 'manager_non_conviction',
-                  cacheBust: true,
                 });
-                const url = URL.createObjectURL(blob);
-                const anchor = document.createElement('a');
-                anchor.href = url;
-                anchor.download = signedResult.previewFilename;
-                anchor.click();
-                URL.revokeObjectURL(url);
               }}
-              onContinue={() => navigate('/documents')}
+              onContinue={() => navigate(dossierId ? `/documents?dossierId=${encodeURIComponent(dossierId)}` : '/documents')}
               continueLabel="Continuer l'édition"
               validationNotchOnContinue
             />

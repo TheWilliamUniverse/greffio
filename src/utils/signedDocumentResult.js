@@ -4,6 +4,7 @@ export const buildSignedDocumentResult = ({
   signaturePayload = {},
   documentLabel = 'Document',
   previewBlobUrl = '',
+  previewBlob = null,
   previewFilename = 'document-signe.pdf',
 }) => ({
   documentLabel,
@@ -12,5 +13,6 @@ export const buildSignedDocumentResult = ({
   proofId: apiResult.proofId || '',
   verifyUrl: apiResult.verifyUrl || '',
   previewBlobUrl,
+  previewBlob,
   previewFilename,
 });

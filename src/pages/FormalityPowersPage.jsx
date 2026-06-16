@@ -26,6 +26,7 @@ import { triggerMobileHaptic } from '@/utils/mobileHaptics.js';
 import { cn } from '@/lib/utils.js';
 import { runtimeConfig } from '@/config/runtime.js';
 import { buildSignedDocumentResult } from '@/utils/signedDocumentResult.js';
+import { downloadSignedDocument } from '@/utils/signedDocumentDownload.js';
 
 const DOC_KEY = 'formality_powers';
 
@@ -140,6 +141,7 @@ export const FormalityPowersPage = () => {
         signaturePayload,
         documentLabel: 'Procuration et pouvoirs pour formalités',
         previewBlobUrl: nextBlobUrl,
+        previewBlob: blob,
         previewFilename: 'Procuration_pouvoirs_formalites_signes.pdf',
       }));
       toast.success('Signature enregistrée. Votre document est maintenant enregistré dans le dossier.');
@@ -323,17 +325,19 @@ export const FormalityPowersPage = () => {
               proofId={signedResult.proofId}
               verifyUrl={signedResult.verifyUrl}
               previewBlobUrl={signedResult.previewBlobUrl}
+              previewBlob={signedResult.previewBlob}
               previewFilename={signedResult.previewFilename}
+              dossierId={dossierId}
+              docKey={DOC_KEY}
               onDownload={async () => {
-                const { blob } = await downloadDossierDocument({ dossierId, docKey: DOC_KEY, cacheBust: true });
-                const url = URL.createObjectURL(blob);
-                const anchor = document.createElement('a');
-                anchor.href = url;
-                anchor.download = signedResult.previewFilename;
-                anchor.click();
-                URL.revokeObjectURL(url);
+                await downloadSignedDocument({
+                  blob: signedResult.previewBlob,
+                  filename: signedResult.previewFilename,
+                  dossierId,
+                  docKey: DOC_KEY,
+                });
               }}
-              onContinue={() => navigate('/documents')}
+              onContinue={() => navigate(dossierId ? `/documents?dossierId=${encodeURIComponent(dossierId)}` : '/documents')}
               continueLabel="Continuer l'édition"
               validationNotchOnContinue
             />

@@ -16,7 +16,9 @@ import {
   fetchDocumentSignSession,
   downloadDocumentSignPreview,
   submitDocumentSignature,
+  downloadDossierDocument,
 } from '@/api/documents.js';
+import { downloadSignedDocument } from '@/utils/signedDocumentDownload.js';
 import { runtimeConfig } from '@/config/runtime.js';
 import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
 import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
@@ -34,6 +36,8 @@ export const DocumentSignPage = () => {
   const [previewAcknowledged, setPreviewAcknowledged] = useState(false);
   const [previewBlobUrl, setPreviewBlobUrl] = useState('');
   const [previewBlob, setPreviewBlob] = useState(null);
+  const [signedPreviewBlob, setSignedPreviewBlob] = useState(null);
+  const [signedPreviewBlobUrl, setSignedPreviewBlobUrl] = useState('');
   const [step, setStep] = useState('adopt');
   const [done, setDone] = useState(false);
   const [proofId, setProofId] = useState('');
@@ -81,7 +85,8 @@ export const DocumentSignPage = () => {
 
   useEffect(() => () => {
     if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);
-  }, [previewBlobUrl]);
+    if (signedPreviewBlobUrl) URL.revokeObjectURL(signedPreviewBlobUrl);
+  }, [previewBlobUrl, signedPreviewBlobUrl]);
 
   const finalizeSign = async (payload) => {
     setSigning(true);
@@ -93,6 +98,22 @@ export const DocumentSignPage = () => {
       });
       setProofId(result.proofId || '');
       setVerifyUrl(result.verifyUrl || '');
+      try {
+        const { blob } = await downloadDossierDocument({
+          dossierId: session.dossierId,
+          docKey: session.docKey,
+          cacheBust: true,
+          inline: true,
+        });
+        setSignedPreviewBlob(blob);
+        setSignedPreviewBlobUrl((current) => {
+          if (current) URL.revokeObjectURL(current);
+          return URL.createObjectURL(blob);
+        });
+      } catch (_downloadError) {
+        setSignedPreviewBlob(previewBlob);
+        setSignedPreviewBlobUrl(previewBlobUrl);
+      }
       setDone(true);
       toast.success('Document signé avec succès.');
     } catch (err) {
@@ -134,6 +155,9 @@ export const DocumentSignPage = () => {
   }
 
   if (done) {
+    const documentsContinueUrl = session.dossierId
+      ? `/documents?dossierId=${encodeURIComponent(session.dossierId)}`
+      : '/documents';
     return (
       <div className={cn('flex min-h-screen bg-[#f6f8fc]', isMobilePresentation ? 'flex-col' : '')}>
         {!isMobilePresentation ? <Sidebar /> : null}
@@ -145,9 +169,20 @@ export const DocumentSignPage = () => {
             signedAt={new Date().toISOString()}
             proofId={proofId}
             verifyUrl={verifyUrl}
-            previewBlobUrl={previewBlobUrl}
+            previewBlobUrl={signedPreviewBlobUrl || previewBlobUrl}
+            previewBlob={signedPreviewBlob || previewBlob}
             previewFilename="document-signe-greffio.pdf"
-            onContinue={() => navigate('/documents')}
+            dossierId={session.dossierId}
+            docKey={session.docKey}
+            onDownload={async () => {
+              await downloadSignedDocument({
+                blob: signedPreviewBlob || previewBlob,
+                filename: 'document-signe-greffio.pdf',
+                dossierId: session.dossierId,
+                docKey: session.docKey,
+              });
+            }}
+            onContinue={() => navigate(documentsContinueUrl)}
             continueLabel="Retour aux documents"
             validationNotchOnContinue
           />

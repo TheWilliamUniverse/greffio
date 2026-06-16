@@ -1,9 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { CheckCircle2, Download, ExternalLink, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Download, ExternalLink, Eye, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { PdfPreviewPanel } from '@/components/documents/PdfPreviewPanel.jsx';
+import { MobileDocumentPreviewSheet } from '@/mobile/ui/MobileDocumentPreviewSheet.jsx';
 import { SignatureValidationNotch } from '@/components/signature/SignatureValidationNotch.jsx';
 import { triggerMobileHaptic } from '@/utils/mobileHaptics.js';
+import { openCachedPdfInSystemViewer, savePdfBlobToDevice } from '@/utils/dossierDocumentFile.js';
+import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 import { cn } from '@/lib/utils.js';
 
 export const SIGNATURE_CONTINUE_VALIDATION_MS = 1400;
@@ -29,7 +32,11 @@ export const SignedDocumentSuccessPanel = ({
   proofId = '',
   verifyUrl = '',
   previewBlobUrl = '',
+  previewBlob = null,
+  previewArrayBuffer = null,
   previewFilename = 'document-signe.pdf',
+  dossierId = '',
+  docKey = '',
   onDownload,
   downloadHref = '',
   downloadLabel = 'Télécharger le document signé',
@@ -45,8 +52,65 @@ export const SignedDocumentSuccessPanel = ({
 }) => {
   const signedAtLabel = formatFrenchDateTime(signedAt);
   const isPage = layout === 'page';
+  const isMobilePresentation = isCapacitorNative() || isMobileBrowserViewport();
   const [validating, setValidating] = useState(false);
+  const [previewSheetOpen, setPreviewSheetOpen] = useState(false);
+  const [previewDownloading, setPreviewDownloading] = useState(false);
   const continueTimerRef = useRef(null);
+
+  const handleDownloadClick = onDownload || (previewBlob || previewBlobUrl ? async () => {
+    if (previewBlob) {
+      await savePdfBlobToDevice(previewBlob, previewFilename);
+      return;
+    }
+    if (previewBlobUrl) {
+      const response = await fetch(previewBlobUrl);
+      const blob = await response.blob();
+      await savePdfBlobToDevice(blob, previewFilename);
+    }
+  } : null);
+
+  const handleOpenPreview = async () => {
+    if (previewBlob) {
+      await openCachedPdfInSystemViewer({
+        blob: previewBlob,
+        filename: previewFilename,
+        dossierId,
+        docKey,
+      });
+      return;
+    }
+    if (previewBlobUrl) {
+      const response = await fetch(previewBlobUrl);
+      const blob = await response.blob();
+      await openCachedPdfInSystemViewer({
+        blob,
+        filename: previewFilename,
+        dossierId,
+        docKey,
+      });
+    }
+  };
+
+  const handleSheetDownload = async () => {
+    setPreviewDownloading(true);
+    try {
+      if (handleDownloadClick) await handleDownloadClick();
+    } finally {
+      setPreviewDownloading(false);
+    }
+  };
+
+  const handleSheetOpenExternal = async () => {
+    setPreviewDownloading(true);
+    try {
+      await handleOpenPreview();
+    } finally {
+      setPreviewDownloading(false);
+    }
+  };
+
+  const hasPreview = Boolean(previewBlobUrl || previewBlob || previewArrayBuffer);
 
   useEffect(() => () => {
     if (continueTimerRef.current) window.clearTimeout(continueTimerRef.current);
@@ -156,24 +220,39 @@ export const SignedDocumentSuccessPanel = ({
         </dl>
       ) : null}
 
-      {previewBlobUrl ? (
+      {hasPreview && !isMobilePresentation ? (
         <div className="mt-6 w-full max-w-2xl overflow-hidden rounded-xl border border-border/70">
           <PdfPreviewPanel
             title="Document signé"
             blobUrl={previewBlobUrl}
             filename={previewFilename}
+            onOpen={previewBlob ? () => void handleOpenPreview() : undefined}
           />
         </div>
       ) : null}
 
+      {hasPreview && isMobilePresentation ? (
+        <div className="mt-6 w-full max-w-md">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-12 w-full rounded-2xl bg-white"
+            onClick={() => setPreviewSheetOpen(true)}
+          >
+            <Eye className="h-4 w-4" />
+            Consulter le document signé
+          </Button>
+        </div>
+      ) : null}
+
       <div className="mt-6 flex w-full max-w-md flex-col gap-3">
-        {onDownload ? (
-          <Button type="button" className="h-12 rounded-2xl" onClick={onDownload}>
+        {handleDownloadClick ? (
+          <Button type="button" className="h-12 rounded-2xl" onClick={() => void handleDownloadClick()}>
             {downloadLabel}
             <Download className="h-4 w-4" />
           </Button>
         ) : null}
-        {!onDownload && downloadHref ? (
+        {!handleDownloadClick && downloadHref ? (
           <Button asChild className="h-12 rounded-2xl">
             <a href={downloadHref} target="_blank" rel="noreferrer">
               {downloadLabel}
@@ -212,6 +291,19 @@ export const SignedDocumentSuccessPanel = ({
       <p className="mt-4 max-w-md text-[11px] leading-5 text-muted-foreground">
         Signature électronique simple (SES) – non qualifiée eIDAS. Le QR code figurant sur le PDF permet de vérifier l&apos;intégrité du document.
       </p>
+
+      <MobileDocumentPreviewSheet
+        open={previewSheetOpen}
+        title="Document signé"
+        previewSrc={previewBlobUrl}
+        previewArrayBuffer={previewArrayBuffer}
+        previewBlob={previewBlob}
+        filename={previewFilename}
+        downloading={previewDownloading}
+        onClose={() => setPreviewSheetOpen(false)}
+        onDownload={() => { void handleSheetDownload(); }}
+        onOpenExternal={() => { void handleSheetOpenExternal(); }}
+      />
     </div>
   );
 };

@@ -19,6 +19,13 @@ export const resolveDossierDashboardCta = (dossier = {}, actionState = null) => 
   const status = String(dossier?.status || '').toLowerCase();
   const pastQuestionnairePhase = progress > 90;
 
+  if (actionState?.kind === 'documents' && actionState?.url) {
+    return {
+      url: actionState.url,
+      label: actionState.label || 'Compléter le dossier',
+    };
+  }
+
   if (
     pastQuestionnairePhase
     && (QUESTIONNAIRE_STATUSES.has(status) || actionState?.kind === 'questionnaire')
