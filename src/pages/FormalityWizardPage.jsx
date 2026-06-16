@@ -178,6 +178,18 @@ const contactFields = [
   { key: 'email', label: 'Email', type: 'email', placeholder: 'vous@entreprise.fr' },
   { key: 'phone', label: 'Numéro joignable', type: 'tel', placeholder: GREFFIO_CONTACT.supportPhone },
 ];
+const PROJECT_DETAIL_FIELDS = [
+  {
+    key: 'urgency',
+    label: 'Délai souhaité',
+    type: 'select',
+    options: ['Aujourd’hui', 'Cette semaine', 'Ce mois-ci', 'Je compare encore'],
+  },
+  { key: 'companyName', label: 'Nom envisagé', type: 'text', placeholder: 'Ex. Ma Société SAS', required: true },
+  { key: 'city', label: 'Ville du siège', type: 'text', placeholder: 'Ex. Paris', required: true },
+  { key: 'activity', label: 'Activité principale', type: 'text', placeholder: 'Ex. conseil en gestion', required: true },
+];
+const INITIATOR_LEGAL_FORMS = ['SA', 'SAS', 'SASU', 'SARL', 'EURL', 'SCI', 'Association', 'Autre personne morale'];
 const targetFormGroups = COMPANY_FORM_CATALOG.reduce((groups, form) => {
   const group = groups.find((item) => item.category === form.family);
   if (group) {
@@ -279,6 +291,8 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
   const [questionExitPhase, setQuestionExitPhase] = useState(null);
   const [questionnaireFinished, setQuestionnaireFinished] = useState(false);
   const [contactStep, setContactStep] = useState(0);
+  const [initiatorFieldStep, setInitiatorFieldStep] = useState(0);
+  const [projectDetailIndex, setProjectDetailIndex] = useState(0);
   // Création d'espace inline (mobile, nouveau client) : none → offer → creating | skipped
   const [accountPhase, setAccountPhase] = useState('none');
   const [accountPassword, setAccountPassword] = useState('');
@@ -329,7 +343,8 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     () => isAuthenticated && hasCompleteUserContact(currentUser),
     [isAuthenticated, currentUser],
   );
-  const shouldCreateAccountInline = isMobilePresentation && !isAuthenticated && data.journey === 'creation';
+  // La simulation reste publique : pas de création de compte obligatoire avant la synthèse.
+  const shouldCreateAccountInline = false;
   const isAccountCreationStep = step === 1
     && !isCompanyLookupStep
     && projectSubStep === 0
@@ -501,11 +516,8 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     if (skipContactStep || !currentUser) return;
     const firstIncomplete = contactFields.findIndex((field) => !isContactDetailValid(field.key, data[field.key]));
     if (firstIncomplete === -1 && step === 1 && projectSubStep === 0 && !isAccountCreationStep) {
-      if (shouldCreateAccountInline && accountPhase === 'none') {
-        setAccountPhase('offer');
-      } else {
-        setProjectSubStep(1);
-      }
+      setProjectSubStep(1);
+      setInitiatorFieldStep(0);
       return;
     }
     if (firstIncomplete > 0) {
@@ -541,7 +553,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     }, 140);
 
     return () => window.clearTimeout(timer);
-  }, [step, projectSubStep, contactStep, step2Phase, showOffers]);
+  }, [step, projectSubStep, contactStep, initiatorFieldStep, projectDetailIndex, step2Phase, showOffers]);
 
   useEffect(() => {
     setActiveQuestionIndex(0);
@@ -571,6 +583,78 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
 
   const activeContactField = contactFields[contactStep];
   const contactCompletion = Math.round(((contactStep + 1) / contactFields.length) * 100);
+  const initiatorMobileSteps = useMemo(() => {
+    const stepsList = [{ id: 'type', kind: 'choice' }, { id: 'name', kind: 'input', key: 'initiatorName' }];
+    if (data.initiatorType === 'personne_morale') {
+      stepsList.push(
+        { id: 'representative', kind: 'input', key: 'initiatorRepresentative' },
+        { id: 'legal_form', kind: 'select', key: 'initiatorLegalForm' },
+      );
+    }
+    return stepsList;
+  }, [data.initiatorType]);
+  const activeInitiatorStep = initiatorMobileSteps[initiatorFieldStep] || initiatorMobileSteps[0];
+  const activeProjectDetailField = PROJECT_DETAIL_FIELDS[projectDetailIndex] || PROJECT_DETAIL_FIELDS[0];
+  const isProjectDetailSelectStep = activeProjectDetailField?.type === 'select';
+  const hideProjectStepHeader = isMobilePresentation && (
+    (projectSubStep === 0 && !isAccountCreationStep)
+    || (projectSubStep === 1 && initiatorFieldStep === 0)
+    || projectSubStep === 2
+    || (projectSubStep === 4 && !isProjectDetailSelectStep)
+  );
+  const selectInitiatorType = (nextType) => {
+    update('initiatorType', nextType);
+    if (isMobilePresentation) {
+      window.setTimeout(() => setInitiatorFieldStep(1), 220);
+    }
+  };
+
+  const isInitiatorStepValid = (stepDef = activeInitiatorStep) => {
+    if (!stepDef) return false;
+    if (stepDef.kind === 'choice') return Boolean(data.initiatorType);
+    const value = String(data[stepDef.key] || '').trim();
+    if (!value) return false;
+    return true;
+  };
+
+  const isProjectDetailFieldValid = (field = activeProjectDetailField) => {
+    if (!field) return false;
+    if (field.type === 'select') return Boolean(data[field.key]);
+    if (!field.required) return true;
+    return Boolean(String(data[field.key] || '').trim());
+  };
+
+  const advanceInitiatorFieldStep = () => {
+    if (!isInitiatorStepValid()) return;
+    if (initiatorFieldStep < initiatorMobileSteps.length - 1) {
+      setInitiatorFieldStep((current) => current + 1);
+      return;
+    }
+    setProjectSubStep(2);
+    setInitiatorFieldStep(0);
+  };
+
+  const advanceProjectDetailField = () => {
+    if (!isProjectDetailFieldValid()) return;
+    if (projectDetailIndex < PROJECT_DETAIL_FIELDS.length - 1) {
+      setProjectDetailIndex((current) => current + 1);
+      return;
+    }
+    setStep(2);
+  };
+
+  const selectProjectDetailOption = (value) => {
+    update(activeProjectDetailField.key, value);
+    if (isMobilePresentation) {
+      window.setTimeout(() => {
+        if (projectDetailIndex < PROJECT_DETAIL_FIELDS.length - 1) {
+          setProjectDetailIndex((current) => current + 1);
+        } else {
+          setStep(2);
+        }
+      }, 220);
+    }
+  };
   const canContinueContact = () => {
     const value = String(data[activeContactField.key] || '').trim();
     if (!value) return false;
@@ -668,6 +752,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     setActiveQuestionIndex(0);
     setQuestionnaireFinished(false);
     setProjectSubStep(4);
+    setProjectDetailIndex(0);
   };
 
   useEffect(() => {
@@ -684,6 +769,18 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     setExistingCompanyError('');
     setExistingCompanyState('idle');
   }, [data.journey]);
+
+  useEffect(() => {
+    if (initiatorFieldStep >= initiatorMobileSteps.length) {
+      setInitiatorFieldStep(Math.max(0, initiatorMobileSteps.length - 1));
+    }
+  }, [initiatorFieldStep, initiatorMobileSteps.length]);
+
+  useEffect(() => {
+    if (projectDetailIndex >= PROJECT_DETAIL_FIELDS.length) {
+      setProjectDetailIndex(Math.max(0, PROJECT_DETAIL_FIELDS.length - 1));
+    }
+  }, [projectDetailIndex]);
 
   useEffect(() => {
     if (step === 2) {
@@ -767,6 +864,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
       return canContinueContact();
     }
     if (projectSubStep === 1) {
+      if (isMobilePresentation) return isInitiatorStepValid();
       if (data.initiatorType === 'personne_morale') {
         return Boolean(String(data.initiatorName || '').trim() && String(data.initiatorRepresentative || '').trim());
       }
@@ -774,6 +872,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     }
     if (projectSubStep === 2) return Boolean(data.legalForm);
     if (projectSubStep === 3) return Boolean(data.legalForm);
+    if (isMobilePresentation) return isProjectDetailFieldValid();
     return Boolean(String(data.companyName || '').trim() && String(data.city || '').trim());
   };
 
@@ -783,11 +882,13 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
       setCompanyLookupConfirmed(true);
       setProjectSubStep(skipContactStep ? 1 : 0);
       setContactStep(0);
+      setInitiatorFieldStep(0);
       return;
     }
     if (projectSubStep === 0) {
       if (skipContactStep) {
         setProjectSubStep(1);
+        setInitiatorFieldStep(0);
         return;
       }
       if (isAccountCreationStep) {
@@ -798,15 +899,23 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
         setContactStep((value) => value + 1);
         return;
       }
-      if (shouldCreateAccountInline && accountPhase === 'none') {
-        setAccountPhase('offer');
-        return;
-      }
+      setProjectSubStep(1);
+      setInitiatorFieldStep(0);
+      return;
+    }
+    if (projectSubStep === 1 && isMobilePresentation) {
+      advanceInitiatorFieldStep();
+      return;
+    }
+    if (projectSubStep === 4 && isMobilePresentation) {
+      advanceProjectDetailField();
+      return;
     }
     if (projectSubStep < PROJECT_SUB_STEPS.length - 1) {
       let nextSubStep = projectSubStep + 1;
       if (nextSubStep === 3) nextSubStep = 4;
       setProjectSubStep(nextSubStep);
+      if (nextSubStep === 4) setProjectDetailIndex(0);
       return;
     }
     setStep(2);
@@ -826,6 +935,14 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
       setCompanyLookupConfirmed(false);
       return;
     }
+    if (projectSubStep === 4 && isMobilePresentation && projectDetailIndex > 0) {
+      setProjectDetailIndex((value) => value - 1);
+      return;
+    }
+    if (projectSubStep === 1 && isMobilePresentation && initiatorFieldStep > 0) {
+      setInitiatorFieldStep((value) => value - 1);
+      return;
+    }
     if (projectSubStep === 0 && contactStep > 0) {
       setContactStep((value) => value - 1);
       return;
@@ -834,6 +951,8 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
       let nextSubStep = projectSubStep - 1;
       if (nextSubStep === 3) nextSubStep = 2;
       setProjectSubStep(nextSubStep);
+      if (nextSubStep === 4) setProjectDetailIndex(PROJECT_DETAIL_FIELDS.length - 1);
+      if (nextSubStep === 1) setInitiatorFieldStep(Math.max(0, initiatorMobileSteps.length - 1));
       return;
     }
     setStep(0);
@@ -843,6 +962,8 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     if (step === 0) {
       setProjectSubStep(skipContactStep ? 1 : 0);
       setContactStep(0);
+      setInitiatorFieldStep(0);
+      setProjectDetailIndex(0);
       setCompanyLookupConfirmed(false);
       setStep(1);
       return;
@@ -967,6 +1088,8 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
   const choiceTapNoContinue = (
     step === 0
     || (step === 1 && projectSubStep === 2)
+    || (step === 1 && projectSubStep === 1 && isMobilePresentation && (activeInitiatorStep?.kind === 'choice' || activeInitiatorStep?.kind === 'select'))
+    || (step === 1 && projectSubStep === 4 && isMobilePresentation && isProjectDetailSelectStep)
     || (step === 2 && step2Phase === 'questionnaire' && activeQuestion?.type === 'select' && !questionnaireFinished && !questionExitPhase)
   );
 
@@ -1101,7 +1224,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
 
                 {step === 1 && (
                   <div className={cn(isMobilePresentation ? 'min-w-0 space-y-3' : 'space-y-7')}>
-                    {!( !isCompanyLookupStep && !isAccountCreationStep && projectSubStep === 2) ? (
+                    {!hideProjectStepHeader && !(isCompanyLookupStep || isAccountCreationStep) ? (
                     <div className="min-w-0">
                       <p className={cn('font-bold uppercase text-primary', isMobilePresentation ? 'text-[10px] tracking-wide' : 'text-sm')}>
                         {isCompanyLookupStep ? 'Entreprise existante' : isAccountCreationStep ? 'Votre espace' : 'Projet'}
@@ -1168,7 +1291,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                     ) : (
                     <AnimatePresence mode="wait">
                       <motion.div
-                        key={`project-${projectSubStep}-${projectSubStep === 0 ? (isAccountCreationStep ? 'account' : contactStep) : 'static'}`}
+                        key={`project-${projectSubStep}-${projectSubStep === 0 ? (isAccountCreationStep ? 'account' : contactStep) : projectSubStep === 1 ? initiatorFieldStep : projectSubStep === 4 ? projectDetailIndex : 'static'}`}
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -12 }}
@@ -1248,7 +1371,27 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                           </div>
                         )}
 
-                        {projectSubStep === 0 && !isAccountCreationStep && (
+                        {projectSubStep === 0 && !isAccountCreationStep && isMobilePresentation ? (
+                          <MobileInputStep
+                            kicker="Projet"
+                            title={activeContactField.label}
+                            subtitle="Une question à la fois – vos coordonnées servent au dossier et aux relances Greffio."
+                            progressPercent={contactCompletion}
+                            stepCurrent={contactStep + 1}
+                            stepTotal={contactFields.length}
+                            fieldId={`simulator-contact-${activeContactField.key}`}
+                            value={data[activeContactField.key] || ''}
+                            placeholder={activeContactField.placeholder || ''}
+                            inputMode={resolveInputMode(activeContactField.key)}
+                            inputType={activeContactField.type}
+                            canAdvance={canContinueContact()}
+                            onChange={(nextValue) => update(activeContactField.key, nextValue)}
+                            onAdvance={tryWizardContinue}
+                            hint="Touchez la flèche pour continuer."
+                          />
+                        ) : null}
+
+                        {projectSubStep === 0 && !isAccountCreationStep && !isMobilePresentation ? (
                           <div className={cn('simulator-contact-card rounded-2xl border border-border bg-muted', isMobilePresentation ? 'p-3.5' : 'p-6 md:p-8')}>
                             <div className={cn('flex gap-3', isMobilePresentation ? 'flex-col items-stretch' : 'items-center justify-between gap-4')}>
                               <div className="min-w-0 flex-1">
@@ -1310,48 +1453,83 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                               Vos données sont en sécurité et transmises uniquement à l’administration française pour enregistrer votre entreprise.
                             </p>
                           </div>
-                        )}
+                        ) : null}
 
                         {projectSubStep === 1 && (
                           isMobilePresentation ? (
                             <div className="space-y-4">
-                              <MobileChoiceStep
-                                kicker="Projet"
-                                title="Qui effectue la démarche ?"
-                                subtitle="Une personne physique ou morale peut porter la demande, y compris une société qui crée une filiale."
-                                gridClassName="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3"
-                              >
-                                <MobileChoiceTile
-                                  title="Personne physique"
-                                  selected={data.initiatorType === 'personne_physique'}
-                                  onSelect={() => update('initiatorType', 'personne_physique')}
+                              {activeInitiatorStep?.kind === 'choice' ? (
+                                <MobileChoiceStep
+                                  kicker="Projet"
+                                  title="Qui effectue la démarche ?"
+                                  subtitle="Une personne physique ou morale peut porter la demande, y compris une société qui crée une filiale."
+                                  hint={isCapacitorNative()
+                                    ? 'Touchez votre réponse pour continuer.'
+                                    : 'Sélectionnez une réponse pour continuer.'}
+                                  progressPercent={Math.round(((initiatorFieldStep + 1) / initiatorMobileSteps.length) * 100)}
+                                  stepCurrent={initiatorFieldStep + 1}
+                                  stepTotal={initiatorMobileSteps.length}
+                                  gridClassName="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3"
+                                >
+                                  <MobileChoiceTile
+                                    title="Personne physique"
+                                    selected={data.initiatorType === 'personne_physique'}
+                                    onSelect={() => selectInitiatorType('personne_physique')}
+                                  />
+                                  <MobileChoiceTile
+                                    title="Personne morale"
+                                    selected={data.initiatorType === 'personne_morale'}
+                                    onSelect={() => selectInitiatorType('personne_morale')}
+                                  />
+                                </MobileChoiceStep>
+                              ) : null}
+                              {activeInitiatorStep?.kind === 'input' ? (
+                                <MobileInputStep
+                                  kicker="Projet"
+                                  title={activeInitiatorStep.key === 'initiatorName'
+                                    ? (data.initiatorType === 'personne_morale' ? 'Dénomination / raison sociale' : 'Nom du fondateur')
+                                    : 'Représentant légal'}
+                                  subtitle="Une question à la fois, sur la même logique que le questionnaire Greffio."
+                                  progressPercent={Math.round(((initiatorFieldStep + 1) / initiatorMobileSteps.length) * 100)}
+                                  stepCurrent={initiatorFieldStep + 1}
+                                  stepTotal={initiatorMobileSteps.length}
+                                  fieldId={`simulator-initiator-${activeInitiatorStep.key}`}
+                                  value={data[activeInitiatorStep.key] || ''}
+                                  canAdvance={isInitiatorStepValid()}
+                                  onChange={(nextValue) => update(activeInitiatorStep.key, nextValue)}
+                                  onAdvance={advanceInitiatorFieldStep}
+                                  hint="Touchez la flèche pour continuer."
                                 />
-                                <MobileChoiceTile
-                                  title="Personne morale"
-                                  selected={data.initiatorType === 'personne_morale'}
-                                  onSelect={() => update('initiatorType', 'personne_morale')}
-                                />
-                              </MobileChoiceStep>
-                              <div className="space-y-2 rounded-2xl border border-border bg-white p-4">
-                                <Label>{data.initiatorType === 'personne_morale' ? 'Dénomination / raison sociale' : 'Nom du fondateur'}</Label>
-                                <Input className={mobileFieldClass} value={data.initiatorName} onChange={(event) => update('initiatorName', event.target.value)} />
-                              </div>
-                              {data.initiatorType === 'personne_morale' && (
-                                <>
-                                  <div className="space-y-2 rounded-2xl border border-border bg-white p-4">
-                                    <Label>Représentant légal</Label>
-                                    <Input className={mobileFieldClass} value={data.initiatorRepresentative} onChange={(event) => update('initiatorRepresentative', event.target.value)} />
-                                  </div>
-                                  <div className="space-y-2 rounded-2xl border border-border bg-white p-4">
-                                    <Label>Forme de la société demandeuse</Label>
-                                    <select className={`${fieldClass} w-full rounded-xl`} value={data.initiatorLegalForm} onChange={(event) => update('initiatorLegalForm', event.target.value)}>
-                                      {['SA', 'SAS', 'SASU', 'SARL', 'EURL', 'SCI', 'Association', 'Autre personne morale'].map((item) => (
-                                        <option key={item} value={item}>{item}</option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                </>
-                              )}
+                              ) : null}
+                              {activeInitiatorStep?.kind === 'select' ? (
+                                <MobileChoiceStep
+                                  kicker="Projet"
+                                  title="Forme de la société demandeuse"
+                                  subtitle="Sélectionnez la forme juridique de la personne morale qui porte la demande."
+                                  hint={isCapacitorNative()
+                                    ? 'Touchez une forme pour continuer.'
+                                    : 'Sélectionnez une forme pour continuer.'}
+                                  progressPercent={Math.round(((initiatorFieldStep + 1) / initiatorMobileSteps.length) * 100)}
+                                  stepCurrent={initiatorFieldStep + 1}
+                                  stepTotal={initiatorMobileSteps.length}
+                                  gridClassName="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3"
+                                >
+                                  {INITIATOR_LEGAL_FORMS.map((item) => (
+                                    <MobileChoiceTile
+                                      key={item}
+                                      title={item}
+                                      selected={data.initiatorLegalForm === item}
+                                      onSelect={() => {
+                                        update('initiatorLegalForm', item);
+                                        window.setTimeout(() => {
+                                          setProjectSubStep(2);
+                                          setInitiatorFieldStep(0);
+                                        }, 220);
+                                      }}
+                                    />
+                                  ))}
+                                </MobileChoiceStep>
+                              ) : null}
                             </div>
                           ) : (
                           <div className={cn(isMobilePresentation ? 'simulator-field-stack grid min-w-0 grid-cols-1 gap-3' : 'grid gap-5 md:grid-cols-2')}>
@@ -1417,6 +1595,49 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                         )}
 
                         {projectSubStep === 4 && (
+                          isMobilePresentation ? (
+                            <div className="space-y-4">
+                              {isProjectDetailSelectStep ? (
+                                <MobileChoiceStep
+                                  kicker="Projet"
+                                  title={activeProjectDetailField.label}
+                                  subtitle="Ces éléments alimentent le questionnaire et l’aperçu documentaire."
+                                  hint={isCapacitorNative()
+                                    ? 'Touchez un délai pour continuer.'
+                                    : 'Sélectionnez un délai pour continuer.'}
+                                  progressPercent={Math.round(((projectDetailIndex + 1) / PROJECT_DETAIL_FIELDS.length) * 100)}
+                                  stepCurrent={projectDetailIndex + 1}
+                                  stepTotal={PROJECT_DETAIL_FIELDS.length}
+                                  gridClassName="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3"
+                                >
+                                  {(activeProjectDetailField.options || []).map((item) => (
+                                    <MobileChoiceTile
+                                      key={item}
+                                      title={item}
+                                      selected={data.urgency === item}
+                                      onSelect={() => selectProjectDetailOption(item)}
+                                    />
+                                  ))}
+                                </MobileChoiceStep>
+                              ) : (
+                                <MobileInputStep
+                                  kicker="Projet"
+                                  title={`${activeProjectDetailField.label}${activeProjectDetailField.required ? ' *' : ''}`}
+                                  subtitle="Ces éléments alimentent le questionnaire et l’aperçu documentaire."
+                                  progressPercent={Math.round(((projectDetailIndex + 1) / PROJECT_DETAIL_FIELDS.length) * 100)}
+                                  stepCurrent={projectDetailIndex + 1}
+                                  stepTotal={PROJECT_DETAIL_FIELDS.length}
+                                  fieldId={`simulator-project-${activeProjectDetailField.key}`}
+                                  value={data[activeProjectDetailField.key] || ''}
+                                  placeholder={activeProjectDetailField.placeholder || ''}
+                                  canAdvance={isProjectDetailFieldValid()}
+                                  onChange={(nextValue) => update(activeProjectDetailField.key, nextValue)}
+                                  onAdvance={advanceProjectDetailField}
+                                  hint="Touchez la flèche pour continuer."
+                                />
+                              )}
+                            </div>
+                          ) : (
                           <div className="grid gap-5 md:grid-cols-2">
                             <div className="space-y-2">
                               <Label>Délai souhaité</Label>
@@ -1439,6 +1660,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                               <Input className="rounded-xl" value={data.activity} onChange={(event) => update('activity', event.target.value)} />
                             </div>
                           </div>
+                          )
                         )}
                       </motion.div>
                     </AnimatePresence>
@@ -1447,16 +1669,17 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                 )}
 
                 {step === 2 && (
-                  <div className="space-y-6">
+                  <div className={cn('space-y-6', isMobilePresentation && 'space-y-4')}>
+                    {(!isMobilePresentation || step2Phase !== 'profile') ? (
                     <div>
-                      <p className="text-sm font-bold uppercase text-primary">Questionnaire intelligent</p>
-                      <h1 className="mt-2 text-3xl font-extrabold">
+                      <p className={cn('font-bold uppercase text-primary', isMobilePresentation ? 'text-[10px] tracking-wide' : 'text-sm')}>Questionnaire intelligent</p>
+                      <h1 className={cn('font-extrabold', isMobilePresentation ? 'mt-1 text-lg' : 'mt-2 text-3xl')}>
                         {step2Phase === 'profile' && (eiLike
                           ? `Coordonnées – ${data.legalForm}`
                           : 'Dirigeants, capital et coordonnées')}
                         {step2Phase === 'questionnaire' && `Clauses adaptées à ${data.legalForm}`}
                       </h1>
-                      <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+                      <p className={cn('max-w-3xl leading-6 text-muted-foreground', isMobilePresentation ? 'simulator-step-subtitle mt-1.5 text-xs' : 'mt-2 text-sm')}>
                         {step2Phase === 'profile' && (eiLike
                           ? 'Complétez d’abord vos coordonnées. Le questionnaire ciblé s’affichera ensuite, une question à la fois.'
                           : 'Complétez les informations de dirigeants et de capital. Les clauses statutaires suivront, une question à la fois.')}
@@ -1465,6 +1688,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                           : `${flattenedQuestions.length} questions pour ${data.legalForm}. Répondez puis validez pour passer à la synthèse.`)}
                       </p>
                     </div>
+                    ) : null}
 
                     {step2Phase === 'profile' ? (
                     <div className={cn(!isMobilePresentation && 'rounded-[1.35rem] border border-border bg-white p-6 shadow-[0_14px_40px_rgba(15,31,61,0.07)]')}>
@@ -1882,6 +2106,10 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                     : isAccountCreationStep
                       ? (accountPhase === 'creating' ? 'Création…' : 'Créer mon espace')
                     : step === 1 && projectSubStep === 0 && contactStep < contactFields.length - 1
+                      ? 'Question suivante'
+                    : step === 1 && projectSubStep === 1 && isMobilePresentation && initiatorFieldStep < initiatorMobileSteps.length - 1
+                      ? 'Question suivante'
+                    : step === 1 && projectSubStep === 4 && isMobilePresentation && projectDetailIndex < PROJECT_DETAIL_FIELDS.length - 1
                       ? 'Question suivante'
                       : step === 1 && projectSubStep === PROJECT_SUB_STEPS.length - 1
                         ? 'Passer aux dirigeants'
