@@ -40,11 +40,11 @@ const fmtFp = () => ({
 });
 
 console.log('=== NON-CONVICTION Y (before → after) ===');
-console.log({ before: fmtNc(22), after: fmtNc(NON_CONVICTION_STAMP_ABOVE_LINE) });
+console.log({ before: fmtNc(6), after: fmtNc(NON_CONVICTION_STAMP_ABOVE_LINE) });
 console.log('timestamp unchanged:', nonConvictionElectronicStampY());
 
 console.log('=== SUBSCRIBERS LIST Y (before → after) ===');
-console.log({ before: fmtSub(8), after: fmtSub(SUBSCRIBERS_LIST_STAMP_ABOVE_LINE) });
+console.log({ before: fmtSub(0), after: fmtSub(SUBSCRIBERS_LIST_STAMP_ABOVE_LINE) });
 console.log('helpers:', {
   stampY: subscribersListSignatureStampY(),
 });
