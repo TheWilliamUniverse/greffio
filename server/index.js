@@ -246,7 +246,10 @@ import {
 } from './mfaEmailCodeStore.js';
 import { buildTotpSetup, encryptSecret, verifyTotpCode } from './services/mfaService.js';
 
-dotenv.config({ override: process.env.NODE_ENV === 'production' });
+dotenv.config({
+  path: path.join(path.dirname(fileURLToPath(import.meta.url)), '../.env'),
+  override: process.env.NODE_ENV === 'production',
+});
 
 const app = express();
 if (process.env.NODE_ENV === 'production') {
@@ -3185,7 +3188,6 @@ registerDocumentWorkspaceRoutes(app, {
 registerOnlyOfficeRoutes(app, {
   listDossierDocuments,
   updateDossierDocument,
-  apiBaseUrl: process.env.GREFFIO_API_URL || appUrl,
 });
 
 const dossierMessageEvents = {

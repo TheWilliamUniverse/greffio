@@ -12,13 +12,94 @@ import { createHash } from 'node:crypto';
  *   Ensure ONLYOFFICE can reach GREFFIO_API_URL for document download + callback.
  */
 
+const FRONTEND_ONLY_HOSTS = new Set([
+  'greffio.willentreprises.com',
+  'www.greffio.willentreprises.com',
+]);
+
+const normalizeBaseUrl = (value = '') => String(value || '').trim().replace(/\/$/, '');
+
 export const isOnlyOfficeConfigured = () => Boolean(
   String(process.env.ONLYOFFICE_URL || '').trim(),
 );
 
-export const getOnlyOfficeServerUrl = () => String(process.env.ONLYOFFICE_URL || '').replace(/\/$/, '');
+export const getOnlyOfficeServerUrl = () => normalizeBaseUrl(process.env.ONLYOFFICE_URL);
 
 export const getOnlyOfficeJwtSecret = () => String(process.env.ONLYOFFICE_JWT_SECRET || '').trim() || null;
+
+/** Public API base URL reachable by the ONLYOFFICE container (never the SPA frontend host). */
+export const getOnlyOfficePublicApiBaseUrl = () => {
+  const configured = normalizeBaseUrl(process.env.GREFFIO_API_URL);
+  if (!configured) return null;
+  try {
+    const host = new URL(configured).hostname.toLowerCase();
+    if (FRONTEND_ONLY_HOSTS.has(host)) return null;
+  } catch (_error) {
+    return null;
+  }
+  return configured;
+};
+
+export const assertOnlyOfficePublicApiBaseUrl = () => {
+  const apiBase = getOnlyOfficePublicApiBaseUrl();
+  if (!apiBase) {
+    const error = new Error('ONLYOFFICE_API_BASE_MISCONFIGURED');
+    error.code = 'ONLYOFFICE_API_BASE_MISCONFIGURED';
+    error.message = 'GREFFIO_API_URL doit pointer vers https://api.greffio.willentreprises.com (accessible par ONLYOFFICE).';
+    throw error;
+  }
+  return apiBase;
+};
+
+export const buildOnlyOfficeFileDownloadUrl = ({ sessionId, accessToken, apiBase = null }) => {
+  const base = apiBase || assertOnlyOfficePublicApiBaseUrl();
+  return `${base}/api/onlyoffice/files/${sessionId}/download?token=${encodeURIComponent(accessToken)}`;
+};
+
+export const buildOnlyOfficeCallbackUrl = ({ sessionId, apiBase = null }) => {
+  const base = apiBase || assertOnlyOfficePublicApiBaseUrl();
+  return `${base}/api/onlyoffice/callback/${sessionId}`;
+};
+
+export const isOnlyOfficeDocumentServerUrl = (value = '') => {
+  const normalized = normalizeBaseUrl(value);
+  if (!normalized) return false;
+  try {
+    const host = new URL(normalized).hostname.toLowerCase();
+    if (FRONTEND_ONLY_HOSTS.has(host)) return false;
+    if (host.startsWith('api.')) return false;
+    return true;
+  } catch (_error) {
+    return false;
+  }
+};
+
+export const probeOnlyOfficeFileDownloadUrl = async (downloadUrl) => {
+  const response = await fetch(downloadUrl, {
+    method: 'GET',
+    headers: { Accept: '*/*' },
+    signal: AbortSignal.timeout(15000),
+  });
+  const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+  if (!response.ok) {
+    const error = new Error(`ONLYOFFICE_DOWNLOAD_PROBE_${response.status}`);
+    error.code = 'ONLYOFFICE_DOWNLOAD_PROBE_FAILED';
+    error.status = response.status;
+    throw error;
+  }
+  if (contentType.includes('text/html')) {
+    const error = new Error('ONLYOFFICE_DOWNLOAD_PROBE_HTML');
+    error.code = 'ONLYOFFICE_DOWNLOAD_PROBE_HTML';
+    throw error;
+  }
+  const buffer = Buffer.from(await response.arrayBuffer());
+  if (buffer.length < 64) {
+    const error = new Error('ONLYOFFICE_DOWNLOAD_PROBE_EMPTY');
+    error.code = 'ONLYOFFICE_DOWNLOAD_PROBE_EMPTY';
+    throw error;
+  }
+  return { contentType, size: buffer.length };
+};
 
 export const resolveOnlyOfficeFileType = (mimeType = '', fileFormat = 'pdf') => {
   const format = String(fileFormat || '').toLowerCase();

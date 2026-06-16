@@ -135,20 +135,20 @@ const handleCreateEditSession = async (req, res, {
     if (!canGuidedEditDocument(docKey, document)) {
       return res.status(403).json({ ok: false, error: 'GUIDED_EDIT_FORBIDDEN' });
     }
-    const launch = createEditorLaunchUrl({
+    const resolvedLaunch = await createEditorLaunchUrl({
       providerId: 'guided_form',
       dossierId: access.dossier.id,
       docKey,
       appUrl,
     });
-    if (!launch.ok) {
-      return res.status(501).json({ ok: false, error: launch.error, message: launch.message });
+    if (!resolvedLaunch.ok) {
+      return res.status(501).json({ ok: false, error: resolvedLaunch.error, message: resolvedLaunch.message });
     }
-    return res.json(launch);
+    return res.json(resolvedLaunch);
   }
 
   if (!canFreeEditDocument(docKey, document)) {
-    const fallback = createEditorLaunchUrl({
+    const fallback = await createEditorLaunchUrl({
       providerId: 'guided_form',
       dossierId: access.dossier.id,
       docKey,
@@ -216,7 +216,7 @@ const handleCreateEditSession = async (req, res, {
   });
 
   const launch = providerId === 'onlyoffice' || freeEditProvider === 'onlyoffice'
-    ? OnlyOfficeProvider.buildLaunchPayload({
+    ? await OnlyOfficeProvider.buildLaunchPayload({
       session,
       accessToken,
       appUrl,
@@ -225,7 +225,7 @@ const handleCreateEditSession = async (req, res, {
       document,
       currentVersion,
     })
-    : createEditorLaunchUrl({
+    : await createEditorLaunchUrl({
       providerId: 'collabora',
       dossierId: access.dossier.id,
       docKey,

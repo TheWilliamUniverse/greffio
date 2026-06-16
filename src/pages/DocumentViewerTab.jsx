@@ -1,6 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Download, Loader2, PencilLine } from 'lucide-react';
+import {
+  ArrowLeft,
+  Download,
+  FileText,
+  Loader2,
+  PencilLine,
+  RefreshCw,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { PdfPreviewPanel } from '@/components/documents/PdfPreviewPanel.jsx';
 import { OnlyOfficeEditor } from '@/components/documents/OnlyOfficeEditor.jsx';
@@ -36,6 +43,7 @@ export const DocumentViewerTab = () => {
   const [previewRefreshing, setPreviewRefreshing] = useState(false);
   const [workflowBusy, setWorkflowBusy] = useState(false);
   const [workflowMessage, setWorkflowMessage] = useState('');
+  const [workflowMessageTone, setWorkflowMessageTone] = useState('neutral');
 
   const title = useMemo(
     () => getDocumentTypeLabel(docKey, workspace?.title || docKey),
@@ -102,6 +110,7 @@ export const DocumentViewerTab = () => {
     if (!dossierId || !docKey) return;
     setEditorLoading(true);
     setWorkflowMessage('');
+    setWorkflowMessageTone('neutral');
     setEditorPayload(null);
     try {
       const session = await createFreeEditSession(dossierId, docKey, {
@@ -109,12 +118,14 @@ export const DocumentViewerTab = () => {
         preferFreeEdit: true,
       });
       if (!session?.ok) {
+        setWorkflowMessageTone('warning');
         setWorkflowMessage(session?.message || 'L’éditeur ONLYOFFICE n’est pas configuré. L’aperçu reste disponible.');
         return;
       }
       setEditorPayload(session);
     } catch (sessionError) {
       const payload = sessionError?.payload;
+      setWorkflowMessageTone('warning');
       setWorkflowMessage(
         payload?.message
         || 'L’éditeur ONLYOFFICE n’est pas disponible. Consultez l’aperçu PDF ci-dessous.',
@@ -151,6 +162,7 @@ export const DocumentViewerTab = () => {
 
     setPreviewRefreshing(true);
     setWorkflowMessage('');
+    setWorkflowMessageTone('neutral');
     const previousPdfUpdatedAt = editorPayload?.pdfUpdatedAt || null;
 
     try {
@@ -166,8 +178,10 @@ export const DocumentViewerTab = () => {
           current ? { ...current, pdfUpdatedAt: nextStatus.pdfUpdatedAt } : current
         ));
       }
+      setWorkflowMessageTone('success');
       setWorkflowMessage('PDF mis à jour avec vos modifications.');
     } catch (_error) {
+      setWorkflowMessageTone('warning');
       setWorkflowMessage('Enregistrement reçu. Actualisez l’aperçu si le PDF ne se met pas à jour.');
     } finally {
       setPreviewRefreshing(false);
@@ -214,11 +228,14 @@ export const DocumentViewerTab = () => {
     if (!dossierId) return;
     setWorkflowBusy(true);
     setWorkflowMessage('');
+    setWorkflowMessageTone('neutral');
     try {
       const result = await submitStatutesWorkflowAction(dossierId, action);
+      setWorkflowMessageTone('success');
       setWorkflowMessage(`Statut mis à jour : ${result.label || result.statutesWorkflowStatus}.`);
       await loadDocument();
     } catch (workflowError) {
+      setWorkflowMessageTone('warning');
       setWorkflowMessage(workflowError?.message || 'Action impossible pour le moment.');
     } finally {
       setWorkflowBusy(false);
@@ -235,8 +252,9 @@ export const DocumentViewerTab = () => {
 
   if (loading) {
     return (
-      <main className="mx-auto flex max-w-6xl items-center justify-center px-4 py-16">
+      <main className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-3 px-4 py-16">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Chargement du document…</p>
       </main>
     );
   }
@@ -245,6 +263,10 @@ export const DocumentViewerTab = () => {
     return (
       <main className="mx-auto max-w-5xl px-4 py-8">
         <p className="text-sm text-destructive">{error}</p>
+        <Button type="button" size="sm" variant="outline" className="mt-4 bg-white" onClick={() => void loadDocument()}>
+          <RefreshCw className="h-4 w-4" />
+          Réessayer
+        </Button>
       </main>
     );
   }
@@ -257,38 +279,48 @@ export const DocumentViewerTab = () => {
     && statutesWorkflow?.status === 'pending_ops_review';
   const showEditor = Boolean(editorPayload?.ok && editorPayload?.config);
 
+  const workflowBannerClass = workflowMessageTone === 'success'
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+    : workflowMessageTone === 'warning'
+      ? 'border-amber-200 bg-amber-50 text-amber-900'
+      : 'border-border bg-muted/30 text-muted-foreground';
+
   return (
     <main
       className={
         isMobileLayout
-          ? 'flex min-h-[100dvh] flex-col bg-[#f8fafc]'
-          : 'mx-auto max-w-6xl space-y-4 px-4 py-6'
+          ? 'flex min-h-[100dvh] flex-col bg-[#f4f7fb]'
+          : 'mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6'
       }
     >
       <section
         className={
           isMobileLayout
             ? 'border-b border-border bg-white px-4 py-4 shadow-elevation-sm'
-            : 'rounded-md border border-border bg-white p-4 shadow-elevation-sm'
+            : 'rounded-xl border border-border bg-white p-5 shadow-elevation-sm'
         }
       >
-        <div className={`flex ${isMobileLayout ? 'flex-col' : 'flex-wrap items-start justify-between'} gap-3`}>
-          <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-wide text-primary">Document</p>
-            <h1 className="mt-1 text-xl font-extrabold text-foreground">{title}</h1>
-            <p className="mt-1 text-xs text-muted-foreground">
+        <div className={`flex ${isMobileLayout ? 'flex-col' : 'flex-wrap items-start justify-between'} gap-4`}>
+          <div className="min-w-0 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-primary">
+                Espace document
+              </span>
+              {statutesWorkflow ? (
+                <StatutesWorkflowBadge
+                  status={statutesWorkflow.status}
+                  label={statutesWorkflow.label}
+                />
+              ) : null}
+            </div>
+            <h1 className="text-xl font-extrabold tracking-tight text-foreground sm:text-2xl">{title}</h1>
+            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
               {showEditor
-                ? 'Édition ONLYOFFICE intégrée. Le PDF ci-dessous se met à jour après chaque enregistrement.'
-                : 'Aperçu complet dans cet onglet. Les modifications ONLYOFFICE sont enregistrées dans le dossier.'}
+                ? 'Modifiez le DOCX dans l’éditeur intégré. L’aperçu PDF se met à jour après chaque enregistrement.'
+                : 'Consultez le PDF complet. Ouvrez l’éditeur Word pour ajuster le contenu avant validation.'}
             </p>
           </div>
-          <div className={`flex flex-wrap items-center gap-2 ${isMobileLayout ? 'w-full' : ''}`}>
-            {statutesWorkflow ? (
-              <StatutesWorkflowBadge
-                status={statutesWorkflow.status}
-                label={statutesWorkflow.label}
-              />
-            ) : null}
+          <div className={`flex flex-wrap items-center gap-2 ${isMobileLayout ? 'w-full' : 'shrink-0'}`}>
             {canEdit ? (
               <Button
                 type="button"
@@ -315,7 +347,7 @@ export const DocumentViewerTab = () => {
               asChild
               variant="outline"
               size={isMobileLayout ? 'default' : 'sm'}
-              className={`bg-white ${isMobileLayout ? 'w-full' : ''}`}
+              className={`bg-white ${isMobileLayout ? 'w-full sm:w-auto' : ''}`}
             >
               <Link to={`/documents?dossierId=${encodeURIComponent(dossierId)}`}>
                 <ArrowLeft className="h-4 w-4" />
@@ -326,11 +358,15 @@ export const DocumentViewerTab = () => {
         </div>
 
         {workspaceWarning ? (
-          <p className="mt-3 text-sm text-amber-700">{workspaceWarning}</p>
+          <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            {workspaceWarning}
+          </p>
         ) : null}
 
         {workflowMessage ? (
-          <p className="mt-3 text-sm text-muted-foreground">{workflowMessage}</p>
+          <p className={`mt-4 rounded-lg border px-3 py-2 text-sm ${workflowBannerClass}`}>
+            {workflowMessage}
+          </p>
         ) : null}
 
         {showClientReviewCta ? (
@@ -372,42 +408,74 @@ export const DocumentViewerTab = () => {
         ) : null}
       </section>
 
-      {showEditor ? (
-        <section className={isMobileLayout ? 'flex min-h-0 flex-col px-0 py-0' : ''}>
-          <OnlyOfficeEditor
-            documentServerUrl={editorPayload.documentServerUrl}
-            config={editorPayload.config}
-            fullViewport={isMobileLayout || isEditMode}
-            onRetry={() => void openEditor()}
-            onDocumentSaved={() => void handleEditorSaved()}
-          />
-        </section>
-      ) : null}
-
-      {preview?.blobUrl ? (
-        <section
-          className={
-            isMobileLayout
-              ? 'mx-4 mb-4 overflow-hidden rounded-md border border-border bg-white shadow-elevation-sm'
-              : 'overflow-hidden rounded-md border border-border bg-white shadow-elevation-sm'
-          }
-        >
-          <div className="flex items-center justify-between border-b border-border px-5 py-3">
-            <p className="text-sm font-bold text-foreground">Aperçu PDF</p>
-            {previewRefreshing ? (
-              <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Mise à jour…
+      <div className={isMobileLayout ? 'flex min-h-0 flex-1 flex-col gap-3 px-0 pb-4' : 'grid gap-4 lg:grid-cols-1'}>
+        {showEditor ? (
+          <section
+            className={
+              isMobileLayout
+                ? 'flex min-h-0 flex-col bg-white'
+                : 'overflow-hidden rounded-xl border border-border bg-white shadow-elevation-sm'
+            }
+          >
+            <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-5">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                <p className="text-sm font-bold text-foreground">Éditeur Word ONLYOFFICE</p>
+              </div>
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                Autosave
               </span>
-            ) : null}
-          </div>
-          <PdfPreviewPanel
-            title={title}
-            blobUrl={preview.blobUrl}
-            filename={preview.filename}
-          />
-        </section>
-      ) : null}
+            </div>
+            <div className="p-0 sm:p-1">
+              <OnlyOfficeEditor
+                documentServerUrl={editorPayload.documentServerUrl}
+                config={editorPayload.config}
+                fullViewport={isMobileLayout || isEditMode}
+                onRetry={() => void openEditor()}
+                onDocumentSaved={() => void handleEditorSaved()}
+              />
+            </div>
+          </section>
+        ) : null}
+
+        {preview?.blobUrl ? (
+          <section
+            className={
+              isMobileLayout
+                ? 'mx-4 overflow-hidden rounded-xl border border-border bg-white shadow-elevation-sm'
+                : 'overflow-hidden rounded-xl border border-border bg-white shadow-elevation-sm'
+            }
+          >
+            <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-5">
+              <p className="text-sm font-bold text-foreground">Aperçu PDF</p>
+              <div className="flex items-center gap-2">
+                {previewRefreshing ? (
+                  <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Mise à jour…
+                  </span>
+                ) : null}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 px-2 text-xs"
+                  onClick={() => void loadPreview()}
+                  disabled={previewRefreshing}
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${previewRefreshing ? 'animate-spin' : ''}`} />
+                  Actualiser
+                </Button>
+              </div>
+            </div>
+            <PdfPreviewPanel
+              title={title}
+              blobUrl={preview.blobUrl}
+              filename={preview.filename}
+            />
+          </section>
+        ) : null}
+      </div>
     </main>
   );
 };

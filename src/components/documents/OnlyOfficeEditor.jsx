@@ -3,10 +3,30 @@ import { AlertTriangle, Loader2, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 
+const LOADING_TIMEOUT_MS = 45000;
+const INVALID_DOCUMENT_SERVER_HOSTS = ['greffio.willentreprises.com', 'www.greffio.willentreprises.com', 'api.greffio.willentreprises.com'];
+
+const normalizeDocumentServerUrl = (value = '') => String(value || '').trim().replace(/\/$/, '');
+
+const isValidDocumentServerUrl = (documentServerUrl) => {
+  const base = normalizeDocumentServerUrl(documentServerUrl);
+  if (!base) return false;
+  try {
+    const host = new URL(base).hostname.toLowerCase();
+    return !INVALID_DOCUMENT_SERVER_HOSTS.includes(host);
+  } catch (_error) {
+    return false;
+  }
+};
+
 const loadOnlyOfficeScript = (documentServerUrl) => new Promise((resolve, reject) => {
-  const base = String(documentServerUrl || '').replace(/\/$/, '');
+  const base = normalizeDocumentServerUrl(documentServerUrl);
   if (!base) {
     reject(new Error('ONLYOFFICE_URL_MISSING'));
+    return;
+  }
+  if (!isValidDocumentServerUrl(base)) {
+    reject(new Error('ONLYOFFICE_URL_INVALID'));
     return;
   }
   const existing = document.querySelector('script[data-onlyoffice-api="1"]');
@@ -40,6 +60,19 @@ const resolveFriendlyOnlyOfficeError = (event) => {
   return 'L’éditeur ONLYOFFICE a rencontré un problème. Réessayez dans un instant.';
 };
 
+const resolveBootErrorMessage = (error) => {
+  if (error?.message === 'ONLYOFFICE_SCRIPT_LOAD_FAILED') {
+    return 'Impossible de charger ONLYOFFICE. Vérifiez ONLYOFFICE_URL et la connectivité réseau.';
+  }
+  if (error?.message === 'ONLYOFFICE_URL_INVALID') {
+    return 'ONLYOFFICE_URL est mal configuré (doit pointer vers office.greffio…, pas l’API ni le site web).';
+  }
+  if (error?.message === 'ONLYOFFICE_LOAD_TIMEOUT') {
+    return 'L’éditeur ONLYOFFICE met trop de temps à démarrer. Le document source est peut-être inaccessible.';
+  }
+  return 'L’éditeur ONLYOFFICE n’est pas disponible pour le moment.';
+};
+
 export const OnlyOfficeEditor = ({
   documentServerUrl,
   config,
@@ -55,10 +88,21 @@ export const OnlyOfficeEditor = ({
   const editorRef = useRef(null);
   const documentDirtyRef = useRef(false);
   const saveNotifyTimerRef = useRef(null);
+  const loadTimeoutRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [bootKey, setBootKey] = useState(0);
   const isMobilePresentation = isCapacitorNative() || isMobileBrowserViewport();
+
+  const failWithMessage = useCallback((message, error = null) => {
+    if (loadTimeoutRef.current) {
+      clearTimeout(loadTimeoutRef.current);
+      loadTimeoutRef.current = null;
+    }
+    setErrorMessage(message);
+    setLoading(false);
+    if (error) onError?.(error);
+  }, [onError]);
 
   const handleRetry = useCallback(() => {
     setErrorMessage('');
@@ -70,14 +114,34 @@ export const OnlyOfficeEditor = ({
   useEffect(() => {
     let cancelled = false;
 
+    const clearLoadTimeout = () => {
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+        loadTimeoutRef.current = null;
+      }
+    };
+
     const boot = async () => {
       if (!config || !documentServerUrl) {
-        setErrorMessage('Configuration ONLYOFFICE indisponible.');
-        setLoading(false);
+        failWithMessage('Configuration ONLYOFFICE indisponible.');
         return;
       }
+      if (!isValidDocumentServerUrl(documentServerUrl)) {
+        failWithMessage('ONLYOFFICE_URL est mal configuré sur le serveur Greffio.');
+        return;
+      }
+
       setLoading(true);
       setErrorMessage('');
+      clearLoadTimeout();
+      loadTimeoutRef.current = setTimeout(() => {
+        if (cancelled) return;
+        failWithMessage(resolveBootErrorMessage({ message: 'ONLYOFFICE_LOAD_TIMEOUT' }), new Error('ONLYOFFICE_LOAD_TIMEOUT'));
+        if (editorRef.current?.destroyEditor) {
+          editorRef.current.destroyEditor();
+        }
+      }, LOADING_TIMEOUT_MS);
+
       try {
         const DocsAPI = await loadOnlyOfficeScript(documentServerUrl);
         if (cancelled || !containerRef.current) return;
@@ -93,6 +157,7 @@ export const OnlyOfficeEditor = ({
           events: {
             onDocumentReady: () => {
               if (cancelled) return;
+              clearLoadTimeout();
               setLoading(false);
               onReady?.();
             },
@@ -114,22 +179,16 @@ export const OnlyOfficeEditor = ({
             },
             onError: (event) => {
               if (cancelled) return;
-              const message = resolveFriendlyOnlyOfficeError(event);
-              setErrorMessage(message);
-              setLoading(false);
-              onError?.(event);
+              clearLoadTimeout();
+              failWithMessage(resolveFriendlyOnlyOfficeError(event), event);
             },
           },
         };
         editorRef.current = new DocsAPI.DocEditor(containerRef.current.id, editorConfig);
       } catch (error) {
         if (cancelled) return;
-        const message = error?.message === 'ONLYOFFICE_SCRIPT_LOAD_FAILED'
-          ? 'Impossible de charger ONLYOFFICE. Vérifiez ONLYOFFICE_URL et la connectivité réseau.'
-          : 'L’éditeur ONLYOFFICE n’est pas disponible pour le moment.';
-        setErrorMessage(message);
-        setLoading(false);
-        onError?.(error);
+        clearLoadTimeout();
+        failWithMessage(resolveBootErrorMessage(error), error);
       }
     };
 
@@ -137,6 +196,7 @@ export const OnlyOfficeEditor = ({
 
     return () => {
       cancelled = true;
+      clearLoadTimeout();
       if (saveNotifyTimerRef.current) {
         clearTimeout(saveNotifyTimerRef.current);
       }
@@ -144,18 +204,25 @@ export const OnlyOfficeEditor = ({
         editorRef.current.destroyEditor();
       }
     };
-  }, [config, documentServerUrl, onError, onReady, onDocumentSaved, bootKey, isMobilePresentation]);
+  }, [config, documentServerUrl, failWithMessage, onReady, onDocumentSaved, bootKey, isMobilePresentation]);
 
   const shellClassName = fullViewport || isMobilePresentation
     ? 'relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border-0 bg-white sm:rounded-md sm:border sm:border-border'
-    : `relative min-h-[70vh] w-full overflow-hidden rounded-md border border-border bg-white ${className}`;
+    : `relative min-h-[52vh] w-full overflow-hidden rounded-md border border-border bg-white ${className}`;
+
+  const editorHeightClass = fullViewport || isMobilePresentation
+    ? 'h-[min(62dvh,720px)] w-full sm:h-[min(58vh,720px)]'
+    : 'h-[min(58vh,720px)] w-full';
 
   return (
     <div className={shellClassName}>
       {loading && !errorMessage ? (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-white/90 px-6 text-center">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-white px-6 text-center">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Chargement de l’éditeur ONLYOFFICE…</p>
+          <p className="text-sm font-medium text-foreground">Chargement de l’éditeur ONLYOFFICE…</p>
+          <p className="max-w-sm text-xs leading-5 text-muted-foreground">
+            Connexion au serveur document et préparation du fichier Word.
+          </p>
         </div>
       ) : null}
       {errorMessage ? (
@@ -176,7 +243,8 @@ export const OnlyOfficeEditor = ({
         <div
           id={containerId}
           ref={containerRef}
-          className={fullViewport || isMobilePresentation ? 'h-[calc(100dvh-12rem)] w-full sm:h-[75vh]' : 'h-[75vh] w-full'}
+          aria-hidden={loading}
+          className={`${editorHeightClass} ${loading ? 'pointer-events-none invisible opacity-0' : ''}`}
         />
       )}
     </div>

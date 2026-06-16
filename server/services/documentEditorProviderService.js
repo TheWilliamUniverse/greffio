@@ -1,9 +1,14 @@
 import { getEditableDocumentConfig } from '../documents/editableDocumentRegistry.js';
 import {
+  assertOnlyOfficePublicApiBaseUrl,
+  buildOnlyOfficeCallbackUrl,
   buildOnlyOfficeDocumentKey,
   buildOnlyOfficeEditorConfig,
+  buildOnlyOfficeFileDownloadUrl,
   getOnlyOfficeServerUrl,
   isOnlyOfficeConfigured,
+  isOnlyOfficeDocumentServerUrl,
+  probeOnlyOfficeFileDownloadUrl,
   resolveOnlyOfficeFileType,
 } from './onlyofficeService.js';
 import {
@@ -58,7 +63,7 @@ export class OnlyOfficeProvider {
     return isOnlyOfficeConfigured() && isDocumentFreeEditEnabled();
   }
 
-  static buildLaunchPayload({
+  static async buildLaunchPayload({
     session,
     accessToken,
     appUrl,
@@ -76,7 +81,27 @@ export class OnlyOfficeProvider {
       };
     }
 
-    const apiBase = String(process.env.GREFFIO_API_URL || appUrl || '').replace(/\/$/, '');
+    const documentServerUrl = getOnlyOfficeServerUrl();
+    if (!isOnlyOfficeDocumentServerUrl(documentServerUrl)) {
+      return {
+        ok: false,
+        error: 'ONLYOFFICE_URL_MISCONFIGURED',
+        message: 'ONLYOFFICE_URL doit pointer vers le serveur document (ex. https://office.greffio.willentreprises.com).',
+        fallbackProvider: GuidedFormProvider.id,
+      };
+    }
+
+    let apiBase;
+    try {
+      apiBase = assertOnlyOfficePublicApiBaseUrl();
+    } catch (configError) {
+      return {
+        ok: false,
+        error: configError.code || 'ONLYOFFICE_API_BASE_MISCONFIGURED',
+        message: configError.message || 'GREFFIO_API_URL n’est pas configuré pour ONLYOFFICE.',
+        fallbackProvider: GuidedFormProvider.id,
+      };
+    }
     const fileType = resolveOnlyOfficeFileType(
       session?.fileFormat === 'docx'
         ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
@@ -90,8 +115,32 @@ export class OnlyOfficeProvider {
       sha256: currentVersion?.sha256 || document?.sha256 || session?.sourceSha256,
       sessionId: session?.id,
     });
-    const fileUrl = `${apiBase}/api/onlyoffice/files/${session.id}/download?token=${encodeURIComponent(accessToken)}`;
-    const callbackUrl = `${apiBase}/api/onlyoffice/callback/${session.id}`;
+    const fileUrl = buildOnlyOfficeFileDownloadUrl({
+      sessionId: session.id,
+      accessToken,
+      apiBase,
+    });
+    const callbackUrl = buildOnlyOfficeCallbackUrl({
+      sessionId: session.id,
+      apiBase,
+    });
+    try {
+      await probeOnlyOfficeFileDownloadUrl(fileUrl);
+    } catch (probeError) {
+      console.error('ONLYOFFICE_SESSION_PREFLIGHT_FAILED', {
+        sessionId: session.id,
+        dossierId,
+        docKey,
+        fileUrl,
+        message: probeError?.message,
+      });
+      return {
+        ok: false,
+        error: probeError.code || 'ONLYOFFICE_DOWNLOAD_PREFLIGHT_FAILED',
+        message: 'Le document source n’est pas accessible par ONLYOFFICE. Réessayez ou contactez le support.',
+        fallbackProvider: GuidedFormProvider.id,
+      };
+    }
     const config = buildOnlyOfficeEditorConfig({
       documentKey,
       title: document?.label || docKey,
@@ -169,7 +218,7 @@ export const assertProviderReady = (providerId) => {
   return false;
 };
 
-export const createEditorLaunchUrl = ({
+export const createEditorLaunchUrl = async ({
   providerId = 'guided_form',
   dossierId,
   docKey,
