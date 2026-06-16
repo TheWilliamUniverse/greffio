@@ -28,6 +28,11 @@ import {
   LazyOpsShell,
   LazyFormalityPowersPage,
   LazySubscribersListPage,
+  LazyClientShopPage,
+  LazyShopCheckoutPage,
+  LazyClientOrdersPage,
+  LazyResourcesPage,
+  LazyLegalFormComparatorPage,
   withSuspense,
 } from '@/routes/lazyPages.jsx';
 import { SignupPage } from '@/pages/SignupPage.jsx';
@@ -49,12 +54,7 @@ import { PrivacyPolicyPage } from '@/pages/PrivacyPolicyPage.jsx';
 import { CookiesPage } from '@/pages/CookiesPage.jsx';
 import { AccountDeletionPage } from '@/pages/AccountDeletionPage.jsx';
 import { DataDeletionPage } from '@/pages/DataDeletionPage.jsx';
-import { ResourcesPage } from '@/pages/ResourcesPage.jsx';
-import { ClientShopPage } from '@/pages/ClientShopPage.jsx';
-import { ShopCheckoutPage } from '@/pages/ShopCheckoutPage.jsx';
-import { ClientOrdersPage } from '@/pages/ClientOrdersPage.jsx';
 import { ResourceGuidePage } from '@/pages/ResourceGuidePage.jsx';
-import { LegalFormComparatorPage } from '@/pages/LegalFormComparatorPage.jsx';
 import { AppInstallPage } from '@/pages/AppInstallPage.jsx';
 import { AppDownloadGatePage } from '@/pages/AppDownloadGatePage.jsx';
 import { ContactPage } from '@/pages/ContactPage.jsx';
@@ -194,8 +194,8 @@ function AppRoutes() {
             <Route path="/suppression-compte" element={<AccountDeletionPage />} />
             <Route path="/suppression-donnees" element={<DataDeletionPage />} />
             <Route path="/paiement" element={<PaymentEntry />} />
-            <Route path="/ressources" element={<ResourcesPage />} />
-            <Route path="/ressources/comparateur-forme-juridique" element={<LegalFormComparatorPage />} />
+            <Route path="/ressources" element={withSuspense(LazyResourcesPage, 'Chargement ressources…')} />
+            <Route path="/ressources/comparateur-forme-juridique" element={withSuspense(LazyLegalFormComparatorPage, 'Chargement comparateur…')} />
             <Route path="/ressources/guides/:slug" element={<ResourceGuidePage />} />
             <Route path="/app" element={<AppInstallPage />} />
             <Route path="/telechargement-app" element={<AppDownloadGatePage />} />
@@ -230,9 +230,9 @@ function AppRoutes() {
             <Route path="/dossier/:id" element={<ProtectedRoute><DossierDetailEntry /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><DocumentsEntry /></ProtectedRoute>} />
             <Route path="/assistant-documents" element={<ProtectedRoute><DocumentCompletionEntry /></ProtectedRoute>} />
-            <Route path="/boutique" element={<ProtectedRoute><ClientShopPage /></ProtectedRoute>} />
-            <Route path="/boutique/checkout" element={<ProtectedRoute><ShopCheckoutPage /></ProtectedRoute>} />
-            <Route path="/boutique/commandes" element={<ProtectedRoute><ClientOrdersPage /></ProtectedRoute>} />
+            <Route path="/boutique" element={<ProtectedRoute>{withSuspense(LazyClientShopPage, 'Chargement boutique…')}</ProtectedRoute>} />
+            <Route path="/boutique/checkout" element={<ProtectedRoute>{withSuspense(LazyShopCheckoutPage, 'Chargement paiement…')}</ProtectedRoute>} />
+            <Route path="/boutique/commandes" element={<ProtectedRoute>{withSuspense(LazyClientOrdersPage, 'Chargement commandes…')}</ProtectedRoute>} />
             <Route path="/dossier/:dossierId/declaration-non-condamnation" element={<ProtectedRoute>{withSuspense(LazyNonConvictionDeclarationPage, 'Chargement déclaration…')}</ProtectedRoute>} />
             <Route path="/dossier/:dossierId/liste-souscripteurs" element={<ProtectedRoute>{withSuspense(LazySubscribersListPage, 'Chargement liste souscripteurs…')}</ProtectedRoute>} />
             <Route path="/dossier/:dossierId/pouvoirs-formalites" element={<ProtectedRoute>{withSuspense(LazyFormalityPowersPage, 'Chargement pouvoirs…')}</ProtectedRoute>} />

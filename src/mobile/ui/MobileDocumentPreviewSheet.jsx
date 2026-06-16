@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Download, ExternalLink, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
-import { PdfJsCanvasViewer } from '@/components/documents/PdfJsCanvasViewer.jsx';
+
+const PdfJsCanvasViewer = lazy(() => import('@/components/documents/PdfJsCanvasViewer.jsx').then((module) => ({
+  default: module.PdfJsCanvasViewer,
+})));
 
 export const MobileDocumentPreviewSheet = ({
   open,
@@ -74,12 +77,20 @@ export const MobileDocumentPreviewSheet = ({
           </Button>
         </div>
       ) : hasPdfData ? (
-        <PdfJsCanvasViewer
-          blob={previewBlob}
-          arrayBuffer={previewArrayBuffer}
-          blobUrl={previewSrc}
-          className="flex-1"
-        />
+        <Suspense fallback={(
+          <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-white/70">
+            <Loader2 className="mb-3 h-8 w-8 animate-spin text-white/70" aria-hidden="true" />
+            Chargement du document…
+          </div>
+        )}
+        >
+          <PdfJsCanvasViewer
+            blob={previewBlob}
+            arrayBuffer={previewArrayBuffer}
+            blobUrl={previewSrc}
+            className="flex-1"
+          />
+        </Suspense>
       ) : (
         <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-white/70">
           {loading ? (

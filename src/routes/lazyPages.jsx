@@ -31,6 +31,11 @@ export const LazyMobileDocumentsPage = lazy(() => import('@/mobile/MobileDocumen
 export const LazyMobilePaymentPage = lazy(() => import('@/mobile/MobilePaymentPage.jsx').then((m) => ({ default: m.MobilePaymentPage })));
 export const LazyDossierDetailPage = lazy(() => import('@/pages/DossierDetailPage.jsx').then((m) => ({ default: m.DossierDetailPage })));
 export const LazyMobileDossierDetailPage = lazy(() => import('@/mobile/MobileDossierDetailPage.jsx').then((m) => ({ default: m.MobileDossierDetailPage })));
+export const LazyClientShopPage = lazy(() => import('@/pages/ClientShopPage.jsx').then((m) => ({ default: m.ClientShopPage })));
+export const LazyShopCheckoutPage = lazy(() => import('@/pages/ShopCheckoutPage.jsx').then((m) => ({ default: m.ShopCheckoutPage })));
+export const LazyClientOrdersPage = lazy(() => import('@/pages/ClientOrdersPage.jsx').then((m) => ({ default: m.ClientOrdersPage })));
+export const LazyResourcesPage = lazy(() => import('@/pages/ResourcesPage.jsx').then((m) => ({ default: m.ResourcesPage })));
+export const LazyLegalFormComparatorPage = lazy(() => import('@/pages/LegalFormComparatorPage.jsx').then((m) => ({ default: m.LegalFormComparatorPage })));
 
 export const withSuspense = (Component, label) => (
   <React.Suspense fallback={<RouteSuspenseFallback label={label} />}>

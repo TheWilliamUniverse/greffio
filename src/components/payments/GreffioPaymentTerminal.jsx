@@ -10,16 +10,19 @@ import { fetchMollieMethods, fetchPaymentTerminalConfig } from '@/api/mollie.js'
 import { MOLLIE_PROFILE_ID } from '@/config/mollie.js';
 import { cn } from '@/lib/utils.js';
 import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
-import paymentBackground from '../../../assets/payments/greffio-payment-background.png';
 import paymentLogo from '../../../assets/payments/greffio-payment-logo.png';
 
 const PAYMENT_GRADIENT_ONLY = 'linear-gradient(180deg, rgba(248,251,255,0.98) 0%, rgba(255,255,255,1) 55%, rgba(238,244,255,0.96) 100%)';
+const PAYMENT_CARD_GRADIENT = 'linear-gradient(180deg, rgba(248,251,255,0.94) 0%, rgba(255,255,255,0.97) 55%, rgba(238,244,255,0.94) 100%)';
 
-const resolvePaymentCardBackground = () => {
-  if (isCapacitorNative() || isMobileBrowserViewport()) {
-    return PAYMENT_GRADIENT_ONLY;
+let paymentBackgroundUrlPromise;
+
+const resolveDesktopPaymentBackgroundUrl = () => {
+  if (!paymentBackgroundUrlPromise) {
+    paymentBackgroundUrlPromise = import('../../../assets/payments/greffio-payment-background.png')
+      .then((module) => module.default);
   }
-  return `linear-gradient(180deg, rgba(248,251,255,0.94) 0%, rgba(255,255,255,0.97) 55%, rgba(238,244,255,0.94) 100%), url(${paymentBackground})`;
+  return paymentBackgroundUrlPromise;
 };
 
 const METHOD_ICONS = {
@@ -56,9 +59,29 @@ export const GreffioPaymentTerminal = ({
   const [loadingMethods, setLoadingMethods] = useState(true);
   const [cardReady, setCardReady] = useState(false);
   const [localError, setLocalError] = useState(null);
+  const [cardBackgroundImage, setCardBackgroundImage] = useState(PAYMENT_GRADIENT_ONLY);
   const cardFormRef = useRef(null);
   const nativeApp = isCapacitorNative();
   const isCard = variant === 'card';
+
+  useEffect(() => {
+    if (isCapacitorNative() || isMobileBrowserViewport()) {
+      setCardBackgroundImage(PAYMENT_GRADIENT_ONLY);
+      return undefined;
+    }
+
+    let cancelled = false;
+    void resolveDesktopPaymentBackgroundUrl()
+      .then((url) => {
+        if (cancelled || !url) return;
+        setCardBackgroundImage(`${PAYMENT_CARD_GRADIENT}, url(${url})`);
+      })
+      .catch(() => {
+        if (!cancelled) setCardBackgroundImage(PAYMENT_GRADIENT_ONLY);
+      });
+
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -286,7 +309,7 @@ export const GreffioPaymentTerminal = ({
         className,
       )}
       style={{
-        backgroundImage: resolvePaymentCardBackground(),
+        backgroundImage: cardBackgroundImage,
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
       }}

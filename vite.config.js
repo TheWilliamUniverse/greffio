@@ -15,6 +15,7 @@ export default defineConfig({
           motion: ['framer-motion'],
           charts: ['recharts'],
           documents: ['jspdf', 'fflate'],
+          pdfjs: ['pdfjs-dist'],
           ui: [
             '@radix-ui/react-dialog',
             '@radix-ui/react-dropdown-menu',
