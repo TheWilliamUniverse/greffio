@@ -45,6 +45,7 @@ export const OnlyOfficeEditor = ({
   config,
   onError,
   onReady,
+  onDocumentSaved,
   onRetry,
   className = '',
   fullViewport = false,
@@ -52,6 +53,8 @@ export const OnlyOfficeEditor = ({
   const containerId = useId().replace(/:/g, '');
   const containerRef = useRef(null);
   const editorRef = useRef(null);
+  const documentDirtyRef = useRef(false);
+  const saveNotifyTimerRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [bootKey, setBootKey] = useState(0);
@@ -93,6 +96,22 @@ export const OnlyOfficeEditor = ({
               setLoading(false);
               onReady?.();
             },
+            onDocumentStateChange: (event) => {
+              if (cancelled) return;
+              const isDirty = Boolean(event?.data);
+              if (isDirty) {
+                documentDirtyRef.current = true;
+                return;
+              }
+              if (!documentDirtyRef.current) return;
+              documentDirtyRef.current = false;
+              if (saveNotifyTimerRef.current) {
+                clearTimeout(saveNotifyTimerRef.current);
+              }
+              saveNotifyTimerRef.current = setTimeout(() => {
+                onDocumentSaved?.();
+              }, 600);
+            },
             onError: (event) => {
               if (cancelled) return;
               const message = resolveFriendlyOnlyOfficeError(event);
@@ -118,11 +137,14 @@ export const OnlyOfficeEditor = ({
 
     return () => {
       cancelled = true;
+      if (saveNotifyTimerRef.current) {
+        clearTimeout(saveNotifyTimerRef.current);
+      }
       if (editorRef.current?.destroyEditor) {
         editorRef.current.destroyEditor();
       }
     };
-  }, [config, documentServerUrl, onError, onReady, bootKey, isMobilePresentation]);
+  }, [config, documentServerUrl, onError, onReady, onDocumentSaved, bootKey, isMobilePresentation]);
 
   const shellClassName = fullViewport || isMobilePresentation
     ? 'relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border-0 bg-white sm:rounded-md sm:border sm:border-border'

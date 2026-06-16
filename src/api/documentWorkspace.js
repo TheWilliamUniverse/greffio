@@ -23,6 +23,10 @@ export const closeFreeEditSession = (dossierId, docKey, sessionId, payload = {})
   payload,
 );
 
+export const getFreeEditSessionStatus = (dossierId, docKey, sessionId) => apiGet(
+  `/api/dossiers/${encodeURIComponent(dossierId)}/documents/${encodeURIComponent(docKey)}/free-edit/${encodeURIComponent(sessionId)}/status`,
+);
+
 export const submitStatutesWorkflowAction = (dossierId, action) => apiPost(
   `/api/dossiers/${encodeURIComponent(dossierId)}/documents/signed_statutes/workflow`,
   { action },

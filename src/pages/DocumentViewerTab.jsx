@@ -9,6 +9,7 @@ import { downloadDossierDocument } from '@/api/documents.js';
 import {
   createFreeEditSession,
   getDocumentWorkspace,
+  getFreeEditSessionStatus,
   submitStatutesWorkflowAction,
 } from '@/api/documentWorkspace.js';
 import {
@@ -32,6 +33,7 @@ export const DocumentViewerTab = () => {
   const [preview, setPreview] = useState(null);
   const [editorPayload, setEditorPayload] = useState(null);
   const [editorLoading, setEditorLoading] = useState(false);
+  const [previewRefreshing, setPreviewRefreshing] = useState(false);
   const [workflowBusy, setWorkflowBusy] = useState(false);
   const [workflowMessage, setWorkflowMessage] = useState('');
 
@@ -122,6 +124,64 @@ export const DocumentViewerTab = () => {
     }
   }, [dossierId, docKey]);
 
+  const waitForSessionPdfUpdate = useCallback(async (sessionId, previousPdfUpdatedAt = null) => {
+    if (!sessionId) return false;
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, attempt === 0 ? 800 : 1000);
+      });
+      try {
+        const status = await getFreeEditSessionStatus(dossierId, docKey, sessionId);
+        if (status?.status === 'saved') {
+          if (!previousPdfUpdatedAt || status.pdfUpdatedAt !== previousPdfUpdatedAt) {
+            return true;
+          }
+          if (status.pdfUpdatedAt) return true;
+        }
+      } catch (_error) {
+        // keep polling until timeout
+      }
+    }
+    return false;
+  }, [dossierId, docKey]);
+
+  const handleEditorSaved = useCallback(async () => {
+    const sessionId = editorPayload?.sessionId;
+    if (!sessionId || previewRefreshing) return;
+
+    setPreviewRefreshing(true);
+    setWorkflowMessage('');
+    const previousPdfUpdatedAt = editorPayload?.pdfUpdatedAt || null;
+
+    try {
+      await waitForSessionPdfUpdate(sessionId, previousPdfUpdatedAt);
+      await loadPreview();
+      const nextWorkspace = await getDocumentWorkspace(dossierId, docKey).catch(() => null);
+      if (nextWorkspace) {
+        setWorkspace(nextWorkspace);
+      }
+      const nextStatus = await getFreeEditSessionStatus(dossierId, docKey, sessionId).catch(() => null);
+      if (nextStatus?.pdfUpdatedAt) {
+        setEditorPayload((current) => (
+          current ? { ...current, pdfUpdatedAt: nextStatus.pdfUpdatedAt } : current
+        ));
+      }
+      setWorkflowMessage('PDF mis à jour avec vos modifications.');
+    } catch (_error) {
+      setWorkflowMessage('Enregistrement reçu. Actualisez l’aperçu si le PDF ne se met pas à jour.');
+    } finally {
+      setPreviewRefreshing(false);
+    }
+  }, [
+    editorPayload?.sessionId,
+    editorPayload?.pdfUpdatedAt,
+    previewRefreshing,
+    waitForSessionPdfUpdate,
+    loadPreview,
+    dossierId,
+    docKey,
+  ]);
+
   useEffect(() => {
     void loadDocument();
   }, [loadDocument]);
@@ -196,7 +256,6 @@ export const DocumentViewerTab = () => {
   const showOpsValidateCta = docKey === 'signed_statutes'
     && statutesWorkflow?.status === 'pending_ops_review';
   const showEditor = Boolean(editorPayload?.ok && editorPayload?.config);
-  const hidePdfPreview = showEditor && isEditMode;
 
   return (
     <main
@@ -219,7 +278,7 @@ export const DocumentViewerTab = () => {
             <h1 className="mt-1 text-xl font-extrabold text-foreground">{title}</h1>
             <p className="mt-1 text-xs text-muted-foreground">
               {showEditor
-                ? 'Édition ONLYOFFICE intégrée. Vos modifications sont enregistrées dans le dossier.'
+                ? 'Édition ONLYOFFICE intégrée. Le PDF ci-dessous se met à jour après chaque enregistrement.'
                 : 'Aperçu complet dans cet onglet. Les modifications ONLYOFFICE sont enregistrées dans le dossier.'}
             </p>
           </div>
@@ -314,17 +373,18 @@ export const DocumentViewerTab = () => {
       </section>
 
       {showEditor ? (
-        <section className={isMobileLayout ? 'flex min-h-0 flex-1 flex-col px-0 py-0' : ''}>
+        <section className={isMobileLayout ? 'flex min-h-0 flex-col px-0 py-0' : ''}>
           <OnlyOfficeEditor
             documentServerUrl={editorPayload.documentServerUrl}
             config={editorPayload.config}
             fullViewport={isMobileLayout || isEditMode}
             onRetry={() => void openEditor()}
+            onDocumentSaved={() => void handleEditorSaved()}
           />
         </section>
       ) : null}
 
-      {!hidePdfPreview && preview?.blobUrl ? (
+      {preview?.blobUrl ? (
         <section
           className={
             isMobileLayout
@@ -332,8 +392,14 @@ export const DocumentViewerTab = () => {
               : 'overflow-hidden rounded-md border border-border bg-white shadow-elevation-sm'
           }
         >
-          <div className="border-b border-border px-5 py-3">
+          <div className="flex items-center justify-between border-b border-border px-5 py-3">
             <p className="text-sm font-bold text-foreground">Aperçu PDF</p>
+            {previewRefreshing ? (
+              <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Mise à jour…
+              </span>
+            ) : null}
           </div>
           <PdfPreviewPanel
             title={title}

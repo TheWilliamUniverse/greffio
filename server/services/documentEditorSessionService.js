@@ -197,11 +197,33 @@ export const markSaving = (sessionId) => updateSessionStatus(sessionId, {
   last_callback_at: nowIso(),
 });
 
-export const markSaved = (sessionId, resultVersionId) => updateSessionStatus(sessionId, {
-  status: 'saved',
-  result_version_id: resultVersionId,
-  last_callback_at: nowIso(),
-});
+export const markSaved = async (sessionId, resultVersionId, metadataPatch = null) => {
+  const session = await getSession(sessionId);
+  const patch = {
+    status: 'saved',
+    result_version_id: resultVersionId,
+    last_callback_at: nowIso(),
+  };
+  if (metadataPatch && typeof metadataPatch === 'object') {
+    patch.metadata_json = JSON.stringify({
+      ...(session?.metadata || {}),
+      ...metadataPatch,
+    });
+  }
+  return updateSessionStatus(sessionId, patch);
+};
+
+export const mergeSessionMetadata = async (sessionId, metadataPatch = {}) => {
+  const session = await getSession(sessionId);
+  if (!session) return null;
+  const nextMetadata = {
+    ...(session.metadata || {}),
+    ...metadataPatch,
+  };
+  return updateSessionStatus(sessionId, {
+    metadata_json: JSON.stringify(nextMetadata),
+  });
+};
 
 export const markClosed = (sessionId) => updateSessionStatus(sessionId, {
   status: 'closed',

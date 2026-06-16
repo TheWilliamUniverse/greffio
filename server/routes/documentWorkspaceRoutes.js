@@ -348,6 +348,26 @@ export const registerDocumentWorkspaceRoutes = (app, {
     });
   });
 
+  app.get('/api/dossiers/:dossierId/documents/:docKey/free-edit/:sessionId/status', requireAuth, async (req, res) => {
+    const access = await resolveDossierAccess(req, req.params.dossierId, { allowClaim: true });
+    if (!access.ok) return res.status(access.status).json({ ok: false, error: access.error });
+
+    const session = await getSession(req.params.sessionId);
+    if (!session || session.dossierId !== access.dossier.id || session.docKey !== req.params.docKey) {
+      return res.status(404).json({ ok: false, error: 'SESSION_NOT_FOUND' });
+    }
+
+    return res.json({
+      ok: true,
+      sessionId: session.id,
+      status: session.status,
+      lastCallbackAt: session.lastCallbackAt,
+      resultVersionId: session.resultVersionId,
+      pdfUpdatedAt: session.metadata?.pdfUpdatedAt || null,
+      pdfVersionId: session.metadata?.pdfVersionId || null,
+    });
+  });
+
   app.post('/api/dossiers/:dossierId/documents/signed_statutes/workflow', requireAuth, async (req, res) => {
     const access = await resolveDossierAccess(req, req.params.dossierId, { allowClaim: true });
     if (!access.ok) return res.status(access.status).json({ ok: false, error: access.error });

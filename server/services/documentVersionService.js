@@ -388,6 +388,21 @@ export const listVersions = async (dossierId, docKey, { limit = 20 } = {}) => {
   `).all(dossierId, docKey, safeLimit).map(mapVersionRow);
 };
 
+export const linkPdfVersionToDocx = async (docxVersionId, pdfVersionId) => {
+  if (!docxVersionId || !pdfVersionId) return;
+  const timestamp = nowIso();
+  if (hasPostgres) {
+    await query(
+      'UPDATE document_versions SET pdf_version_id = $2, updated_at = $3 WHERE id = $1',
+      [docxVersionId, pdfVersionId, timestamp],
+    );
+    return;
+  }
+  sqlite.prepare(
+    'UPDATE document_versions SET pdf_version_id = ?, updated_at = ? WHERE id = ?',
+  ).run(pdfVersionId, timestamp, docxVersionId);
+};
+
 export const syncDocumentVersionPointers = async ({
   dossierId,
   docKey,
