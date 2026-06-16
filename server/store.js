@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { DOSSIER_STATUSES, evaluateTransition, ROLE } from './stateMachine.js';
 import { hasPostgres, query, sqlite } from './dbClient.js';
 import { DOCUMENT_STATUSES, isDocumentCompleteStatus } from './domain/documentStatus.js';
+import { buildInitialStatutesWorkflowMetadata } from './domain/statutesWorkflow.js';
 import {
   resolveDossierDocumentPlan,
   resolveDocumentRequiredFlag,
@@ -1900,12 +1901,11 @@ const syncGeneratedStatutesToDossierChecklist = async ({
     fileSizeBytes,
     mimeType: 'application/pdf',
     sha256: contentHash,
-    metadata: {
-      source: 'greffio_generated',
+    metadata: buildInitialStatutesWorkflowMetadata({
       legalForm,
-      generatedAt: nowIso(),
-      awaitingSignature: true,
-    },
+      filename,
+      contentHash,
+    }),
   });
 };
 

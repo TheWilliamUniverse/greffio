@@ -31,7 +31,7 @@
     "assets:android-icons": "node scripts/generate-android-launcher-icons.js",
     "assets:email-logo": "node scripts/generate-email-logo.js",
     "video:playstore": "node scripts/generate-play-store-video.js",
-    "test:statutes": "node --test server/statuts/tests/williamStatutes.test.js",
+    "test:statutes": "node --test server/statuts/tests/williamStatutes.test.js server/domain/tests/statutesWorkflow.test.js",
     "verify:build": "node scripts/verify-build-assets.js",
     "smoke:prod": "powershell -ExecutionPolicy Bypass -File scripts/smoke-prod-greffio.ps1",
     "test:e2e": "playwright test",

@@ -8,6 +8,9 @@ const DOCUMENT_STATUS_LABELS = Object.freeze({
   INVALID: 'À corriger',
   SIGNED: 'Signé',
   GENERATED: 'Généré',
+  A_SIGNER: 'À signer',
+  STATUTES_CLIENT_REVIEW: 'Revue client',
+  STATUTES_OPS_REVIEW: 'Validation Greffio',
 });
 
 export const getDocumentStatusLabel = (status) => {

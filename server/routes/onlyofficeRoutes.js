@@ -1,0 +1,210 @@
+import { createHash } from 'node:crypto';
+import {
+  buildOnlyOfficeDocumentKey,
+  buildOnlyOfficeEditorConfig,
+  getOnlyOfficeServerUrl,
+  isOnlyOfficeConfigured,
+  parseOnlyOfficeCallbackStatus,
+  resolveOnlyOfficeFileType,
+} from '../services/onlyofficeService.js';
+import {
+  getSession,
+  getSessionByToken,
+  isSessionExpired,
+  markSaved,
+  markSaving,
+} from '../services/documentEditorSessionService.js';
+import {
+  createVersionFromEditorSave,
+  getCurrentVersion,
+} from '../services/documentVersionService.js';
+import { downloadDocumentBufferFromConfiguredStorage, uploadDocumentToConfiguredStorage } from '../services/objectStorage.js';
+import { isDocumentSignedLocked } from '../services/documentWorkspacePolicy.js';
+import { canEditStatutesInOnlyOffice } from '../domain/statutesWorkflow.js';
+
+const callbackOk = (res, extra = {}) => res.json({ error: 0, ...extra });
+
+const resolveDocumentRecord = async (listDossierDocuments, dossierId, docKey) => {
+  const documents = await listDossierDocuments(dossierId);
+  return documents.find((item) => item.docKey === docKey) || null;
+};
+
+export const registerOnlyOfficeRoutes = (app, {
+  listDossierDocuments,
+  updateDossierDocument,
+  apiBaseUrl,
+}) => {
+  app.get('/api/onlyoffice/files/:sessionId/download', async (req, res) => {
+    const accessToken = String(req.query.token || req.query.access_token || '');
+    const session = await getSessionByToken(accessToken);
+    if (!session || session.id !== req.params.sessionId) {
+      return res.status(401).json({ ok: false, error: 'ONLYOFFICE_SESSION_INVALID' });
+    }
+    if (isSessionExpired(session)) {
+      return res.status(401).json({ ok: false, error: 'ONLYOFFICE_SESSION_EXPIRED' });
+    }
+
+    try {
+      const buffer = await downloadDocumentBufferFromConfiguredStorage(session.sourceStorageUrl);
+      const ext = String(session.fileFormat || 'pdf').toLowerCase();
+      const mime = ext === 'docx'
+        ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        : ext === 'odt'
+          ? 'application/vnd.oasis.opendocument.text'
+          : 'application/pdf';
+      res.setHeader('Content-Type', mime);
+      res.setHeader('Content-Disposition', `inline; filename="${session.docKey}.${ext}"`);
+      res.setHeader('Cache-Control', 'no-store');
+      return res.send(buffer);
+    } catch (error) {
+      console.error('ONLYOFFICE_FILE_DOWNLOAD_FAILED', error);
+      return res.status(404).json({ ok: false, error: 'ONLYOFFICE_FILE_NOT_FOUND' });
+    }
+  });
+
+  app.post('/api/onlyoffice/callback/:sessionId', async (req, res) => {
+    const session = await getSession(req.params.sessionId);
+    if (!session) {
+      return callbackOk(res);
+    }
+
+    const parsed = parseOnlyOfficeCallbackStatus(req.body || {});
+    if (parsed.corrupted) {
+      console.error('ONLYOFFICE_CALLBACK_CORRUPTED', { sessionId: session.id, status: parsed.status });
+      return callbackOk(res);
+    }
+    if (parsed.closedWithoutChanges || !parsed.mustSave || !parsed.downloadUrl) {
+      return callbackOk(res);
+    }
+
+    await markSaving(session.id);
+
+    try {
+      const response = await fetch(parsed.downloadUrl);
+      if (!response.ok) {
+        throw new Error(`ONLYOFFICE_DOWNLOAD_FAILED_${response.status}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const sha256 = createHash('sha256').update(buffer).digest('hex');
+      const fileFormat = String(session.fileFormat || 'pdf').toLowerCase();
+      const mimeType = fileFormat === 'docx'
+        ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        : fileFormat === 'odt'
+          ? 'application/vnd.oasis.opendocument.text'
+          : 'application/pdf';
+
+      const document = await resolveDocumentRecord(listDossierDocuments, session.dossierId, session.docKey);
+      const uploadResult = await uploadDocumentToConfiguredStorage({
+        dossierId: session.dossierId,
+        docKey: session.docKey,
+        buffer,
+        originalFilename: `${session.docKey}_edited_${Date.now()}.${fileFormat}`,
+        mimeType,
+      });
+
+      const version = await createVersionFromEditorSave({
+        dossierId: session.dossierId,
+        docKey: session.docKey,
+        document,
+        storageUrl: uploadResult.storageUrl,
+        sha256,
+        fileSizeBytes: buffer.length,
+        mimeType,
+        origin: 'editor_free',
+        editorProvider: 'onlyoffice',
+        createdBy: session.userId,
+        metadata: {
+          editorSessionId: session.id,
+          onlyofficeKey: parsed.key,
+        },
+      });
+
+      if (updateDossierDocument && document) {
+        await updateDossierDocument({
+          dossierId: session.dossierId,
+          docKey: session.docKey,
+          status: document.status,
+          fileUrl: uploadResult.storageUrl,
+          storageUrl: uploadResult.storageUrl,
+          filename: `${session.docKey}.${fileFormat}`,
+          fileSizeBytes: buffer.length,
+          mimeType,
+          sha256,
+          metadata: {
+            ...(document.metadata || {}),
+            lastOnlyOfficeSaveAt: new Date().toISOString(),
+            unsigned: true,
+          },
+        });
+      }
+
+      await markSaved(session.id, version?.id || null);
+      return callbackOk(res);
+    } catch (error) {
+      console.error('ONLYOFFICE_CALLBACK_SAVE_FAILED', error);
+      return callbackOk(res);
+    }
+  });
+
+  app.get('/api/dossiers/:dossierId/documents/:docKey/onlyoffice-config', async (req, res) => {
+    if (!isOnlyOfficeConfigured()) {
+      return res.status(501).json({
+        ok: false,
+        error: 'ONLYOFFICE_NOT_CONFIGURED',
+        message: 'L’éditeur ONLYOFFICE n’est pas configuré sur ce serveur. L’aperçu reste disponible.',
+      });
+    }
+
+    const sessionId = String(req.query.sessionId || '');
+    const accessToken = String(req.query.token || '');
+    const session = await getSessionByToken(accessToken);
+    if (!session || session.id !== sessionId || session.provider !== 'onlyoffice') {
+      return res.status(401).json({ ok: false, error: 'ONLYOFFICE_SESSION_INVALID' });
+    }
+    if (isSessionExpired(session)) {
+      return res.status(401).json({ ok: false, error: 'ONLYOFFICE_SESSION_EXPIRED' });
+    }
+
+    const document = await resolveDocumentRecord(listDossierDocuments, session.dossierId, session.docKey);
+    if (session.docKey === 'signed_statutes' && !canEditStatutesInOnlyOffice(document)) {
+      return res.status(409).json({ ok: false, error: 'STATUTES_SIGNED_LOCKED' });
+    }
+    if (isDocumentSignedLocked(document) && session.docKey !== 'signed_statutes') {
+      return res.status(409).json({ ok: false, error: 'DOCUMENT_SIGNED_IMMUTABLE' });
+    }
+
+    const apiBase = String(apiBaseUrl || process.env.GREFFIO_API_URL || '').replace(/\/$/, '');
+    const currentVersion = await getCurrentVersion(session.dossierId, session.docKey);
+    const fileType = resolveOnlyOfficeFileType(document?.mimeType, session.fileFormat || currentVersion?.fileFormat);
+    const documentKey = buildOnlyOfficeDocumentKey({
+      dossierId: session.dossierId,
+      docKey: session.docKey,
+      versionId: currentVersion?.id,
+      sha256: currentVersion?.sha256 || document?.sha256,
+      sessionId: session.id,
+    });
+    const fileUrl = `${apiBase}/api/onlyoffice/files/${session.id}/download?token=${encodeURIComponent(accessToken)}`;
+    const callbackUrl = `${apiBase}/api/onlyoffice/callback/${session.id}`;
+    const title = document?.label || session.docKey;
+
+    const config = buildOnlyOfficeEditorConfig({
+      documentKey,
+      title,
+      fileUrl,
+      callbackUrl,
+      fileType,
+      user: { id: session.userId, name: session.userEmail || 'Utilisateur Greffio' },
+      mode: 'edit',
+    });
+
+    return res.json({
+      ok: true,
+      provider: 'onlyoffice',
+      documentServerUrl: getOnlyOfficeServerUrl(),
+      config,
+      sessionId: session.id,
+      expiresAt: session.expiresAt,
+    });
+  });
+};

@@ -10,6 +10,7 @@ import {
 import {
   createEditorLaunchUrl,
   GuidedFormProvider,
+  OnlyOfficeProvider,
   resolveDefaultEditorProvider,
 } from '../services/documentEditorProviderService.js';
 import {
@@ -24,6 +25,12 @@ import {
   getCurrentVersion,
   listVersions,
 } from '../services/documentVersionService.js';
+import {
+  getStatutesWorkflowLabel,
+  getStatutesWorkflowStatus,
+  transitionStatutesWorkflow,
+} from '../domain/statutesWorkflow.js';
+import { DOCUMENT_STATUSES } from '../domain/documentStatus.js';
 
 const mapVersionResponse = (version) => {
   if (!version) return null;
@@ -63,7 +70,11 @@ const buildWorkspacePayload = async ({ dossierId, docKey, document }) => {
     versionsCount: (await listVersions(dossierId, docKey, { limit: 100 })).length,
     lastEditedAt: currentVersion?.updatedAt || document?.updatedAt || null,
     signedLocked: isDocumentSignedLocked(document),
-    defaultProvider: resolveDefaultEditorProvider(),
+    defaultProvider: resolveDefaultEditorProvider({ docKey }),
+    statutesWorkflow: docKey === 'signed_statutes' ? {
+      status: getStatutesWorkflowStatus(document),
+      label: getStatutesWorkflowLabel(document),
+    } : null,
     guidedEditorPath: GuidedFormProvider.resolveEditorPath({ dossierId, docKey }),
   };
 };
@@ -75,7 +86,10 @@ const handleCreateEditSession = async (req, res, { preferFreeEdit = false, appUr
   const docKey = String(req.params.docKey || '');
   const document = await resolveDocumentRecord(listDossierDocuments, access.dossier.id, docKey);
   const providerId = String(
-    req.body?.provider || resolveDefaultEditorProvider({ preferFreeEdit: preferFreeEdit || Boolean(req.body?.preferFreeEdit) }),
+    req.body?.provider || resolveDefaultEditorProvider({
+      preferFreeEdit: preferFreeEdit || Boolean(req.body?.preferFreeEdit),
+      docKey,
+    }),
   );
 
   if (!isWorkspaceDocKeyAllowed(docKey)) {
@@ -122,11 +136,15 @@ const handleCreateEditSession = async (req, res, { preferFreeEdit = false, appUr
     return res.status(404).json({ ok: false, error: 'SOURCE_VERSION_NOT_FOUND' });
   }
 
+  const freeEditProvider = providerId === 'onlyoffice' && OnlyOfficeProvider.isAvailable()
+    ? 'onlyoffice'
+    : 'collabora';
+
   const { session, accessToken } = await createSession({
     dossierId: access.dossier.id,
     docKey,
     documentVersionId: currentVersion?.id || null,
-    provider: 'collabora',
+    provider: freeEditProvider,
     userId: req.auth?.sub,
     userEmail: req.auth?.email || null,
     fileFormat: currentVersion?.fileFormat || 'pdf',
@@ -134,14 +152,32 @@ const handleCreateEditSession = async (req, res, { preferFreeEdit = false, appUr
     sourceSha256: currentVersion?.sha256 || document?.sha256 || null,
   });
 
-  const launch = createEditorLaunchUrl({
-    providerId: 'collabora',
-    dossierId: access.dossier.id,
-    docKey,
-    session,
-    accessToken,
-    appUrl,
-  });
+  const launch = providerId === 'onlyoffice' || freeEditProvider === 'onlyoffice'
+    ? OnlyOfficeProvider.buildLaunchPayload({
+      session,
+      accessToken,
+      appUrl,
+      dossierId: access.dossier.id,
+      docKey,
+      document,
+      currentVersion,
+    })
+    : createEditorLaunchUrl({
+      providerId: 'collabora',
+      dossierId: access.dossier.id,
+      docKey,
+      session,
+      accessToken,
+      appUrl,
+    });
+  if (!launch?.ok) {
+    return res.status(501).json({
+      ok: false,
+      error: launch?.error || 'FREE_EDIT_NOT_CONFIGURED',
+      message: launch?.message || 'L’éditeur bureautique n’est pas disponible.',
+      fallback: launch?.fallback || null,
+    });
+  }
   return res.json({
     ...launch,
     sessionId: session.id,
@@ -152,6 +188,8 @@ export const registerDocumentWorkspaceRoutes = (app, {
   requireAuth,
   resolveDossierAccess,
   listDossierDocuments,
+  updateDossierDocument,
+  requireRole,
   appUrl,
 }) => {
   app.get('/api/dossiers/:dossierId/documents/:docKey/workspace', requireAuth, async (req, res) => {
@@ -224,6 +262,59 @@ export const registerDocumentWorkspaceRoutes = (app, {
       ok: true,
       status: closed?.status || 'closed',
       resultVersionId: closed?.resultVersionId || null,
+    });
+  });
+
+  app.post('/api/dossiers/:dossierId/documents/signed_statutes/workflow', requireAuth, async (req, res) => {
+    const access = await resolveDossierAccess(req, req.params.dossierId, { allowClaim: true });
+    if (!access.ok) return res.status(access.status).json({ ok: false, error: access.error });
+
+    const action = String(req.body?.action || '').trim().toLowerCase();
+    const document = await resolveDocumentRecord(listDossierDocuments, access.dossier.id, 'signed_statutes');
+    if (!document) {
+      return res.status(404).json({ ok: false, error: 'STATUTES_DOCUMENT_NOT_FOUND' });
+    }
+
+    const isOps = ['ADMIN', 'OPS', 'FORMALISTE'].includes(String(req.auth?.role || '').toUpperCase());
+    const currentStatus = getStatutesWorkflowStatus(document);
+    const transition = transitionStatutesWorkflow({ currentStatus, action, isOps });
+    if (!transition.ok) {
+      return res.status(409).json({ ok: false, error: transition.error, currentStatus });
+    }
+
+    const nextMetadata = {
+      ...(document.metadata || {}),
+      statutesWorkflowStatus: transition.nextStatus,
+      unsigned: transition.nextStatus !== 'signed',
+      awaitingSignature: transition.nextStatus === 'validated',
+    };
+    let nextDocumentStatus = document.status;
+    if (transition.nextStatus === 'pending_ops_review') {
+      nextDocumentStatus = DOCUMENT_STATUSES.UNDER_REVIEW;
+    } else if (transition.nextStatus === 'validated') {
+      nextDocumentStatus = DOCUMENT_STATUSES.VALID;
+    } else if (transition.nextStatus === 'pending_client_review') {
+      nextDocumentStatus = DOCUMENT_STATUSES.UPLOADED;
+    }
+
+    if (!updateDossierDocument) {
+      return res.status(501).json({ ok: false, error: 'STATUTES_WORKFLOW_NOT_AVAILABLE' });
+    }
+
+    const updated = await updateDossierDocument({
+      dossierId: access.dossier.id,
+      docKey: 'signed_statutes',
+      status: nextDocumentStatus,
+      metadata: nextMetadata,
+      reviewerId: isOps ? req.auth?.sub : null,
+    });
+
+    return res.json({
+      ok: true,
+      action,
+      statutesWorkflowStatus: transition.nextStatus,
+      label: getStatutesWorkflowLabel({ metadata: nextMetadata }),
+      document: updated,
     });
   });
 };

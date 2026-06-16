@@ -4,6 +4,10 @@ import {
   isEditableDocumentKey,
 } from '../documents/editableDocumentRegistry.js';
 import { isDocumentCompleteStatus } from '../domain/documentStatus.js';
+import {
+  canEditStatutesInOnlyOffice,
+  isStatutesSignedLocked,
+} from '../domain/statutesWorkflow.js';
 
 const toBool = (value, fallback = false) => {
   if (value === undefined || value === null || value === '') return fallback;
@@ -17,7 +21,7 @@ export const isDocumentWorkspaceEnabled = () => toBool(
 
 export const isDocumentFreeEditEnabled = () => toBool(
   process.env.DOCUMENT_FREE_EDIT_ENABLED,
-  Boolean(process.env.COLLABORA_URL),
+  Boolean(process.env.COLLABORA_URL || process.env.ONLYOFFICE_URL),
 );
 
 export const getDocumentEditorAllowedDocKeys = () => {
@@ -28,7 +32,7 @@ export const getDocumentEditorAllowedDocKeys = () => {
       .map((item) => item.trim())
       .filter(Boolean);
   }
-  return [...getSupportedEditableDocumentKeys(), 'manager_non_conviction'];
+  return [...getSupportedEditableDocumentKeys(), 'manager_non_conviction', 'signed_statutes'];
 };
 
 export const isWorkspaceDocKeyAllowed = (docKey) => {
@@ -40,6 +44,9 @@ export const isWorkspaceDocKeyAllowed = (docKey) => {
 
 export const isDocumentSignedLocked = (document = null) => {
   if (!document) return false;
+  if (document.docKey === 'signed_statutes') {
+    return isStatutesSignedLocked(document);
+  }
   const metadata = document.metadata && typeof document.metadata === 'object'
     ? document.metadata
     : {};
@@ -50,6 +57,14 @@ export const isDocumentSignedLocked = (document = null) => {
   if (isDocumentCompleteStatus(status) && metadata.declarationStatus === 'signed') return true;
   return false;
 };
+
+export const isFreeEditDocKey = (docKey) => (
+  isEditableDocumentKey(docKey) || docKey === 'signed_statutes'
+);
+
+const documentHasFile = (document = null) => Boolean(
+  document?.storageUrl || document?.fileUrl || document?.filename,
+);
 
 export const isGuidedEditorSupported = (docKey) => (
   isEditableDocumentKey(docKey) || docKey === 'manager_non_conviction'
@@ -63,9 +78,14 @@ export const canGuidedEditDocument = (docKey, document = null) => {
 };
 
 export const canFreeEditDocument = (docKey, document = null) => {
-  if (!canGuidedEditDocument(docKey, document)) return false;
+  if (!isWorkspaceDocKeyAllowed(docKey)) return false;
+  if (isDocumentSignedLocked(document)) return false;
   if (!isDocumentFreeEditEnabled()) return false;
-  return Boolean(getEditableDocumentConfig(docKey));
+  if (docKey === 'signed_statutes') {
+    return documentHasFile(document) && canEditStatutesInOnlyOffice(document);
+  }
+  if (!canGuidedEditDocument(docKey, document)) return false;
+  return isFreeEditDocKey(docKey);
 };
 
 export const buildDocumentWorkspaceCapabilities = ({ docKey, document = null }) => ({

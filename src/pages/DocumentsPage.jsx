@@ -22,6 +22,8 @@ import { IdentityVerificationCard } from '@/components/identity/IdentityVerifica
 import { DossierBreadcrumb } from '@/components/layout/DossierBreadcrumb.jsx';
 import { PdfPreviewPanel } from '@/components/documents/PdfPreviewPanel.jsx';
 import { DocumentPreviewActions } from '@/components/documents/DocumentPreviewActions.jsx';
+import { StatutesWorkflowBadge } from '@/components/documents/StatutesWorkflowBadge.jsx';
+import { openDocumentViewerTab } from '@/pages/DocumentViewerTab.jsx';
 import { FormalityPowerSummary } from '@/components/documents/FormalityPowerSummary.jsx';
 import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
 import { DocumentStatusCard } from '@/components/patterns/DocumentStatusCard.jsx';
@@ -35,6 +37,7 @@ import { queryKeys } from '@/hooks/queries/queryKeys.js';
 import { isInternalUser } from '@/utils/roles.js';
 import { getDocumentStatusLabel, getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 import { documentHasFile, filterClientActionRequiredDocuments, filterClientVisibleDocuments, formatDocumentRejectionHint, resolveClientDocumentStatus } from '@/utils/documentWorkflow.js';
+import { resolveStatutesClientDisplayStatus, getStatutesWorkflowLabelClient } from '@/utils/statutesWorkflowClient.js';
 import {
   readDossierIdFromSearchParams,
   resolveDocumentsDossierId,
@@ -86,7 +89,12 @@ export const DocumentsPage = () => {
     const displayLabel = getDocumentTypeLabel(item.docKey, item.label);
     const hasFile = documentHasFile(item);
     const rawStatus = String(item.status || '').toUpperCase();
-    const displayStatus = internalView ? rawStatus : resolveClientDocumentStatus({ ...item, hasFile });
+    const statutesDisplayStatus = item.docKey === 'signed_statutes' && hasFile
+      ? resolveStatutesClientDisplayStatus(item)
+      : null;
+    const displayStatus = internalView
+      ? rawStatus
+      : (statutesDisplayStatus || resolveClientDocumentStatus({ ...item, hasFile }));
     return {
       id: item.id,
       docKey: item.docKey,
@@ -100,6 +108,7 @@ export const DocumentsPage = () => {
       hasFile,
       rejectedReason: item.rejectedReason || null,
       canUpload: !['VALID', 'VALIDATED', 'SIGNED'].includes(displayStatus),
+      statutesWorkflowStatus: item.metadata?.statutesWorkflowStatus || null,
     };
   }), [visibleApiDocuments, internalView]);
   const waitingDocs = useMemo(
@@ -311,6 +320,7 @@ export const DocumentsPage = () => {
     setPreviewLoadingDocKey(docKey);
     setUploadError(null);
     try {
+      openDocumentViewerTab({ dossierId: resolvedDossierId, docKey });
       const { filename, blob } = await downloadDossierDocument({
         dossierId: resolvedDossierId,
         docKey,
@@ -707,7 +717,15 @@ export const DocumentsPage = () => {
                       ) : null}
                     </div>
                   </div>
-                  <StatusBadge status={document.status} className="w-fit" />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StatusBadge status={document.status} className="w-fit" />
+                    {document.docKey === 'signed_statutes' && document.statutesWorkflowStatus ? (
+                      <StatutesWorkflowBadge
+                        status={document.statutesWorkflowStatus}
+                        label={getStatutesWorkflowLabelClient({ metadata: { statutesWorkflowStatus: document.statutesWorkflowStatus } })}
+                      />
+                    ) : null}
+                  </div>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"

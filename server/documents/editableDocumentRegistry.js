@@ -30,6 +30,15 @@ export const EDITABLE_DOCUMENT_REGISTRY = Object.freeze({
     emailTemplateDone: 'editable_document_signature_completed',
     publicDocumentTitle: 'Procuration et pouvoirs pour formalités',
   },
+  signed_statutes: {
+    docKey: 'signed_statutes',
+    schemaVersion: 'signed_statutes_v1',
+    title: 'Statuts de la société',
+    filenamePrefix: 'Statuts',
+    freeEditOnly: true,
+    signatureLayout: null,
+    publicDocumentTitle: 'Statuts de la société',
+  },
 });
 
 export const getEditableDocumentConfig = (docKey) => (

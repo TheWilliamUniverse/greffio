@@ -7,6 +7,7 @@ import {
   savePdfBlobToDevice,
 } from '@/utils/dossierDocumentFile.js';
 import { isCapacitorNative } from '@/utils/platform.js';
+import { openDocumentViewerTab } from '@/pages/DocumentViewerTab.jsx';
 
 const releasePreview = (preview) => {
   if (!preview) return;
@@ -35,6 +36,9 @@ export const useDossierDocumentPreview = () => {
     if (!dossierId || !docKey) return { ok: false, error: 'Paramètres document manquants.' };
     setLoadingDocKey(docKey);
     setPreviewError('');
+    if (!isCapacitorNative()) {
+      openDocumentViewerTab({ dossierId, docKey });
+    }
     setPreviewDoc((current) => {
       releasePreview(current);
       return {

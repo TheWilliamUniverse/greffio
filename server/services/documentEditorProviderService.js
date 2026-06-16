@@ -1,5 +1,12 @@
 import { getEditableDocumentConfig } from '../documents/editableDocumentRegistry.js';
 import {
+  buildOnlyOfficeDocumentKey,
+  buildOnlyOfficeEditorConfig,
+  getOnlyOfficeServerUrl,
+  isOnlyOfficeConfigured,
+  resolveOnlyOfficeFileType,
+} from './onlyofficeService.js';
+import {
   getDocumentEditorMobileMode,
   isDocumentFreeEditEnabled,
 } from './documentWorkspacePolicy.js';
@@ -44,6 +51,67 @@ export class GuidedFormProvider {
   }
 }
 
+export class OnlyOfficeProvider {
+  static id = 'onlyoffice';
+
+  static isAvailable() {
+    return isOnlyOfficeConfigured() && isDocumentFreeEditEnabled();
+  }
+
+  static buildLaunchPayload({
+    session,
+    accessToken,
+    appUrl,
+    dossierId,
+    docKey,
+    document = null,
+    currentVersion = null,
+  }) {
+    if (!this.isAvailable()) {
+      return {
+        ok: false,
+        error: 'ONLYOFFICE_NOT_CONFIGURED',
+        message: 'L’éditeur ONLYOFFICE n’est pas configuré. L’aperçu du document reste disponible.',
+        fallbackProvider: GuidedFormProvider.id,
+      };
+    }
+
+    const apiBase = String(process.env.GREFFIO_API_URL || appUrl || '').replace(/\/$/, '');
+    const fileType = resolveOnlyOfficeFileType(
+      document?.mimeType,
+      currentVersion?.fileFormat || session?.fileFormat,
+    );
+    const documentKey = buildOnlyOfficeDocumentKey({
+      dossierId,
+      docKey,
+      versionId: currentVersion?.id || session?.documentVersionId,
+      sha256: currentVersion?.sha256 || document?.sha256 || session?.sourceSha256,
+      sessionId: session?.id,
+    });
+    const fileUrl = `${apiBase}/api/onlyoffice/files/${session.id}/download?token=${encodeURIComponent(accessToken)}`;
+    const callbackUrl = `${apiBase}/api/onlyoffice/callback/${session.id}`;
+    const config = buildOnlyOfficeEditorConfig({
+      documentKey,
+      title: document?.label || docKey,
+      fileUrl,
+      callbackUrl,
+      fileType,
+      user: { id: session.userId, name: session.userEmail || 'Utilisateur Greffio' },
+    });
+
+    return {
+      ok: true,
+      provider: this.id,
+      sessionId: session.id,
+      documentServerUrl: getOnlyOfficeServerUrl(),
+      config,
+      configUrl: `${apiBase}/api/dossiers/${dossierId}/documents/${encodeURIComponent(docKey)}/onlyoffice-config?sessionId=${encodeURIComponent(session.id)}&token=${encodeURIComponent(accessToken)}`,
+      expiresAt: session.expiresAt,
+      mobilePolicy: 'desktop_recommended',
+    };
+  }
+}
+
 export class CollaboraProvider {
   static id = 'collabora';
 
@@ -78,11 +146,18 @@ export class CollaboraProvider {
 }
 
 export const getConfiguredProvider = () => {
+  const preferred = String(process.env.DOCUMENT_EDITOR_PROVIDER || '').trim().toLowerCase();
+  if (preferred === 'onlyoffice' && OnlyOfficeProvider.isAvailable()) return OnlyOfficeProvider.id;
+  if (preferred === 'collabora' && CollaboraProvider.isAvailable()) return CollaboraProvider.id;
+  if (OnlyOfficeProvider.isAvailable()) return OnlyOfficeProvider.id;
   if (CollaboraProvider.isAvailable()) return CollaboraProvider.id;
   return GuidedFormProvider.id;
 };
 
 export const assertProviderReady = (providerId) => {
+  if (providerId === OnlyOfficeProvider.id) {
+    return OnlyOfficeProvider.isAvailable();
+  }
   if (providerId === CollaboraProvider.id) {
     return CollaboraProvider.isAvailable();
   }
@@ -100,6 +175,15 @@ export const createEditorLaunchUrl = ({
   accessToken = null,
   appUrl = null,
 }) => {
+  if (providerId === OnlyOfficeProvider.id) {
+    return OnlyOfficeProvider.buildLaunchPayload({
+      session,
+      accessToken,
+      appUrl,
+      dossierId,
+      docKey,
+    });
+  }
   if (providerId === CollaboraProvider.id) {
     return CollaboraProvider.buildLaunchPayload({ session, accessToken, appUrl });
   }
@@ -112,9 +196,10 @@ export const createEditorLaunchUrl = ({
   });
 };
 
-export const resolveDefaultEditorProvider = ({ preferFreeEdit = false } = {}) => {
-  if (preferFreeEdit && CollaboraProvider.isAvailable()) {
-    return CollaboraProvider.id;
+export const resolveDefaultEditorProvider = ({ preferFreeEdit = false, docKey = null } = {}) => {
+  if (preferFreeEdit || docKey === 'signed_statutes') {
+    if (OnlyOfficeProvider.isAvailable()) return OnlyOfficeProvider.id;
+    if (CollaboraProvider.isAvailable()) return CollaboraProvider.id;
   }
   return GuidedFormProvider.id;
 };

@@ -199,6 +199,8 @@ import {
   maybeCreateVersionAfterEditorSave,
   buildEditorWorkspaceBlock,
 } from './routes/documentWorkspaceRoutes.js';
+import { registerOnlyOfficeRoutes } from './routes/onlyofficeRoutes.js';
+import { createVersion } from './services/documentVersionService.js';
 import verificationRouter from './routes/verificationRoutes.js';
 import identityRouter, { createDiditWebhookHandler } from './routes/identityRoutes.js';
 import { startIdentityVerificationForDossier } from './services/identity/identity.provider.js';
@@ -2774,6 +2776,29 @@ app.post('/api/dossiers/:dossierId/statutes/generate', requireAuth, async (req, 
     contentHash,
     legalForm: builtLegalForm,
   });
+  try {
+    await createVersion({
+      dossierId: dossier.id,
+      docKey: 'signed_statutes',
+      origin: 'generation',
+      status: 'pending_client_review',
+      fileFormat: 'pdf',
+      mimeType: 'application/pdf',
+      storageUrl: saved.fileUrl,
+      fileSizeBytes: saved.fileSizeBytes,
+      sha256: contentHash,
+      contentHash,
+      metadata: {
+        legalForm: builtLegalForm,
+        unsigned: true,
+        generatedBy: 'greffio_william_template',
+      },
+      createdBy: req.auth.sub,
+      markCurrent: true,
+    });
+  } catch (versionError) {
+    console.warn('STATUTES_VERSION_INIT_FAILED', versionError?.message || versionError);
+  }
   await markDossierStatutesGenerated({
     dossierId: dossier.id,
     actorId: req.auth.sub,
@@ -3150,7 +3175,15 @@ registerDocumentWorkspaceRoutes(app, {
   requireAuth,
   resolveDossierAccess,
   listDossierDocuments,
+  updateDossierDocument,
+  requireRole,
   appUrl,
+});
+
+registerOnlyOfficeRoutes(app, {
+  listDossierDocuments,
+  updateDossierDocument,
+  apiBaseUrl: process.env.GREFFIO_API_URL || appUrl,
 });
 
 const dossierMessageEvents = {

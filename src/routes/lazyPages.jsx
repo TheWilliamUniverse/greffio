@@ -25,6 +25,7 @@ export const LazyDocumentsPage = lazy(() => import('@/pages/DocumentsPage.jsx').
 export const LazyDossiersPage = lazy(() => import('@/pages/DossiersPage.jsx').then((m) => ({ default: m.DossiersPage })));
 export const LazyFormalityPowersPage = lazy(() => import('@/pages/FormalityPowersPage.jsx').then((m) => ({ default: m.FormalityPowersPage })));
 export const LazyDocumentWorkspaceEditPage = lazy(() => import('@/pages/DocumentWorkspaceEditPage.jsx').then((m) => ({ default: m.DocumentWorkspaceEditPage })));
+export const LazyDocumentViewerTab = lazy(() => import('@/pages/DocumentViewerTab.jsx').then((m) => ({ default: m.DocumentViewerTab })));
 export const LazySubscribersListPage = lazy(() => import('@/pages/SubscribersListPage.jsx').then((m) => ({ default: m.SubscribersListPage })));
 export const LazyMobileHomePage = lazy(() => import('@/mobile/MobileHomePage.jsx').then((m) => ({ default: m.MobileHomePage })));
 export const LazyMobileDossiersPage = lazy(() => import('@/mobile/MobileDossiersPage.jsx').then((m) => ({ default: m.MobileDossiersPage })));

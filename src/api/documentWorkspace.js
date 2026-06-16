@@ -22,3 +22,12 @@ export const closeFreeEditSession = (dossierId, docKey, sessionId, payload = {})
   `/api/dossiers/${encodeURIComponent(dossierId)}/documents/${encodeURIComponent(docKey)}/free-edit/${encodeURIComponent(sessionId)}/close`,
   payload,
 );
+
+export const submitStatutesWorkflowAction = (dossierId, action) => apiPost(
+  `/api/dossiers/${encodeURIComponent(dossierId)}/documents/signed_statutes/workflow`,
+  { action },
+);
+
+export const getOnlyOfficeConfig = (dossierId, docKey, { sessionId, token }) => apiGet(
+  `/api/dossiers/${encodeURIComponent(dossierId)}/documents/${encodeURIComponent(docKey)}/onlyoffice-config?sessionId=${encodeURIComponent(sessionId)}&token=${encodeURIComponent(token)}`,
+);

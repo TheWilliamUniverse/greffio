@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button.jsx';
 import {
   canShowDocumentModifyAction,
   resolveDocumentWorkspaceEditPath,
+  resolveDocumentViewerPath,
 } from '@/utils/documentWorkspace.js';
 
 export const DocumentPreviewActions = ({
@@ -27,6 +28,10 @@ export const DocumentPreviewActions = ({
       return;
     }
     if (!dossierId || !docKey) return;
+    if (docKey === 'signed_statutes') {
+      window.open(resolveDocumentViewerPath(dossierId, docKey, { mode: 'edit' }), '_blank', 'noopener,noreferrer');
+      return;
+    }
     navigate(resolveDocumentWorkspaceEditPath(dossierId, docKey));
   };
 
