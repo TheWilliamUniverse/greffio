@@ -3,6 +3,10 @@ import path from 'node:path';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { formatFrenchDate } from './nonConvictionPdf.js';
 import {
+  FORMALITY_POWERS_IDENTITY_BELOW_LINE,
+  FORMALITY_POWERS_SIGNATURE_FAIT_ABOVE_LINE,
+  FORMALITY_POWERS_SIGNATURE_HEADING_ABOVE_LINE,
+  FORMALITY_POWERS_SIGNATURE_LABEL_ABOVE_LINE,
   FORMALITY_POWERS_SIGNATURE_LINE_Y,
   LEGAL_RAPPEL_BOTTOM_Y,
 } from './pdfLegalConstants.js';
@@ -309,7 +313,7 @@ export const generateFormalityPowersPdf = async ({
   ]);
 
   const lineY = FORMALITY_POWERS_SIGNATURE_LINE_Y;
-  const signatureBlockTopY = lineY + 108;
+  const signatureBlockTopY = lineY + FORMALITY_POWERS_SIGNATURE_HEADING_ABOVE_LINE + 12;
   const dureeHeightEstimate = (
     GAP_AFTER_H2
     + wrapText('La présente procuration prend effet à compter de sa signature par le Mandant. Elle demeure valable jusqu\'à l\'accomplissement complet de la formalité confiée, incluant, le cas échéant, les corrections, compléments, échanges avec les organismes compétents et réception des justificatifs définitifs.').length * LINE_BODY
@@ -329,23 +333,24 @@ export const generateFormalityPowersPdf = async ({
   ]);
 
   const lineX = MARGIN_H + 52;
+
   page.drawText(pdfSafe('Signature du mandant').toUpperCase(), {
     x: MARGIN_H,
-    y: lineY + 88,
+    y: lineY + FORMALITY_POWERS_SIGNATURE_HEADING_ABOVE_LINE,
     size: SIZE_BODY,
     font: fontBold,
     color: COLOR_TEXT,
   });
   page.drawText(pdfSafe(`Fait à ${city}, le ${dateFr}.`), {
     x: MARGIN_H,
-    y: lineY + 62,
+    y: lineY + FORMALITY_POWERS_SIGNATURE_FAIT_ABOVE_LINE,
     size: SIZE_BODY,
     font,
     color: COLOR_TEXT,
   });
   page.drawText(pdfSafe('Signature du Mandant :'), {
     x: MARGIN_H,
-    y: lineY + 36,
+    y: lineY + FORMALITY_POWERS_SIGNATURE_LABEL_ABOVE_LINE,
     size: SIZE_BODY,
     font,
     color: COLOR_TEXT,
@@ -356,7 +361,7 @@ export const generateFormalityPowersPdf = async ({
     thickness: 0.7,
     color: COLOR_TEXT,
   });
-  let belowLineY = lineY - LINE_BODY - 4;
+  let belowLineY = lineY - FORMALITY_POWERS_IDENTITY_BELOW_LINE;
   belowLineY = drawLeftLines(page, font, belowLineY, signatoryName);
   belowLineY = drawLeftLines(page, font, belowLineY, `Qualité : ${signatoryCapacity}`);
   belowLineY = drawLeftLines(page, font, belowLineY, 'Mention recommandée : Bon pour pouvoir');

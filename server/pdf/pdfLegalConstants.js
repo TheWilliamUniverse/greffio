@@ -1,5 +1,30 @@
 /** Baseline Y (pdf-lib, from page bottom) for the black signature line (trait noir). */
-export const FORMALITY_POWERS_SIGNATURE_LINE_Y = 463;
+export const FORMALITY_POWERS_SIGNATURE_LINE_Y = 405;
+
+/** Vertical offsets above the trait noir for the page-5 signature block. */
+export const FORMALITY_POWERS_SIGNATURE_HEADING_ABOVE_LINE = 108;
+export const FORMALITY_POWERS_SIGNATURE_FAIT_ABOVE_LINE = 86;
+export const FORMALITY_POWERS_SIGNATURE_LABEL_ABOVE_LINE = 66;
+
+/** Image stamp sits this many pt above the trait noir (formality powers). */
+export const FORMALITY_POWERS_STAMP_ABOVE_LINE = 8;
+
+/** Reserved stamp image height above the trait noir. */
+export const FORMALITY_POWERS_STAMP_MAX_HEIGHT = 48;
+
+/** Electronic timestamp sits this many pt below the trait noir. */
+export const FORMALITY_POWERS_ELECTRONIC_STAMP_BELOW_LINE = 12;
+
+/** First identity line (name) below the trait noir. */
+export const FORMALITY_POWERS_IDENTITY_BELOW_LINE = 30;
+
+export const formalityPowersSignatureStampY = (
+  lineY = FORMALITY_POWERS_SIGNATURE_LINE_Y,
+) => lineY + FORMALITY_POWERS_STAMP_ABOVE_LINE;
+
+export const formalityPowersElectronicStampY = (
+  lineY = FORMALITY_POWERS_SIGNATURE_LINE_Y,
+) => lineY - FORMALITY_POWERS_ELECTRONIC_STAMP_BELOW_LINE;
 
 /** Right-column signature line for déclaration de non-condamnation (single page). */
 export const NON_CONVICTION_SIGNATURE_LINE_Y = 290;

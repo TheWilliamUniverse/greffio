@@ -4,9 +4,12 @@ import { loadPdfFonts } from './pdfFonts.js';
 import { replaceDraftWatermarkWithSignedBadge } from './pdfLayoutPremium.js';
 import {
   FORMALITY_POWERS_SIGNATURE_LINE_Y,
+  FORMALITY_POWERS_STAMP_MAX_HEIGHT,
   MANDATE_SIGNATURE_LINE_Y,
   NON_CONVICTION_SIGNATURE_LINE_Y,
   SUBSCRIBERS_LIST_SIGNATURE_LINE_Y,
+  formalityPowersElectronicStampY,
+  formalityPowersSignatureStampY,
   nonConvictionElectronicStampY,
   nonConvictionSignatureStampY,
   signatureStampY,
@@ -62,15 +65,17 @@ export const stampSignatureOnPdf = async ({
     ? marginH + 52
     : (signatureOnRight ? width - marginH - signatureColWidth : marginH);
   const yBase = isFormalityPowersLayout
-    ? signatureStampY(FORMALITY_POWERS_SIGNATURE_LINE_Y)
+    ? formalityPowersSignatureStampY(FORMALITY_POWERS_SIGNATURE_LINE_Y)
     : (isSubscribersLayout
       ? signatureStampY(SUBSCRIBERS_LIST_SIGNATURE_LINE_Y)
       : (isOfficialLayout
         ? nonConvictionSignatureStampY(NON_CONVICTION_SIGNATURE_LINE_Y)
         : signatureStampY(MANDATE_SIGNATURE_LINE_Y)));
-  const electronicStampY = isOfficialLayout
-    ? nonConvictionElectronicStampY(NON_CONVICTION_SIGNATURE_LINE_Y)
-    : Math.max(34, yBase - 18);
+  const electronicStampY = isFormalityPowersLayout
+    ? formalityPowersElectronicStampY(FORMALITY_POWERS_SIGNATURE_LINE_Y)
+    : (isOfficialLayout
+      ? nonConvictionElectronicStampY(NON_CONVICTION_SIGNATURE_LINE_Y)
+      : Math.max(34, yBase - 18));
 
   const safeSignerName = pdfSafeText(signerFullName, 'Signataire');
 
@@ -87,7 +92,9 @@ export const stampSignatureOnPdf = async ({
   const signedLabel = formatSignatureTimestampFr(signedAtIso);
 
   const signatureMaxWidth = signatureOnRight ? 180 : 220;
-  const signatureMaxHeight = 60;
+  const signatureMaxHeight = isFormalityPowersLayout
+    ? FORMALITY_POWERS_STAMP_MAX_HEIGHT
+    : 60;
 
   if (signatureImagePngBase64) {
     const match = String(signatureImagePngBase64).match(/^data:image\/(png|jpeg|jpg);base64,(.+)$/i);
