@@ -162,31 +162,36 @@ const handleCreateEditSession = async (req, res, {
     });
   }
 
-  const currentVersion = docKey === 'signed_statutes'
-    ? await (async () => {
-      try {
-        const dossierRecord = access.dossier || (getDossier ? await getDossier(access.dossier.id) : null);
-        const questionnaire = dossierRecord?.dataJson ? JSON.parse(dossierRecord.dataJson) : {};
-        const user = dossierRecord?.userId && getUserById
-          ? await getUserById(dossierRecord.userId)
-          : null;
-        return await ensureStatutesDocxEditVersion({
-          dossierId: access.dossier.id,
-          document,
-          dossier: dossierRecord,
-          questionnaire,
-          user,
-          createdBy: req.auth?.sub,
-        });
-      } catch (ensureError) {
-        console.error('[document-workspace] statutes docx ensure failed', {
-          dossierId: access.dossier.id,
-          message: ensureError?.message,
-        });
-        return null;
-      }
-    })()
-    : await getCurrentVersion(access.dossier.id, docKey);
+  let currentVersion;
+  if (docKey === 'signed_statutes') {
+    try {
+      const dossierRecord = access.dossier || (getDossier ? await getDossier(access.dossier.id) : null);
+      const questionnaire = dossierRecord?.dataJson ? JSON.parse(dossierRecord.dataJson) : {};
+      const user = dossierRecord?.userId && getUserById
+        ? await getUserById(dossierRecord.userId)
+        : null;
+      currentVersion = await ensureStatutesDocxEditVersion({
+        dossierId: access.dossier.id,
+        document,
+        dossier: dossierRecord,
+        questionnaire,
+        user,
+        createdBy: req.auth?.sub,
+      });
+    } catch (ensureError) {
+      console.error('[document-workspace] statutes docx ensure failed', {
+        dossierId: access.dossier.id,
+        message: ensureError?.message,
+      });
+      return res.status(502).json({
+        ok: false,
+        error: 'STATUTES_DOCX_ENSURE_FAILED',
+        message: 'Impossible de préparer la version DOCX des statuts pour ONLYOFFICE. Réessayez dans un instant.',
+      });
+    }
+  } else {
+    currentVersion = await getCurrentVersion(access.dossier.id, docKey);
+  }
 
   const sourceStorageUrl = currentVersion?.storageUrl || document?.storageUrl || document?.fileUrl;
   if (!sourceStorageUrl) {
@@ -196,6 +201,16 @@ const handleCreateEditSession = async (req, res, {
       message: docKey === 'signed_statutes'
         ? 'Impossible de préparer la version DOCX des statuts pour ONLYOFFICE.'
         : 'Version source introuvable.',
+    });
+  }
+
+  const sessionFileFormat = currentVersion?.fileFormat
+    || (docKey === 'signed_statutes' ? 'docx' : 'pdf');
+  if (docKey === 'signed_statutes' && sessionFileFormat !== 'docx') {
+    return res.status(422).json({
+      ok: false,
+      error: 'STATUTES_DOCX_REQUIRED',
+      message: 'La version DOCX des statuts est requise pour l’éditeur ONLYOFFICE.',
     });
   }
 
@@ -210,7 +225,7 @@ const handleCreateEditSession = async (req, res, {
     provider: freeEditProvider,
     userId: req.auth?.sub,
     userEmail: req.auth?.email || null,
-    fileFormat: currentVersion?.fileFormat || (docKey === 'signed_statutes' ? 'docx' : 'pdf'),
+    fileFormat: sessionFileFormat,
     sourceStorageUrl,
     sourceSha256: currentVersion?.sha256 || document?.sha256 || null,
   });

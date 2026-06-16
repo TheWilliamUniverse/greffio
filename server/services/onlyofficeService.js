@@ -82,9 +82,23 @@ export const probeOnlyOfficeFileDownloadUrl = async (downloadUrl) => {
   });
   const contentType = String(response.headers.get('content-type') || '').toLowerCase();
   if (!response.ok) {
+    let probeCode = 'ONLYOFFICE_DOWNLOAD_PROBE_FAILED';
+    let detectedFormat = null;
+    if (response.status === 422 && contentType.includes('json')) {
+      try {
+        const body = await response.json();
+        if (body?.error === 'ONLYOFFICE_FILE_FORMAT_MISMATCH') {
+          probeCode = 'ONLYOFFICE_FILE_FORMAT_MISMATCH';
+          detectedFormat = body.detectedFormat || null;
+        }
+      } catch (_error) {
+        // ignore JSON parse errors
+      }
+    }
     const error = new Error(`ONLYOFFICE_DOWNLOAD_PROBE_${response.status}`);
-    error.code = 'ONLYOFFICE_DOWNLOAD_PROBE_FAILED';
+    error.code = probeCode;
     error.status = response.status;
+    if (detectedFormat) error.detectedFormat = detectedFormat;
     throw error;
   }
   if (contentType.includes('text/html')) {

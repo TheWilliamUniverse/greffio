@@ -3,6 +3,9 @@ import { hasPostgres, query, sqlite } from '../dbClient.js';
 
 const nowIso = () => new Date().toISOString();
 
+/** Postgres stores is_current/is_locked as INTEGER (migration 026); SQLite uses 0/1 as well. */
+const toFlagInt = (value) => (value ? 1 : 0);
+
 const parseMetadata = (value) => {
   if (!value) return {};
   if (typeof value === 'object') return value;
@@ -70,7 +73,7 @@ const clearCurrentFlags = async (dossierId, docKey) => {
   const timestamp = nowIso();
   if (hasPostgres) {
     await query(
-      'UPDATE document_versions SET is_current = FALSE, updated_at = $3 WHERE dossier_id = $1 AND doc_key = $2 AND is_current = TRUE',
+      'UPDATE document_versions SET is_current = 0, updated_at = $3 WHERE dossier_id = $1 AND doc_key = $2 AND is_current = 1',
       [dossierId, docKey, timestamp],
     );
     return;
@@ -176,8 +179,8 @@ export const createVersion = async ({
       version.contentHash,
       version.pdfVersionId,
       version.sourceVersionId,
-      version.isCurrent,
-      version.isLocked,
+      toFlagInt(version.isCurrent),
+      toFlagInt(version.isLocked),
       version.lockedBy,
       version.lockedUntil,
       version.editorProvider,
@@ -261,7 +264,7 @@ const fetchCurrentVersion = async (dossierId, docKey) => {
         rejected_at AS "rejectedAt",
         rejection_reason AS "rejectionReason"
       FROM document_versions
-      WHERE dossier_id = $1 AND doc_key = $2 AND is_current = TRUE
+      WHERE dossier_id = $1 AND doc_key = $2 AND is_current = 1
       ORDER BY version_number DESC
       LIMIT 1
     `, [dossierId, docKey]);

@@ -133,11 +133,16 @@ export class OnlyOfficeProvider {
         docKey,
         fileUrl,
         message: probeError?.message,
+        code: probeError?.code,
+        detectedFormat: probeError?.detectedFormat,
       });
+      const mismatchMessage = probeError?.code === 'ONLYOFFICE_FILE_FORMAT_MISMATCH'
+        ? 'Le fichier source n’est pas un DOCX valide. Relancez l’édition pour régénérer le document.'
+        : 'Le document source n’est pas accessible par ONLYOFFICE. Réessayez ou contactez le support.';
       return {
         ok: false,
         error: probeError.code || 'ONLYOFFICE_DOWNLOAD_PREFLIGHT_FAILED',
-        message: 'Le document source n’est pas accessible par ONLYOFFICE. Réessayez ou contactez le support.',
+        message: mismatchMessage,
         fallbackProvider: GuidedFormProvider.id,
       };
     }
