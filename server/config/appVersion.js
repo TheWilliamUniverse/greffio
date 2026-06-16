@@ -34,17 +34,18 @@ const parseChangelog = (value) => {
     .filter(Boolean);
 };
 
-const DEFAULT_LATEST_VERSION_CODE = 261510017;
+const DEFAULT_LATEST_VERSION_CODE = 261510018;
 const DEFAULT_MIN_VERSION_CODE = 261422041;
-const DEFAULT_LATEST_VERSION_NAME = '1.2.18';
+const DEFAULT_LATEST_VERSION_NAME = '1.2.19';
 
 const DEFAULT_CHANGELOG = [
-  'Navigation questionnaire : Retour et avance écran par écran (associés inclus)',
-  'Documents signés : filigranes intrusifs retirés, lecture PDF lisible',
-  'Procuration formalités : layout aéré, identité mandant et zone signature',
-  'Questionnaire SA : capital minimum 37 000 € avec message bienveillant',
-  'Associés mineurs : dirigeant accepté si représentants légaux renseignés',
-  'Choix du type de formalité restauré en début de parcours',
+  'Signature mobile dédiée',
+  'Paiement : vérification après retour Mollie',
+  'Questionnaire pas-à-pas et reprise douce (soft-continue)',
+  'Formulaires : respect des safe-area sur mobile',
+  'Statuts et PDF : ouverture via le lecteur système',
+  'Documents signés lisibles, procuration améliorée',
+  'Inscription progressive',
 ];
 
 export const getAppVersionConfig = () => ({
