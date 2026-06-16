@@ -363,8 +363,8 @@ export const generateFormalityPowersPdf = async ({
   });
   let belowLineY = lineY - FORMALITY_POWERS_IDENTITY_BELOW_LINE;
   belowLineY = drawLeftLines(page, font, belowLineY, signatoryName);
-  belowLineY = drawLeftLines(page, font, belowLineY, `Qualité : ${signatoryCapacity}`);
-  belowLineY = drawLeftLines(page, font, belowLineY, 'Mention recommandée : Bon pour pouvoir');
+  belowLineY = drawLeftLines(page, font, belowLineY, signatoryCapacity);
+  belowLineY = drawLeftLines(page, font, belowLineY, 'Bon pour pouvoir');
 
   drawPinnedRappel(
     page,
