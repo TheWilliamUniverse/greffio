@@ -3,7 +3,7 @@ import { listDossiers } from '@/api/dossiers.js';
 import { queryKeys } from '@/hooks/queries/queryKeys.js';
 
 export const useDossiersQuery = (userId) => useQuery({
-  queryKey: queryKeys.dossiers(),
+  queryKey: queryKeys.dossiers(userId),
   meta: { live: true },
   queryFn: async () => {
     const payload = await listDossiers();

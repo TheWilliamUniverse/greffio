@@ -1,4 +1,5 @@
 import { COOKIE_CONSENT_KEY } from '@/config/cookieCatalog.js';
+import { queryClient } from '@/lib/queryClient.js';
 
 export const CLIENT_DATA_SCHEMA = 'greffio_client_data_v2';
 const SCHEMA_KEY = 'greffio_client_data_schema';
@@ -57,6 +58,8 @@ export const initializeClientDataCache = (userId = null) => {
   if (userId) {
     if (owner && owner !== String(userId)) {
       purgeEphemeralClientData({ keepConsent: true });
+      queryClient.removeQueries({ queryKey: ['dossiers'] });
+      queryClient.removeQueries({ queryKey: ['dossier'] });
     }
     stampClientDataOwner(userId);
     return;

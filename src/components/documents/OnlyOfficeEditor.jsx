@@ -60,6 +60,20 @@ const resolveFriendlyOnlyOfficeError = (event) => {
   return 'L’éditeur ONLYOFFICE a rencontré un problème. Réessayez dans un instant.';
 };
 
+/** ONLYOFFICE JWT signs the full config server-side — do not mutate signed fields client-side. */
+const buildDocEditorConfig = (config, events, isMobilePresentation) => {
+  if (config?.token) {
+    return { ...config, events };
+  }
+  return {
+    ...config,
+    type: isMobilePresentation ? 'mobile' : (config.type || 'desktop'),
+    height: '100%',
+    width: '100%',
+    events,
+  };
+};
+
 const resolveBootErrorMessage = (error) => {
   if (error?.message === 'ONLYOFFICE_SCRIPT_LOAD_FAILED') {
     return 'Impossible de charger ONLYOFFICE. Vérifiez ONLYOFFICE_URL et la connectivité réseau.';
@@ -149,41 +163,46 @@ export const OnlyOfficeEditor = ({
           editorRef.current.destroyEditor();
         }
         containerRef.current.innerHTML = '';
-        const editorConfig = {
-          ...config,
-          type: isMobilePresentation ? 'mobile' : (config.type || 'desktop'),
-          height: '100%',
-          width: '100%',
-          events: {
-            onDocumentReady: () => {
-              if (cancelled) return;
-              clearLoadTimeout();
-              setLoading(false);
-              onReady?.();
-            },
-            onDocumentStateChange: (event) => {
-              if (cancelled) return;
-              const isDirty = Boolean(event?.data);
-              if (isDirty) {
-                documentDirtyRef.current = true;
-                return;
-              }
-              if (!documentDirtyRef.current) return;
-              documentDirtyRef.current = false;
-              if (saveNotifyTimerRef.current) {
-                clearTimeout(saveNotifyTimerRef.current);
-              }
-              saveNotifyTimerRef.current = setTimeout(() => {
-                onDocumentSaved?.();
-              }, 600);
-            },
-            onError: (event) => {
-              if (cancelled) return;
-              clearLoadTimeout();
-              failWithMessage(resolveFriendlyOnlyOfficeError(event), event);
-            },
+        const editorConfig = buildDocEditorConfig(config, {
+          onDocumentReady: () => {
+            if (cancelled) return;
+            clearLoadTimeout();
+            setLoading(false);
+            onReady?.();
           },
-        };
+          onDocumentStateChange: (event) => {
+            if (cancelled) return;
+            const isDirty = Boolean(event?.data);
+            if (isDirty) {
+              documentDirtyRef.current = true;
+              return;
+            }
+            if (!documentDirtyRef.current) return;
+            documentDirtyRef.current = false;
+            if (saveNotifyTimerRef.current) {
+              clearTimeout(saveNotifyTimerRef.current);
+            }
+            saveNotifyTimerRef.current = setTimeout(() => {
+              onDocumentSaved?.();
+            }, 600);
+          },
+          onError: (event) => {
+            if (cancelled) return;
+            clearLoadTimeout();
+            failWithMessage(resolveFriendlyOnlyOfficeError(event), event);
+          },
+          onWarning: (event) => {
+            if (cancelled) return;
+            const code = Number(event?.data?.warningCode || event?.data?.warning || 0);
+            if (code === -101 || code === -102) {
+              clearLoadTimeout();
+              failWithMessage(
+                'La configuration ONLYOFFICE (JWT) est invalide. Rechargez la page ou contactez le support.',
+                event,
+              );
+            }
+          },
+        }, isMobilePresentation);
         editorRef.current = new DocsAPI.DocEditor(containerRef.current.id, editorConfig);
       } catch (error) {
         if (cancelled) return;

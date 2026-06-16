@@ -71,6 +71,7 @@ export class OnlyOfficeProvider {
     docKey,
     document = null,
     currentVersion = null,
+    presentation = 'desktop',
   }) {
     if (!this.isAvailable()) {
       return {
@@ -153,6 +154,7 @@ export class OnlyOfficeProvider {
       callbackUrl,
       fileType,
       user: { id: session.userId, name: session.userEmail || 'Utilisateur Greffio' },
+      presentation,
     });
 
     return {

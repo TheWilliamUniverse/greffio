@@ -117,6 +117,7 @@ export const DossierDetailPage = () => {
   const [dossier, setDossier] = useState(null);
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [accessError, setAccessError] = useState('');
   const {
     messages,
     setMessages,
@@ -146,12 +147,14 @@ export const DossierDetailPage = () => {
       }
       saveCurrentDossierId(id);
       setLoading(true);
+      setAccessError('');
       try {
         const payload = await fetchDossierDetail(id, { allowOpsFallback: internalView });
         const d = payload.dossier;
         if (!d?.id) {
           setDossier(null);
           setDocs([]);
+          setAccessError('DOSSIER_NOT_FOUND');
           return;
         }
         setDossier(mapDossierFromApi(d));
@@ -165,6 +168,7 @@ export const DossierDetailPage = () => {
       } catch (error) {
         setDossier(null);
         setDocs([]);
+        setAccessError(String(error?.code || error?.payload?.error || 'DOSSIER_NOT_FOUND'));
       } finally {
         setLoading(false);
       }
@@ -227,7 +231,9 @@ export const DossierDetailPage = () => {
             <p className="mt-2 text-sm text-muted-foreground">
               {internalView
                 ? 'Ce dossier est absent de la plateforme ou l’identifiant est invalide.'
-                : 'Ce dossier n’existe pas dans votre espace client.'}
+                : accessError === 'DOSSIER_FORBIDDEN'
+                  ? 'Vous n’avez pas accès à ce dossier avec ce compte client.'
+                  : 'Ce dossier n’existe pas dans votre espace client.'}
             </p>
             {internalView ? (
               <Button asChild variant="outline" className="mt-4 bg-white">

@@ -123,6 +123,9 @@ const handleCreateEditSession = async (req, res, {
       docKey,
     }),
   );
+  const presentation = String(req.body?.presentation || 'desktop').toLowerCase() === 'mobile'
+    ? 'mobile'
+    : 'desktop';
 
   if (!isWorkspaceDocKeyAllowed(docKey)) {
     return res.status(400).json({ ok: false, error: 'DOCUMENT_WORKSPACE_UNSUPPORTED' });
@@ -239,6 +242,7 @@ const handleCreateEditSession = async (req, res, {
       docKey,
       document,
       currentVersion,
+      presentation,
     })
     : await createEditorLaunchUrl({
       providerId: 'collabora',

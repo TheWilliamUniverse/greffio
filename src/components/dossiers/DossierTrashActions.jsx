@@ -23,7 +23,7 @@ export const DossierTrashActions = ({
   if (!dossier?.id || !isEphemeralPlaceholderDossier(dossier)) return null;
 
   const invalidate = async () => {
-    await queryClient.invalidateQueries({ queryKey: queryKeys.dossiers() });
+    await queryClient.invalidateQueries({ queryKey: ['dossiers'] });
     await queryClient.invalidateQueries({ queryKey: queryKeys.trashedDossiers() });
     if (dossier.id) {
       await queryClient.invalidateQueries({ queryKey: queryKeys.dossier(dossier.id) });

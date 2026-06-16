@@ -25,7 +25,7 @@ export const DossierDeleteAction = ({
   const isPlaceholder = isEphemeralPlaceholderDossier(dossier);
 
   const invalidate = async () => {
-    await queryClient.invalidateQueries({ queryKey: queryKeys.dossiers() });
+    await queryClient.invalidateQueries({ queryKey: ['dossiers'] });
     await queryClient.invalidateQueries({ queryKey: queryKeys.trashedDossiers() });
     await queryClient.invalidateQueries({ queryKey: queryKeys.dossier(dossier.id) });
   };

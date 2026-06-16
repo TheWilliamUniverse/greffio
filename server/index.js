@@ -1596,7 +1596,7 @@ app.post('/api/dossiers/:dossierId/restore', requireAuth, async (req, res) => {
 });
 
 app.get('/api/dossiers/:dossierId', requireAuth, async (req, res) => {
-  const access = await resolveDossierAccess(req, req.params.dossierId);
+  const access = await resolveDossierAccess(req, req.params.dossierId, { allowClaim: true });
   if (!access.ok) {
     return res.status(access.status).json({ ok: false, error: access.error });
   }
@@ -1617,7 +1617,7 @@ app.get('/api/dossiers/:dossierId', requireAuth, async (req, res) => {
 });
 
 app.get('/api/dossiers/:dossierId/action-state', requireAuth, async (req, res) => {
-  const access = await resolveDossierAccess(req, req.params.dossierId);
+  const access = await resolveDossierAccess(req, req.params.dossierId, { allowClaim: true });
   if (!access.ok) {
     return res.status(access.status).json({ ok: false, error: access.error });
   }

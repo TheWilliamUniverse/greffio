@@ -116,6 +116,7 @@ export const DocumentViewerTab = () => {
       const session = await createFreeEditSession(dossierId, docKey, {
         provider: 'onlyoffice',
         preferFreeEdit: true,
+        presentation: isMobileLayout ? 'mobile' : 'desktop',
       });
       if (!session?.ok) {
         setWorkflowMessageTone('warning');

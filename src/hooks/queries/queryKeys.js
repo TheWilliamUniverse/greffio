@@ -1,6 +1,6 @@
 export const queryKeys = {
   profile: () => ['profile'],
-  dossiers: () => ['dossiers'],
+  dossiers: (userId = null) => (userId ? ['dossiers', userId] : ['dossiers']),
   dossier: (id) => ['dossier', id],
   dossierActionState: (id) => ['dossier', id, 'action-state'],
   trashedDossiers: () => ['dossiers', 'trash'],
