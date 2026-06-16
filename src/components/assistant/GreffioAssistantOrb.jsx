@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { MessageCircle, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth.js';
-import IntegratedAiChat from '@/components/integrated-ai-chat.jsx';
+import { GreffioAssistantPanel } from '@/components/assistant/GreffioAssistantPanel.jsx';
 import { Button } from '@/components/ui/button.jsx';
 
 const GreffioRobotIcon = ({ className = '' }) => (
@@ -34,14 +34,14 @@ export const GreffioAssistantOrb = () => {
 
   return (
     <>
-      <div className="pointer-events-none fixed bottom-5 right-5 z-[70] hidden md:block">
+      <div className="pointer-events-none fixed bottom-5 right-5 z-[70]">
         <AnimatePresence>
           {hovered && !open ? (
             <motion.div
               initial={{ opacity: 0, x: 8 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 8 }}
-              className="pointer-events-none mb-3 mr-2 rounded-full border border-border bg-white px-4 py-2 text-sm font-semibold text-foreground shadow-elevation-sm"
+              className="pointer-events-none mb-3 mr-2 hidden rounded-full border border-border bg-white px-4 py-2 text-sm font-semibold text-foreground shadow-elevation-sm md:block"
             >
               {greeting} – besoin d’aide ?
             </motion.div>
@@ -70,7 +70,7 @@ export const GreffioAssistantOrb = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[80] flex items-end justify-end bg-[#0a1220]/35 p-4 md:p-6"
+            className="fixed inset-0 z-[80] flex items-end justify-end bg-[#0a1220]/35 p-3 sm:p-4 md:p-6"
           >
             <button
               type="button"
@@ -82,7 +82,7 @@ export const GreffioAssistantOrb = () => {
               initial={{ opacity: 0, y: 24, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 16, scale: 0.98 }}
-              className="relative flex h-[min(720px,85dvh)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-elevation-lg"
+              className="relative flex h-[min(720px,88dvh)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-elevation-lg"
             >
               <div className="flex items-center justify-between border-b border-border px-4 py-3">
                 <div className="flex items-center gap-2">
@@ -97,7 +97,7 @@ export const GreffioAssistantOrb = () => {
                 </Button>
               </div>
               <div className="min-h-0 flex-1">
-                <IntegratedAiChat />
+                <GreffioAssistantPanel />
               </div>
               <div className="border-t border-border px-4 py-2 text-center text-[11px] text-muted-foreground">
                 <MessageCircle className="mr-1 inline h-3.5 w-3.5" />

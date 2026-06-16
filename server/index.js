@@ -201,7 +201,8 @@ import {
   createTrustedDevice,
   hasValidTrustedDevice,
 } from './mfaTrustedDeviceStore.js';
-import { askGreffioAssistant, isAssistantConfigured } from './services/assistant.js';
+import { handleAssistantRequest } from './assistant/assistantController.js';
+import { isAssistantConfigured } from './services/assistant.js';
 import {
   createSupabaseSignedDownloadUrl,
   createSignedDownloadUrl,
@@ -697,7 +698,7 @@ app.post('/api/ops/storage/migrate-local', requireAuth, requireRole(['ADMIN', 'O
 });
 
 app.post('/api/assistant', assistantLimiter, requireAuth, async (req, res) => {
-  const { message, history = [], dossierId = null } = req.body || {};
+  const { message, history = [], dossierId = null, route = null } = req.body || {};
   if (!message || !String(message).trim()) {
     return res.status(400).json({ ok: false, error: 'ASSISTANT_MESSAGE_REQUIRED' });
   }
@@ -710,10 +711,11 @@ app.post('/api/assistant', assistantLimiter, requireAuth, async (req, res) => {
   }
   try {
     spendAssistantBudget();
-    const result = await askGreffioAssistant({
+    const result = await handleAssistantRequest({
       message: String(message).trim(),
       history: Array.isArray(history) ? history : [],
       dossierId: dossierId ? String(dossierId) : null,
+      route: route ? String(route) : null,
       userContext: {
         userId: req.auth?.sub || null,
         role: req.auth?.role || 'CLIENT',
@@ -723,10 +725,13 @@ app.post('/api/assistant', assistantLimiter, requireAuth, async (req, res) => {
     return res.json({
       ok: true,
       answer: result.answer,
+      suggestedActions: result.suggestedActions || [],
+      sources: result.sources || [],
+      confidence: result.confidence || 'medium',
       provider: result.provider,
       model: result.model,
       intent: result.intent || null,
-      configured: isAssistantConfigured(),
+      configured: result.configured,
       degraded: Boolean(result.degraded),
     });
   } catch (error) {

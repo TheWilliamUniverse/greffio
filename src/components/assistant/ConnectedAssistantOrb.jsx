@@ -3,6 +3,19 @@ import { useLocation } from 'react-router-dom';
 import { GreffioAssistantOrb } from '@/components/assistant/GreffioAssistantOrb.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 
+const ALLOWED_EXACT = new Set([
+  '/dashboard',
+  '/documents',
+  '/questionnaire',
+  '/paiement',
+  '/paiement/verification',
+]);
+
+const ALLOWED_PREFIXES = [
+  '/dossier/',
+  '/dossiers',
+];
+
 const HIDDEN_PREFIXES = [
   '/ops',
   '/ops-legacy',
@@ -14,14 +27,21 @@ const HIDDEN_PREFIXES = [
   '/auth/',
 ];
 
+const isAssistantRoute = (path) => {
+  if (path === '/' || path === '/simulateur' || path.startsWith('/service/')) return false;
+  if (HIDDEN_PREFIXES.some((prefix) => path === prefix || path.startsWith(prefix))) return false;
+  if (ALLOWED_EXACT.has(path)) return true;
+  if (ALLOWED_PREFIXES.some((prefix) => path === prefix || path.startsWith(prefix))) return true;
+  if (path.startsWith('/paiement')) return true;
+  return false;
+};
+
 export const ConnectedAssistantOrb = () => {
   const location = useLocation();
   const { isAuthenticated } = useAuth();
-  const path = location.pathname;
 
   if (!isAuthenticated) return null;
-  if (path === '/' || path === '/simulateur' || path.startsWith('/service/')) return null;
-  if (HIDDEN_PREFIXES.some((prefix) => path === prefix || path.startsWith(prefix))) return null;
+  if (!isAssistantRoute(location.pathname)) return null;
 
   return <GreffioAssistantOrb />;
 };

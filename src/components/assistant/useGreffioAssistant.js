@@ -1,0 +1,78 @@
+import { useCallback, useMemo, useState } from 'react';
+import { useLocation, useParams } from 'react-router-dom';
+import { askAssistant } from '@/api/assistant.js';
+
+const INITIAL_MESSAGE = {
+  role: 'assistant',
+  content: 'Bonjour, je suis l’assistant Greffio. Je vous guide sur vos formalités, documents, signatures et prochaines étapes – de façon claire et actionnable.',
+};
+
+export const useGreffioAssistant = () => {
+  const location = useLocation();
+  const params = useParams();
+  const [input, setInput] = useState('');
+  const [sending, setSending] = useState(false);
+  const [messages, setMessages] = useState([INITIAL_MESSAGE]);
+  const [suggestedActions, setSuggestedActions] = useState([]);
+
+  const dossierId = useMemo(() => {
+    if (params.dossierId) return params.dossierId;
+    const fromQuery = new URLSearchParams(location.search).get('dossierId');
+    return fromQuery || null;
+  }, [location.search, params.dossierId]);
+
+  const sendMessage = useCallback(async (message = input) => {
+    const clean = String(message || '').trim();
+    if (!clean || sending) return;
+
+    const nextMessages = [
+      ...messages,
+      { role: 'user', content: clean },
+    ];
+    setMessages((current) => [
+      ...current,
+      { role: 'user', content: clean },
+    ]);
+    setInput('');
+    setSending(true);
+    setSuggestedActions([]);
+    setMessages((current) => [
+      ...current,
+      { role: 'assistant', content: '…', pending: true },
+    ]);
+
+    try {
+      const payload = await askAssistant({
+        message: clean,
+        history: nextMessages.slice(-8),
+        dossierId,
+        route: location.pathname,
+      });
+      setMessages((current) => [
+        ...current.filter((item) => !item.pending),
+        {
+          role: 'assistant',
+          content: payload?.answer || 'Je n’ai pas pu générer de réponse pour le moment. Réessayez ou contactez l’équipe Greffio.',
+        },
+      ]);
+      setSuggestedActions(Array.isArray(payload?.suggestedActions) ? payload.suggestedActions : []);
+    } catch (_error) {
+      setMessages((current) => [
+        ...current.filter((item) => !item.pending),
+        { role: 'assistant', content: 'Je n’ai pas pu joindre l’assistant pour le moment. Réessayez dans quelques secondes ou contactez l’équipe Greffio.' },
+      ]);
+    } finally {
+      setSending(false);
+    }
+  }, [dossierId, input, location.pathname, messages, sending]);
+
+  return {
+    input,
+    setInput,
+    sending,
+    messages,
+    suggestedActions,
+    sendMessage,
+    dossierId,
+  };
+};

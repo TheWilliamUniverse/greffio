@@ -43,6 +43,7 @@
     "ops:send-weekly-digest": "node server/scripts/send-dossier-reminders.js digest",
     "ops:setup-vps-cron": "powershell -ExecutionPolicy Bypass -File scripts/setup-vps-cron.ps1",
     "test:assistant": "node server/scripts/test-assistant.js",
+    "test:assistant-knowledge": "node --test server/assistant/tests/knowledgeAssistant.test.js",
     "build:tribunal-catalog": "node scripts/build-tribunal-commerce-catalog.mjs",
     "test:security": "node --test server/security/security.test.js server/security/idor.test.js server/security/webhook.test.js server/security/captcha.test.js",
     "test:login-alerts": "node --test server/utils/loginAlerts.test.js",

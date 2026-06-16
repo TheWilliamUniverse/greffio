@@ -6,6 +6,7 @@ import { professionalFallbackAnswer, sanitizeAssistantAnswer } from './responseS
 import { buildUserDossierContext } from './dossierContextBuilder.js';
 import { classifyDossierIntent } from './intentClassifier.js';
 import { retrieveKnowledgeChunks } from './rag/retriever.js';
+import { searchKnowledgeEntries } from '../../assistant/knowledgeSearch.js';
 
 const finalize = ({ answer, provider, model, mode, degraded = false, intent = null }) => ({
   answer: sanitizeAssistantAnswer(answer) || professionalFallbackAnswer(),
@@ -23,25 +24,37 @@ export const isAssistantConfigured = () => (
 );
 
 const buildEnrichedContext = async ({ message, userContext = {}, dossierId = null }) => {
-  const dossierBlock = userContext.userId
-    ? await buildUserDossierContext({ userId: userContext.userId, dossierId })
-    : { hasDossier: false };
-  const dossier = dossierBlock.hasDossier ? dossierBlock : null;
+  const dossierBlock = userContext.dossier?.dossierId || userContext.dossier?.hasDossier
+    ? userContext.dossier
+    : userContext.userId
+      ? await buildUserDossierContext({ userId: userContext.userId, dossierId })
+      : { hasDossier: false };
+  const dossier = dossierBlock.hasDossier || dossierBlock.dossierId ? dossierBlock : null;
   const intent = classifyDossierIntent({ message, dossierContext: dossierBlock });
-  const knowledge = assistantConfig.enableRag
-    ? await retrieveKnowledgeChunks({
-      query: message,
-      intent: intent.id,
-      topK: assistantConfig.ragTopK,
-    })
-    : [];
+
+  let knowledgeSnippets = userContext.knowledgeSnippets;
+  if (!knowledgeSnippets?.length) {
+    const lexicalMatches = searchKnowledgeEntries(message, { limit: 4, minScore: 2, visibility: 'CLIENT' });
+    if (lexicalMatches.length) {
+      knowledgeSnippets = lexicalMatches.map((item) => `[${item.id}] ${item.canonicalAnswer.slice(0, 280)}`);
+    } else if (assistantConfig.enableRag) {
+      const knowledge = await retrieveKnowledgeChunks({
+        query: message,
+        intent: intent.id,
+        topK: assistantConfig.ragTopK,
+      });
+      knowledgeSnippets = knowledge.map((item) => item.text);
+    } else {
+      knowledgeSnippets = [];
+    }
+  }
 
   return {
     ...userContext,
     dossier: dossierBlock,
     intent: intent.id,
     intentLabel: intent.label,
-    knowledgeSnippets: knowledge.map((item) => item.text),
+    knowledgeSnippets,
     legalStructure: userContext.legalStructure || dossierBlock.legalForm || null,
     company: userContext.company || (dossierBlock.companyName ? { name: dossierBlock.companyName, legalForm: dossierBlock.legalForm } : null),
   };
