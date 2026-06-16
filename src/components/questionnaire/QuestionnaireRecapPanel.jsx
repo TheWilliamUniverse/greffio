@@ -46,7 +46,7 @@ const SECTIONS = [
   },
   {
     title: 'Entreprise',
-    keys: ['denomination', 'adresseSiege', 'codePostal', 'villeSiege', 'activite', 'capital'],
+    keys: ['denomination', 'adresseSiege', 'codePostal', 'villeSiege', 'activite', 'capital', 'liberationCapital', 'apportsNature', 'detailApportsNature'],
     labels: {
       denomination: 'Dénomination',
       adresseSiege: 'Siège',
@@ -54,6 +54,17 @@ const SECTIONS = [
       villeSiege: 'Ville',
       activite: 'Activité',
       capital: 'Capital',
+      liberationCapital: 'Libération du capital',
+      apportsNature: 'Apports en nature',
+      detailApportsNature: 'Détail apports en nature',
+    },
+    format: (key, value) => {
+      if (key === 'liberationCapital') {
+        const parsed = Number(String(value || '').replace('%', '').replace(',', '.').trim());
+        if (parsed === 100) return 'Libération intégrale (100 %)';
+        if (Number.isFinite(parsed)) return `Libération partielle (${parsed} %)`;
+      }
+      return formatValue(value);
     },
   },
 ];

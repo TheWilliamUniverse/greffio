@@ -314,6 +314,32 @@ export const QUESTIONNAIRE_FLOW = [
         condition: (data) => !isEiLikeFormality(data),
       },
       {
+        key: 'liberationCapital',
+        label: 'Libération du capital',
+        type: 'capital_liberation_picker',
+        required: true,
+        condition: (data) => !isEiLikeFormality(data),
+      },
+      {
+        key: 'apportsNature',
+        label: 'Y a-t-il des apports en nature ?',
+        type: 'select',
+        required: true,
+        options: [
+          { key: 'Non', label: 'Non, uniquement du numéraire' },
+          { key: 'Oui', label: 'Oui, des biens ou droits' },
+        ],
+        condition: (data) => !isEiLikeFormality(data),
+      },
+      {
+        key: 'detailApportsNature',
+        label: 'Description des apports en nature',
+        type: 'textarea',
+        required: true,
+        placeholder: 'Ex. matériel informatique, véhicule, brevet, clientèle…',
+        condition: (data) => !isEiLikeFormality(data) && String(data.apportsNature || '').trim() === 'Oui',
+      },
+      {
         key: 'adressePersonnelle',
         label: 'Adresse personnelle',
         type: 'text',
@@ -469,6 +495,9 @@ const MOBILE_FIELD_GROUP_SPECS = Object.freeze({
     ['villeSiege'],
     ['activite'],
     ['capital'],
+    ['liberationCapital'],
+    ['apportsNature'],
+    ['detailApportsNature'],
     ['adressePersonnelle'],
     ['adresseActivite'],
     ['nomEnseigne'],
@@ -562,6 +591,20 @@ export const isFieldValueValid = (field, value, formData = {}) => {
   }
   if (field.type === 'comparateur_cta') {
     return Boolean(formData.comparateurIgnore);
+  }
+  if (field.type === 'capital_liberation_picker') {
+    const raw = String(value ?? formData.liberationCapital ?? '').trim();
+    if (!field.required && !raw) return true;
+    const normalized = raw.replace('%', '').replace(',', '.').trim();
+    const parsed = Number(normalized);
+    if (!Number.isFinite(parsed) || parsed < 50 || parsed > 100) return false;
+    return true;
+  }
+  if (field.key === 'detailApportsNature') {
+    if (String(formData.apportsNature || '').trim() !== 'Oui') return true;
+    const description = String(value ?? formData.detailApportsNature ?? '').trim();
+    if (!field.required) return description.length >= 8;
+    return description.length >= 8;
   }
   if (field.type === 'form_family_picker') {
     const primary = String(formData.formeJuridiqueFamillePrimary ?? value ?? '').trim();
@@ -793,6 +836,13 @@ export const getFieldValidationMessage = (field, value, formData = {}) => {
   }
   if (field.key === 'activite') return 'Décrivez l’activité en au moins 12 caractères.';
   if (field.key === 'capital') return 'Indiquez un capital social en euros (nombre positif).';
+  if (field.type === 'capital_liberation_picker' || field.key === 'liberationCapital') {
+    return 'Indiquez si le capital est intégralement libéré (100 %) ou partiellement libéré (entre 50 % et 95 %).';
+  }
+  if (field.key === 'apportsNature') return 'Précisez s’il existe des apports en nature.';
+  if (field.key === 'detailApportsNature') {
+    return 'Décrivez les apports en nature en au moins 8 caractères (nature des biens ou droits apportés).';
+  }
   if (field.key === 'dirigeant') return 'Le dirigeant doit être identifié conformément à la réglementation.';
   if (field.type === 'associates_minor_panel') return 'Renseignez au moins un associé complet (identité et parts).';
   return `${field.label || 'Ce champ'} est requis pour constituer votre dossier.`;

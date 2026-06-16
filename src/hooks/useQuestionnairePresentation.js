@@ -7,6 +7,7 @@ export const resolveQuestionMode = (field) => {
   if (field.type === 'associates_minor_panel') return 'associate-wizard';
   if (field.type === 'form_family_picker' || field.type === 'form_family_secondary_picker') return 'form_family';
   if (field.type === 'comparateur_cta') return 'comparateur';
+  if (field.type === 'capital_liberation_picker') return 'capital-liberation';
   if (field.key === 'typeFormalite') return 'composite';
   if (field.type === 'select' || field.type === 'checkbox') return 'choice';
   if (field.type === 'textarea') return 'textarea';
@@ -18,7 +19,7 @@ export const resolveQuestionMode = (field) => {
 };
 
 export const shouldHideStickyContinueForMode = (mode) => (
-  ['choice', 'input', 'textarea', 'legal-confirmation', 'form_family', 'comparateur', 'associate-wizard', 'composite'].includes(mode)
+  ['choice', 'input', 'textarea', 'legal-confirmation', 'form_family', 'comparateur', 'associate-wizard', 'composite', 'capital-liberation'].includes(mode)
 );
 
 export const resolveFieldInputMode = (field) => {
@@ -39,6 +40,11 @@ export const shouldAutoAdvanceMobileField = (field, value, validation) => {
     return false;
   }
   if (['select', 'checkbox'].includes(field?.type)) return true;
+  if (field?.type === 'capital_liberation_picker') {
+    const raw = String(value || '').trim();
+    const parsed = Number(raw.replace('%', '').replace(',', '.').trim());
+    return Number.isFinite(parsed) && parsed === 100;
+  }
   if ((field?.key === 'companySiren' || field?.key === 'existingBusinessSiren')
     && [9, 14].includes(String(value || '').replace(/\D/g, '').length)) {
     return true;

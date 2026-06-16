@@ -59,6 +59,7 @@ import { isEiLikeFormality, isStatutesSupportedForm } from '@/config/formalities
 import { AssociatesMinorPanel } from '@/components/questionnaire/AssociatesMinorPanel.jsx';
 import { AssociatesMobileWizard } from '@/components/questionnaire/AssociatesMobileWizard.jsx';
 import { BeneficialOwnersPicker } from '@/components/questionnaire/BeneficialOwnersPicker.jsx';
+import { CapitalLiberationPicker } from '@/components/questionnaire/CapitalLiberationPicker.jsx';
 import { MobileBirthDatePicker } from '@/components/questionnaire/MobileBirthDatePicker.jsx';
 import { BirthDateMinorEncouragement } from '@/components/BirthDateMinorEncouragement.jsx';
 import { validateDirectorEligibility } from '@/config/minorAssociateRules.js';
@@ -118,6 +119,9 @@ const defaultData = {
   villeSiege: '',
   activite: '',
   capital: '',
+  liberationCapital: '',
+  apportsNature: '',
+  detailApportsNature: '',
   repartition: '',
   associates: [],
   associesSummary: '',
@@ -802,6 +806,9 @@ export const QuestionnairePage = () => {
         next.comparateurIgnore = false;
         if (value !== 'oui') next.formeJuridique = '';
       }
+      if (field.key === 'apportsNature' && String(value || '').trim() !== 'Oui') {
+        next.detailApportsNature = '';
+      }
       if (isMobileChoicePresentation
         && shouldAutoAdvanceMobileField(field, next[field.key], {
           isValid: isFieldValueValid(field, next[field.key], next),
@@ -1082,6 +1089,24 @@ export const QuestionnairePage = () => {
               formeJuridique: current.formeJuridique || 'AUTRE',
             }));
           }}
+        />
+      );
+    }
+
+    if (field.type === 'capital_liberation_picker') {
+      return (
+        <CapitalLiberationPicker
+          key={field.key}
+          value={formData.liberationCapital || ''}
+          capitalAmount={formData.capital || ''}
+          onChange={(nextValue) => updateField(field, nextValue)}
+          mobilePresentation={isMobileChoicePresentation}
+          kicker={PROGRESSIVE_STEP_LABELS[step.id] || step.title}
+          label={field.label}
+          required={field.required}
+          progressPercent={progress}
+          stepCurrent={presentation.stepCurrent}
+          stepTotal={presentation.stepTotal}
         />
       );
     }
