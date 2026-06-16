@@ -500,11 +500,19 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
   useEffect(() => {
     if (skipContactStep || !currentUser) return;
     const firstIncomplete = contactFields.findIndex((field) => !isContactDetailValid(field.key, data[field.key]));
+    if (firstIncomplete === -1 && step === 1 && projectSubStep === 0 && !isAccountCreationStep) {
+      if (shouldCreateAccountInline && accountPhase === 'none') {
+        setAccountPhase('offer');
+      } else {
+        setProjectSubStep(1);
+      }
+      return;
+    }
     if (firstIncomplete > 0) {
       setContactStep(firstIncomplete);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser, skipContactStep]);
+  }, [currentUser, skipContactStep, step, projectSubStep, data.firstName, data.lastName, data.email, data.phone]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -554,9 +562,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     update('journey', journeyId);
     setJourneyChosen(true);
     setJourneyStepError('');
-    if (isMobilePresentation) {
-      window.setTimeout(() => wizardNextRef.current(), 220);
-    }
+    window.setTimeout(() => wizardNextRef.current(), 220);
   };
 
   const updateAnswer = (key, value) => {
@@ -589,7 +595,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
 
   const handleSelectQuestionAnswer = (key, value) => {
     updateAnswer(key, value);
-    if (!isMobilePresentation || !String(value || '').trim() || questionExitPhase) return;
+    if (!String(value || '').trim() || questionExitPhase) return;
     window.setTimeout(() => {
       if (isLastQuestion) completeLastQuestion();
       else advanceActiveQuestion();
@@ -766,7 +772,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
       }
       return Boolean(String(data.initiatorName || '').trim());
     }
-    if (projectSubStep === 2) return Boolean(selectedFamily);
+    if (projectSubStep === 2) return Boolean(data.legalForm);
     if (projectSubStep === 3) return Boolean(data.legalForm);
     return Boolean(String(data.companyName || '').trim() && String(data.city || '').trim());
   };
@@ -799,7 +805,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     }
     if (projectSubStep < PROJECT_SUB_STEPS.length - 1) {
       let nextSubStep = projectSubStep + 1;
-      if (isMobilePresentation && nextSubStep === 3) nextSubStep = 4;
+      if (nextSubStep === 3) nextSubStep = 4;
       setProjectSubStep(nextSubStep);
       return;
     }
@@ -826,7 +832,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     }
     if (projectSubStep > (skipContactStep ? 1 : 0)) {
       let nextSubStep = projectSubStep - 1;
-      if (isMobilePresentation && nextSubStep === 3) nextSubStep = 2;
+      if (nextSubStep === 3) nextSubStep = 2;
       setProjectSubStep(nextSubStep);
       return;
     }
@@ -953,14 +959,14 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     ? 'bottom-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom))]'
     : 'bottom-[calc(var(--bottom-nav-height-web)+env(safe-area-inset-bottom))]';
   useEffect(() => {
-    if (isMobilePresentation && step === 1 && projectSubStep === 3) {
+    if (step === 1 && projectSubStep === 3) {
       setProjectSubStep(2);
     }
-  }, [isMobilePresentation, step, projectSubStep]);
+  }, [step, projectSubStep]);
 
-  const mobileChoiceNoContinue = isMobilePresentation && (
+  const choiceTapNoContinue = (
     step === 0
-    || (step === 1 && (projectSubStep === 2 || projectSubStep === 3))
+    || (step === 1 && projectSubStep === 2)
     || (step === 2 && step2Phase === 'questionnaire' && activeQuestion?.type === 'select' && !questionnaireFinished && !questionExitPhase)
   );
 
@@ -1057,8 +1063,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                           </Link>
                         </Button>
                       </div>
-                    ) : null}
-                    {isMobilePresentation ? (
+                    ) : (
                       <MobileChoiceStep
                         kicker="Démarche"
                         title="Que souhaitez-vous faire ?"
@@ -1067,7 +1072,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                           ? 'Touchez une démarche pour continuer.'
                           : 'Sélectionnez une démarche pour continuer.'}
                         progressPercent={Math.round(progress)}
-                        gridClassName="simulator-journey-grid w-full max-w-none"
+                        gridClassName="simulator-journey-grid w-full max-w-none sm:grid-cols-2"
                       >
                         {journeys.map((journey) => (
                           <MobileChoiceTile
@@ -1082,52 +1087,12 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                           />
                         ))}
                       </MobileChoiceStep>
-                    ) : (
-                      <>
-                    <div>
-                      <p className={cn('font-bold uppercase text-primary', isMobilePresentation ? 'text-[11px] tracking-wide' : 'text-sm')}>Démarche</p>
-                      <h1 className={cn('mt-1.5 font-extrabold tracking-tight text-[hsl(var(--greffio-blue-900))]', isMobilePresentation ? 'text-xl' : 'mt-2 text-3xl')}>
-                        Que souhaitez-vous faire ?
-                      </h1>
-                      <p className={cn('text-muted-foreground', isMobilePresentation ? 'mt-1.5 text-sm leading-snug' : 'mt-2')}>
-                        Greffio adapte automatiquement les pièces, les statuts, les relances et les offres selon votre démarche.
-                      </p>
-                      <p className={cn('font-medium text-primary/90', isMobilePresentation ? 'mt-2 text-xs' : 'mt-3 text-sm')}>
-                        {isCapacitorNative()
-                          ? 'Touchez une démarche pour continuer.'
-                          : 'Sélectionnez une démarche pour continuer.'}
-                      </p>
-                    </div>
-                    <div
-                      className={cn(isMobilePresentation ? 'simulator-journey-grid' : 'choice-grid-2')}
-                      role="radiogroup"
-                      aria-label="Type de démarche"
-                    >
-                      {journeys.map((journey) => (
-                          <button
-                            type="button"
-                            key={journey.id}
-                            role="radio"
-                            aria-checked={journeyChosen && data.journey === journey.id}
-                            onClick={() => selectJourney(journey.id)}
-                            className={cn(
-                              'we-card rounded-[22px] p-5 text-left sm:p-6',
-                              journeyChosen && data.journey === journey.id && 'border-primary ring-2 ring-primary/20',
-                            )}
-                          >
-                            <span className={`mb-4 flex h-11 w-11 items-center justify-center rounded-md sm:h-12 sm:w-12 ${journey.color}`}>
-                              <journey.icon className="h-5 w-5 text-primary" />
-                            </span>
-                            <span className="block text-lg font-extrabold sm:text-xl">{journey.title}</span>
-                            <span className="mt-2 block text-sm leading-6 text-muted-foreground">{journey.pitch}</span>
-                          </button>
-                      ))}
-                    </div>
-                    <p className={cn('text-muted-foreground', isMobilePresentation ? 'text-xs' : 'text-sm')}>
-                      Simulation gratuite, sans engagement.
-                    </p>
-                      </>
                     )}
+                    {!activeCompareModule && !isMobilePresentation ? (
+                      <p className="text-sm text-muted-foreground">
+                        Simulation gratuite, sans engagement.
+                      </p>
+                    ) : null}
                     {journeyStepError ? (
                       <p className="text-sm text-destructive" role="alert">{journeyStepError}</p>
                     ) : null}
@@ -1136,7 +1101,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
 
                 {step === 1 && (
                   <div className={cn(isMobilePresentation ? 'min-w-0 space-y-3' : 'space-y-7')}>
-                    {!(isMobilePresentation && !isCompanyLookupStep && !isAccountCreationStep && [1, 2, 3].includes(projectSubStep)) ? (
+                    {!( !isCompanyLookupStep && !isAccountCreationStep && projectSubStep === 2) ? (
                     <div className="min-w-0">
                       <p className={cn('font-bold uppercase text-primary', isMobilePresentation ? 'text-[10px] tracking-wide' : 'text-sm')}>
                         {isCompanyLookupStep ? 'Entreprise existante' : isAccountCreationStep ? 'Votre espace' : 'Projet'}
@@ -1422,115 +1387,33 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                         )}
 
                         {projectSubStep === 2 && (
-                          isMobilePresentation ? (
-                            <MobileChoiceStep
-                              kicker="Projet"
-                              title="Choisissez votre forme juridique"
-                              subtitle="Toutes les formes disponibles – touchez la vôtre pour continuer."
-                              hint={isCapacitorNative()
-                                ? 'Touchez une forme pour continuer.'
-                                : 'Sélectionnez une forme pour continuer.'}
-                              gridClassName="grid grid-cols-1 gap-2.5"
-                            >
-                              {targetFormGroups.flatMap((group) => group.forms.map((form) => ({ form, group: group.category }))).map(({ form, group }) => {
-                                const availability = getFormAvailability(form.key);
-                                const availabilityLabel = availability === SERVICE_AVAILABILITY.AVAILABLE_NOW
-                                  ? 'Disponible'
-                                  : availability === SERVICE_AVAILABILITY.COMING_SOON
-                                    ? 'Bientôt'
-                                    : 'Sur devis';
-                                return (
-                                  <MobileChoiceTile
-                                    key={form.key}
-                                    title={form.label}
-                                    description={`${group} · ${availabilityLabel}`}
-                                    selected={data.legalForm === form.label}
-                                    onSelect={() => chooseLegalForm(form.label)}
-                                  />
-                                );
-                              })}
-                            </MobileChoiceStep>
-                          ) : (
-                          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                            {targetFormGroups.map((group) => (
-                              <motion.button
-                                type="button"
-                                key={group.category}
-                                whileHover={{ y: -3 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => chooseFamily(group.category)}
-                                className={`rounded-2xl border p-4 text-left transition ${selectedFamily === group.category ? 'border-primary bg-secondary shadow-elevation-md' : 'border-border bg-white hover:border-primary/40 hover:shadow-elevation-sm'}`}
-                              >
-                                <span className="block text-sm font-extrabold">{group.category}</span>
-                                <span className="mt-1 block text-xs text-muted-foreground">{group.forms.length} formes disponibles</span>
-                              </motion.button>
-                            ))}
-                            <LegalFormComparatorPromoCard variant="gridTile" />
-                          </div>
-                          )
-                        )}
-
-                        {projectSubStep === 3 && !isMobilePresentation && (
-                          isMobilePresentation ? (
-                            <MobileChoiceStep
-                              kicker={selectedFamily}
-                              title="Choisissez votre forme"
-                              subtitle="Comparez les formes disponibles dans cette catégorie."
-                              gridClassName="grid grid-cols-1 gap-2.5"
-                            >
-                              {visibleForms.map((form) => {
-                                const availability = getFormAvailability(form.key);
-                                const availabilityLabel = availability === SERVICE_AVAILABILITY.AVAILABLE_NOW
-                                  ? 'Disponible'
-                                  : availability === SERVICE_AVAILABILITY.COMING_SOON
-                                    ? 'Bientôt'
-                                    : 'Sur devis';
-                                return (
-                                  <MobileChoiceTile
-                                    key={form.key}
-                                    title={form.label}
-                                    description={`${availabilityLabel} · ${form.description}`}
-                                    selected={data.legalForm === form.label}
-                                    onSelect={() => chooseLegalForm(form.label)}
-                                  />
-                                );
-                              })}
-                            </MobileChoiceStep>
-                          ) : (
-                          <div className="space-y-4">
-                            <p className="rounded-2xl border border-primary/20 bg-secondary px-4 py-3 text-sm font-semibold text-primary">
-                              {selectedFamily}
-                            </p>
-                            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                              {visibleForms.map((form) => {
-                                const availability = getFormAvailability(form.key);
-                                const availabilityLabel = availability === SERVICE_AVAILABILITY.AVAILABLE_NOW
-                                  ? 'Disponible'
-                                  : availability === SERVICE_AVAILABILITY.COMING_SOON
-                                    ? 'Bientôt'
-                                    : 'Sur devis';
-                                return (
-                                  <motion.button
-                                    type="button"
-                                    key={form.key}
-                                    whileHover={{ y: -3 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={() => chooseLegalForm(form.label)}
-                                    className={`rounded-2xl border p-4 text-left transition ${data.legalForm === form.label ? 'border-primary bg-[hsl(var(--greffio-citron))] shadow-elevation-md' : 'border-border bg-white hover:border-primary/40 hover:shadow-elevation-sm'}`}
-                                  >
-                                    <span className="flex items-start justify-between gap-2">
-                                      <strong className="text-base">{form.label}</strong>
-                                      <span className="rounded-full bg-white px-2 py-1 text-[11px] font-bold uppercase text-primary">
-                                        {availabilityLabel}
-                                      </span>
-                                    </span>
-                                    <span className="mt-2 block text-xs leading-5 text-muted-foreground">{form.description}</span>
-                                  </motion.button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                          )
+                          <MobileChoiceStep
+                            kicker="Projet"
+                            title="Choisissez votre forme juridique"
+                            subtitle="Toutes les formes disponibles – touchez la vôtre pour continuer."
+                            hint={isCapacitorNative()
+                              ? 'Touchez une forme pour continuer.'
+                              : 'Sélectionnez une forme pour continuer.'}
+                            gridClassName="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3"
+                          >
+                            {targetFormGroups.flatMap((group) => group.forms.map((form) => ({ form, group: group.category }))).map(({ form, group }) => {
+                              const availability = getFormAvailability(form.key);
+                              const availabilityLabel = availability === SERVICE_AVAILABILITY.AVAILABLE_NOW
+                                ? 'Disponible'
+                                : availability === SERVICE_AVAILABILITY.COMING_SOON
+                                  ? 'Bientôt'
+                                  : 'Sur devis';
+                              return (
+                                <MobileChoiceTile
+                                  key={form.key}
+                                  title={form.label}
+                                  description={`${group} · ${availabilityLabel}`}
+                                  selected={data.legalForm === form.label}
+                                  onSelect={() => chooseLegalForm(form.label)}
+                                />
+                              );
+                            })}
+                          </MobileChoiceStep>
                         )}
 
                         {projectSubStep === 4 && (
@@ -1741,37 +1624,28 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                                     {activeQuestion.required ? <span className="text-primary"> *</span> : null}
                                   </Label>
                                   {activeQuestion.type === 'select' ? (
-                                    isMobilePresentation ? (
-                                      <MobileChoiceStep
-                                        title={activeQuestion.label}
-                                        subtitle={activeQuestion.sectionTitle}
-                                        hint={isCapacitorNative()
-                                          ? 'Touchez votre réponse pour continuer.'
-                                          : 'Sélectionnez une réponse pour continuer.'}
-                                        gridClassName="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3"
-                                      >
-                                        {(activeQuestion.options || []).map((option) => {
-                                          const optionValue = typeof option === 'string' ? option : option.value;
-                                          const optionLabel = typeof option === 'string' ? option : option.label;
-                                          return (
-                                            <MobileChoiceTile
-                                              key={optionValue}
-                                              title={optionLabel}
-                                              selected={String(answers[activeQuestion.key] || '') === String(optionValue)}
-                                              disabled={Boolean(questionExitPhase)}
-                                              onSelect={() => handleSelectQuestionAnswer(activeQuestion.key, optionValue)}
-                                            />
-                                          );
-                                        })}
-                                      </MobileChoiceStep>
-                                    ) : (
-                                    <QuestionSelect
-                                      value={answers[activeQuestion.key] || ''}
-                                      disabled={Boolean(questionExitPhase)}
-                                      options={activeQuestion.options}
-                                      onChange={(event) => handleSelectQuestionAnswer(activeQuestion.key, event.target.value)}
-                                    />
-                                    )
+                                    <MobileChoiceStep
+                                      title={activeQuestion.label}
+                                      subtitle={activeQuestion.sectionTitle}
+                                      hint={isCapacitorNative()
+                                        ? 'Touchez votre réponse pour continuer.'
+                                        : 'Sélectionnez une réponse pour continuer.'}
+                                      gridClassName="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3"
+                                    >
+                                      {(activeQuestion.options || []).map((option) => {
+                                        const optionValue = typeof option === 'string' ? option : option.value;
+                                        const optionLabel = typeof option === 'string' ? option : option.label;
+                                        return (
+                                          <MobileChoiceTile
+                                            key={optionValue}
+                                            title={optionLabel}
+                                            selected={String(answers[activeQuestion.key] || '') === String(optionValue)}
+                                            disabled={Boolean(questionExitPhase)}
+                                            onSelect={() => handleSelectQuestionAnswer(activeQuestion.key, optionValue)}
+                                          />
+                                        );
+                                      })}
+                                    </MobileChoiceStep>
                                   ) : activeQuestion.type === 'textarea' ? (
                                     <textarea
                                       className={`${fieldClass} mt-2 min-h-[120px] w-full py-3`}
@@ -1991,7 +1865,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                   || (step === 2 && step2Phase === 'questionnaire' && Boolean(questionExitPhase) && questionExitPhase !== 'done')
                   || (step === 2 && step2Phase === 'questionnaire' && !questionnaireFinished && !questionExitPhase && !canAdvanceActiveQuestion())
                 }
-                showContinue={!mobileChoiceNoContinue}
+                showContinue={!choiceTapNoContinue}
                 continueLabel={
                   step === steps.length - 1
                     ? 'Voir les offres'

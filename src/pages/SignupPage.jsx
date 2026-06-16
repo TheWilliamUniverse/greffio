@@ -16,8 +16,11 @@ import { LoginAlertsToggle } from '@/components/security/LoginAlertsToggle.jsx';
 import { SecurityChallengeWidget } from '@/components/security/SecurityChallengeWidget.jsx';
 import { useSecurityConfig } from '@/hooks/useSecurityConfig.js';
 import { FieldError } from '@/components/patterns/FieldError.jsx';
+import { cn } from '@/lib/utils.js';
 import { getAuthInputClass } from '@/lib/authFormStyles.js';
+import { MobileChoiceStep, MobileChoiceTile } from '@/components/questionnaire/MobileChoiceStep.jsx';
 import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
+import { lightQuestionnaireHaptic } from '@/utils/questionnaireHaptics.js';
 import { getProjectDraft, saveProjectDraft } from '@/utils/localStorage.js';
 import { createDossier } from '@/api/dossiers.js';
 import { saveCurrentDossierId } from '@/utils/sessionStore.js';
@@ -146,6 +149,21 @@ export const SignupPage = () => {
     }
     setStep((value) => Math.min(stepCount, value + 1));
   };
+
+  const selectProfile = (profileId) => {
+    void lightQuestionnaireHaptic();
+    setValue('profile', profileId, { shouldDirty: true });
+  };
+
+  const selectService = (serviceId) => {
+    void lightQuestionnaireHaptic();
+    setValue('service', serviceId, { shouldDirty: true, shouldValidate: true });
+    if (mobileAuth) {
+      window.setTimeout(() => { void advanceStep(); }, 220);
+    }
+  };
+
+  const hideMobileContinue = mobileAuth && currentStepId === 'service';
 
   const completeSignup = async () => {
     const data = getValues();
@@ -313,40 +331,93 @@ export const SignupPage = () => {
             <AnimatePresence mode="wait">
               {currentStepId === 'profile' && (
                 <motion.div key="profile" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-7">
-                  <div>
-                    <p className="text-sm font-bold uppercase text-primary">Profil</p>
-                    <h1 className="mt-2 text-3xl font-extrabold">Qui utilisera <BrandName /> </h1>
-                    <p className="mt-2 text-muted-foreground">Le dashboard s’adapte à votre usage : client final ou professionnel qui suit plusieurs dossiers.</p>
-                  </div>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {profiles.map((profile) => (
-                      <label key={profile.id} className={`cursor-pointer rounded-md border p-5 transition ${selectedProfile === profile.id ? 'border-primary bg-secondary shadow-elevation-sm' : 'border-border hover:bg-muted'}`}>
-                        <input type="radio" value={profile.id} {...register('profile')} className="hidden" />
-                        <profile.icon className="mb-4 h-7 w-7 text-primary" />
-                        <span className="block text-lg font-bold">{profile.label}</span>
-                        <span className="mt-2 block text-sm leading-6 text-muted-foreground">{profile.text}</span>
-                      </label>
-                    ))}
-                  </div>
+                  {mobileAuth ? (
+                    <MobileChoiceStep
+                      kicker="Profil"
+                      title={<>Qui utilisera <BrandName /></>}
+                      subtitle="Le dashboard s’adapte à votre usage : client final ou professionnel qui suit plusieurs dossiers."
+                      progressPercent={Math.round((step / stepCount) * 100)}
+                      stepCurrent={step}
+                      stepTotal={stepCount}
+                      gridClassName="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3"
+                    >
+                      {profiles.map((profile) => (
+                        <MobileChoiceTile
+                          key={profile.id}
+                          title={profile.label}
+                          description={profile.text}
+                          icon={profile.icon}
+                          selected={selectedProfile === profile.id}
+                          onSelect={() => selectProfile(profile.id)}
+                        />
+                      ))}
+                    </MobileChoiceStep>
+                  ) : (
+                    <>
+                      <div>
+                        <p className="text-sm font-bold uppercase text-primary">Profil</p>
+                        <h1 className="mt-2 text-3xl font-extrabold">Qui utilisera <BrandName /> </h1>
+                        <p className="mt-2 text-muted-foreground">Le dashboard s’adapte à votre usage : client final ou professionnel qui suit plusieurs dossiers.</p>
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {profiles.map((profile) => (
+                          <label key={profile.id} className={`cursor-pointer rounded-md border p-5 transition ${selectedProfile === profile.id ? 'border-primary bg-secondary shadow-elevation-sm' : 'border-border hover:bg-muted'}`}>
+                            <input type="radio" value={profile.id} {...register('profile')} className="hidden" />
+                            <profile.icon className="mb-4 h-7 w-7 text-primary" />
+                            <span className="block text-lg font-bold">{profile.label}</span>
+                            <span className="mt-2 block text-sm leading-6 text-muted-foreground">{profile.text}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </motion.div>
               )}
 
               {currentStepId === 'service' && (
                 <motion.div key="service" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-7">
-                  <div>
-                    <p className="text-sm font-bold uppercase text-primary">Formalité</p>
-                    <h1 className="mt-2 text-3xl font-extrabold">Choisissez le premier dossier.</h1>
-                    <p className="mt-2 text-muted-foreground"><BrandName /> créera automatiquement les tâches, pièces attendues et échanges d’équipe.</p>
-                  </div>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {LEGAL_SERVICES.map((service) => (
-                      <label key={service.id} className={`cursor-pointer rounded-md border p-4 transition ${selectedService === service.id ? 'border-primary bg-secondary' : 'border-border hover:bg-muted'}`}>
-                        <input type="radio" value={service.id} {...register('service', { required: true })} className="hidden" />
-                        <span className="text-sm font-bold">{service.title}</span>
-                        <span className="mt-1 block text-xs text-muted-foreground">{service.description}</span>
-                      </label>
-                    ))}
-                  </div>
+                  {mobileAuth ? (
+                    <MobileChoiceStep
+                      kicker="Formalité"
+                      title="Choisissez le premier dossier."
+                      subtitle={<> <BrandName /> créera automatiquement les tâches, pièces attendues et échanges d’équipe.</>}
+                      hint={isCapacitorNative()
+                        ? 'Touchez une formalité pour continuer.'
+                        : 'Sélectionnez une formalité pour continuer.'}
+                      progressPercent={Math.round((step / stepCount) * 100)}
+                      stepCurrent={step}
+                      stepTotal={stepCount}
+                      gridClassName="grid grid-cols-1 gap-2.5"
+                    >
+                      {LEGAL_SERVICES.map((service) => (
+                        <MobileChoiceTile
+                          key={service.id}
+                          title={service.title}
+                          description={service.description}
+                          selected={selectedService === service.id}
+                          onSelect={() => selectService(service.id)}
+                          compact
+                        />
+                      ))}
+                    </MobileChoiceStep>
+                  ) : (
+                    <>
+                      <div>
+                        <p className="text-sm font-bold uppercase text-primary">Formalité</p>
+                        <h1 className="mt-2 text-3xl font-extrabold">Choisissez le premier dossier.</h1>
+                        <p className="mt-2 text-muted-foreground"><BrandName /> créera automatiquement les tâches, pièces attendues et échanges d’équipe.</p>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {LEGAL_SERVICES.map((service) => (
+                          <label key={service.id} className={`cursor-pointer rounded-md border p-4 transition ${selectedService === service.id ? 'border-primary bg-secondary' : 'border-border hover:bg-muted'}`}>
+                            <input type="radio" value={service.id} {...register('service', { required: true })} className="hidden" />
+                            <span className="text-sm font-bold">{service.title}</span>
+                            <span className="mt-1 block text-xs text-muted-foreground">{service.description}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </motion.div>
               )}
 
@@ -536,7 +607,10 @@ export const SignupPage = () => {
                 type="submit"
                 size="lg"
                 disabled={submitting || (currentStepId === 'validation' && !acceptedTerms) || (currentStepId === 'validation' && showSignupChallenge && !hasCaptchaToken)}
-                className="gap-2 shadow-[0_8px_20px_rgba(30,77,140,0.18)] hover:translate-y-0 hover:shadow-[0_10px_24px_rgba(30,77,140,0.2)]"
+                className={cn(
+                  'gap-2 shadow-[0_8px_20px_rgba(30,77,140,0.18)] hover:translate-y-0 hover:shadow-[0_10px_24px_rgba(30,77,140,0.2)]',
+                  hideMobileContinue && 'hidden',
+                )}
               >
                 {submitting ? 'Création en cours…' : currentStepId === 'validation' ? 'Ouvrir mon dashboard' : 'Continuer'}
                 <ArrowRight className="h-4 w-4" />
