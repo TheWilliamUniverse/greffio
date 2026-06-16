@@ -1,4 +1,4 @@
-import { isMobileQuestionnaireViewport } from '@/utils/platform.js';
+import { isCompactQuestionnaireViewport, isUnifiedQuestionnairePresentation } from '@/utils/platform.js';
 
 export const resolveQuestionMode = (field) => {
   if (!field) return 'unknown';
@@ -60,14 +60,16 @@ export const useQuestionnairePresentation = ({
   safeGroupIndex = 0,
   fieldGroups = [],
 }) => {
-  const isMobile = isMobileQuestionnaireViewport();
+  const unifiedPresentation = isUnifiedQuestionnairePresentation();
+  const isCompactViewport = isCompactQuestionnaireViewport();
   const field = activeGroup.length === 1 ? activeGroup[0] : null;
   const mode = activeGroup.length === 1 ? resolveQuestionMode(field) : 'group';
   const stepCurrent = fieldGroups.length > 1 ? safeGroupIndex + 1 : undefined;
   const stepTotal = fieldGroups.length > 1 ? fieldGroups.length : undefined;
 
   return {
-    isMobile,
+    unifiedPresentation,
+    isCompactViewport,
     field,
     fields: activeGroup,
     mode,
@@ -75,8 +77,8 @@ export const useQuestionnairePresentation = ({
     stepCurrent,
     stepTotal,
     kicker: step?.title || '',
-    shouldHideStickyContinue: isMobile && activeGroup.length === 1 && shouldHideStickyContinueForMode(mode),
-    canAutoAdvance: isMobile && mode === 'choice',
+    shouldHideStickyContinue: unifiedPresentation && activeGroup.length === 1 && shouldHideStickyContinueForMode(mode),
+    canAutoAdvance: unifiedPresentation && mode === 'choice',
     enterKeyHint: mode === 'textarea' ? 'done' : 'next',
     inputMode: resolveFieldInputMode(field),
   };

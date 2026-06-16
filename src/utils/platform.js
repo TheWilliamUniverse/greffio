@@ -38,10 +38,16 @@ export const isMobileBrowserViewport = () => {
   return !isCapacitorNative() && window.innerWidth < MOBILE_BREAKPOINT;
 };
 
-/** Questionnaire unifié : app native Capacitor ou web mobile <768px. */
-export const isMobileQuestionnaireViewport = () => (
+/** Parcours questionnaire unifié (1 question / écran) sur tous les viewports. */
+export const isUnifiedQuestionnairePresentation = () => true;
+
+/** Layout compact questionnaire : app native Capacitor ou web mobile <768px. */
+export const isCompactQuestionnaireViewport = () => (
   isCapacitorNative() || isMobileBrowserViewport()
 );
+
+/** @deprecated Alias historique – préférer isCompactQuestionnaireViewport pour le layout. */
+export const isMobileQuestionnaireViewport = () => isCompactQuestionnaireViewport();
 
 /** Ops cockpit : bloquer le layout desktop compressé sur mobile natif ou web <768px. */
 export const isOpsMobileViewport = () => isCapacitorNative() || isMobileBrowserViewport();

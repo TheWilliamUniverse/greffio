@@ -3,6 +3,7 @@ import { COOKIE_CONSENT_KEY } from '../src/config/cookieCatalog.js';
 
 const DOSSIER_ID = 'e2e-forme-flow';
 const MOBILE_VIEWPORT = { width: 390, height: 844 };
+const DESKTOP_VIEWPORT = { width: 1280, height: 800 };
 
 const e2eUser = {
   id: 'e2e-user',
@@ -227,6 +228,25 @@ test.describe('questionnaire mobile – flux catégorie puis forme', () => {
 
     await expect(page.getByRole('heading', { name: /Forme juridique \*/i })).toBeVisible({ timeout: 10_000 });
     await page.getByRole('radio', { name: /^GAEC\b/i }).click();
+
+    await expect(page.getByText(/Dénomination/i)).toBeVisible({ timeout: 15_000 });
+  });
+});
+
+test.describe('questionnaire desktop – flux unifié step-by-step', () => {
+  test('catégorie commerciale → forme connue → SAS (1280px)', async ({ page }) => {
+    await page.setViewportSize(DESKTOP_VIEWPORT);
+    await page.goto(`/questionnaire?dossierId=${DOSSIER_ID}`);
+    await dismissCookieBanner(page);
+
+    await expect(page.getByText('Quelle catégorie correspond à votre projet ?')).toBeVisible({ timeout: 20_000 });
+    await page.getByRole('radio', { name: /Formes les plus courantes/i }).click();
+
+    await expect(page.getByText(/Savez-vous déjà quelle forme juridique/i)).toBeVisible({ timeout: 10_000 });
+    await page.getByRole('radio', { name: /Oui, je sais déjà/i }).click();
+
+    await expect(page.getByRole('heading', { name: /Forme juridique \*/i })).toBeVisible({ timeout: 10_000 });
+    await page.getByRole('radio', { name: /^SAS\b/i }).first().click();
 
     await expect(page.getByText(/Dénomination/i)).toBeVisible({ timeout: 15_000 });
   });

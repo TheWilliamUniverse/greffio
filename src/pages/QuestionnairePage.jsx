@@ -3,17 +3,13 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
-import { Button } from '@/components/ui/button.jsx';
 import { ProgressCircle } from '@/components/questionnaire/ProgressCircle.jsx';
 import { StepLayout } from '@/components/questionnaire/StepLayout.jsx';
 import { QuestionBackButton } from '@/components/questionnaire/QuestionBackButton.jsx';
-import { ChoiceCard } from '@/components/questionnaire/ChoiceCard.jsx';
 import { DemarchePicker } from '@/components/questionnaire/DemarchePicker.jsx';
-import { SegmentedChoice } from '@/components/questionnaire/SegmentedChoice.jsx';
 import {
   MobileChoiceStep,
   MobileChoiceTile,
-  isMobileChoiceField,
 } from '@/components/questionnaire/MobileChoiceStep.jsx';
 import { MobileInputStep } from '@/components/questionnaire/MobileInputStep.jsx';
 import { MobileTextareaStep } from '@/components/questionnaire/MobileTextareaStep.jsx';
@@ -56,7 +52,6 @@ import { isQuestionnaireExplicitResume, isQuestionnaireNewIntent } from '@/utils
 import { getProjectDraft } from '@/utils/localStorage.js';
 import { runtimeConfig } from '@/config/runtime.js';
 import { isEiLikeFormality, isStatutesSupportedForm } from '@/config/formalities.js';
-import { AssociatesMinorPanel } from '@/components/questionnaire/AssociatesMinorPanel.jsx';
 import { AssociatesMobileWizard } from '@/components/questionnaire/AssociatesMobileWizard.jsx';
 import { BeneficialOwnersPicker } from '@/components/questionnaire/BeneficialOwnersPicker.jsx';
 import { CapitalLiberationPicker } from '@/components/questionnaire/CapitalLiberationPicker.jsx';
@@ -66,7 +61,7 @@ import { validateDirectorEligibility } from '@/config/minorAssociateRules.js';
 import { syncDirigeantFromAssociates } from '@/utils/officerFromAssociates.js';
 import { cn } from '@/lib/utils.js';
 import { useAuth } from '@/hooks/useAuth.js';
-import { isCapacitorNative, isMobileBrowserViewport, isMobileQuestionnaireViewport } from '@/utils/platform.js';
+import { isCapacitorNative, isCompactQuestionnaireViewport, isUnifiedQuestionnairePresentation } from '@/utils/platform.js';
 import { fetchUserProfile } from '@/api/profile.js';
 import { contactDetailsFromUser } from '@/utils/userProfile.js';
 import {
@@ -190,21 +185,18 @@ export const QuestionnairePage = () => {
   const pendingTapAdvanceRef = useRef(null);
   const forceAdvanceAfterIgnoreRef = useRef(false);
 
-  const isMobileChoicePresentation = isMobileQuestionnaireViewport();
-  const isMobileTapToAdvanceField = (field) => (
-    isMobileChoicePresentation && isMobileChoiceField(field)
-  );
-
+  const useUnifiedPresentation = isUnifiedQuestionnairePresentation();
+  const isCompactViewport = isCompactQuestionnaireViewport();
   const step = QUESTIONNAIRE_FLOW[stepIndex];
   const visibleStepFields = useMemo(
     () => getVisibleFieldsForStep(step, formData),
     [step, formData],
   );
   const fieldGroups = useMemo(
-    () => (isMobileChoicePresentation
+    () => (useUnifiedPresentation
       ? resolveMobileFieldGroups(step, formData)
       : visibleStepFields.map((field) => [field])),
-    [step, formData, visibleStepFields, isMobileChoicePresentation],
+    [step, formData, visibleStepFields, useUnifiedPresentation],
   );
   const safeGroupIndex = fieldGroups.length
     ? Math.min(groupIndex, fieldGroups.length - 1)
@@ -212,14 +204,12 @@ export const QuestionnairePage = () => {
   const activeGroup = fieldGroups[safeGroupIndex] || [];
   const activeField = activeGroup[0] || null;
   const isLastGroupInStep = fieldGroups.length > 0 && safeGroupIndex === fieldGroups.length - 1;
-  const progressFieldIndex = isMobileChoicePresentation
-    ? safeGroupIndex
-    : safeGroupIndex;
+  const progressFieldIndex = safeGroupIndex;
   const progress = getQuestionnaireProgressPercent(
     formData,
     stepIndex,
     progressFieldIndex,
-    { mobilePresentation: isMobileChoicePresentation },
+    { mobilePresentation: useUnifiedPresentation },
   );
   const canAdvanceCurrentGroup = useMemo(() => {
     if (!activeGroup.length) return false;
@@ -246,11 +236,14 @@ export const QuestionnairePage = () => {
     safeGroupIndex,
     fieldGroups,
   });
-  const hideContinueOnMobile = presentation.shouldHideStickyContinue;
-  const isCompactMobileStep = isMobileChoicePresentation && hideContinueOnMobile && activeGroup.length === 1;
-  const isMobileFormalitePickerStep = isMobileChoicePresentation
+  const hideContinueOnUnified = presentation.shouldHideStickyContinue;
+  const isCompactStep = isCompactViewport && hideContinueOnUnified && activeGroup.length === 1;
+  const isUnifiedFormalitePickerStep = useUnifiedPresentation
     && activeField?.key === 'typeFormalite'
     && activeGroup.length === 1;
+  const choiceAdvanceHint = isCapacitorNative()
+    ? 'Touchez votre réponse pour continuer.'
+    : 'Cliquez votre réponse pour continuer.';
   const continueLabel = isLastGroupInStep && stepIndex >= QUESTIONNAIRE_FLOW.length - 1
     ? 'Terminer le questionnaire'
     : isLastGroupInStep
@@ -608,7 +601,7 @@ export const QuestionnairePage = () => {
               groups,
               contactStepFields[firstInvalid]?.key,
             );
-            return { stepIndex: 0, fieldIndex: isMobileQuestionnaireViewport() ? groupIdx : firstInvalid };
+            return { stepIndex: 0, fieldIndex: groupIdx };
           }
           const applicable = getApplicableFlowSteps(data);
           const contactPos = applicable.findIndex((entry) => entry.id === 'contact');
@@ -645,12 +638,10 @@ export const QuestionnairePage = () => {
 
         const resumeStepDef = QUESTIONNAIRE_FLOW[resumeStep] || QUESTIONNAIRE_FLOW[0];
         const resumeGroups = resolveMobileFieldGroups(resumeStepDef, mergedData);
-        const resumeGroupIndex = isMobileQuestionnaireViewport()
-          ? groupIndexFromFieldKey(
+        const resumeGroupIndex = groupIndexFromFieldKey(
             resumeGroups,
             resume.fieldKey || getVisibleFieldsForStep(resumeStepDef, mergedData)[resumeField]?.key,
-          )
-          : resumeField;
+          );
 
         setFormData(mergedData);
         setStepIndex(resumeStep);
@@ -741,7 +732,7 @@ export const QuestionnairePage = () => {
 
   useEffect(() => {
     const pendingKey = pendingTapAdvanceRef.current;
-    if (!pendingKey || !isMobileChoicePresentation) return undefined;
+    if (!pendingKey || !useUnifiedPresentation) return undefined;
     if (!activeGroup.some((field) => field.key === pendingKey)) return undefined;
     if (!canAdvanceCurrentGroup) {
       pendingTapAdvanceRef.current = null;
@@ -752,7 +743,7 @@ export const QuestionnairePage = () => {
       void goNext();
     }, 220);
     return () => window.clearTimeout(timer);
-  }, [formData, activeGroup, canAdvanceCurrentGroup, isMobileChoicePresentation]);
+  }, [formData, activeGroup, canAdvanceCurrentGroup, useUnifiedPresentation]);
 
   useEffect(() => {
     if (!forceAdvanceAfterIgnoreRef.current || !formData.comparateurIgnore || step.id !== 'forme') return undefined;
@@ -809,18 +800,18 @@ export const QuestionnairePage = () => {
       if (field.key === 'apportsNature' && String(value || '').trim() !== 'Oui') {
         next.detailApportsNature = '';
       }
-      if (isMobileChoicePresentation
+      if (useUnifiedPresentation
         && shouldAutoAdvanceMobileField(field, next[field.key], {
           isValid: isFieldValueValid(field, next[field.key], next),
         })) {
-        window.setTimeout(() => requestMobileTapAdvance(field.key), 400);
+        window.setTimeout(() => requestTapAdvance(field.key), 400);
       }
       return next;
     });
   };
 
-  const requestMobileTapAdvance = (fieldKey) => {
-    if (!isMobileChoicePresentation) return;
+  const requestTapAdvance = (fieldKey) => {
+    if (!useUnifiedPresentation) return;
     pendingTapAdvanceRef.current = fieldKey;
   };
 
@@ -828,13 +819,13 @@ export const QuestionnairePage = () => {
     void lightQuestionnaireHaptic();
     const resolvedValue = field.type === 'checkbox' ? Boolean(value) : value;
     const nextFormSnapshot = { ...formData, [field.key]: resolvedValue };
-    const willAutoAdvance = isMobileChoicePresentation
+    const willAutoAdvance = useUnifiedPresentation
       && shouldAutoAdvanceMobileField(field, resolvedValue, {
         isValid: isFieldValueValid(field, resolvedValue, nextFormSnapshot),
       });
     updateField(field, value);
     if (!willAutoAdvance) {
-      requestMobileTapAdvance(field.key);
+      requestTapAdvance(field.key);
     }
   };
 
@@ -966,7 +957,7 @@ export const QuestionnairePage = () => {
         prev -= 1;
         continue;
       }
-      const prevGroups = isMobileChoicePresentation
+      const prevGroups = useUnifiedPresentation
         ? resolveMobileFieldGroups(prevStep, formData)
         : getVisibleFieldsForStep(prevStep, formData).map((field) => [field]);
       if (prevGroups.length) {
@@ -993,7 +984,7 @@ export const QuestionnairePage = () => {
     inputType = 'text',
     inputMode,
     subtitle,
-    hint = isCompactMobileStep ? 'Touchez la flèche pour continuer.' : 'Appuyez sur Suivant lorsque c’est prêt.',
+    hint = isCompactStep ? 'Touchez la flèche pour continuer.' : 'Appuyez sur Suivant lorsque c’est prêt.',
     extra,
     onChangeOverride,
   }) => {
@@ -1014,9 +1005,9 @@ export const QuestionnairePage = () => {
       placeholder={field.placeholder || ''}
       inputMode={inputMode || (isNumericField ? 'decimal' : resolveFieldInputMode(field))}
       inputType={isNumericField ? 'text' : inputType}
-      compact={isCompactMobileStep}
-      showProgressBar={!isCompactMobileStep}
-      showStepMeta={!isCompactMobileStep}
+      compact={isCompactStep}
+      showProgressBar={!isCompactStep}
+      showStepMeta={!isCompactStep}
       canAdvance={!invalid && isFieldValueValid(field, validationValue, formData)}
       invalid={invalid}
       errorMessage={invalid ? inlineMessage : ''}
@@ -1051,24 +1042,17 @@ export const QuestionnairePage = () => {
       const pickerValue = isSecondary
         ? (formData.formeJuridiqueFamilleSecondary || formData.formeJuridiqueFamille || '')
         : (formData.formeJuridiqueFamillePrimary || '');
-      const familyPicker = (
-        <LegalFormFamilyPicker
-          tier={isSecondary ? 'secondary' : 'primary'}
-          value={pickerValue}
-          onSelect={(family) => handleTapFieldUpdate(field, family)}
-          mobilePresentation={isMobileChoicePresentation}
-          progressPercent={progress}
-          stepCurrent={presentation.stepCurrent}
-          stepTotal={presentation.stepTotal}
-        />
-      );
-      if (isMobileChoicePresentation) {
-        return <div key={field.key}>{familyPicker}</div>;
-      }
       return (
-        <div key={field.key} className="space-y-3">
-          <Label className="text-base font-semibold">{field.label}{field.required ? ' *' : ''}</Label>
-          {familyPicker}
+        <div key={field.key}>
+          <LegalFormFamilyPicker
+            tier={isSecondary ? 'secondary' : 'primary'}
+            value={pickerValue}
+            onSelect={(family) => handleTapFieldUpdate(field, family)}
+            mobilePresentation={useUnifiedPresentation}
+            progressPercent={progress}
+            stepCurrent={presentation.stepCurrent}
+            stepTotal={presentation.stepTotal}
+          />
         </div>
       );
     }
@@ -1077,7 +1061,7 @@ export const QuestionnairePage = () => {
       return (
         <QuestionnaireComparatorStep
           key={field.key}
-          mobilePresentation={isMobileChoicePresentation}
+          mobilePresentation={useUnifiedPresentation}
           progressPercent={progress}
           stepCurrent={presentation.stepCurrent}
           stepTotal={presentation.stepTotal}
@@ -1100,7 +1084,7 @@ export const QuestionnairePage = () => {
           value={formData.liberationCapital || ''}
           capitalAmount={formData.capital || ''}
           onChange={(nextValue) => updateField(field, nextValue)}
-          mobilePresentation={isMobileChoicePresentation}
+          mobilePresentation={useUnifiedPresentation}
           kicker={PROGRESSIVE_STEP_LABELS[step.id] || step.title}
           label={field.label}
           required={field.required}
@@ -1113,66 +1097,31 @@ export const QuestionnairePage = () => {
 
     if (field.key === 'formeJuridique' && formData.formeJuridiqueFamille) {
       const forms = getCatalogFormsForFamily(formData.formeJuridiqueFamille);
-      if (isMobileChoicePresentation) {
-        return (
-          <MobileChoiceStep
-            key={field.key}
-            kicker={formData.formeJuridiqueFamille}
-            title={`${field.label}${field.required ? ' *' : ''}`}
-            subtitle="Choisissez la forme qui correspond le mieux à votre projet."
-            hint="Touchez une forme pour continuer."
-            progressPercent={progress}
-            stepCurrent={presentation.stepCurrent}
-            stepTotal={presentation.stepTotal}
-            gridClassName="grid grid-cols-1 gap-2.5"
-          >
-            {forms.map((form) => {
-              const availabilityLabel = getFormAvailabilityLabel(form.key);
-              return (
-                <MobileChoiceTile
-                  key={form.key}
-                  title={form.label}
-                  description={`${availabilityLabel} · ${form.description}`}
-                  selected={String(formData.formeJuridique || '') === String(form.label)}
-                  onSelect={() => handleTapFieldUpdate(field, form.label)}
-                />
-              );
-            })}
-          </MobileChoiceStep>
-        );
-      }
       return (
-        <div key={field.key} className="space-y-3">
-          <Label className="text-base font-semibold">{field.label}{field.required ? ' *' : ''}</Label>
-          <p className="text-sm font-semibold text-primary">{formData.formeJuridiqueFamille}</p>
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            {forms.map((form) => {
-              const availabilityLabel = getFormAvailabilityLabel(form.key);
-              const selected = String(formData.formeJuridique || '') === String(form.label);
-              return (
-                <button
-                  key={form.key}
-                  type="button"
-                  onClick={() => handleTapFieldUpdate(field, form.label)}
-                  className={cn(
-                    'rounded-2xl border p-4 text-left transition',
-                    selected
-                      ? 'border-primary bg-[hsl(var(--greffio-citron))] shadow-elevation-md'
-                      : 'border-border bg-white hover:border-primary/40 hover:shadow-elevation-sm',
-                  )}
-                >
-                  <span className="flex items-start justify-between gap-2">
-                    <strong className="text-base">{form.label}</strong>
-                    <span className="rounded-full bg-white px-2 py-1 text-[11px] font-bold uppercase text-primary">
-                      {availabilityLabel}
-                    </span>
-                  </span>
-                  <span className="mt-2 block text-xs leading-5 text-muted-foreground">{form.description}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <MobileChoiceStep
+          key={field.key}
+          kicker={formData.formeJuridiqueFamille}
+          title={`${field.label}${field.required ? ' *' : ''}`}
+          subtitle="Choisissez la forme qui correspond le mieux à votre projet."
+          hint={choiceAdvanceHint}
+          progressPercent={progress}
+          stepCurrent={presentation.stepCurrent}
+          stepTotal={presentation.stepTotal}
+          gridClassName="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3"
+        >
+          {forms.map((form) => {
+            const availabilityLabel = getFormAvailabilityLabel(form.key);
+            return (
+              <MobileChoiceTile
+                key={form.key}
+                title={form.label}
+                description={`${availabilityLabel} · ${form.description}`}
+                selected={String(formData.formeJuridique || '') === String(form.label)}
+                onSelect={() => handleTapFieldUpdate(field, form.label)}
+              />
+            );
+          })}
+        </MobileChoiceStep>
       );
     }
 
@@ -1187,128 +1136,75 @@ export const QuestionnairePage = () => {
       if (field.key === 'typeFormalite') {
         return (
           <div key={field.key}>
-            {!isMobileChoicePresentation ? (
-              <Label className="text-base font-semibold">{field.label}{field.required ? ' *' : ''}</Label>
-            ) : null}
-            <div className={isMobileChoicePresentation ? '' : 'mt-3'}>
-              <DemarchePicker
-                value={formData.typeFormalite}
-                onChange={(nextValue) => updateField(field, nextValue)}
-                categoryFirst={isAuthenticated}
-                primaryCategory={demarcheCategory}
-                onPrimaryCategoryChange={setDemarcheCategory}
-                categoryConfirmed={demarcheCategoryConfirmed}
-                onCategoryConfirmedChange={setDemarcheCategoryConfirmed}
-                mobilePresentation={isMobileChoicePresentation}
-                onAdvance={() => requestMobileTapAdvance('typeFormalite')}
-                progressPercent={progress}
-                stepCurrent={fieldGroups.length > 1 ? safeGroupIndex + 1 : undefined}
-                stepTotal={fieldGroups.length > 1 ? fieldGroups.length : undefined}
-              />
-            </div>
+            <DemarchePicker
+              value={formData.typeFormalite}
+              onChange={(nextValue) => updateField(field, nextValue)}
+              categoryFirst={isAuthenticated}
+              primaryCategory={demarcheCategory}
+              onPrimaryCategoryChange={setDemarcheCategory}
+              categoryConfirmed={demarcheCategoryConfirmed}
+              onCategoryConfirmedChange={setDemarcheCategoryConfirmed}
+              mobilePresentation={useUnifiedPresentation}
+              onAdvance={() => requestTapAdvance('typeFormalite')}
+              progressPercent={progress}
+              stepCurrent={fieldGroups.length > 1 ? safeGroupIndex + 1 : undefined}
+              stepTotal={fieldGroups.length > 1 ? fieldGroups.length : undefined}
+            />
           </div>
         );
       }
 
-      if (isMobileChoicePresentation) {
-        const mobileHint = isCapacitorNative()
-          ? 'Touchez votre réponse pour continuer.'
-          : 'Sélectionnez une réponse pour continuer.';
-        return (
-          <MobileChoiceStep
-            key={field.key}
-            kicker={PROGRESSIVE_STEP_LABELS[step.id] || step.title}
-            title={`${field.label}${field.required ? ' *' : ''}`}
-            subtitle={step.description}
-            hint={mobileHint}
-            progressPercent={progress}
-            stepCurrent={fieldGroups.length > 1 ? safeGroupIndex + 1 : undefined}
-            stepTotal={fieldGroups.length > 1 ? fieldGroups.length : undefined}
-            gridClassName={normalizedOptions.length === 2
-              ? 'grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3'
-              : 'grid grid-cols-1 gap-2.5'}
-          >
-            {normalizedOptions.map((option) => (
-              <MobileChoiceTile
-                key={option.value}
-                title={option.label}
-                selected={String(formData[field.key] || '') === String(option.value)}
-                onSelect={() => handleTapFieldUpdate(field, option.value)}
-              />
-            ))}
-          </MobileChoiceStep>
-        );
-      }
-
-      const isBinaryChoice = normalizedOptions.length === 2;
       return (
-        <div key={field.key}>
-          <Label className={isBinaryChoice ? 'text-base font-semibold' : ''}>
-            {field.label}{field.required ? ' *' : ''}
-          </Label>
-          <div className={`mt-2 ${isBinaryChoice ? '' : 'grid gap-2 sm:grid-cols-2 xl:grid-cols-3'}`}>
-            {isBinaryChoice ? (
-              <SegmentedChoice
-                options={options}
-                value={formData[field.key]}
-                onChange={(nextValue) => handleTapFieldUpdate(field, nextValue)}
-              />
-            ) : normalizedOptions.map((option) => (
-              <ChoiceCard
-                key={option.value}
-                compact
-                selected={String(formData[field.key] || '') === String(option.value)}
-                title={option.label}
-                onClick={() => handleTapFieldUpdate(field, option.value)}
-              />
-            ))}
-          </div>
-        </div>
+        <MobileChoiceStep
+          key={field.key}
+          kicker={PROGRESSIVE_STEP_LABELS[step.id] || step.title}
+          title={`${field.label}${field.required ? ' *' : ''}`}
+          subtitle={step.description}
+          hint={choiceAdvanceHint}
+          progressPercent={progress}
+          stepCurrent={fieldGroups.length > 1 ? safeGroupIndex + 1 : undefined}
+          stepTotal={fieldGroups.length > 1 ? fieldGroups.length : undefined}
+          gridClassName={normalizedOptions.length === 2
+            ? 'grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3'
+            : 'grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3'}
+        >
+          {normalizedOptions.map((option) => (
+            <MobileChoiceTile
+              key={option.value}
+              title={option.label}
+              selected={String(formData[field.key] || '') === String(option.value)}
+              onSelect={() => handleTapFieldUpdate(field, option.value)}
+            />
+          ))}
+        </MobileChoiceStep>
       );
     }
 
     if (field.type === 'checkbox') {
-      if (isMobileChoicePresentation) {
-        const mobileHint = isCapacitorNative()
-          ? 'Touchez votre réponse pour continuer.'
-          : 'Sélectionnez une réponse pour continuer.';
-        const yesSelected = Boolean(formData[field.key]);
-        return (
-          <MobileChoiceStep
-            key={field.key}
-            kicker={PROGRESSIVE_STEP_LABELS[step.id] || step.title}
-            title={field.label}
-            subtitle={step.description}
-            hint={mobileHint}
-            progressPercent={progress}
-            stepCurrent={fieldGroups.length > 1 ? safeGroupIndex + 1 : undefined}
-            stepTotal={fieldGroups.length > 1 ? fieldGroups.length : undefined}
-            gridClassName="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3"
-          >
-            <MobileChoiceTile
-              title="Oui"
-              selected={yesSelected}
-              onSelect={() => handleTapFieldUpdate(field, true)}
-            />
-            <MobileChoiceTile
-              title="Non"
-              selected={!yesSelected && formData[field.key] === false}
-              onSelect={() => handleTapFieldUpdate(field, false)}
-            />
-          </MobileChoiceStep>
-        );
-      }
-
+      const yesSelected = Boolean(formData[field.key]);
       return (
-        <label key={field.key} className="flex items-start gap-3 rounded-xl border border-border bg-muted/40 p-5">
-          <input
-            type="checkbox"
-            checked={Boolean(formData[field.key])}
-            onChange={(event) => handleTapFieldUpdate(field, event.target.checked)}
-            className="mt-1"
+        <MobileChoiceStep
+          key={field.key}
+          kicker={PROGRESSIVE_STEP_LABELS[step.id] || step.title}
+          title={field.label}
+          subtitle={step.description}
+          hint={choiceAdvanceHint}
+          progressPercent={progress}
+          stepCurrent={fieldGroups.length > 1 ? safeGroupIndex + 1 : undefined}
+          stepTotal={fieldGroups.length > 1 ? fieldGroups.length : undefined}
+          gridClassName="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3"
+        >
+          <MobileChoiceTile
+            title="Oui"
+            selected={yesSelected}
+            onSelect={() => handleTapFieldUpdate(field, true)}
           />
-          <span className="text-sm leading-6 text-muted-foreground">{field.label}</span>
-        </label>
+          <MobileChoiceTile
+            title="Non"
+            selected={!yesSelected && formData[field.key] === false}
+            onSelect={() => handleTapFieldUpdate(field, false)}
+          />
+        </MobileChoiceStep>
       );
     }
 
@@ -1323,29 +1219,19 @@ export const QuestionnairePage = () => {
           onChange={(patch) => setFormData((current) => ({ ...current, ...patch }))}
         />
       );
-      if (isMobileChoicePresentation && activeGroup.length === 1) {
-        return (
-          <MobileCompositeStep
-            key={field.key}
-            kicker={PROGRESSIVE_STEP_LABELS[step.id] || step.title}
-            title={`${field.label}${field.required ? ' *' : ''}`}
-            subtitle={step.description}
-            progressPercent={progress}
-            stepCurrent={presentation.stepCurrent}
-            stepTotal={presentation.stepTotal}
-            hint="Sélectionnez les bénéficiaires effectifs puis appuyez sur Continuer."
-          >
-            {picker}
-          </MobileCompositeStep>
-        );
-      }
       return (
-        <div key={field.key} className="space-y-3">
-          <Label className="text-base font-semibold">
-            {field.label}{field.required ? ' *' : ''}
-          </Label>
+        <MobileCompositeStep
+          key={field.key}
+          kicker={PROGRESSIVE_STEP_LABELS[step.id] || step.title}
+          title={`${field.label}${field.required ? ' *' : ''}`}
+          subtitle={step.description}
+          progressPercent={progress}
+          stepCurrent={presentation.stepCurrent}
+          stepTotal={presentation.stepTotal}
+          hint="Sélectionnez les bénéficiaires effectifs puis appuyez sur Continuer."
+        >
           {picker}
-        </div>
+        </MobileCompositeStep>
       );
     }
 
@@ -1360,29 +1246,17 @@ export const QuestionnairePage = () => {
         };
       });
 
-      if (isMobileChoicePresentation && activeGroup.length === 1) {
-        return (
-          <AssociatesMobileWizard
-            ref={associatesWizardRef}
-            key={field.key}
-            value={formData.associates}
-            onChange={handleAssociatesChange}
-            progressPercent={progress}
-            stepCurrent={presentation.stepCurrent}
-            stepTotal={presentation.stepTotal}
-            onComplete={() => { void goNext(); }}
-          />
-        );
-      }
-
       return (
-        <div key={field.key}>
-          <AssociatesMinorPanel
-            value={formData.associates}
-            includeDirector={false}
-            onChange={handleAssociatesChange}
-          />
-        </div>
+        <AssociatesMobileWizard
+          ref={associatesWizardRef}
+          key={field.key}
+          value={formData.associates}
+          onChange={handleAssociatesChange}
+          progressPercent={progress}
+          stepCurrent={presentation.stepCurrent}
+          stepTotal={presentation.stepTotal}
+          onComplete={() => { void goNext(); }}
+        />
       );
     }
 
@@ -1391,29 +1265,11 @@ export const QuestionnairePage = () => {
       const showDirectorError = touchedFields.dirigeant && !directorCheck.ok;
       const directorValue = formData.dirigeant || '';
       const directorInvalid = field.required && !isFieldValueValid(field, directorValue, formData);
-      if (isMobileChoicePresentation && activeGroup.length === 1) {
-        return renderMobileInputStep(field, {
-          value: directorValue,
-          invalid: showDirectorError || (touchedFields.dirigeant && directorInvalid),
-          inlineMessage: showDirectorError ? directorCheck.message : getFieldValidationMessage(field, directorValue, formData),
-        });
-      }
-      return (
-        <div key={field.key} className="space-y-3">
-          <Label>{field.label}{field.required ? ' *' : ''}</Label>
-          <Input
-            value={formData.dirigeant || ''}
-            onChange={(event) => setFormData((current) => ({ ...current, dirigeant: event.target.value }))}
-            placeholder={field.placeholder || ''}
-            className={`${fieldClass} ${showDirectorError ? 'border-red-400' : ''}`}
-          />
-          {showDirectorError ? (
-            <QuestionnaireNotice variant="error" title="Fonction de direction">
-              {directorCheck.message}
-            </QuestionnaireNotice>
-          ) : null}
-        </div>
-      );
+      return renderMobileInputStep(field, {
+        value: directorValue,
+        invalid: showDirectorError || (touchedFields.dirigeant && directorInvalid),
+        inlineMessage: showDirectorError ? directorCheck.message : getFieldValidationMessage(field, directorValue, formData),
+      });
     }
 
     if (field.type === 'date') {
@@ -1422,44 +1278,27 @@ export const QuestionnairePage = () => {
       const dateInvalid = field.required && !isFieldValueValid(field, dateValue, formData);
       const showInlineError = touchedFields[field.key] && dateInvalid;
       const inlineMessage = getFieldValidationMessage(field, dateValue, formData);
-      if (isMobileChoicePresentation && activeGroup.length === 1) {
-        if (field.key === 'birthDate') {
-          return (
-            <MobileBirthDatePicker
-              key={field.key}
-              value={dateValue}
-              invalid={showInlineError}
-              errorMessage={showInlineError ? inlineMessage : ''}
-              canAdvance={!dateInvalid}
-              onChange={(nextValue) => updateField(field, nextValue)}
-              onAdvance={goNext}
-              extra={showLegalHint ? <BirthDateMinorEncouragement birthDate={dateValue} showLegalHint /> : null}
-            />
-          );
-        }
-        return renderMobileInputStep(field, {
-          value: dateValue,
-          invalid: showInlineError,
-          inlineMessage,
-          inputType: 'date',
-          extra: showLegalHint ? <BirthDateMinorEncouragement birthDate={dateValue} showLegalHint /> : null,
-        });
-      }
-      return (
-        <div key={field.key} className="space-y-2">
-          <Label htmlFor={field.key}>{field.label}{field.required ? ' *' : ''}</Label>
-          <Input
-            id={field.key}
-            type="date"
+      if (field.key === 'birthDate') {
+        return (
+          <MobileBirthDatePicker
+            key={field.key}
             value={dateValue}
-            onChange={(event) => updateField(field, event.target.value)}
-            className={fieldClass}
+            invalid={showInlineError}
+            errorMessage={showInlineError ? inlineMessage : ''}
+            canAdvance={!dateInvalid}
+            onChange={(nextValue) => updateField(field, nextValue)}
+            onAdvance={goNext}
+            extra={showLegalHint ? <BirthDateMinorEncouragement birthDate={dateValue} showLegalHint /> : null}
           />
-          {showLegalHint ? (
-            <BirthDateMinorEncouragement birthDate={dateValue} showLegalHint />
-          ) : null}
-        </div>
-      );
+        );
+      }
+      return renderMobileInputStep(field, {
+        value: dateValue,
+        invalid: showInlineError,
+        inlineMessage,
+        inputType: 'date',
+        extra: showLegalHint ? <BirthDateMinorEncouragement birthDate={dateValue} showLegalHint /> : null,
+      });
     }
 
     const value = formData[field.key] ?? '';
@@ -1475,7 +1314,7 @@ export const QuestionnairePage = () => {
           ? 'Nous l’utilisons pour retrouver les informations de la société.'
           : undefined;
 
-    if (isMobileChoicePresentation && activeGroup.length === 1 && resolveQuestionMode(field) === 'input') {
+    if (useUnifiedPresentation && resolveQuestionMode(field) === 'input') {
       return renderMobileInputStep(field, {
         value,
         invalid: showInlineError,
@@ -1501,44 +1340,29 @@ export const QuestionnairePage = () => {
       const minLength = field.key === 'activite' ? 12 : 8;
       const trimmedLength = String(value || '').trim().length;
       const canAdvanceTextarea = trimmedLength >= minLength && !invalid;
-      if (isMobileChoicePresentation && activeGroup.length === 1) {
-        return (
-          <MobileTextareaStep
-            key={field.key}
-            kicker={PROGRESSIVE_STEP_LABELS[step.id] || step.title}
-            title={`${field.label}${field.required ? ' *' : ''}`}
-            subtitle={step.description}
-            progressPercent={progress}
-            stepCurrent={presentation.stepCurrent}
-            stepTotal={presentation.stepTotal}
-            fieldId={field.key}
-            value={value}
-            placeholder={field.placeholder || ''}
-            minLength={minLength}
-            compact={isCompactMobileStep}
-            showProgressBar={!isCompactMobileStep}
-            showStepMeta={!isCompactMobileStep}
-            hint={isCompactMobileStep ? 'Touchez la flèche pour continuer.' : undefined}
-            onChange={(nextValue) => updateField(field, nextValue)}
-            onAdvance={goNext}
-            canAdvance={canAdvanceTextarea}
-            invalid={showInlineError}
-            errorMessage={showInlineError ? inlineMessage : ''}
-          />
-        );
-      }
       return (
-        <div key={field.key} className="space-y-2">
-          <Label>{field.label}{field.required ? ' *' : ''}</Label>
-          <textarea
-            value={value}
-            placeholder={field.placeholder || ''}
-            rows={4}
-            onChange={(event) => updateField(field, event.target.value)}
-            className={`${fieldClass} min-h-[110px] w-full ${showInlineError ? 'border-red-400' : ''}`}
-          />
-          {showInlineError ? <p className="text-xs text-destructive">{inlineMessage}</p> : null}
-        </div>
+        <MobileTextareaStep
+          key={field.key}
+          kicker={PROGRESSIVE_STEP_LABELS[step.id] || step.title}
+          title={`${field.label}${field.required ? ' *' : ''}`}
+          subtitle={step.description}
+          progressPercent={progress}
+          stepCurrent={presentation.stepCurrent}
+          stepTotal={presentation.stepTotal}
+          fieldId={field.key}
+          value={value}
+          placeholder={field.placeholder || ''}
+          minLength={minLength}
+          compact={isCompactStep}
+          showProgressBar={!isCompactStep}
+          showStepMeta={!isCompactStep}
+          hint={isCompactStep ? 'Touchez la flèche pour continuer.' : undefined}
+          onChange={(nextValue) => updateField(field, nextValue)}
+          onAdvance={goNext}
+          canAdvance={canAdvanceTextarea}
+          invalid={showInlineError}
+          errorMessage={showInlineError ? inlineMessage : ''}
+        />
       );
     }
 
@@ -1574,7 +1398,7 @@ export const QuestionnairePage = () => {
     );
   };
 
-  if (isMobileFormalitePickerStep) {
+  if (isUnifiedFormalitePickerStep) {
     return (
       <div
         ref={wizardTopRef}
@@ -1614,7 +1438,7 @@ export const QuestionnairePage = () => {
       ref={wizardTopRef}
       className={cn(
         'mx-auto max-w-4xl',
-        isCompactMobileStep
+        isCompactStep
           ? 'px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]'
           : 'px-4 py-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-10 lg:px-8',
       )}
@@ -1633,8 +1457,8 @@ export const QuestionnairePage = () => {
         canGoBack={stepIndex > 0 || safeGroupIndex > 0}
         canGoNext={canContinue}
         continueLabel={continueLabel}
-        hideContinueButton={hideContinueOnMobile}
-        compactMobile={isCompactMobileStep}
+        hideContinueButton={hideContinueOnUnified}
+        compactMobile={isCompactStep}
       >
         {stepError ? (
           <QuestionnaireNotice variant="error" title="Enregistrement">
@@ -1650,7 +1474,7 @@ export const QuestionnairePage = () => {
             {' '}Vous pouvez continuer – Greffio vous rappellera de les finaliser.
           </QuestionnaireNotice>
         ) : null}
-        {!isCompactMobileStep ? (
+        {!isCompactStep ? (
           <ProgressiveStepChips
             steps={progressiveSteps}
             activeIndex={progressiveStepIndex}
@@ -1658,7 +1482,7 @@ export const QuestionnairePage = () => {
           />
         ) : null}
 
-        {fieldGroups.length > 1 && !isCompactMobileStep ? (
+        {fieldGroups.length > 1 && !isCompactStep ? (
           <p className="text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Question {safeGroupIndex + 1} sur {fieldGroups.length}
             <span className="mx-2 text-border">·</span>
@@ -1675,7 +1499,7 @@ export const QuestionnairePage = () => {
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.22 }}
             className={cn(
-              isMobileChoicePresentation && hideContinueOnMobile
+              useUnifiedPresentation && hideContinueOnUnified
                 ? 'min-h-0 border-0 bg-transparent p-0 shadow-none'
                 : 'min-h-[12rem] rounded-xl border border-border bg-muted/30 p-5 md:p-6',
             )}
@@ -1712,19 +1536,21 @@ export const QuestionnairePage = () => {
         ) : null}
       </StepLayout>
 
-      {!isCompactMobileStep ? (
+      {!isCompactStep ? (
         <>
           <div className="mt-4 rounded-md border border-border bg-white p-4 text-xs text-muted-foreground">
             Contact Greffio: {runtimeConfig.supportPhone} – {runtimeConfig.supportEmail}
           </div>
-          {!canContinue && !stepError && !hideContinueOnMobile ? (
+          {!canContinue && !stepError && !hideContinueOnUnified ? (
             <QuestionnaireNotice variant="vigilance" title="Pour continuer" className="mt-3">
               Répondez à la question ci-dessus, puis cliquez sur « {continueLabel} ».
             </QuestionnaireNotice>
           ) : null}
-          {!canContinue && !stepError && hideContinueOnMobile ? (
+          {!canContinue && !stepError && hideContinueOnUnified ? (
             <QuestionnaireNotice variant="vigilance" title="Pour continuer" className="mt-3">
-              Touchez votre réponse pour passer à la suite.
+              {isCompactViewport
+                ? 'Touchez votre réponse pour passer à la suite.'
+                : 'Cliquez votre réponse pour passer à la suite.'}
             </QuestionnaireNotice>
           ) : null}
           <div className="mt-3 rounded-md border border-border bg-muted p-3 text-xs text-muted-foreground">
