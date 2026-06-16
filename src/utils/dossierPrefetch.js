@@ -4,8 +4,10 @@ import { queryKeys } from '@/hooks/queries/queryKeys.js';
 import { resolveDossierContinueUrl } from '@/utils/dossierContinueUrl.js';
 
 const prefetched = new Set();
+const pendingPrefetch = new Map();
+const PREFETCH_DEBOUNCE_MS = 250;
 
-export const prefetchDossierContinue = (dossier = {}) => {
+const runPrefetch = (dossier = {}) => {
   const id = dossier?.id;
   if (!id || prefetched.has(id)) return;
   prefetched.add(id);
@@ -26,14 +28,26 @@ export const prefetchDossierContinue = (dossier = {}) => {
   });
 };
 
+export const prefetchDossierContinue = (dossier = {}) => {
+  const id = dossier?.id;
+  if (!id || prefetched.has(id)) return;
+
+  const existing = pendingPrefetch.get(id);
+  if (existing) window.clearTimeout(existing);
+
+  pendingPrefetch.set(id, window.setTimeout(() => {
+    pendingPrefetch.delete(id);
+    runPrefetch(dossier);
+  }, PREFETCH_DEBOUNCE_MS));
+};
+
 export const dossierContinuePrefetchHandlers = (dossier = {}) => ({
   onMouseEnter: () => prefetchDossierContinue(dossier),
   onFocus: () => prefetchDossierContinue(dossier),
-  onTouchStart: () => prefetchDossierContinue(dossier),
 });
 
 export const prefetchDossierRoute = (dossier = {}) => {
-  prefetchDossierContinue(dossier);
+  runPrefetch(dossier);
   const url = resolveDossierContinueUrl(dossier);
   if (url.startsWith('/questionnaire')) {
     void import('@/pages/QuestionnairePage.jsx');

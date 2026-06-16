@@ -40,7 +40,7 @@ const DOSSIER_DOCUMENT_TEMPLATES = Object.freeze([
   { key: 'ubo_declaration', label: 'Déclaration bénéficiaires effectifs', required: false },
   { key: 'manager_non_conviction', label: 'Déclaration non-condamnation et filiation', required: false },
   { key: 'subscribers_list', label: 'Liste des souscripteurs', required: true },
-  { key: 'formality_powers', label: 'Pouvoirs pour formalités', required: true },
+  { key: 'formality_powers', label: 'Procuration et pouvoirs pour formalités', required: true },
   { key: 'regulated_activity_proof', label: 'Autorisation activité réglementée', required: false },
   { key: 'minor_emancipation_order', label: "Ordonnance ou jugement d'émancipation", required: false },
   { key: 'minor_parental_authorization', label: 'Autorisation parentale / tuteur (associé mineur)', required: false },
@@ -1290,8 +1290,12 @@ const transitionDossierStatus = async ({
   const requiredDocsValid = documents
     .filter((item) => item.required)
     .every((item) => isDocumentCompleteStatus(item.status));
-  const mandateDoc = documents.find((item) => item.docKey === 'proxy_mandate');
-  const hasMandateSigned = Boolean(mandateDoc && mandateDoc.status === DOCUMENT_STATUSES.VALID);
+  const mandateDoc = documents.find((item) => (
+    item.docKey === 'proxy_mandate' || item.docKey === 'formality_powers'
+  ));
+  const hasMandateSigned = Boolean(
+    mandateDoc && [DOCUMENT_STATUSES.VALID, DOCUMENT_STATUSES.SIGNED].includes(mandateDoc.status),
+  );
   const requiresMandate = Boolean(mandateDoc && mandateDoc.required);
   const hasConfirmedPayment = metadata?.paymentConfirmed === true
     || dossier.status === DOSSIER_STATUSES.PAYMENT_CONFIRMED;

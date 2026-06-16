@@ -30,7 +30,7 @@ export const buildFormalityPowersFields = ({ dossier, questionnaire = {}, user =
   ].filter(Boolean).join(', ').trim();
 
   const initial = {
-    title: 'POUVOIRS POUR FORMALITÉS',
+    title: 'POUVOIRS POUR FORMALITÉS ET PROCURATION DU CLIENT',
     annexTitle: annex.title,
     companyName: String(data.denomination || dossier?.companyName || '').trim(),
     legalForm: String(data.legalForm || dossier?.legalForm || 'SAS').toUpperCase(),

@@ -75,12 +75,14 @@ export const resolveDossierActionState = ({
   const dossierId = dossier?.id || null;
   const status = String(dossier?.status || 'draft').toLowerCase();
   const progress = Number(dossier?.progressPercent || 0);
-  const visibleDocuments = documents.filter((doc) => doc.docKey !== 'filiation_declaration');
+  const visibleDocuments = documents.filter((doc) => (
+    doc.docKey !== 'filiation_declaration' && doc.docKey !== 'proxy_mandate'
+  ));
   const pendingDocuments = visibleDocuments.filter(isClientDocumentActionRequired);
   const pendingSignatures = visibleDocuments.filter((doc) => {
     const docStatus = String(doc.status || '').toUpperCase();
     return ['GENERATED', 'A_SIGNER'].includes(docStatus)
-      || (doc.docKey === 'proxy_mandate' && docStatus === 'REQUESTED' && documentHasFile(doc));
+      || (['formality_powers', 'proxy_mandate'].includes(doc.docKey) && docStatus === 'REQUESTED' && documentHasFile(doc));
   });
 
   const base = {
@@ -117,7 +119,7 @@ export const resolveDossierActionState = ({
 
   if (SIGNATURE_STATUSES.has(status) || pendingSignatures.length > 0) {
     const mandatePending = visibleDocuments.some((doc) => (
-      doc.docKey === 'proxy_mandate' && isClientDocumentActionRequired(doc)
+      ['formality_powers', 'proxy_mandate'].includes(doc.docKey) && isClientDocumentActionRequired(doc)
     ));
     const statutesPending = visibleDocuments.some((doc) => (
       doc.docKey === 'signed_statutes' && isClientDocumentActionRequired(doc)

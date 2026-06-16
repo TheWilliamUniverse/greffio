@@ -1,6 +1,9 @@
-import { jsPDF } from 'jspdf';
-
 const PDF_MIME = 'application/pdf';
+
+const loadJsPdf = async () => {
+  const { jsPDF } = await import('jspdf');
+  return jsPDF;
+};
 
 const readAsDataUrl = (file) => new Promise((resolve, reject) => {
   const reader = new FileReader();
@@ -46,6 +49,7 @@ const imageToPdfBlob = async (file, { quality = 0.86, maxEdge = 2000 } = {}) => 
   ctx.drawImage(image, 0, 0, width, height);
   const jpegData = canvas.toDataURL('image/jpeg', quality);
   const orientation = width >= height ? 'landscape' : 'portrait';
+  const jsPDF = await loadJsPdf();
   const pdf = new jsPDF({ orientation, unit: 'pt', format: [width, height] });
   pdf.addImage(jpegData, 'JPEG', 0, 0, width, height);
   return pdf.output('blob');

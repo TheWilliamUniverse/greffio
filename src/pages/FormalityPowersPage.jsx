@@ -137,9 +137,9 @@ export const FormalityPowersPage = () => {
       setSignedResult(buildSignedDocumentResult({
         apiResult: signResult,
         signaturePayload,
-        documentLabel: 'Pouvoirs pour formalités',
+        documentLabel: 'Procuration et pouvoirs pour formalités',
         previewBlobUrl: nextBlobUrl,
-        previewFilename: 'Pouvoirs_formalites_signes.pdf',
+        previewFilename: 'Procuration_pouvoirs_formalites_signes.pdf',
       }));
       toast.success('Signature enregistrée. Votre document est maintenant enregistré dans le dossier.');
       void triggerMobileHaptic('success');
@@ -268,9 +268,9 @@ export const FormalityPowersPage = () => {
       <main className={cn(!nativeApp && 'flex flex-1 flex-col overflow-hidden', nativeApp && 'px-4 pb-2 pt-2')}>
         {nativeApp ? (
           <MobileSignableDocumentShell
-            eyebrow="Procuration formalités"
-            title="Pouvoirs pour formalités"
-            intro="Modèle juridique William Establishments – vérifiez le PDF avant signature."
+            eyebrow="Procuration et pouvoirs"
+            title="Procuration et pouvoirs pour formalités"
+            intro="Modèle William Establishments – vérifiez le PDF avant signature."
           >
             <div className="space-y-4">
               <section className="rounded-2xl border border-border/70 bg-white p-4 shadow-sm">
@@ -287,8 +287,8 @@ export const FormalityPowersPage = () => {
           <>
             <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--we-border)] bg-white px-5 py-4">
               <div>
-                <p className="text-sm font-bold uppercase text-primary">Procuration formalités</p>
-                <h1 className="text-xl font-extrabold">Pouvoirs pour formalités</h1>
+                <p className="text-sm font-bold uppercase text-primary">Procuration et pouvoirs</p>
+                <h1 className="text-xl font-extrabold">Procuration et pouvoirs pour formalités</h1>
               </div>
               <Button variant="outline" className="bg-white" asChild>
                 <Link to="/documents">Retour documents</Link>
@@ -297,7 +297,7 @@ export const FormalityPowersPage = () => {
             <div className="grid flex-1 lg:grid-cols-2">
             <section className="overflow-y-auto border-r border-[var(--we-border)] bg-white p-5">
               <p className="text-sm text-muted-foreground">
-                Document séparé des statuts – procuration pour le guichet unique et les formalités d&apos;immatriculation.
+                Document unique procuration et pouvoirs – formalités d&apos;immatriculation et guichet unique.
               </p>
               <div className="mt-4">
                 {formFields}

@@ -1,5 +1,20 @@
-const POWER_DOC_KEYS = new Set(['formality_powers', 'proxy_mandate', 'power_of_attorney', 'mandate']);
+/** Document unique procuration + pouvoirs pour formalités (clé canonique). */
+export const MERGED_FORMALITY_POWER_DOC_KEY = 'formality_powers';
+
+/** Ancienne clé procuration Greffio – masquée côté client, fusionnée conceptuellement. */
+export const LEGACY_PROXY_MANDATE_DOC_KEY = 'proxy_mandate';
+
+const POWER_DOC_KEYS = new Set([
+  MERGED_FORMALITY_POWER_DOC_KEY,
+  LEGACY_PROXY_MANDATE_DOC_KEY,
+  'power_of_attorney',
+  'mandate',
+]);
 const POWER_KEYWORDS = ['pouvoir', 'procuration', 'mandat'];
+
+export const isLegacyProxyMandateDocument = (document = {}) => (
+  String(document.docKey || '').toLowerCase() === LEGACY_PROXY_MANDATE_DOC_KEY
+);
 
 export const isFormalityPowerDocument = (document = {}) => {
   const docKey = String(document.docKey || '').toLowerCase();
@@ -16,6 +31,23 @@ export const isFormalityPowerDocument = (document = {}) => {
     return { match: true, confidence: 'medium', docKey };
   }
   return { match: false, confidence: 'low', docKey };
+};
+
+/** Retourne le document fusionné procuration/pouvoirs (formality_powers prioritaire). */
+export const resolveMergedFormalityPowerDocument = (documents = []) => {
+  const list = Array.isArray(documents) ? documents : [];
+  const primary = list.find((doc) => doc.docKey === MERGED_FORMALITY_POWER_DOC_KEY);
+  if (primary) return primary;
+  const legacy = list.find((doc) => doc.docKey === LEGACY_PROXY_MANDATE_DOC_KEY);
+  if (legacy) {
+    return {
+      ...legacy,
+      label: MERGED_FORMALITY_POWER_LABEL,
+      name: MERGED_FORMALITY_POWER_LABEL,
+      mergedFromLegacy: true,
+    };
+  }
+  return null;
 };
 
 export const mapFormalityPowerStatus = (document = {}) => {
@@ -41,3 +73,7 @@ export const FORMALITY_POWER_STATUS_LABELS = {
   rejected: 'Refusé',
   requires_manual_review: 'Vérification manuelle',
 };
+
+export const MERGED_FORMALITY_POWER_LABEL = 'Procuration et pouvoirs pour formalités';
+
+export const MERGED_FORMALITY_POWER_INFO = 'Autorise WILLIAM ESTABLISHMENTS à déposer et suivre vos formalités administratives. Les annonces légales restent exclues.';

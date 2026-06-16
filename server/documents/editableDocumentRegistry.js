@@ -20,15 +20,15 @@ export const EDITABLE_DOCUMENT_REGISTRY = Object.freeze({
   formality_powers: {
     docKey: 'formality_powers',
     schemaVersion: 'formality_powers_v1',
-    title: 'Pouvoirs pour formalités',
-    filenamePrefix: 'Pouvoirs_formalites',
+    title: 'Procuration et pouvoirs pour formalités',
+    filenamePrefix: 'Procuration_pouvoirs_formalites',
     buildInitialFields: buildFormalityPowersFields,
     validateFields: validateFormalityPowersFields,
     generatePdf: generateFormalityPowersPdf,
     signatureLayout: 'formality_powers_official',
     emailTemplateSend: 'editable_document_signature_request',
     emailTemplateDone: 'editable_document_signature_completed',
-    publicDocumentTitle: 'Pouvoirs pour formalités',
+    publicDocumentTitle: 'Procuration et pouvoirs pour formalités',
   },
 });
 

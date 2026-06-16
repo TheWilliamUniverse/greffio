@@ -27,7 +27,7 @@ import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
 import { DocumentStatusCard } from '@/components/patterns/DocumentStatusCard.jsx';
 import { GreffioSignatureInfoBanner } from '@/components/signature/GreffioSignatureInfoBanner.jsx';
 import { EmptyState } from '@/components/patterns/EmptyState.jsx';
-import { isFormalityPowerDocument, mapFormalityPowerStatus } from '@/utils/formalityPowerDocuments.js';
+import { isFormalityPowerDocument, mapFormalityPowerStatus, MERGED_FORMALITY_POWER_LABEL, resolveMergedFormalityPowerDocument } from '@/utils/formalityPowerDocuments.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { useDossierQuery } from '@/hooks/queries/useDossierQuery.js';
 import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
@@ -117,13 +117,12 @@ export const DocumentsPage = () => {
   const uploadableDocKeys = useMemo(() => ([
     ['identity_proof', 'Pièce d’identité'],
     ['address_proof', 'Justificatif de domicile'],
-    ['proxy_mandate', 'Procuration signée'],
     ['legal_notice_certificate', 'Attestation annonce légale'],
     ['registered_office_proof', 'Justificatif siège social'],
     ['ubo_declaration', 'Déclaration bénéficiaires effectifs'],
     ['manager_non_conviction', 'Déclaration non-condamnation et filiation (en ligne)'],
     ['subscribers_list', 'Liste des souscripteurs (en ligne)'],
-    ['formality_powers', 'Pouvoirs pour formalités (en ligne)'],
+    ['formality_powers', 'Procuration et pouvoirs pour formalités (en ligne)'],
     ['minor_emancipation_order', "Ordonnance ou jugement d'émancipation"],
     ['minor_parental_authorization', 'Autorisation parentale / tuteur (associé mineur)'],
     ['signed_statutes', 'Statuts signés'],
@@ -149,6 +148,12 @@ export const DocumentsPage = () => {
     setPickerOpen(true);
   }, [loadingDossiers, dossiersList, internalView]);
 
+  useEffect(() => {
+    const dossierIds = dossiersList.map((item) => item.id).filter(Boolean);
+    const dossierId = syncCurrentDossierId(dossierIds);
+    setResolvedDossierId(dossierId);
+  }, [dossiersList]);
+
   const handlePickDossier = (dossier) => {
     saveCurrentDossierId(dossier.id);
     setResolvedDossierId(dossier.id);
@@ -166,12 +171,6 @@ export const DocumentsPage = () => {
     const matchesType = type === 'Tous' || document.type === type;
     return matchesQuery && matchesType;
   }), [normalizedDocuments, query, type]);
-
-  useEffect(() => {
-    const dossierIds = dossiersList.map((item) => item.id).filter(Boolean);
-    const dossierId = syncCurrentDossierId(dossierIds);
-    setResolvedDossierId(dossierId);
-  }, [dossiersList]);
 
   const invalidateDossierDocuments = async () => {
     if (!resolvedDossierId) return;
@@ -358,8 +357,8 @@ export const DocumentsPage = () => {
   };
 
 
-  const powerDocuments = useMemo(
-    () => normalizedDocuments.filter((document) => isFormalityPowerDocument(document).match),
+  const mergedPowerDocument = useMemo(
+    () => resolveMergedFormalityPowerDocument(normalizedDocuments),
     [normalizedDocuments],
   );
   const showPowerSection = Boolean(resolvedDossierId) && !eiLike;
@@ -483,7 +482,7 @@ export const DocumentsPage = () => {
                 onClick={() => navigate(`/dossier/${resolvedDossierId}/pouvoirs-formalites`)}
               >
                 <FilePlus2 className="h-4 w-4" />
-                Pouvoirs formalités
+                Procuration et pouvoirs
               </Button>
             </div>
             <GreffioSignatureInfoBanner className="mt-4" />
@@ -500,57 +499,54 @@ export const DocumentsPage = () => {
           {showPowerSection ? (
             <section className="space-y-4 rounded-md border border-border bg-white p-5 shadow-elevation-sm">
               <div>
-                <p className="text-sm font-bold uppercase text-primary">Mandat et pouvoirs</p>
-                <h2 className="mt-1 text-xl font-extrabold text-foreground">Documents de représentation</h2>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Ces documents peuvent valoir procuration selon leur contenu, leur signature et les exigences du greffe ou de l’administration.
-                </p>
+                <p className="text-sm font-bold uppercase text-primary">Représentation</p>
+                <h2 className="mt-1 text-xl font-extrabold text-foreground">{MERGED_FORMALITY_POWER_LABEL}</h2>
               </div>
-              {powerDocuments.length ? (
-                <div className="space-y-4">
-                  {powerDocuments.map((document) => {
-                    const powerMeta = isFormalityPowerDocument(document);
+              {mergedPowerDocument ? (
+                <div className="space-y-3">
+                  {(() => {
+                    const document = mergedPowerDocument;
+                    const fileDocKey = document.docKey;
                     const actions = [
                       document.hasFile ? {
-                        label: previewLoadingDocKey === document.docKey ? 'Ouverture…' : 'Voir',
-                        onClick: () => { void openDocumentPreview(document.docKey, document.label); },
-                        disabled: previewLoadingDocKey === document.docKey,
+                        label: previewLoadingDocKey === fileDocKey ? 'Ouverture…' : 'Voir',
+                        onClick: () => { void openDocumentPreview(fileDocKey, MERGED_FORMALITY_POWER_LABEL); },
+                        disabled: previewLoadingDocKey === fileDocKey,
                       } : null,
                       document.hasFile ? {
                         label: 'Télécharger',
-                        onClick: () => { void openDocumentDownload(document.docKey); },
+                        onClick: () => { void openDocumentDownload(fileDocKey); },
                       } : null,
-                      document.docKey === 'formality_powers' ? {
+                      {
                         label: 'Compléter en ligne',
                         to: `/dossier/${resolvedDossierId}/pouvoirs-formalites`,
-                      } : null,
+                      },
                     ].filter(Boolean);
                     return (
-                      <div key={document.docKey} className="space-y-3">
-                        <DocumentStatusCard
-                          title={document.label}
-                          subtitle="Document de représentation pour les formalités de votre dossier."
-                          status={mapFormalityPowerStatus(document)}
-                          badges={powerMeta.confidence !== 'low' ? ['Vaut procuration'] : []}
-                          warning={
-                            ['REJECTED', 'INVALID'].includes(document.status)
-                              ? formatDocumentRejectionHint(document)
-                              : (document.status === 'PENDING_REVIEW' ? 'Ce pouvoir est en cours de contrôle Greffio.' : undefined)
-                          }
-                          actions={actions}
-                        />
-                        <FormalityPowerSummary document={document} />
-                      </div>
+                      <DocumentStatusCard
+                        title={MERGED_FORMALITY_POWER_LABEL}
+                        subtitle={null}
+                        status={mapFormalityPowerStatus(document)}
+                        badges={isFormalityPowerDocument(document).confidence !== 'low' ? ['Vaut procuration'] : []}
+                        shieldNotch
+                        warning={
+                          ['REJECTED', 'INVALID'].includes(document.status)
+                            ? formatDocumentRejectionHint(document)
+                            : (document.status === 'PENDING_REVIEW' ? 'Contrôle Greffio en cours.' : undefined)
+                        }
+                        actions={actions}
+                      />
                     );
-                  })}
+                  })()}
+                  <FormalityPowerSummary document={mergedPowerDocument} />
                 </div>
               ) : (
                 <EmptyState
                   compact
                   icon={ShieldCheck}
-                  title="Aucun pouvoir identifié"
-                  description="Si votre dossier nécessite un mandat ou des pouvoirs pour formalités, ils apparaîtront ici dès qu’ils seront générés ou déposés."
-                  cta={{ to: `/dossier/${resolvedDossierId}/pouvoirs-formalites`, label: 'Préparer les pouvoirs' }}
+                  title="Document à préparer"
+                  description="Complétez et signez la procuration et les pouvoirs pour vos formalités."
+                  cta={{ to: `/dossier/${resolvedDossierId}/pouvoirs-formalites`, label: 'Compléter en ligne' }}
                 />
               )}
             </section>

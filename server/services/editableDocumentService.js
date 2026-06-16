@@ -40,7 +40,6 @@ export const persistEditableDocumentPdf = async ({
     documentId,
     verifyToken,
     appUrl: process.env.GREFFIO_APP_URL || process.env.APP_URL || null,
-    isDraft: true,
   });
   const buffer = fs.readFileSync(pdfPath);
   const sha256 = createHash('sha256').update(buffer).digest('hex');

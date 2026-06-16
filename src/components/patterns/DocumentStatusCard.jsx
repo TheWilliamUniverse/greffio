@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, BadgeCheck, FileSignature } from 'lucide-react';
+import { AlertTriangle, BadgeCheck, FileSignature, ShieldCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { cn } from '@/lib/utils.js';
@@ -19,7 +19,7 @@ const STATUS_VARIANTS = {
   requires_manual_review: 'bg-secondary text-primary',
 };
 
-export const DocumentStatusCard = ({
+export const DocumentStatusCard = React.memo(({
   title,
   subtitle,
   status,
@@ -29,12 +29,25 @@ export const DocumentStatusCard = ({
   icon: Icon = FileSignature,
   actions = [],
   className,
+  shieldNotch = false,
 }) => {
   const normalizedStatus = status || 'requires_manual_review';
   const statusLabel = FORMALITY_POWER_STATUS_LABELS[normalizedStatus] || 'À vérifier';
 
   return (
-    <article className={cn('rounded-2xl border border-border bg-white p-5 shadow-elevation-sm', className)}>
+    <article className={cn(
+      'rounded-2xl border border-border bg-white p-5 shadow-elevation-sm',
+      shieldNotch && 'relative overflow-hidden pr-16 sm:pr-20',
+      className,
+    )}>
+      {shieldNotch ? (
+        <div
+          className="absolute right-0 top-5 flex h-14 w-14 items-center justify-center rounded-l-2xl bg-primary text-white shadow-md"
+          aria-hidden="true"
+        >
+          <ShieldCheck className="h-7 w-7" strokeWidth={2.2} />
+        </div>
+      ) : null}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
@@ -93,7 +106,7 @@ export const DocumentStatusCard = ({
       ) : null}
     </article>
   );
-};
+});
 
 export const buildPowerDocumentStatus = (document) => mapFormalityPowerStatus(document);
 

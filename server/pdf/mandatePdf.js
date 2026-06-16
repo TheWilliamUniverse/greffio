@@ -9,7 +9,6 @@ import {
   COLOR_TEXT,
   drawCard,
   drawHeaderBand,
-  applyDraftWatermarkToAllPages,
   drawPageFooter,
   drawVerificationBlock,
   drawWrappedBlock,
@@ -53,7 +52,6 @@ const generateMandatePdf = async ({
   signedAtIso = null,
   evidence = {},
   appUrl = null,
-  isDraft = false,
 }) => {
   const targetPath = path.join(mandateDir, filename);
   const pdfDoc = await PDFDocument.create();
@@ -297,11 +295,6 @@ const generateMandatePdf = async ({
     pageTotal: 1,
     leftText: `Greffio · Procuration · ${reference}`,
   });
-
-  const shouldWatermark = isDraft || !signedAtIso;
-  if (shouldWatermark) {
-    applyDraftWatermarkToAllPages(pdfDoc, { font, fontBold });
-  }
 
   fs.writeFileSync(targetPath, await pdfDoc.save());
   return targetPath;

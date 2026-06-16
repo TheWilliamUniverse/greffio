@@ -22,8 +22,8 @@ const ONLINE_DOCS = [
   },
   {
     key: 'powers',
-    label: 'Procuration / pouvoirs',
-    hint: 'Remplir et signer depuis Documents',
+    label: 'Procuration et pouvoirs',
+    hint: 'Compléter et signer en ligne',
     to: (dossierId) => `/dossier/${dossierId}/pouvoirs-formalites`,
     icon: FileSignature,
   },

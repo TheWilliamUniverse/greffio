@@ -62,7 +62,7 @@ export const resolveDossierDocumentPlan = ({ dossier, questionnaire = {} } = {})
     if (formalityRule.requiresAssociates) {
       checklist.push({ id: 'subscribers_list', label: 'Liste des souscripteurs', required: true, docKey: 'subscribers_list' });
     }
-    checklist.push({ id: 'formality_powers', label: 'Pouvoirs pour formalités', required: true, docKey: 'formality_powers' });
+    checklist.push({ id: 'formality_powers', label: 'Procuration et pouvoirs pour formalités', required: true, docKey: 'formality_powers' });
     checklist.push({ id: 'manager_non_conviction', label: 'Déclaration non-condamnation', required: false, docKey: 'manager_non_conviction' });
     checklist.push({ id: 'legal_notice_certificate', label: 'Attestation annonce légale', required: false, docKey: 'legal_notice_certificate' });
     checklist.push({ id: 'ubo_declaration', label: 'Déclaration bénéficiaires effectifs', required: false, docKey: 'ubo_declaration' });

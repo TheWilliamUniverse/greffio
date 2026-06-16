@@ -3,11 +3,27 @@ import { useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { greffioPageTransition } from '@/motion/greffioMotion.js';
 
+const SHELL_TAB_ROUTES = new Set([
+  '/dashboard',
+  '/dossiers',
+  '/documents',
+  '/team',
+  '/mobile/account',
+  '/profil',
+  '/settings',
+]);
+
+const isShellTabRoute = (pathname = '') => (
+  SHELL_TAB_ROUTES.has(pathname)
+  || pathname.startsWith('/dossier/')
+  || pathname.startsWith('/documents/')
+);
+
 export const MobileShellPageTransition = ({ children }) => {
   const location = useLocation();
   const reduceMotion = useReducedMotion();
 
-  if (reduceMotion) {
+  if (reduceMotion || isShellTabRoute(location.pathname)) {
     return children;
   }
 

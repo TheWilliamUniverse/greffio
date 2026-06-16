@@ -40,7 +40,7 @@ import { DossierActiveBanner } from '@/components/dossiers/DossierActiveBanner.j
 import { DossierVaultPickerOverlay } from '@/components/dossiers/DossierVaultPickerOverlay.jsx';
 import { RouteSuspenseFallback } from '@/components/system/RouteSuspenseFallback.jsx';
 import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
-import { greffioCardLift, greffioSlideIn } from '@/motion/greffioMotion.js';
+import { greffioCardLift } from '@/motion/greffioMotion.js';
 import { dossierContinuePrefetchHandlers } from '@/utils/dossierPrefetch.js';
 
 export const DashboardPage = () => {
@@ -358,13 +358,8 @@ export const DashboardPage = () => {
                     <span>Échéance</span>
                     <span>Avancement</span>
                   </div>
-                  {dossiers.slice(0, 4).map((dossier, index) => (
-                    <motion.div
-                      key={dossier.id}
-                      initial={greffioSlideIn.initial}
-                      animate={greffioSlideIn.animate}
-                      transition={{ ...greffioSlideIn.transition, delay: index * 0.04 }}
-                    >
+                  {dossiers.slice(0, 4).map((dossier) => (
+                    <div key={dossier.id}>
                       <Link
                         to={`/dossier/${dossier.id}`}
                         {...dossierContinuePrefetchHandlers(dossiersRaw.find((item) => item.id === dossier.id) || { id: dossier.id })}
@@ -387,7 +382,7 @@ export const DashboardPage = () => {
                         <p className="mt-1 text-xs font-bold text-muted-foreground">{dossier.progress || 0}%</p>
                       </div>
                       </Link>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
               </section>
@@ -410,13 +405,8 @@ export const DashboardPage = () => {
                   </div>
                   {notifications.length ? (
                     <div className="space-y-3">
-                      {notifications.slice(0, 4).map((notification, index) => (
-                        <motion.div
-                          key={notification.id}
-                          initial={greffioSlideIn.initial}
-                          animate={greffioSlideIn.animate}
-                          transition={{ ...greffioSlideIn.transition, delay: index * 0.05 }}
-                        >
+                      {notifications.slice(0, 4).map((notification) => (
+                        <div key={notification.id}>
                           <Link
                             to={notification.path || '/dashboard'}
                             className="block rounded-md bg-muted p-3 transition hover:bg-muted/80"
@@ -424,7 +414,7 @@ export const DashboardPage = () => {
                             <p className="text-sm font-medium leading-5 text-foreground">{notification.title}</p>
                             <p className="mt-1 text-xs leading-5 text-muted-foreground">{notification.body}</p>
                           </Link>
-                        </motion.div>
+                        </div>
                       ))}
                     </div>
                   ) : (

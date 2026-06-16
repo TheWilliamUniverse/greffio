@@ -20,7 +20,7 @@ const DOC_KEY_FILENAME_PREFIX = Object.freeze({
   ubo_declaration: 'Declaration_beneficiaires_effectifs',
   manager_non_conviction: 'Declaration_non_condamnation',
   subscribers_list: 'Liste_souscripteurs',
-  formality_powers: 'Pouvoirs_formalites',
+  formality_powers: 'Procuration_pouvoirs_formalites',
   filiation_declaration: 'Declaration_filiation',
   minor_emancipation_order: 'Ordonnance_emancipation',
   minor_parental_authorization: 'Autorisation_parentale_mineur',

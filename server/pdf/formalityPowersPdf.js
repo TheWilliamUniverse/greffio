@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { formatFrenchDate } from './nonConvictionPdf.js';
-import { applyDraftWatermarkToAllPages } from './pdfLayoutPremium.js';
 import { FORMALITY_POWERS_SIGNATURE_LINE_Y } from './pdfLegalConstants.js';
 
 const outputDir = path.resolve(process.cwd(), 'server', 'data', 'generated', 'formality-powers');
@@ -160,7 +159,6 @@ export const generateFormalityPowersPdf = async ({
   documentId: _documentId = null,
   verifyToken: _verifyToken = null,
   appUrl: _appUrl = null,
-  isDraft = true,
 }) => {
   const targetPath = path.join(outputDir, filename);
   const pdfDoc = await PDFDocument.create();
@@ -339,10 +337,6 @@ export const generateFormalityPowersPdf = async ({
       color: COLOR_MUTED,
     });
   });
-
-  if (isDraft) {
-    applyDraftWatermarkToAllPages(pdfDoc, { font, fontBold });
-  }
 
   fs.writeFileSync(targetPath, await pdfDoc.save());
   return targetPath;
