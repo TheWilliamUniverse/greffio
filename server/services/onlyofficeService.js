@@ -78,6 +78,7 @@ export const buildOnlyOfficeEditorConfig = ({
   fileType = 'pdf',
   user = {},
   mode = 'edit',
+  presentation = 'desktop',
 }) => {
   const documentType = resolveOnlyOfficeDocumentType(fileType);
   const config = {
@@ -107,11 +108,17 @@ export const buildOnlyOfficeEditorConfig = ({
         autosave: true,
         forcesave: true,
         compactHeader: true,
+        toolbarNoTabs: true,
+        hideRightMenu: true,
+        hideRulers: presentation === 'mobile',
+        features: {
+          spellcheck: { mode: true },
+        },
       },
     },
     height: '100%',
     width: '100%',
-    type: 'desktop',
+    type: presentation === 'mobile' ? 'mobile' : 'desktop',
   };
 
   const token = signOnlyOfficePayload(config);

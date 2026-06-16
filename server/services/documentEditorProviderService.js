@@ -78,7 +78,9 @@ export class OnlyOfficeProvider {
 
     const apiBase = String(process.env.GREFFIO_API_URL || appUrl || '').replace(/\/$/, '');
     const fileType = resolveOnlyOfficeFileType(
-      document?.mimeType,
+      session?.fileFormat === 'docx'
+        ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        : document?.mimeType,
       currentVersion?.fileFormat || session?.fileFormat,
     );
     const documentKey = buildOnlyOfficeDocumentKey({

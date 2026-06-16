@@ -22,6 +22,7 @@ import {
   syncDocumentVersionPointers,
 } from '../services/documentVersionService.js';
 import { downloadDocumentBufferFromConfiguredStorage, uploadDocumentToConfiguredStorage, createSignedDownloadUrl } from '../services/objectStorage.js';
+import { detectBufferFileFormat, isDocxBuffer } from '../utils/fileFormatDetection.js';
 import { isDocumentSignedLocked } from '../services/documentWorkspacePolicy.js';
 import { canEditStatutesInOnlyOffice } from '../domain/statutesWorkflow.js';
 
@@ -124,14 +125,39 @@ export const registerOnlyOfficeRoutes = (app, {
     try {
       const buffer = await downloadDocumentBufferFromConfiguredStorage(session.sourceStorageUrl);
       const ext = String(session.fileFormat || 'pdf').toLowerCase();
+      const detectedFormat = detectBufferFileFormat(buffer);
+
+      if (ext === 'docx' && !isDocxBuffer(buffer)) {
+        console.error('ONLYOFFICE_FILE_FORMAT_MISMATCH', {
+          sessionId: session.id,
+          expected: ext,
+          detected: detectedFormat,
+        });
+        return res.status(422).json({
+          ok: false,
+          error: 'ONLYOFFICE_FILE_FORMAT_MISMATCH',
+          message: 'Le fichier source n’est pas un DOCX valide. Relancez l’édition pour régénérer le document.',
+          detectedFormat,
+        });
+      }
+
       const mime = ext === 'docx'
         ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         : ext === 'odt'
           ? 'application/vnd.oasis.opendocument.text'
           : 'application/pdf';
+      const downloadName = ext === 'docx'
+        ? `${session.docKey}.docx`
+        : ext === 'odt'
+          ? `${session.docKey}.odt`
+          : `${session.docKey}.pdf`;
       res.setHeader('Content-Type', mime);
-      res.setHeader('Content-Disposition', `inline; filename="${session.docKey}.${ext}"`);
+      res.setHeader(
+        'Content-Disposition',
+        `inline; filename="${downloadName}"; filename*=UTF-8''${encodeURIComponent(downloadName)}`,
+      );
       res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('Content-Length', String(buffer.length));
       return res.send(buffer);
     } catch (error) {
       console.error('ONLYOFFICE_FILE_DOWNLOAD_FAILED', error);
@@ -274,7 +300,10 @@ export const registerOnlyOfficeRoutes = (app, {
 
     const apiBase = String(apiBaseUrl || process.env.GREFFIO_API_URL || '').replace(/\/$/, '');
     const currentVersion = await getCurrentVersion(session.dossierId, session.docKey);
-    const fileType = resolveOnlyOfficeFileType(document?.mimeType, session.fileFormat || currentVersion?.fileFormat);
+    const fileType = resolveOnlyOfficeFileType(
+      session.fileFormat === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : document?.mimeType,
+      session.fileFormat || currentVersion?.fileFormat,
+    );
     const documentKey = buildOnlyOfficeDocumentKey({
       dossierId: session.dossierId,
       docKey: session.docKey,

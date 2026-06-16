@@ -3,7 +3,8 @@ import { documentToPreview } from '../legal/statutes/index.js';
 import { mapStatutesData } from '../utils/statutesDataMapper.js';
 import { draftStatutesDocument } from './statutesDrafting.js';
 import { buildStatutesDocxBuffer } from '../statuts/shared/statutesOfficeExportCore.js';
-import { uploadDocumentToConfiguredStorage } from './objectStorage.js';
+import { assertDocxBuffer, detectBufferFileFormat, isDocxBuffer } from '../utils/fileFormatDetection.js';
+import { downloadDocumentBufferFromConfiguredStorage, uploadDocumentToConfiguredStorage } from './objectStorage.js';
 import {
   createVersion,
   getCurrentPdfVersion,
@@ -33,7 +34,22 @@ export const bootstrapDocumentVersionFromRecord = async ({
 
   const mimeType = String(document.mimeType || '').toLowerCase();
   const filename = String(document.filename || document.originalFilename || '');
-  const isPdf = mimeType.includes('pdf') || /\.pdf$/i.test(filename);
+  let isPdf = mimeType.includes('pdf') || /\.pdf$/i.test(filename);
+
+  if (!isPdf && storageUrl) {
+    try {
+      const probeBuffer = await downloadDocumentBufferFromConfiguredStorage(storageUrl);
+      const detected = detectBufferFileFormat(probeBuffer);
+      if (detected === 'pdf') isPdf = true;
+      else if (detected === 'docx') isPdf = false;
+    } catch (probeError) {
+      console.warn('[statutes-docx] bootstrap format probe failed', {
+        dossierId,
+        docKey,
+        message: probeError?.message,
+      });
+    }
+  }
 
   const version = await createVersion({
     dossierId,
@@ -61,6 +77,20 @@ export const bootstrapDocumentVersionFromRecord = async ({
   return version;
 };
 
+const isStoredDocxVersionValid = async (version) => {
+  if (!version?.storageUrl || version.fileFormat !== 'docx') return false;
+  try {
+    const buffer = await downloadDocumentBufferFromConfiguredStorage(version.storageUrl);
+    return isDocxBuffer(buffer);
+  } catch (error) {
+    console.warn('[statutes-docx] stored docx validation failed', {
+      versionId: version?.id,
+      message: error?.message,
+    });
+    return false;
+  }
+};
+
 export const ensureStatutesDocxEditVersion = async ({
   dossierId,
   document,
@@ -77,8 +107,14 @@ export const ensureStatutesDocxEditVersion = async ({
   });
 
   let currentVersion = await getCurrentVersion(dossierId, 'signed_statutes');
-  if (currentVersion?.fileFormat === 'docx') {
+  if (currentVersion?.fileFormat === 'docx' && await isStoredDocxVersionValid(currentVersion)) {
     return currentVersion;
+  }
+  if (currentVersion?.fileFormat === 'docx') {
+    console.warn('[statutes-docx] current version labeled docx but invalid content, regenerating', {
+      dossierId,
+      versionId: currentVersion.id,
+    });
   }
 
   const pdfVersion = currentVersion?.fileFormat === 'pdf'
@@ -86,7 +122,7 @@ export const ensureStatutesDocxEditVersion = async ({
     : await getCurrentPdfVersion(dossierId, 'signed_statutes');
 
   const preview = buildStatutesPreviewForDossier({ dossier, questionnaire, user });
-  const buffer = buildStatutesDocxBuffer(preview);
+  const buffer = assertDocxBuffer(buildStatutesDocxBuffer(preview));
   const sha256 = createHash('sha256').update(buffer).digest('hex');
   const safeReference = String(dossier?.reference || dossierId).replace(/[^a-zA-Z0-9_-]/g, '_');
   const filename = `Statuts_${safeReference}_${Date.now()}.docx`;

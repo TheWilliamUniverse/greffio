@@ -17,11 +17,14 @@ import {
 } from '@/utils/documentWorkspace.js';
 import { mapDocumentPreviewError } from '@/utils/dossierDocumentFile.js';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
+import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 
 export const DocumentViewerTab = () => {
   const { dossierId, docKey } = useParams();
   const [searchParams] = useSearchParams();
   const mode = String(searchParams.get('mode') || 'view');
+  const isMobileLayout = isCapacitorNative() || isMobileBrowserViewport();
+  const isEditMode = mode === 'edit';
   const [workspace, setWorkspace] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -97,6 +100,7 @@ export const DocumentViewerTab = () => {
     if (!dossierId || !docKey) return;
     setEditorLoading(true);
     setWorkflowMessage('');
+    setEditorPayload(null);
     try {
       const session = await createFreeEditSession(dossierId, docKey, {
         provider: 'onlyoffice',
@@ -123,10 +127,10 @@ export const DocumentViewerTab = () => {
   }, [loadDocument]);
 
   useEffect(() => {
-    if (mode === 'edit' && workspace?.capabilities?.freeEdit && !editorPayload && !editorLoading) {
+    if (isEditMode && workspace?.capabilities?.freeEdit && !editorPayload && !editorLoading) {
       void openEditor();
     }
-  }, [mode, workspace, editorPayload, editorLoading, openEditor]);
+  }, [isEditMode, workspace, editorPayload, editorLoading, openEditor]);
 
   useEffect(() => () => {
     if (preview?.blobUrl) URL.revokeObjectURL(preview.blobUrl);
@@ -177,7 +181,7 @@ export const DocumentViewerTab = () => {
     );
   }
 
-  if (error && !preview?.blobUrl) {
+  if (error && !preview?.blobUrl && !editorPayload?.ok) {
     return (
       <main className="mx-auto max-w-5xl px-4 py-8">
         <p className="text-sm text-destructive">{error}</p>
@@ -191,19 +195,35 @@ export const DocumentViewerTab = () => {
     && statutesWorkflow?.status === 'pending_client_review';
   const showOpsValidateCta = docKey === 'signed_statutes'
     && statutesWorkflow?.status === 'pending_ops_review';
+  const showEditor = Boolean(editorPayload?.ok && editorPayload?.config);
+  const hidePdfPreview = showEditor && isEditMode;
 
   return (
-    <main className="mx-auto max-w-6xl space-y-4 px-4 py-6">
-      <section className="rounded-md border border-border bg-white p-4 shadow-elevation-sm">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+    <main
+      className={
+        isMobileLayout
+          ? 'flex min-h-[100dvh] flex-col bg-[#f8fafc]'
+          : 'mx-auto max-w-6xl space-y-4 px-4 py-6'
+      }
+    >
+      <section
+        className={
+          isMobileLayout
+            ? 'border-b border-border bg-white px-4 py-4 shadow-elevation-sm'
+            : 'rounded-md border border-border bg-white p-4 shadow-elevation-sm'
+        }
+      >
+        <div className={`flex ${isMobileLayout ? 'flex-col' : 'flex-wrap items-start justify-between'} gap-3`}>
           <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-wide text-primary">Document</p>
             <h1 className="mt-1 text-xl font-extrabold text-foreground">{title}</h1>
             <p className="mt-1 text-xs text-muted-foreground">
-              Aperçu complet dans cet onglet. Les modifications ONLYOFFICE sont enregistrées dans le dossier.
+              {showEditor
+                ? 'Édition ONLYOFFICE intégrée. Vos modifications sont enregistrées dans le dossier.'
+                : 'Aperçu complet dans cet onglet. Les modifications ONLYOFFICE sont enregistrées dans le dossier.'}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className={`flex flex-wrap items-center gap-2 ${isMobileLayout ? 'w-full' : ''}`}>
             {statutesWorkflow ? (
               <StatutesWorkflowBadge
                 status={statutesWorkflow.status}
@@ -211,16 +231,33 @@ export const DocumentViewerTab = () => {
               />
             ) : null}
             {canEdit ? (
-              <Button type="button" size="sm" onClick={() => void openEditor()} disabled={editorLoading}>
+              <Button
+                type="button"
+                size={isMobileLayout ? 'default' : 'sm'}
+                className={isMobileLayout ? 'flex-1' : ''}
+                onClick={() => void openEditor()}
+                disabled={editorLoading || showEditor}
+              >
                 {editorLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <PencilLine className="h-4 w-4" />}
                 Modifier
               </Button>
             ) : null}
-            <Button type="button" size="sm" variant="outline" className="bg-white" onClick={() => void handleDownload()}>
+            <Button
+              type="button"
+              size={isMobileLayout ? 'default' : 'sm'}
+              variant="outline"
+              className={`bg-white ${isMobileLayout ? 'flex-1' : ''}`}
+              onClick={() => void handleDownload()}
+            >
               <Download className="h-4 w-4" />
               Télécharger
             </Button>
-            <Button asChild variant="outline" size="sm" className="bg-white">
+            <Button
+              asChild
+              variant="outline"
+              size={isMobileLayout ? 'default' : 'sm'}
+              className={`bg-white ${isMobileLayout ? 'w-full' : ''}`}
+            >
               <Link to={`/documents?dossierId=${encodeURIComponent(dossierId)}`}>
                 <ArrowLeft className="h-4 w-4" />
                 Documents
@@ -238,10 +275,11 @@ export const DocumentViewerTab = () => {
         ) : null}
 
         {showClientReviewCta ? (
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className={`mt-4 flex flex-wrap gap-2 ${isMobileLayout ? 'flex-col' : ''}`}>
             <Button
               type="button"
-              size="sm"
+              size={isMobileLayout ? 'default' : 'sm'}
+              className={isMobileLayout ? 'w-full' : ''}
               disabled={workflowBusy}
               onClick={() => void handleWorkflowAction('submit_client_review')}
             >
@@ -251,10 +289,11 @@ export const DocumentViewerTab = () => {
         ) : null}
 
         {showOpsValidateCta ? (
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className={`mt-4 flex flex-wrap gap-2 ${isMobileLayout ? 'flex-col sm:flex-row' : ''}`}>
             <Button
               type="button"
-              size="sm"
+              size={isMobileLayout ? 'default' : 'sm'}
+              className={isMobileLayout ? 'w-full sm:w-auto' : ''}
               disabled={workflowBusy}
               onClick={() => void handleWorkflowAction('validate')}
             >
@@ -262,9 +301,9 @@ export const DocumentViewerTab = () => {
             </Button>
             <Button
               type="button"
-              size="sm"
+              size={isMobileLayout ? 'default' : 'sm'}
               variant="outline"
-              className="bg-white"
+              className={`bg-white ${isMobileLayout ? 'w-full sm:w-auto' : ''}`}
               disabled={workflowBusy}
               onClick={() => void handleWorkflowAction('reject')}
             >
@@ -274,15 +313,25 @@ export const DocumentViewerTab = () => {
         ) : null}
       </section>
 
-      {editorPayload?.ok && editorPayload?.config ? (
-        <OnlyOfficeEditor
-          documentServerUrl={editorPayload.documentServerUrl}
-          config={editorPayload.config}
-        />
+      {showEditor ? (
+        <section className={isMobileLayout ? 'flex min-h-0 flex-1 flex-col px-0 py-0' : ''}>
+          <OnlyOfficeEditor
+            documentServerUrl={editorPayload.documentServerUrl}
+            config={editorPayload.config}
+            fullViewport={isMobileLayout || isEditMode}
+            onRetry={() => void openEditor()}
+          />
+        </section>
       ) : null}
 
-      {preview?.blobUrl ? (
-        <section className="overflow-hidden rounded-md border border-border bg-white shadow-elevation-sm">
+      {!hidePdfPreview && preview?.blobUrl ? (
+        <section
+          className={
+            isMobileLayout
+              ? 'mx-4 mb-4 overflow-hidden rounded-md border border-border bg-white shadow-elevation-sm'
+              : 'overflow-hidden rounded-md border border-border bg-white shadow-elevation-sm'
+          }
+        >
           <div className="border-b border-border px-5 py-3">
             <p className="text-sm font-bold text-foreground">Aperçu PDF</p>
           </div>
