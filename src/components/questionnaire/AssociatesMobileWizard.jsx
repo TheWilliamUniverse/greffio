@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import { BirthDateMinorEncouragement } from '@/components/BirthDateMinorEncouragement.jsx';
 import { MobileChoiceStep, MobileChoiceTile } from '@/components/questionnaire/MobileChoiceStep.jsx';
 import { MobileInputStep } from '@/components/questionnaire/MobileInputStep.jsx';
-import { QuestionBackButton } from '@/components/questionnaire/QuestionBackButton.jsx';
 import { isLegallyMinor } from '@/config/minorAssociateRules.js';
 import {
   ASSOCIATE_TYPES,
@@ -165,14 +164,14 @@ const canAdvanceInputStep = (step, associate) => {
   return Boolean(String(value || '').trim());
 };
 
-export const AssociatesMobileWizard = ({
+export const AssociatesMobileWizard = forwardRef(({
   value = [],
   onChange,
   progressPercent,
   stepCurrent,
   stepTotal,
   onComplete,
-}) => {
+}, ref) => {
   const associates = Array.isArray(value) && value.length ? value : [createEmptyAssociate()];
   const [associateIndex, setAssociateIndex] = useState(0);
   const [localStepIndex, setLocalStepIndex] = useState(0);
@@ -207,13 +206,22 @@ export const AssociatesMobileWizard = ({
   const goBackLocal = () => {
     if (safeLocalStepIndex > 0) {
       setLocalStepIndex((current) => Math.max(current - 1, 0));
-      return;
+      return true;
     }
     if (safeAssociateIndex > 0) {
-      setAssociateIndex((current) => current - 1);
-      setLocalStepIndex(0);
+      const previousAssociate = safeAssociateIndex - 1;
+      setAssociateIndex(previousAssociate);
+      const previousSteps = buildWizardSteps(associates[previousAssociate] || createEmptyAssociate(), previousAssociate);
+      setLocalStepIndex(Math.max(previousSteps.length - 1, 0));
+      return true;
     }
+    return false;
   };
+
+  useImperativeHandle(ref, () => ({
+    canGoBackLocally: () => safeLocalStepIndex > 0 || safeAssociateIndex > 0,
+    goBackLocally: () => goBackLocal(),
+  }), [safeLocalStepIndex, safeAssociateIndex, associates]);
 
   const handleChoiceSelect = (step, rawValue) => {
     if (step.id === 'addAnother') {
@@ -250,9 +258,6 @@ export const AssociatesMobileWizard = ({
     const selectedValue = readStepValue(currentAssociate, currentStep);
     return (
       <div className="space-y-3">
-        {safeLocalStepIndex > 0 || safeAssociateIndex > 0 ? (
-          <QuestionBackButton type="button" onClick={goBackLocal} />
-        ) : null}
         <MobileChoiceStep
           kicker={`Associé ${safeAssociateIndex + 1}`}
           title={currentStep.title}
@@ -287,9 +292,6 @@ export const AssociatesMobileWizard = ({
 
   return (
     <div className="space-y-3">
-      {safeLocalStepIndex > 0 || safeAssociateIndex > 0 ? (
-        <QuestionBackButton type="button" onClick={goBackLocal} />
-      ) : null}
       <MobileInputStep
         kicker={`Associé ${safeAssociateIndex + 1}`}
         title={currentStep.title}
@@ -324,4 +326,6 @@ export const AssociatesMobileWizard = ({
       ) : null}
     </div>
   );
-};
+});
+
+AssociatesMobileWizard.displayName = 'AssociatesMobileWizard';

@@ -34,6 +34,10 @@ export const resolveFieldInputMode = (field) => {
 
 export const shouldAutoAdvanceMobileField = (field, value, validation) => {
   if (!validation?.isValid) return false;
+  // Champs rendus par un composite (DemarchePicker, familles juridiques…) : une seule avancée via le picker.
+  if (field?.key === 'typeFormalite' || field?.type === 'form_family_picker' || field?.type === 'form_family_secondary_picker') {
+    return false;
+  }
   if (['select', 'checkbox'].includes(field?.type)) return true;
   if ((field?.key === 'companySiren' || field?.key === 'existingBusinessSiren')
     && [9, 14].includes(String(value || '').replace(/\D/g, '').length)) {

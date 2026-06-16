@@ -138,7 +138,7 @@ const getFormAvailabilityLabel = (formKey) => {
   if (availability === SERVICE_AVAILABILITY.COMING_SOON) return 'Bientôt';
   return 'Sur devis';
 };
-const STEP_TITLES_BY_ID = Object.freeze({
+const PROGRESSIVE_STEP_LABELS = Object.freeze({
   contact: 'Type de déclarant',
   demarche: 'Formalité',
   forme: 'Structure',
@@ -148,10 +148,6 @@ const STEP_TITLES_BY_ID = Object.freeze({
   recap: 'Récapitulatif',
   validation: 'Validation',
 });
-const PROGRESSIVE_STEPS = QUESTIONNAIRE_FLOW.map((flowStep) => ({
-  id: flowStep.id,
-  label: STEP_TITLES_BY_ID[flowStep.id] || flowStep.title,
-}));
 
 const normalizeFormalityToService = (typeFormalite, formeJuridique) => (
   resolveServiceFromFormality(typeFormalite, formeJuridique)
@@ -181,6 +177,7 @@ export const QuestionnairePage = () => {
   const [groupIndex, setGroupIndex] = useState(0);
   const [autosaveState, setAutosaveState] = useState('idle');
   const wizardTopRef = useRef(null);
+  const associatesWizardRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [intakeHints, setIntakeHints] = useState({ score: null, warnings: [], issues: [] });
   const [stepError, setStepError] = useState('');
@@ -213,9 +210,14 @@ export const QuestionnairePage = () => {
   const activeField = activeGroup[0] || null;
   const isLastGroupInStep = fieldGroups.length > 0 && safeGroupIndex === fieldGroups.length - 1;
   const progressFieldIndex = isMobileChoicePresentation
-    ? fieldIndexFromGroupIndex(fieldGroups, safeGroupIndex)
+    ? safeGroupIndex
     : safeGroupIndex;
-  const progress = getQuestionnaireProgressPercent(formData, stepIndex, progressFieldIndex);
+  const progress = getQuestionnaireProgressPercent(
+    formData,
+    stepIndex,
+    progressFieldIndex,
+    { mobilePresentation: isMobileChoicePresentation },
+  );
   const canAdvanceCurrentGroup = useMemo(() => {
     if (!activeGroup.length) return false;
     return activeGroup.every((field) => {
@@ -244,10 +246,18 @@ export const QuestionnairePage = () => {
     : isLastGroupInStep
       ? 'Étape suivante'
       : 'Continuer';
+  const progressiveSteps = useMemo(
+    () => getApplicableFlowSteps(formData).map((flowStep) => ({
+      id: flowStep.id,
+      label: PROGRESSIVE_STEP_LABELS[flowStep.id] || flowStep.title,
+    })),
+    [formData],
+  );
   const progressiveStepIndex = Math.max(
     0,
-    PROGRESSIVE_STEPS.findIndex((entry) => entry.id === step.id),
+    progressiveSteps.findIndex((entry) => entry.id === step.id),
   );
+  const stepTitle = PROGRESSIVE_STEP_LABELS[step.id] || step.title;
 
   const contactPayload = useMemo(() => ({
     initiatorType: formData.initiatorType,
@@ -708,9 +718,9 @@ export const QuestionnairePage = () => {
     pendingTapAdvanceRef.current = null;
     const timer = window.setTimeout(() => {
       void goNext();
-    }, 180);
+    }, 220);
     return () => window.clearTimeout(timer);
-  }, [formData, activeGroup, canAdvanceCurrentGroup]);
+  }, [formData, activeGroup, canAdvanceCurrentGroup, isMobileChoicePresentation]);
 
   useEffect(() => {
     if (!forceAdvanceAfterIgnoreRef.current || !formData.comparateurIgnore || step.id !== 'forme') return undefined;
@@ -781,8 +791,16 @@ export const QuestionnairePage = () => {
 
   const handleTapFieldUpdate = (field, value) => {
     void lightQuestionnaireHaptic();
+    const resolvedValue = field.type === 'checkbox' ? Boolean(value) : value;
+    const nextFormSnapshot = { ...formData, [field.key]: resolvedValue };
+    const willAutoAdvance = isMobileChoicePresentation
+      && shouldAutoAdvanceMobileField(field, resolvedValue, {
+        isValid: isFieldValueValid(field, resolvedValue, nextFormSnapshot),
+      });
     updateField(field, value);
-    requestMobileTapAdvance(field.key);
+    if (!willAutoAdvance) {
+      requestMobileTapAdvance(field.key);
+    }
   };
 
   const goNext = async () => {
@@ -873,6 +891,14 @@ export const QuestionnairePage = () => {
   };
 
   const goBack = () => {
+    if (
+      step.id === 'gouvernance'
+      && activeField?.type === 'associates_minor_panel'
+      && associatesWizardRef.current?.canGoBackLocally?.()
+    ) {
+      associatesWizardRef.current.goBackLocally();
+      return;
+    }
     if (safeGroupIndex > 0) {
       setGroupIndex((current) => Math.max(0, current - 1));
       return;
@@ -965,7 +991,7 @@ export const QuestionnairePage = () => {
     return (
     <MobileInputStep
       key={field.key}
-      kicker={STEP_TITLES_BY_ID[step.id] || step.title}
+      kicker={PROGRESSIVE_STEP_LABELS[step.id] || step.title}
       title={`${field.label}${field.required ? ' *' : ''}`}
       subtitle={subtitle}
       hint={hint}
@@ -1159,7 +1185,7 @@ export const QuestionnairePage = () => {
         return (
           <MobileChoiceStep
             key={field.key}
-            kicker={STEP_TITLES_BY_ID[step.id] || step.title}
+            kicker={PROGRESSIVE_STEP_LABELS[step.id] || step.title}
             title={`${field.label}${field.required ? ' *' : ''}`}
             subtitle={step.description}
             hint={mobileHint}
@@ -1218,7 +1244,7 @@ export const QuestionnairePage = () => {
         return (
           <MobileChoiceStep
             key={field.key}
-            kicker={STEP_TITLES_BY_ID[step.id] || step.title}
+            kicker={PROGRESSIVE_STEP_LABELS[step.id] || step.title}
             title={field.label}
             subtitle={step.description}
             hint={mobileHint}
@@ -1269,7 +1295,7 @@ export const QuestionnairePage = () => {
         return (
           <MobileCompositeStep
             key={field.key}
-            kicker={STEP_TITLES_BY_ID[step.id] || step.title}
+            kicker={PROGRESSIVE_STEP_LABELS[step.id] || step.title}
             title={`${field.label}${field.required ? ' *' : ''}`}
             subtitle={step.description}
             progressPercent={progress}
@@ -1305,6 +1331,7 @@ export const QuestionnairePage = () => {
       if (isMobileChoicePresentation && activeGroup.length === 1) {
         return (
           <AssociatesMobileWizard
+            ref={associatesWizardRef}
             key={field.key}
             value={formData.associates}
             onChange={handleAssociatesChange}
@@ -1451,7 +1478,7 @@ export const QuestionnairePage = () => {
         return (
           <MobileTextareaStep
             key={field.key}
-            kicker={STEP_TITLES_BY_ID[step.id] || step.title}
+            kicker={PROGRESSIVE_STEP_LABELS[step.id] || step.title}
             title={`${field.label}${field.required ? ' *' : ''}`}
             subtitle={step.description}
             progressPercent={progress}
@@ -1551,7 +1578,7 @@ export const QuestionnairePage = () => {
       )}
     >
       <StepLayout
-        title={STEP_TITLES_BY_ID[step.id] || step.title}
+        title={stepTitle}
         description={step.description}
         reference={reference}
         progress={progress}
@@ -1575,7 +1602,7 @@ export const QuestionnairePage = () => {
 
         {!isCompactMobileStep ? (
           <ProgressiveStepChips
-            steps={PROGRESSIVE_STEPS}
+            steps={progressiveSteps}
             activeIndex={progressiveStepIndex}
             revealThroughIndex={progressiveStepIndex}
           />
@@ -1585,7 +1612,7 @@ export const QuestionnairePage = () => {
           <p className="text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Question {safeGroupIndex + 1} sur {fieldGroups.length}
             <span className="mx-2 text-border">·</span>
-            {STEP_TITLES_BY_ID[step.id] || step.title}
+            {stepTitle}
           </p>
         ) : null}
 

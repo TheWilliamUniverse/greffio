@@ -518,17 +518,21 @@ export const groupIndexFromFieldKey = (groups = [], fieldKey = '') => {
 };
 
 /** Progression fine : une question validée = un cran (parcours adaptatif EI / PM, etc.). */
-export const getQuestionnaireProgressPercent = (formData = {}, stepIndex = 0, fieldIndex = 0) => {
+export const getQuestionnaireProgressPercent = (formData = {}, stepIndex = 0, fieldIndex = 0, options = {}) => {
+  const { mobilePresentation = false } = options;
   let total = 0;
   let answered = 0;
   QUESTIONNAIRE_FLOW.forEach((flowStep, stepIdx) => {
     if (flowStep.condition && !flowStep.condition(formData)) return;
-    const fields = getVisibleFieldsForStep(flowStep, formData);
-    total += fields.length;
+    const visibleFields = getVisibleFieldsForStep(flowStep, formData);
+    const units = mobilePresentation
+      ? Math.max(resolveMobileFieldGroups(flowStep, formData).length, visibleFields.length ? 1 : 0)
+      : visibleFields.length;
+    total += units;
     if (stepIdx < stepIndex) {
-      answered += fields.length;
+      answered += units;
     } else if (stepIdx === stepIndex) {
-      answered += Math.min(fieldIndex, fields.length);
+      answered += Math.min(fieldIndex, units);
     }
   });
   if (!total) return 0;
