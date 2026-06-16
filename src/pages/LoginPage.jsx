@@ -128,7 +128,10 @@ export const LoginPage = () => {
       toast.error(result.message || 'Trop de tentatives. Réessayez dans quelques minutes.');
     } else {
       setFailedAttempts((value) => value + 1);
-      setFieldErrors({ email: '', password: 'Connexion impossible. Vérifiez vos identifiants ou réessayez dans quelques instants.' });
+      setFieldErrors({
+        email: '',
+        password: result.error || 'Connexion impossible. Vérifiez vos identifiants ou réessayez dans quelques instants.',
+      });
     }
   };
 

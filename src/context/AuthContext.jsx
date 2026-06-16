@@ -192,6 +192,12 @@ export const AuthProvider = ({ children }) => {
       if (isTransientApiError(error)) {
         return { success: false, error: 'Mise à jour serveur en cours. Réessayez dans quelques instants.' };
       }
+      if (code === 'INVALID_CREDENTIALS') {
+        return { success: false, error: 'Email ou mot de passe incorrect.' };
+      }
+      if (code === 'INVALID_LOGIN_PAYLOAD') {
+        return { success: false, error: 'Renseignez un email et un mot de passe valides.' };
+      }
       return { success: false, error: 'Connexion impossible. Vérifiez vos identifiants ou réessayez dans quelques instants.' };
     }
   };
