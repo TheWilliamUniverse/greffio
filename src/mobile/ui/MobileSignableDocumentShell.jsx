@@ -2,7 +2,9 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
-import { isCapacitorNative } from '@/utils/platform.js';
+import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
+
+const useMobileSignableShell = () => isCapacitorNative() || isMobileBrowserViewport();
 
 export const MobileSignableDocumentHeader = ({
   eyebrow,
@@ -11,7 +13,7 @@ export const MobileSignableDocumentHeader = ({
   backLabel = 'Retour documents',
   intro,
 }) => {
-  if (!isCapacitorNative()) return null;
+  if (!useMobileSignableShell()) return null;
 
   return (
     <div className="mb-4 rounded-2xl border border-border/70 bg-white p-4 shadow-sm">
@@ -32,8 +34,8 @@ export const MobileSignableDocumentHeader = ({
 };
 
 /**
- * Shell mobile minimal pour éditeurs de documents signables (Mixte).
- * Masque la sidebar desktop et fournit un header natif cohérent avec le shell.
+ * Shell mobile minimal pour éditeurs de documents signables.
+ * Masque la sidebar desktop et fournit un header cohérent avec le shell.
  */
 export const MobileSignableDocumentShell = ({
   eyebrow,
@@ -42,11 +44,12 @@ export const MobileSignableDocumentShell = ({
   backLabel = 'Retour documents',
   intro,
   children,
+  hasBottomNav = false,
 }) => {
-  if (!isCapacitorNative()) return children;
+  if (!useMobileSignableShell()) return children;
 
   return (
-    <MobilePageContainer className="space-y-4">
+    <MobilePageContainer className="space-y-4" hasBottomNav={hasBottomNav}>
       <MobileSignableDocumentHeader
         eyebrow={eyebrow}
         title={title}

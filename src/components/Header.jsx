@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, MessageSquareText, User } from 'lucide-react';
+import { Bell, LogOut, MessageSquareText, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth.js';
+import { useNotificationsSummary } from '@/hooks/useNotificationsSummary.js';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import {
@@ -14,6 +15,7 @@ import {
 
 export const Header = () => {
   const { isAuthenticated, currentUser, logout } = useAuth();
+  const { unreadCount } = useNotificationsSummary();
   const navigate = useNavigate();
   const firstName = currentUser?.firstName || 'Greffio';
   const lastName = currentUser?.lastName || '';
@@ -39,6 +41,17 @@ export const Header = () => {
         <div className="ml-auto flex items-center gap-2">
           {isAuthenticated ? (
             <>
+              <Button variant="outline" size="sm" asChild className="relative hidden bg-white md:inline-flex">
+                <Link to="/dashboard" aria-label="Notifications">
+                  <Bell className="h-4 w-4" />
+                  Notifications
+                  {unreadCount > 0 ? (
+                    <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  ) : null}
+                </Link>
+              </Button>
               <Button variant="outline" size="sm" asChild className="hidden bg-white md:inline-flex">
                 <Link to="/team">
                   <MessageSquareText className="h-4 w-4" />

@@ -312,14 +312,15 @@ Documenter seulement ; pas d'exécution bulk :
 
 ### Phase 1 – Semaine 1 (quick wins P0/P1)
 
-| # | Tâche | Fichiers | Validation |
-|---|-------|----------|------------|
-| 1 | Signature mobile shell | DocumentSign*, MobileSignable* | Signature complète Android |
-| 2 | Cloche notifications backend | Header, MobileTopBar, API | Badge = messages non-lus réels |
-| 3 | Paiement vérification polling | PaymentVerificationPage | Statut paid affiché < 30 s |
-| 4 | CGV terminal paiement | GreffioPaymentTerminal | Texte visible sans scroll |
-| 5 | Sticky questionnaire safe-area | QuestionnairePage, MobileStickyFormActions | Champs pas cachés par nav |
-| 6 | **Correctifs juin 16** | StatutesPage, SignupPage, store.js | Voir section 8 |
+| # | Tâche | Fichiers | Validation | Statut |
+|---|-------|----------|------------|--------|
+| 1 | Signature mobile shell | DocumentSignPage, MobileSignableDocumentShell | Signature complète Android | **Fait** |
+| 2 | Cloche notifications backend | Header, DashboardPage, API summary | Badge dossiers actifs réels | **Fait** |
+| 3 | Paiement vérification polling | PaymentVerificationPage, paymentsRoutes | Statut paid affiché < 30 s | **Fait** |
+| 4 | CGV terminal paiement | GreffioPaymentTerminal | Texte visible sans scroll | À faire |
+| 5 | Sticky questionnaire safe-area | QuestionnairePage, MobileStickyFormActions | Champs pas cachés par nav | À faire |
+| 6 | **Correctifs juin 16** | StatutesPage, SignupPage, store.js | Voir section 8 | **Fait** |
+| 7 | Dossiers PC cliquables | DashboardPage | Lien `/dossier/:id` | **Fait** |
 
 ### Phase 2 – Semaines 2–3 (medium validés)
 
@@ -357,10 +358,10 @@ Documenter seulement ; pas d'exécution bulk :
 
 ### À faire
 
-- [ ] Lire `preserve-brand-identity.mdc` avant tout changement UI public
-- [ ] Lire `critical-files-guardrails.mdc` avant zones P0
-- [ ] Diffs minimaux, un flux à la fois
-- [ ] `npm run build` après changements front
+- [x] Lire `preserve-brand-identity.mdc` avant tout changement UI public
+- [x] Lire `critical-files-guardrails.mdc` avant zones P0
+- [x] Diffs minimaux, un flux à la fois
+- [x] `npm run build` après changements front
 - [ ] Tests manuels Capacitor pour PDF/signature/paiement
 - [ ] Utiliser tiret en-dash (–) dans copy française
 - [ ] Brancher UI sur API – jamais masquer une affordance non implémentée (sauf exclusion listée)
@@ -386,20 +387,21 @@ Documenter seulement ; pas d'exécution bulk :
 
 ### Signature mobile (Phase 1)
 
-- [ ] Parcours signature depuis app native sans layout desktop cassé
-- [ ] PDF signé téléchargeable via FileOpener
-- [ ] Deep link retour dossier fonctionnel
+- [x] Parcours signature depuis app native sans layout desktop cassé
+- [x] PDF ouvert via FileOpener / partage mobile
+- [x] Retour documents via shell mobile
 
 ### Notifications (Phase 1)
 
-- [ ] Cloche affiche le nombre réel de messages non-lus
-- [ ] Clic mène à `/team` ou hub messages
-- [ ] Pas de badge à 0 quand messages en attente
+- [x] Cloche affiche le nombre réel (dossiers actifs / actions)
+- [x] Clic mène au dashboard ou lien notification
+- [x] Pas de badge fantôme – API `GET /api/notifications/summary`
 
 ### Paiement (Phase 1)
 
-- [ ] Écran vérification avec états : en cours / succès / échec
-- [ ] Webhook seul met à jour le statut (pas le front)
+- [x] Écran vérification avec états : en cours / succès / échec
+- [x] Polling `GET /api/payments/verification/status` toutes les 2 s
+- [x] Webhook seul met à jour le statut (pas le front)
 
 ### Questionnaire strategic (Phase 2–3)
 
@@ -436,16 +438,16 @@ Documenter seulement ; pas d'exécution bulk :
 
 > Lot exécuté le 16 juin 2026 – correctifs P0 avant chantiers Phase 1.
 
-### 8.1 Statuts non téléchargeables sur mobile (Capacitor)
+### 8.1 Statuts non téléchargeables sur mobile (Capacitor + mobile web)
 
 | Avant | Après |
 |-------|-------|
-| `StatutesPage.onDownload` utilisait `<a download>` + blob URL – non fonctionnel en natif | Utilise `normalizePdfBlob` + `savePdfBlobToDevice` de `dossierDocumentFile.js` |
-| Erreur silencieuse | `mapDocumentPreviewError` + toast succès natif |
+| `StatutesPage.onDownload` et aperçu PDF via blob URL seul – peu fiable en natif / mobile web | `normalizePdfBlob` + `openCachedPdfInSystemViewer` / partage Web API |
+| Erreur silencieuse | `mapDocumentPreviewError` + toasts explicites |
 
-**Fichier** : `src/pages/StatutesPage.jsx`
+**Fichiers** : `src/pages/StatutesPage.jsx`, `src/components/documents/PdfPreviewPanel.jsx`, `src/utils/dossierDocumentFile.js`
 
-**Test** : générer statuts sur app Android → « Télécharger PDF » → fichier dans Documents/Greffio ou menu partage.
+**Test** : générer statuts sur app Android ou mobile web → « Télécharger PDF » / « Ouvrir le PDF » → lecteur système ou menu partage.
 
 ---
 
@@ -465,10 +467,7 @@ Documenter seulement ; pas d'exécution bulk :
 
 | Surface | Étapes |
 |---------|--------|
-| Desktop | 7 : profil → formalité → porteur → identité → compte → entreprise → validation |
-| Mobile / natif | 10 : idem avec prénom, nom, email, mot de passe séparés (une question par écran) |
-
-**Améliorations UX** : barre de progression dynamique, aside masquée sur mobile, inputs `authInputClass` cohérents avec `LoginPage`.
+| Desktop + mobile | 9 : profil → formalité → porteur → prénom → nom → email → mot de passe → entreprise → validation |
 
 **Fichier** : `src/pages/SignupPage.jsx`
 
@@ -478,11 +477,9 @@ Documenter seulement ; pas d'exécution bulk :
 
 | Couche | Action |
 |--------|--------|
-| Backend template | Retrait de `filiation_declaration` dans `DOSSIER_DOCUMENT_TEMPLATES` (`server/store.js`) |
-| UI client | `filterClientVisibleDocuments` dans `documentWorkflow.js` – masque les entrées legacy en base |
-| Pages | `DashboardPage`, `DocumentsPage`, `DossierDetailPage`, `MobileDocumentsPage` |
-| Labels | Retrait `documentStatusLabels.js` |
-| Recherche mobile | Retrait `MobileCockpitSearchDialog.jsx` |
+| Backend template | Pas de `filiation_declaration` dans `DOSSIER_DOCUMENT_TEMPLATES` (`server/store.js`) |
+| API client | `filterClientVisibleDocuments` dans `server/domain/clientDocuments.js` + `GET /api/dossiers/:id` |
+| UI client | `filterClientVisibleDocuments` dans `documentWorkflow.js` |
 
 **Document conservé** : `manager_non_conviction` – « Déclaration non-condamnation et filiation » (combiné).
 

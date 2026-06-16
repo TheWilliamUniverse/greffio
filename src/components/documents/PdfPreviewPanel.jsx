@@ -12,6 +12,7 @@ export const PdfPreviewPanel = ({
   blobUrl = '',
   filename = 'document.pdf',
   emptyMessage = 'Générez l’aperçu pour afficher le document ici.',
+  onOpen,
 }) => {
   const [mobile, setMobile] = useState(isMobilePreview);
 
@@ -24,7 +25,11 @@ export const PdfPreviewPanel = ({
   }, []);
 
   const openPreview = () => {
-    if (!blobUrl) return;
+    if (!blobUrl && !onOpen) return;
+    if (onOpen) {
+      onOpen();
+      return;
+    }
     const link = document.createElement('a');
     link.href = blobUrl;
     link.target = '_blank';
@@ -41,7 +46,7 @@ export const PdfPreviewPanel = ({
     <section className="flex min-h-[280px] flex-col bg-[#1e293b] md:min-h-[420px]">
       <div className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
         <p className="text-sm font-semibold text-white">{title}</p>
-        {blobUrl ? (
+        {blobUrl || onOpen ? (
           <Button
             type="button"
             size="sm"
@@ -54,7 +59,7 @@ export const PdfPreviewPanel = ({
           </Button>
         ) : null}
       </div>
-      {blobUrl ? (
+      {blobUrl || onOpen ? (
         mobile ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
             <FileText className="h-12 w-12 text-white/50" />

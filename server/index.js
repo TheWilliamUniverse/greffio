@@ -78,6 +78,7 @@ import {
   getDocumentById,
 } from './store.js';
 import { DOSSIER_DOCUMENT_MAX_BYTES } from './config/uploadLimits.js';
+import { filterClientVisibleDocuments } from './domain/clientDocuments.js';
 import { resolveDossierDocumentPlan } from './domain/formalityDocuments.js';
 import { computePaymentAmounts } from './pricing.js';
 import {
@@ -763,6 +764,24 @@ app.get('/api/mobile/notifications', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('MOBILE_NOTIFICATIONS_FAILED', error);
     return res.status(500).json({ ok: false, error: 'MOBILE_NOTIFICATIONS_FAILED' });
+  }
+});
+
+app.get('/api/notifications/summary', requireAuth, async (req, res) => {
+  try {
+    const notifications = await buildMobileNotifications({
+      userId: req.auth?.sub,
+      role: req.auth?.role,
+    });
+    const actionable = notifications.filter((item) => item.tone === 'action');
+    return res.json({
+      ok: true,
+      notifications,
+      unreadCount: actionable.length || notifications.length,
+    });
+  } catch (error) {
+    console.error('NOTIFICATIONS_SUMMARY_FAILED', error);
+    return res.status(500).json({ ok: false, error: 'NOTIFICATIONS_SUMMARY_FAILED' });
   }
 });
 
@@ -1562,11 +1581,15 @@ app.get('/api/dossiers/:dossierId', requireAuth, async (req, res) => {
   const { dossier } = access;
   const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
   const documentPlan = resolveDossierDocumentPlan({ dossier, questionnaire });
+  const documents = await listDossierDocuments(dossier.id);
+  const visibleDocuments = isInternalRole(req.auth?.role)
+    ? documents
+    : filterClientVisibleDocuments(documents);
   return res.json({
     ok: true,
     dossier,
     events: await listDossierEvents(dossier.id),
-    documents: await listDossierDocuments(dossier.id),
+    documents: visibleDocuments,
     documentPlan,
   });
 });

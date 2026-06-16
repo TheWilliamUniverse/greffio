@@ -33,13 +33,14 @@ import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 import { countActionableDocuments, filterClientVisibleDocuments, resolveClientDocumentStatus, documentHasFile } from '@/utils/documentWorkflow.js';
 import { useDossierQuery } from '@/hooks/queries/useDossierQuery.js';
 import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
+import { useNotificationsSummary } from '@/hooks/useNotificationsSummary.js';
 import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 
 export const DashboardPage = () => {
   const { currentUser, updateProfile } = useAuth();
   const { data: dossiersRaw = [], isLoading: loadingApi } = useDossiersQuery(currentUser?.id);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
-  const notifications = [];
+  const { notifications, unreadCount } = useNotificationsSummary();
   const [showLoginAlertsPrompt, setShowLoginAlertsPrompt] = useState(
     () => !isLoginAlertsConfigured(currentUser),
   );
@@ -316,10 +317,10 @@ export const DashboardPage = () => {
                     <span>Échéance</span>
                     <span>Avancement</span>
                   </div>
-                  {dossiers.slice(0, 4).map((dossier, index) => (
+                  {dossiers.slice(0, 4).map((dossier) => (
                     <Link
                       key={dossier.id}
-                      to={resolveDossierContinueUrl(dossiersRaw[index] || dossier)}
+                      to={`/dossier/${dossier.id}`}
                       className="block border-b border-border px-5 py-4 transition hover:bg-muted/60 last:border-b-0 xl:grid xl:grid-cols-[minmax(0,1fr)_130px_120px_110px] xl:items-center xl:gap-4"
                     >
                       <div>
@@ -345,17 +346,31 @@ export const DashboardPage = () => {
 
               <div className="grid gap-7 lg:grid-cols-2">
                 <section className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
-                  <div className="mb-4 flex items-center gap-2">
-                    <Bell className="h-5 w-5 text-primary" />
-                    <h2 className="text-lg font-extrabold">Notifications</h2>
+                  <div className="mb-4 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Bell className="h-5 w-5 text-primary" />
+                      <h2 className="text-lg font-extrabold">Notifications</h2>
+                      {unreadCount > 0 ? (
+                        <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                      ) : null}
+                    </div>
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link to="/team">Voir tout</Link>
+                    </Button>
                   </div>
                   {notifications.length ? (
                     <div className="space-y-3">
                       {notifications.slice(0, 4).map((notification) => (
-                        <div key={notification.id} className="rounded-md bg-muted p-3">
-                          <p className="text-sm font-medium leading-5 text-foreground">{notification.message}</p>
-                          <p className="mt-2 text-xs text-muted-foreground">{new Date(notification.date || notification.createdAt).toLocaleDateString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
-                        </div>
+                        <Link
+                          key={notification.id}
+                          to={notification.path || '/dashboard'}
+                          className="block rounded-md bg-muted p-3 transition hover:bg-muted/80"
+                        >
+                          <p className="text-sm font-medium leading-5 text-foreground">{notification.title}</p>
+                          <p className="mt-1 text-xs leading-5 text-muted-foreground">{notification.body}</p>
+                        </Link>
                       ))}
                     </div>
                   ) : (

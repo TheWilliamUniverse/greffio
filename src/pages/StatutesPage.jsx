@@ -22,7 +22,7 @@ import { isEiLikeFormality } from '@/config/formalities.js';
 import { downloadStatutesOfficeExport } from '@/utils/statutesOfficeExport.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
-import { mapDocumentPreviewError, normalizePdfBlob, savePdfBlobToDevice } from '@/utils/dossierDocumentFile.js';
+import { mapDocumentPreviewError, normalizePdfBlob, openCachedPdfInSystemViewer, savePdfBlobToDevice } from '@/utils/dossierDocumentFile.js';
 import { useMobileSafeBottomPadding } from '@/hooks/useMobileSafeBottomPadding.js';
 import { cn } from '@/lib/utils.js';
 import { QUESTIONNAIRE_NEW_PATH, questionnaireResumePath } from '@/utils/questionnaireNavigation.js';
@@ -78,6 +78,7 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
   const [eiLike, setEiLike] = useState(false);
   const [preview, setPreview] = useState(null);
   const [pdfBlobUrl, setPdfBlobUrl] = useState('');
+  const [pdfBlob, setPdfBlob] = useState(null);
   const [dossierName, setDossierName] = useState('');
   const [loadError, setLoadError] = useState('');
   const [showDocumentsLink, setShowDocumentsLink] = useState(false);
@@ -186,19 +187,23 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
         if (current) URL.revokeObjectURL(current);
         return '';
       });
+      setPdfBlob(null);
       return undefined;
     }
     let cancelled = false;
     void downloadStatutesPdf(dossierId, { cacheBust: true })
-      .then((blob) => {
+      .then(async (blob) => {
         if (cancelled) return;
+        const normalized = await normalizePdfBlob(blob);
+        setPdfBlob(normalized);
         setPdfBlobUrl((current) => {
           if (current) URL.revokeObjectURL(current);
-          return URL.createObjectURL(blob);
+          return URL.createObjectURL(normalized);
         });
       })
       .catch(() => {
         if (!cancelled) {
+          setPdfBlob(null);
           setPdfBlobUrl((current) => {
             if (current) URL.revokeObjectURL(current);
             return '';
@@ -264,14 +269,40 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
   const onDownload = async () => {
     if (!dossierId) return;
     try {
-      const blob = await downloadStatutesPdf(dossierId, { cacheBust: true });
-      const pdfBlob = await normalizePdfBlob(blob);
-      await savePdfBlobToDevice(pdfBlob, 'Statuts_Greffio.pdf');
-      if (isCapacitorNative()) {
-        toast.success('PDF enregistré sur votre appareil.');
+      const blob = pdfBlob || await downloadStatutesPdf(dossierId, { cacheBust: true });
+      const normalized = await normalizePdfBlob(blob);
+      if (isCapacitorNative() || isMobileBrowserViewport()) {
+        await openCachedPdfInSystemViewer({
+          blob: normalized,
+          filename: 'Statuts_Greffio.pdf',
+        });
+        toast.success(isCapacitorNative() ? 'PDF ouvert sur votre appareil.' : 'PDF prêt à être enregistré ou partagé.');
+        return;
       }
+      await savePdfBlobToDevice(normalized, 'Statuts_Greffio.pdf');
     } catch (error) {
       toast.error(mapDocumentPreviewError(error) || 'Aucun PDF de statuts disponible.');
+    }
+  };
+
+  const onOpenPdfPreview = async () => {
+    if (!pdfBlob) {
+      toast.error('Générez les statuts pour afficher le PDF.');
+      return;
+    }
+    try {
+      if (isCapacitorNative() || isMobileBrowserViewport()) {
+        await openCachedPdfInSystemViewer({
+          blob: pdfBlob,
+          filename: 'Statuts_Greffio.pdf',
+        });
+        return;
+      }
+      if (pdfBlobUrl) {
+        window.open(pdfBlobUrl, '_blank', 'noopener,noreferrer');
+      }
+    } catch (error) {
+      toast.error(mapDocumentPreviewError(error) || 'Impossible d’ouvrir le PDF.');
     }
   };
 
@@ -483,6 +514,7 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
                 blobUrl={pdfBlobUrl}
                 filename="Statuts_Greffio.pdf"
                 emptyMessage="Générez les statuts pour afficher le PDF ici."
+                onOpen={isMobilePresentation ? () => void onOpenPdfPreview() : undefined}
               />
             </section>
           ) : null}

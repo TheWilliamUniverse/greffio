@@ -1,26 +1,100 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { CircleCheckBig, Clock3, LockKeyhole, ShieldCheck } from 'lucide-react';
+import { CircleCheckBig, Clock3, Loader2, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
+import { fetchPaymentVerificationStatus } from '@/api/payments.js';
 import { isCapacitorNative } from '@/utils/platform.js';
+
+const PAID_STATUSES = new Set(['paid', 'authorized', 'PAID', 'AUTHORIZED']);
+const FAILED_STATUSES = new Set(['failed', 'cancelled', 'expired', 'FAILED', 'CANCELLED', 'EXPIRED']);
+
+const normalizeStatus = (value) => String(value || '').trim().toLowerCase();
 
 export const PaymentVerificationPage = () => {
   const [searchParams] = useSearchParams();
   const resourceOrderId = searchParams.get('resourceOrderId');
-  const paymentStatus = searchParams.get('status');
+  const dossierId = searchParams.get('dossierId');
+  const molliePaymentId = searchParams.get('molliePaymentId');
+  const initialStatus = searchParams.get('status');
   const nativeApp = isCapacitorNative();
 
+  const [polling, setPolling] = useState(true);
+  const [resolvedStatus, setResolvedStatus] = useState(initialStatus || '');
+  const [pollError, setPollError] = useState('');
+
+  useEffect(() => {
+    if (!molliePaymentId && !dossierId) {
+      setPolling(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    let attempts = 0;
+    let intervalId = null;
+    const maxAttempts = 15;
+
+    const finishPolling = () => {
+      if (!cancelled) setPolling(false);
+      if (intervalId) window.clearInterval(intervalId);
+    };
+
+    const tick = async () => {
+      attempts += 1;
+      try {
+        const payload = await fetchPaymentVerificationStatus({
+          molliePaymentId,
+          dossierId,
+        });
+        if (cancelled) return;
+        const nextStatus = payload?.status || payload?.dossierStatus || initialStatus || '';
+        if (nextStatus) setResolvedStatus(nextStatus);
+        const normalized = normalizeStatus(nextStatus);
+        if (PAID_STATUSES.has(nextStatus) || PAID_STATUSES.has(normalized) || FAILED_STATUSES.has(normalized)) {
+          finishPolling();
+          return;
+        }
+        if (payload?.resolved && nextStatus) {
+          finishPolling();
+        }
+      } catch (_error) {
+        if (!cancelled && attempts >= maxAttempts) {
+          setPollError('La vérification prend plus de temps que prévu. Actualisez votre dashboard dans quelques instants.');
+          finishPolling();
+        }
+      }
+      if (attempts >= maxAttempts) finishPolling();
+    };
+
+    void tick();
+    intervalId = window.setInterval(() => { void tick(); }, 2000);
+
+    return () => {
+      cancelled = true;
+      if (intervalId) window.clearInterval(intervalId);
+    };
+  }, [dossierId, initialStatus, molliePaymentId]);
+
+  const paymentStatus = normalizeStatus(resolvedStatus || initialStatus);
+
   const stateCopy = useMemo(() => {
-    if (paymentStatus === 'paid' || paymentStatus === 'authorized') {
+    if (polling && !paymentStatus) {
+      return {
+        icon: <Loader2 className="h-6 w-6 animate-spin" />,
+        tone: 'text-primary bg-primary/10',
+        title: 'Paiement en cours de vérification…',
+        description: 'Greffio interroge le prestataire Mollie et met à jour votre dossier. Cela prend généralement quelques secondes.',
+      };
+    }
+    if (PAID_STATUSES.has(paymentStatus) || PAID_STATUSES.has(resolvedStatus)) {
       return {
         icon: <CircleCheckBig className="h-6 w-6" />,
         tone: 'text-emerald-700 bg-emerald-100',
         title: 'Paiement confirmé',
-        description: 'Votre paiement Mollie a été accepté. Greffio finalise la confirmation côté serveur avant de mettre à jour votre espace.',
+        description: 'Votre paiement Mollie a été accepté. Votre espace Greffio va refléter le nouveau statut.',
       };
     }
-    if (paymentStatus === 'failed' || paymentStatus === 'cancelled' || paymentStatus === 'expired') {
+    if (FAILED_STATUSES.has(paymentStatus)) {
       return {
         icon: <Clock3 className="h-6 w-6" />,
         tone: 'text-amber-800 bg-amber-100',
@@ -29,12 +103,14 @@ export const PaymentVerificationPage = () => {
       };
     }
     return {
-      icon: <CircleCheckBig className="h-6 w-6" />,
-      tone: 'text-emerald-700 bg-emerald-100',
-      title: 'Retour paiement effectué',
-      description: 'Votre retour depuis Mollie a été enregistré. Greffio vérifie le statut auprès du prestataire avant confirmation.',
+      icon: polling ? <Loader2 className="h-6 w-6 animate-spin" /> : <CircleCheckBig className="h-6 w-6" />,
+      tone: polling ? 'text-primary bg-primary/10' : 'text-emerald-700 bg-emerald-100',
+      title: polling ? 'Paiement en cours de vérification…' : 'Retour paiement effectué',
+      description: polling
+        ? 'Nous confirmons le statut auprès de Mollie avant de mettre à jour votre dossier.'
+        : 'Votre retour depuis Mollie a été enregistré. Le statut peut encore être en cours de synchronisation.',
     };
-  }, [paymentStatus]);
+  }, [paymentStatus, polling, resolvedStatus]);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.08),transparent_42%),linear-gradient(180deg,#f8fbff_0%,#ffffff_55%,#eef4ff_100%)] px-4 py-10 sm:px-6 lg:px-8">
@@ -63,12 +139,15 @@ export const PaymentVerificationPage = () => {
           ) : null}
           <div className="mt-5 rounded-2xl border border-[#dbe7f7] bg-[#f8fbff] p-4 text-sm text-muted-foreground">
             <p className="flex items-center gap-2 font-semibold text-[hsl(var(--greffio-blue-900))]">
-              <Clock3 className="h-4 w-4 text-primary" />
+              {polling ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Clock3 className="h-4 w-4 text-primary" />}
               Vérification serveur
             </p>
             <p className="mt-2">
-              Actualisez votre tableau de bord dans quelques secondes pour voir le nouveau statut.
+              {polling
+                ? 'Interrogation du statut en cours…'
+                : 'La vérification est terminée. Actualisez votre tableau de bord si le statut n’est pas encore visible.'}
             </p>
+            {pollError ? <p className="mt-2 text-amber-800">{pollError}</p> : null}
           </div>
           <div className="mt-5 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-2">
@@ -86,6 +165,11 @@ export const PaymentVerificationPage = () => {
                 <Link to="/boutique/commandes">Mes commandes</Link>
               </Button>
             )}
+            {dossierId ? (
+              <Button asChild className="rounded-xl font-bold">
+                <Link to={`/dossier/${dossierId}`}>Voir le dossier</Link>
+              </Button>
+            ) : null}
             <Button asChild className="rounded-xl font-bold">
               <Link to="/dashboard">Ouvrir le dashboard</Link>
             </Button>

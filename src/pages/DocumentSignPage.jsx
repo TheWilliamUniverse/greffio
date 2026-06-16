@@ -10,6 +10,8 @@ import { SignatureDocumentAcknowledge } from '@/components/signature/SignatureDo
 import { GreffioSignatureInfoBanner } from '@/components/signature/GreffioSignatureInfoBanner.jsx';
 import { SignedDocumentSuccessPanel } from '@/components/signature/SignedDocumentSuccessPanel.jsx';
 import { PdfPreviewPanel } from '@/components/documents/PdfPreviewPanel.jsx';
+import { MobileSignableDocumentShell } from '@/mobile/ui/MobileSignableDocumentShell.jsx';
+import { MobileStickyFormActions } from '@/mobile/ui/MobileStickyFormActions.jsx';
 import {
   fetchDocumentSignSession,
   downloadDocumentSignPreview,
@@ -17,16 +19,21 @@ import {
 } from '@/api/documents.js';
 import { runtimeConfig } from '@/config/runtime.js';
 import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
+import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
+import { openCachedPdfInSystemViewer } from '@/utils/dossierDocumentFile.js';
+import { cn } from '@/lib/utils.js';
 
 export const DocumentSignPage = () => {
   const { id: documentId } = useParams();
   const navigate = useNavigate();
+  const isMobilePresentation = isCapacitorNative() || isMobileBrowserViewport();
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [signing, setSigning] = useState(false);
   const [error, setError] = useState('');
   const [previewAcknowledged, setPreviewAcknowledged] = useState(false);
   const [previewBlobUrl, setPreviewBlobUrl] = useState('');
+  const [previewBlob, setPreviewBlob] = useState(null);
   const [step, setStep] = useState('adopt');
   const [done, setDone] = useState(false);
   const [proofId, setProofId] = useState('');
@@ -59,6 +66,7 @@ export const DocumentSignPage = () => {
       try {
         const blob = await downloadDocumentSignPreview(documentId);
         if (cancelled) return;
+        setPreviewBlob(blob);
         setPreviewBlobUrl((current) => {
           if (current) URL.revokeObjectURL(current);
           return URL.createObjectURL(blob);
@@ -95,6 +103,18 @@ export const DocumentSignPage = () => {
     }
   };
 
+  const openPreviewExternally = async () => {
+    if (!previewBlob) return;
+    try {
+      await openCachedPdfInSystemViewer({
+        blob: previewBlob,
+        filename: `${session?.documentTitle || 'document'}.pdf`,
+      });
+    } catch (_error) {
+      toast.error('Impossible d’ouvrir le PDF sur cet appareil.');
+    }
+  };
+
   if (loading) {
     return <PageLoadingState label="Chargement de la signature…" />;
   }
@@ -115,8 +135,8 @@ export const DocumentSignPage = () => {
 
   if (done) {
     return (
-      <div className="flex min-h-screen bg-[#f6f8fc]">
-        <Sidebar />
+      <div className={cn('flex min-h-screen bg-[#f6f8fc]', isMobilePresentation ? 'flex-col' : '')}>
+        {!isMobilePresentation ? <Sidebar /> : null}
         <main className="flex flex-1 items-center justify-center p-6">
           <SignedDocumentSuccessPanel
             layout="page"
@@ -131,6 +151,65 @@ export const DocumentSignPage = () => {
             continueLabel="Retour aux documents"
           />
         </main>
+      </div>
+    );
+  }
+
+  const signaturePanel = (
+    <section className="space-y-4">
+      <GreffioSignatureInfoBanner />
+      {!previewAcknowledged ? (
+        <SignatureDocumentAcknowledge
+          documentTitle={session.documentTitle}
+          onAcknowledge={() => setPreviewAcknowledged(true)}
+        />
+      ) : step === 'adopt' ? (
+        <SignatureAdoptPanel
+          defaultName={session.signerFullName || ''}
+          defaultEmail={session.signerEmail || ''}
+          subtitle="Signature électronique simple (SES) – Greffio"
+          loading={signing}
+          onConfirm={(payload) => {
+            pendingSignRef.current = payload;
+            void finalizeSign(payload);
+          }}
+        />
+      ) : null}
+      <p className="text-xs text-muted-foreground">
+        Paiement et données hébergés en Europe · {runtimeConfig.appUrl}
+      </p>
+    </section>
+  );
+
+  const previewPanel = (
+    <PdfPreviewPanel
+      blobUrl={previewBlobUrl}
+      filename={`${session.documentTitle}.pdf`}
+      onOpen={isMobilePresentation ? () => void openPreviewExternally() : undefined}
+    />
+  );
+
+  if (isMobilePresentation) {
+    return (
+      <div className="min-h-screen bg-background">
+        <MobileSignableDocumentShell
+          eyebrow="Signature Greffio"
+          title={session.documentTitle}
+          backTo="/documents"
+          backLabel="Retour documents"
+          intro="Relisez le document puis adoptez votre signature électronique."
+          hasBottomNav={false}
+        >
+          <div className="space-y-4">
+            {signaturePanel}
+            {previewPanel}
+          </div>
+          <MobileStickyFormActions>
+            <Button variant="outline" className="w-full bg-white" asChild>
+              <Link to="/documents">Annuler</Link>
+            </Button>
+          </MobileStickyFormActions>
+        </MobileSignableDocumentShell>
       </div>
     );
   }
@@ -155,30 +234,8 @@ export const DocumentSignPage = () => {
         </header>
 
         <main className="mx-auto grid w-full max-w-6xl flex-1 gap-6 px-4 py-8 lg:grid-cols-2">
-          <section className="space-y-4">
-            <GreffioSignatureInfoBanner />
-            {!previewAcknowledged ? (
-              <SignatureDocumentAcknowledge
-                documentTitle={session.documentTitle}
-                onAcknowledge={() => setPreviewAcknowledged(true)}
-              />
-            ) : step === 'adopt' ? (
-              <SignatureAdoptPanel
-                defaultName={session.signerFullName || ''}
-                defaultEmail={session.signerEmail || ''}
-                subtitle="Signature électronique simple (SES) – Greffio"
-                loading={signing}
-                onConfirm={(payload) => {
-                  pendingSignRef.current = payload;
-                  void finalizeSign(payload);
-                }}
-              />
-            ) : null}
-            <p className="text-xs text-muted-foreground">
-              Paiement et données hébergés en Europe · {runtimeConfig.appUrl}
-            </p>
-          </section>
-          <PdfPreviewPanel blobUrl={previewBlobUrl} filename={`${session.documentTitle}.pdf`} />
+          {signaturePanel}
+          {previewPanel}
         </main>
       </div>
     </div>

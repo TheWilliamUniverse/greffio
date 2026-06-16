@@ -71,6 +71,14 @@ export const checkoutDossierPayment = async ({
 
 export const getPayment = async (paymentId) => apiGet(`/api/payments/${encodeURIComponent(paymentId)}`);
 
+export const fetchPaymentVerificationStatus = async ({ molliePaymentId, dossierId } = {}) => {
+  const params = new URLSearchParams();
+  if (molliePaymentId) params.set('molliePaymentId', molliePaymentId);
+  if (dossierId) params.set('dossierId', dossierId);
+  const query = params.toString();
+  return apiGet(`/api/payments/verification/status${query ? `?${query}` : ''}`);
+};
+
 export const refundPayment = async (paymentId, amount) => apiPost(`/api/payments/${encodeURIComponent(paymentId)}/refund`, { amount });
 
 export const getProvidersStatus = async () => apiGet('/api/payments/providers/status');

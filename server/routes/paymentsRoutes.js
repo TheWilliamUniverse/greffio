@@ -191,6 +191,54 @@ export const registerPaymentsRoutes = (app, deps) => {
     }
   });
 
+  app.get('/api/payments/verification/status', requireAuth, async (req, res) => {
+    try {
+      const molliePaymentId = String(req.query.molliePaymentId || '').trim();
+      const dossierId = String(req.query.dossierId || '').trim();
+      const isOps = req.auth?.role && ['ADMIN', 'OPS', 'FORMALISTE', 'admin', 'ops', 'super_admin'].includes(String(req.auth.role));
+
+      if (molliePaymentId) {
+        const payment = await store.getPaymentByProviderId(molliePaymentId);
+        if (!payment) {
+          return res.json({ ok: true, status: 'pending', resolved: false });
+        }
+        const isOwner = payment.userId === req.auth?.sub || payment.customerId === req.auth?.sub;
+        if (!isOwner && !isOps) {
+          return res.status(403).json({ ok: false, error: 'PAYMENT_FORBIDDEN' });
+        }
+        return res.json({
+          ok: true,
+          resolved: true,
+          status: payment.status,
+          paymentId: payment.id,
+          dossierId: payment.dossierId || null,
+          resourceOrderId: payment.resourceOrderId || null,
+        });
+      }
+
+      if (dossierId) {
+        const dossier = await store.getDossier(dossierId);
+        if (!dossier) {
+          return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+        }
+        const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
+        if (!isOwner && !isOps) {
+          return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
+        }
+        return res.json({
+          ok: true,
+          resolved: true,
+          dossierStatus: dossier.status,
+          dossierId: dossier.id,
+        });
+      }
+
+      return res.json({ ok: true, status: 'pending', resolved: false });
+    } catch (error) {
+      return handlePaymentError(res, error, 'PAYMENT_VERIFICATION_STATUS_FAILED');
+    }
+  });
+
   app.get('/api/payments/:id', requireAuth, async (req, res) => {
     try {
       const payment = await store.getPaymentById(req.params.id);

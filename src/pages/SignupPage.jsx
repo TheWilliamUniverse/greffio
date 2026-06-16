@@ -122,7 +122,7 @@ export const SignupPage = () => {
   const acceptedTerms = watch('acceptedTerms');
   const loginAlertsEnabled = watch('loginAlertsEnabled');
   const selectedOffer = useMemo(() => LEGAL_SERVICES.find((service) => service.id === selectedService), [selectedService]);
-  const signupSteps = useMemo(() => buildSignupSteps(mobileAuth), [mobileAuth]);
+  const signupSteps = useMemo(() => buildSignupSteps(), []);
   const stepCount = signupSteps.length;
   const currentStepId = signupSteps[step - 1] || 'profile';
 
@@ -155,7 +155,7 @@ export const SignupPage = () => {
     }
     if (!data.email || !data.password || !data.firstName || !data.lastName || !data.companyName) {
       toast.error('Certaines informations du compte sont manquantes. Revenez à l’étape identité.');
-      setStep(findStepIndex(mobileAuth ? 'firstName' : 'identity'));
+      setStep(findStepIndex('firstName'));
       return;
     }
 

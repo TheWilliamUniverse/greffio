@@ -8,7 +8,7 @@ import { MobileAccountQuickSheet } from '@/mobile/ui/MobileAccountQuickSheet.jsx
 import { MobileLogoutConfirmDialog } from '@/mobile/ui/MobileLogoutConfirmDialog.jsx';
 import { useMobileShellOverlay } from '@/mobile/context/MobileShellOverlayContext.jsx';
 import { useBiometricSession } from '@/context/BiometricSessionContext.jsx';
-import { fetchMobileNotifications } from '@/api/mobile.js';
+import { fetchNotificationsSummary } from '@/api/notifications.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { isCapacitorNative } from '@/utils/platform.js';
 import { isBiometricUnlockEnabled } from '@/utils/biometricAuth.js';
@@ -52,10 +52,11 @@ export const MobileCockpitHeaderActions = ({
   } = useMobileShellOverlay();
   const [internalNotifOpen, setInternalNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const notifOpen = notificationsOpen ?? ctxNotificationsOpen ?? internalNotifOpen;
   const setNotifOpen = onNotificationsOpenChange ?? setCtxNotificationsOpen ?? setInternalNotifOpen;
-  const unread = notifications.length;
+  const unread = unreadCount || notifications.filter((item) => item.tone === 'action').length || notifications.length;
   const firstName = currentUser?.firstName || 'Greffio';
 
   useEffect(() => {
@@ -74,8 +75,11 @@ export const MobileCockpitHeaderActions = ({
     let mounted = true;
     const load = async () => {
       try {
-        const payload = await fetchMobileNotifications();
-        if (mounted) setNotifications(payload?.notifications || []);
+        const payload = await fetchNotificationsSummary();
+        if (mounted) {
+          setNotifications(payload?.notifications || []);
+          setUnreadCount(Number(payload?.unreadCount || 0));
+        }
       } catch (_error) {
         if (mounted) setNotifications([]);
       }
