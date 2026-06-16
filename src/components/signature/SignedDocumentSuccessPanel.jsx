@@ -93,7 +93,7 @@ export const SignedDocumentSuccessPanel = ({
         aria-live="polite"
         aria-label="Document validé"
       >
-        <article className="relative mx-auto w-full max-w-md overflow-hidden rounded-2xl border border-border bg-white px-6 py-10 pr-20 text-left shadow-elevation-md sm:pr-24">
+        <article className="relative mx-auto w-full max-w-md overflow-visible rounded-2xl border border-border bg-white px-6 py-10 pr-20 text-left shadow-elevation-md sm:pr-24">
           <SignatureValidationNotch className="absolute right-0 top-5 animate-in fade-in slide-in-from-right-4 duration-300" />
           <p className="text-xs font-bold uppercase tracking-wide text-primary">Validation Greffio</p>
           <h1 className="mt-2 text-xl font-extrabold text-foreground">Document validé et enregistré</h1>

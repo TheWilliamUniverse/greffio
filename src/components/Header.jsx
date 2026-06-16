@@ -4,7 +4,9 @@ import { Bell, LogOut, MessageSquareText, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth.js';
 import { useNotificationsSummary } from '@/hooks/useNotificationsSummary.js';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
+import { cn } from '@/lib/utils.js';
 import { Button } from '@/components/ui/button.jsx';
+import { CountBadge, countBadgeHostClass } from '@/components/ui/count-badge.jsx';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,18 +40,14 @@ export const Header = () => {
           Espace client connecté à l’équipe Greffio
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2 overflow-visible pr-0.5">
           {isAuthenticated ? (
             <>
-              <Button variant="outline" size="sm" asChild className="relative hidden bg-white md:inline-flex">
+              <Button variant="outline" size="sm" asChild className={cn(countBadgeHostClass, 'hidden bg-white md:inline-flex')}>
                 <Link to="/dashboard" aria-label="Notifications">
                   <Bell className="h-4 w-4" />
                   Notifications
-                  {unreadCount > 0 ? (
-                    <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  ) : null}
+                  <CountBadge count={unreadCount} className="bg-red-500" />
                 </Link>
               </Button>
               <Button variant="outline" size="sm" asChild className="hidden bg-white md:inline-flex">

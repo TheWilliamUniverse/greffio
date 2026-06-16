@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth.js';
 import { isCapacitorNative } from '@/utils/platform.js';
 import { isBiometricUnlockEnabled } from '@/utils/biometricAuth.js';
 import { cn } from '@/lib/utils.js';
+import { CountBadge, countBadgeHostClass } from '@/components/ui/count-badge.jsx';
 
 export const mobileHeaderIconButtonClass = cn(
   'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-border bg-white',
@@ -125,7 +126,7 @@ export const MobileCockpitHeaderActions = ({
 
   return (
     <>
-      <div className={cn('flex shrink-0 items-center gap-1.5', className)}>
+      <div className={cn('flex shrink-0 items-center gap-1.5 overflow-visible pr-0.5', className)}>
         <button
           type="button"
           onClick={() => setSearchOpen(true)}
@@ -167,14 +168,10 @@ export const MobileCockpitHeaderActions = ({
             type="button"
             onClick={() => setNotifOpen(true)}
             aria-label="Notifications"
-            className={cn(mobileHeaderIconButtonClass, 'relative')}
+            className={cn(mobileHeaderIconButtonClass, countBadgeHostClass)}
           >
             <Bell className="h-4 w-4 text-primary" />
-            {unread ? (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-                {unread > 9 ? '9+' : unread}
-              </span>
-            ) : null}
+            <CountBadge count={unread} className="bg-red-500" positionClassName="-right-1 -top-1" />
           </button>
         ) : null}
       </div>

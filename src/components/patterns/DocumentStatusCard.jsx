@@ -37,7 +37,7 @@ export const DocumentStatusCard = React.memo(({
   return (
     <article className={cn(
       'rounded-2xl border border-border bg-white p-5 shadow-elevation-sm',
-      shieldNotch && 'relative overflow-hidden pr-16 sm:pr-20',
+      shieldNotch && 'relative overflow-visible pr-16 sm:pr-20',
       className,
     )}>
       {shieldNotch ? (
