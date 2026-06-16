@@ -34,7 +34,7 @@ import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
 import { queryKeys } from '@/hooks/queries/queryKeys.js';
 import { isInternalUser } from '@/utils/roles.js';
 import { getDocumentStatusLabel, getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
-import { documentHasFile, filterClientActionRequiredDocuments, formatDocumentRejectionHint, resolveClientDocumentStatus } from '@/utils/documentWorkflow.js';
+import { documentHasFile, filterClientActionRequiredDocuments, filterClientVisibleDocuments, formatDocumentRejectionHint, resolveClientDocumentStatus } from '@/utils/documentWorkflow.js';
 
 export const DocumentsPage = () => {
   const navigate = useNavigate();
@@ -64,13 +64,17 @@ export const DocumentsPage = () => {
     isError: dossierLoadError,
   } = useDossierQuery(resolvedDossierId);
   const apiDocuments = dossierPayload?.documents || [];
+  const visibleApiDocuments = useMemo(
+    () => filterClientVisibleDocuments(apiDocuments),
+    [apiDocuments],
+  );
   const dossierAccessError = useMemo(() => {
     if (loadingDossiers || loadingDossier) return '';
     if (!resolvedDossierId) return 'Aucun dossier actif. Ouvrez un dossier depuis le tableau de bord.';
     if (dossierLoadError) return 'Impossible de charger ce dossier. Sélectionnez-en un autre depuis « Dossiers ».';
     return '';
   }, [loadingDossiers, loadingDossier, resolvedDossierId, dossierLoadError]);
-  const normalizedDocuments = useMemo(() => apiDocuments.map((item) => {
+  const normalizedDocuments = useMemo(() => visibleApiDocuments.map((item) => {
     const displayLabel = getDocumentTypeLabel(item.docKey, item.label);
     const hasFile = documentHasFile(item);
     const rawStatus = String(item.status || '').toUpperCase();
@@ -89,7 +93,7 @@ export const DocumentsPage = () => {
       rejectedReason: item.rejectedReason || null,
       canUpload: !['VALID', 'VALIDATED', 'SIGNED'].includes(displayStatus),
     };
-  }), [apiDocuments, internalView]);
+  }), [visibleApiDocuments, internalView]);
   const waitingDocs = useMemo(
     () => filterClientActionRequiredDocuments(normalizedDocuments),
     [normalizedDocuments],

@@ -27,7 +27,6 @@ export const getDocumentTypeLabel = (docKey, fallbackLabel = '') => {
     manager_non_conviction: 'Déclaration non-condamnation et filiation',
     subscribers_list: 'Liste des souscripteurs',
     formality_powers: 'Pouvoirs pour formalités',
-    filiation_declaration: 'Déclaration de filiation',
     regulated_activity_proof: 'Autorisation activité réglementée',
     minor_emancipation_order: "Ordonnance ou jugement d'émancipation",
     minor_parental_authorization: 'Autorisation parentale / tuteur (associé mineur)',

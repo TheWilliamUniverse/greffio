@@ -30,7 +30,7 @@ import { mapDossierStatusForBadge, mapDossierClientAction } from '@/utils/dossie
 import { resolveDossierContinueUrl } from '@/utils/dossierContinueUrl.js';
 import { isLoginAlertsConfigured, getLoginAlertsSettings, rememberLoginAlertsChoice } from '@/utils/userProfile.js';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
-import { countActionableDocuments, resolveClientDocumentStatus, documentHasFile } from '@/utils/documentWorkflow.js';
+import { countActionableDocuments, filterClientVisibleDocuments, resolveClientDocumentStatus, documentHasFile } from '@/utils/documentWorkflow.js';
 import { useDossierQuery } from '@/hooks/queries/useDossierQuery.js';
 import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
 import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
@@ -96,7 +96,7 @@ export const DashboardPage = () => {
       typeFormalite: questionnaire.typeFormalite,
       service: dossier.service,
     });
-    return (activeDossierPayload.documents || [])
+    return filterClientVisibleDocuments(activeDossierPayload.documents || [])
       .filter((doc) => !(eiLike && (doc.docKey === 'signed_statutes' || doc.docKey === 'capital_certificate')))
       .map((doc) => {
         const hasFile = documentHasFile(doc);

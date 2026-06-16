@@ -17,10 +17,11 @@ import { SecurityChallengeWidget } from '@/components/security/SecurityChallenge
 import { useSecurityConfig } from '@/hooks/useSecurityConfig.js';
 import { FieldError } from '@/components/patterns/FieldError.jsx';
 import { getAuthInputClass } from '@/lib/authFormStyles.js';
-import { isMobileBrowserViewport } from '@/utils/platform.js';
+import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 import { getProjectDraft, saveProjectDraft } from '@/utils/localStorage.js';
 import { createDossier } from '@/api/dossiers.js';
 import { saveCurrentDossierId } from '@/utils/sessionStore.js';
+import { resolveServiceFromFormality } from '@/utils/formalityMapping.js';
 
 const profiles = [
   { id: 'client', label: 'Client entrepreneur', icon: FileText, text: 'Je veux créer ou gérer mon entreprise.' },
@@ -35,8 +36,6 @@ const legalStructureGroups = COMPANY_FORM_CATALOG.reduce((groups, form) => {
   }
   return [...groups, { category: form.family, forms: [form] }];
 }, []);
-
-import { resolveServiceFromFormality } from '@/utils/formalityMapping.js';
 
 const resolveServiceId = (value, legalForm) => {
   if (LEGAL_SERVICES.some((service) => service.id === value)) return value;
@@ -55,6 +54,32 @@ const resolveServiceId = (value, legalForm) => {
   return resolveServiceFromFormality('', legalForm);
 };
 
+const buildSignupSteps = () => [
+  'profile',
+  'service',
+  'initiator',
+  'firstName',
+  'lastName',
+  'email',
+  'password',
+  'company',
+  'validation',
+];
+
+const STEP_FIELDS = {
+  profile: [],
+  service: ['service'],
+  initiator: [],
+  firstName: ['firstName'],
+  lastName: ['lastName'],
+  email: ['email'],
+  password: ['password'],
+  identity: ['firstName', 'lastName'],
+  account: ['email', 'password'],
+  company: ['companyName'],
+  validation: [],
+};
+
 export const SignupPage = () => {
   const [searchParams] = useSearchParams();
   const initialService = searchParams.get('service') || 'creation-sas';
@@ -65,7 +90,7 @@ export const SignupPage = () => {
   const security = useSecurityConfig();
   const hasCaptchaToken = Boolean(captcha.turnstileToken || captcha.recaptchaToken);
   const showSignupChallenge = security.turnstileOnSignup && security.captchaProvider !== 'none';
-  const mobileAuth = isMobileBrowserViewport();
+  const mobileAuth = isCapacitorNative() || isMobileBrowserViewport();
   const authInputClass = getAuthInputClass(mobileAuth);
   const { register, watch, trigger, getValues, setValue, formState: { errors } } = useForm({
     shouldUnregister: false,
@@ -97,23 +122,29 @@ export const SignupPage = () => {
   const acceptedTerms = watch('acceptedTerms');
   const loginAlertsEnabled = watch('loginAlertsEnabled');
   const selectedOffer = useMemo(() => LEGAL_SERVICES.find((service) => service.id === selectedService), [selectedService]);
+  const signupSteps = useMemo(() => buildSignupSteps(mobileAuth), [mobileAuth]);
+  const stepCount = signupSteps.length;
+  const currentStepId = signupSteps[step - 1] || 'profile';
+
+  const resolveStepFields = (stepId) => {
+    if (stepId === 'initiator' && initiatorType === 'personne_morale') {
+      return ['initiatorName'];
+    }
+    return STEP_FIELDS[stepId] || [];
+  };
+
+  const findStepIndex = (stepId) => signupSteps.indexOf(stepId) + 1;
 
   const advanceStep = async () => {
-    if (step === 2) {
-      const valid = await trigger('service');
+    const fields = resolveStepFields(currentStepId);
+    if (fields.length) {
+      const valid = await trigger(fields);
       if (!valid) {
-        toast.error('Choisissez une formalité pour continuer.');
+        toast.error('Complétez les champs obligatoires pour continuer.');
         return;
       }
     }
-    if (step === 3) {
-      const valid = await trigger(['firstName', 'lastName', 'email', 'password', 'companyName']);
-      if (!valid) {
-        toast.error('Complétez les champs obligatoires de l’étape identité.');
-        return;
-      }
-    }
-    setStep((value) => Math.min(4, value + 1));
+    setStep((value) => Math.min(stepCount, value + 1));
   };
 
   const completeSignup = async () => {
@@ -124,14 +155,19 @@ export const SignupPage = () => {
     }
     if (!data.email || !data.password || !data.firstName || !data.lastName || !data.companyName) {
       toast.error('Certaines informations du compte sont manquantes. Revenez à l’étape identité.');
-      setStep(3);
+      setStep(findStepIndex(mobileAuth ? 'firstName' : 'identity'));
       return;
     }
 
     setSubmitting(true);
     try {
+      const initiatorName = data.initiatorType === 'personne_morale'
+        ? data.initiatorName
+        : `${data.firstName || ''} ${data.lastName || ''}`.trim();
+
       const result = await signup({
         ...data,
+        initiatorName,
         ...(showSignupChallenge && hasCaptchaToken ? captcha : {}),
       });
       if (!result.success) {
@@ -151,8 +187,6 @@ export const SignupPage = () => {
       } catch (_e) {
         toast.warning('Compte créé, mais le dossier API sera finalisé au prochain écran.');
       }
-      // Mémoriser les réponses du signup : le questionnaire et les formulaires
-      // de formalité préremplissent ces champs au lieu de les redemander.
       saveProjectDraft({
         ...(draft || {}),
         data: {
@@ -170,7 +204,7 @@ export const SignupPage = () => {
           email: data.email,
           phone: data.phone,
           initiatorType: data.initiatorType,
-          initiatorName: data.initiatorName,
+          initiatorName,
         },
       });
       toast.success('Espace Greffio créé. Votre dossier est prêt à être piloté.');
@@ -182,7 +216,7 @@ export const SignupPage = () => {
 
   const onFormSubmit = async (event) => {
     event.preventDefault();
-    if (step < 4) {
+    if (currentStepId !== 'validation') {
       await advanceStep();
       return;
     }
@@ -195,8 +229,71 @@ export const SignupPage = () => {
     exit: { opacity: 0, x: -18, transition: { duration: 0.18 } },
   };
 
+  const renderIdentityFields = (singleField = null) => {
+    const showFirst = !singleField || singleField === 'firstName';
+    const showLast = !singleField || singleField === 'lastName';
+    return (
+      <div className={`grid gap-5 ${singleField ? '' : 'md:grid-cols-2'}`}>
+        {showFirst ? (
+          <div className="space-y-2">
+            <Label>Prénom</Label>
+            <Input {...register('firstName', { required: true })} placeholder="Votre prénom" className={authInputClass} />
+          </div>
+        ) : null}
+        {showLast ? (
+          <div className="space-y-2">
+            <Label>Nom</Label>
+            <Input {...register('lastName', { required: true })} placeholder="Votre nom" className={authInputClass} />
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
+  const renderAccountFields = (singleField = null) => {
+    const showEmail = !singleField || singleField === 'email';
+    const showPassword = !singleField || singleField === 'password';
+    return (
+      <div className={`grid gap-5 ${singleField ? '' : 'md:grid-cols-2'}`}>
+        {showEmail ? (
+          <div className="space-y-2">
+            <Label htmlFor="signup-email">Email</Label>
+            <Input
+              id="signup-email"
+              type="email"
+              className={authInputClass}
+              aria-invalid={Boolean(errors.email)}
+              aria-describedby={errors.email ? 'signup-email-error' : undefined}
+              {...register('email', { required: 'Indiquez votre email.' })}
+              placeholder="vous@entreprise.fr"
+            />
+            <FieldError id="signup-email-error">{errors.email?.message}</FieldError>
+          </div>
+        ) : null}
+        {showPassword ? (
+          <div className="space-y-2">
+            <Label htmlFor="signup-password">Mot de passe</Label>
+            <Input
+              id="signup-password"
+              type="password"
+              className={authInputClass}
+              aria-invalid={Boolean(errors.password)}
+              aria-describedby={errors.password ? 'signup-password-error' : undefined}
+              {...register('password', {
+                required: 'Indiquez un mot de passe.',
+                minLength: { value: 8, message: 'Minimum 8 caractères.' },
+              })}
+              placeholder="Minimum 8 caractères"
+            />
+            <FieldError id="signup-password-error">{errors.password?.message}</FieldError>
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`min-h-screen bg-background ${mobileAuth ? 'flex min-h-[100dvh] flex-col' : ''}`}>
       <header className="border-b border-border bg-white px-6 py-4">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <GreffioLogo variant="full" to="/" />
@@ -206,16 +303,16 @@ export const SignupPage = () => {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_390px] lg:px-8">
-        <section className="rounded-md border border-border bg-white shadow-elevation-md">
+      <main className={`mx-auto flex w-full max-w-7xl flex-1 gap-8 px-4 py-10 sm:px-6 ${mobileAuth ? 'pb-[calc(env(safe-area-inset-bottom)+1rem)]' : 'lg:grid lg:grid-cols-[1fr_390px] lg:px-8'}`}>
+        <section className={`rounded-md border border-border bg-white shadow-elevation-md ${mobileAuth ? 'w-full border-0 shadow-elevation-md sm:border sm:border-border' : ''}`}>
           <div className="h-2 bg-muted">
-            <div className="h-full bg-[hsl(var(--greffio-blue))] transition-all duration-300" style={{ width: `${(step / 4) * 100}%` }} />
+            <div className="h-full bg-[hsl(var(--greffio-blue))] transition-all duration-300" style={{ width: `${(step / stepCount) * 100}%` }} />
           </div>
 
           <form onSubmit={onFormSubmit} className="p-6 md:p-10 [&_input]:text-base md:[&_input]:text-sm [&_input]:min-h-12 md:[&_input]:min-h-10" noValidate>
             <AnimatePresence mode="wait">
-              {step === 1 && (
-                <motion.div key="step1" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-7">
+              {currentStepId === 'profile' && (
+                <motion.div key="profile" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-7">
                   <div>
                     <p className="text-sm font-bold uppercase text-primary">Profil</p>
                     <h1 className="mt-2 text-3xl font-extrabold">Qui utilisera <BrandName /> </h1>
@@ -234,8 +331,8 @@ export const SignupPage = () => {
                 </motion.div>
               )}
 
-              {step === 2 && (
-                <motion.div key="step2" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-7">
+              {currentStepId === 'service' && (
+                <motion.div key="service" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-7">
                   <div>
                     <p className="text-sm font-bold uppercase text-primary">Formalité</p>
                     <h1 className="mt-2 text-3xl font-extrabold">Choisissez le premier dossier.</h1>
@@ -253,78 +350,118 @@ export const SignupPage = () => {
                 </motion.div>
               )}
 
-              {step === 3 && (
-                <motion.div key="step3" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-7">
+              {currentStepId === 'initiator' && (
+                <motion.div key="initiator" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-7">
                   <div>
-                    <p className="text-sm font-bold uppercase text-primary">Identité</p>
-                    <h1 className="mt-2 text-3xl font-extrabold">Créez le compte et l’entreprise.</h1>
+                    <p className="text-sm font-bold uppercase text-primary">Porteur de projet</p>
+                    <h1 className="mt-2 text-3xl font-extrabold">Qui porte la démarche ?</h1>
                   </div>
-                  <div className="grid gap-5 md:grid-cols-2">
+                  <div className="space-y-5">
                     <div className="space-y-2">
                       <Label>La démarche est faite par</Label>
-                      <select {...register('initiatorType')} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+                      <select {...register('initiatorType')} className={`h-12 w-full rounded-md border border-input bg-background px-3 text-base md:h-9 md:text-sm`}>
                         <option value="personne_physique">Une personne physique</option>
                         <option value="personne_morale">Une personne morale</option>
                       </select>
                     </div>
-                    <div className="space-y-2">
-                      <Label>{initiatorType === 'personne_morale' ? 'Société demandeuse' : 'Nom du demandeur'}</Label>
-                      <Input {...register('initiatorName')} placeholder={initiatorType === 'personne_morale' ? 'Ex : société porteuse du projet' : 'Nom complet du demandeur'} />
-                    </div>
-                    {initiatorType === 'personne_morale' && (
-                      <div className="space-y-2">
-                        <Label>Forme de la société demandeuse</Label>
-                        <select {...register('initiatorLegalForm')} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
-                          {['SA', 'SAS', 'SASU', 'SARL', 'EURL', 'SCI', 'Association', 'Autre'].map((item) => (
-                            <option key={item} value={item}>{item}</option>
-                          ))}
-                        </select>
-                      </div>
+                    {initiatorType === 'personne_morale' ? (
+                      <>
+                        <div className="space-y-2">
+                          <Label>Société demandeuse</Label>
+                          <Input {...register('initiatorName', { required: true })} placeholder="Ex : société porteuse du projet" className={authInputClass} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Forme de la société demandeuse</Label>
+                          <select {...register('initiatorLegalForm')} className="h-12 w-full rounded-md border border-input bg-background px-3 text-base md:h-9 md:text-sm">
+                            {['SA', 'SAS', 'SASU', 'SARL', 'EURL', 'SCI', 'Association', 'Autre'].map((item) => (
+                              <option key={item} value={item}>{item}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-sm leading-6 text-muted-foreground">
+                        Votre identité sera renseignée aux étapes suivantes (prénom et nom séparés).
+                      </p>
                     )}
-                    <div className="space-y-2">
-                      <Label>Prénom</Label>
-                      <Input {...register('firstName', { required: true })} placeholder="Votre prénom" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Nom</Label>
-                      <Input {...register('lastName', { required: true })} placeholder="Votre nom" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-email">Email</Label>
-                      <Input
-                        id="signup-email"
-                        type="email"
-                        className={authInputClass}
-                        aria-invalid={Boolean(errors.email)}
-                        aria-describedby={errors.email ? 'signup-email-error' : undefined}
-                        {...register('email', { required: 'Indiquez votre email.' })}
-                        placeholder="vous@entreprise.fr"
-                      />
-                      <FieldError id="signup-email-error">{errors.email?.message}</FieldError>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-password">Mot de passe</Label>
-                      <Input
-                        id="signup-password"
-                        type="password"
-                        className={authInputClass}
-                        aria-invalid={Boolean(errors.password)}
-                        aria-describedby={errors.password ? 'signup-password-error' : undefined}
-                        {...register('password', {
-                          required: 'Indiquez un mot de passe.',
-                          minLength: { value: 8, message: 'Minimum 8 caractères.' },
-                        })}
-                        placeholder="Minimum 8 caractères"
-                      />
-                      <FieldError id="signup-password-error">{errors.password?.message}</FieldError>
-                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {currentStepId === 'firstName' && (
+                <motion.div key="firstName" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-7">
+                  <div>
+                    <p className="text-sm font-bold uppercase text-primary">Identité</p>
+                    <h1 className="mt-2 text-3xl font-extrabold">Votre prénom</h1>
+                  </div>
+                  {renderIdentityFields('firstName')}
+                </motion.div>
+              )}
+
+              {currentStepId === 'lastName' && (
+                <motion.div key="lastName" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-7">
+                  <div>
+                    <p className="text-sm font-bold uppercase text-primary">Identité</p>
+                    <h1 className="mt-2 text-3xl font-extrabold">Votre nom</h1>
+                  </div>
+                  {renderIdentityFields('lastName')}
+                </motion.div>
+              )}
+
+              {currentStepId === 'identity' && (
+                <motion.div key="identity" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-7">
+                  <div>
+                    <p className="text-sm font-bold uppercase text-primary">Identité</p>
+                    <h1 className="mt-2 text-3xl font-extrabold">Vos coordonnées personnelles</h1>
+                  </div>
+                  {renderIdentityFields()}
+                </motion.div>
+              )}
+
+              {currentStepId === 'email' && (
+                <motion.div key="email" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-7">
+                  <div>
+                    <p className="text-sm font-bold uppercase text-primary">Compte</p>
+                    <h1 className="mt-2 text-3xl font-extrabold">Votre email</h1>
+                  </div>
+                  {renderAccountFields('email')}
+                </motion.div>
+              )}
+
+              {currentStepId === 'password' && (
+                <motion.div key="password" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-7">
+                  <div>
+                    <p className="text-sm font-bold uppercase text-primary">Compte</p>
+                    <h1 className="mt-2 text-3xl font-extrabold">Choisissez un mot de passe</h1>
+                  </div>
+                  {renderAccountFields('password')}
+                </motion.div>
+              )}
+
+              {currentStepId === 'account' && (
+                <motion.div key="account" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-7">
+                  <div>
+                    <p className="text-sm font-bold uppercase text-primary">Compte</p>
+                    <h1 className="mt-2 text-3xl font-extrabold">Identifiants de connexion</h1>
+                  </div>
+                  {renderAccountFields()}
+                </motion.div>
+              )}
+
+              {currentStepId === 'company' && (
+                <motion.div key="company" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-7">
+                  <div>
+                    <p className="text-sm font-bold uppercase text-primary">Entreprise</p>
+                    <h1 className="mt-2 text-3xl font-extrabold">Créez le dossier initial.</h1>
+                  </div>
+                  <div className="grid gap-5 md:grid-cols-2">
                     <div className="space-y-2 md:col-span-2">
                       <Label>Nom de l’entreprise ou du client</Label>
-                      <Input {...register('companyName', { required: true })} placeholder="Nom du projet ou de l’entreprise" />
+                      <Input {...register('companyName', { required: true })} placeholder="Nom du projet ou de l’entreprise" className={authInputClass} />
                     </div>
                     <div className="space-y-2">
                       <Label>Forme juridique</Label>
-                      <select {...register('legalStructure')} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+                      <select {...register('legalStructure')} className="h-12 w-full rounded-md border border-input bg-background px-3 text-base md:h-9 md:text-sm">
                         {legalStructureGroups.map((group) => (
                           <optgroup key={group.category} label={group.category}>
                             {group.forms.map((form) => (
@@ -336,18 +473,18 @@ export const SignupPage = () => {
                     </div>
                     <div className="space-y-2">
                       <Label>Ville / pays</Label>
-                      <Input {...register('location')} placeholder="Paris, France" />
+                      <Input {...register('location')} placeholder="Paris, France" className={authInputClass} />
                     </div>
                     <div className="space-y-2 md:col-span-2">
                       <Label>Activité principale</Label>
-                      <Input {...register('activity')} placeholder="Conseil, commerce, restauration, immobilier..." />
+                      <Input {...register('activity')} placeholder="Conseil, commerce, restauration, immobilier..." className={authInputClass} />
                     </div>
                   </div>
                 </motion.div>
               )}
 
-              {step === 4 && (
-                <motion.div key="step4" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-7">
+              {currentStepId === 'validation' && (
+                <motion.div key="validation" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-7">
                   <div>
                     <p className="text-sm font-bold uppercase text-primary">Validation</p>
                     <h1 className="mt-2 text-3xl font-extrabold">Votre espace est prêt.</h1>
@@ -356,7 +493,7 @@ export const SignupPage = () => {
                   <div className="rounded-md border border-border bg-muted p-5 text-sm">
                     <div className="grid gap-3 md:grid-cols-2">
                       <p><span className="text-muted-foreground">Profil :</span> <strong>{selectedProfile === 'pro' ? 'Professionnel' : 'Client entrepreneur'}</strong></p>
-                      <p><span className="text-muted-foreground">Formalité :</span> <strong>{selectedOffer.title}</strong></p>
+                      <p><span className="text-muted-foreground">Formalité :</span> <strong>{selectedOffer?.title}</strong></p>
                       <p><span className="text-muted-foreground">Compte :</span> <strong>{watch('firstName')} {watch('lastName')}</strong></p>
                       <p><span className="text-muted-foreground">Entreprise :</span> <strong>{watch('companyName')}</strong></p>
                     </div>
@@ -398,39 +535,41 @@ export const SignupPage = () => {
               <Button
                 type="submit"
                 size="lg"
-                disabled={submitting || (step === 4 && !acceptedTerms) || (step === 4 && showSignupChallenge && !hasCaptchaToken)}
+                disabled={submitting || (currentStepId === 'validation' && !acceptedTerms) || (currentStepId === 'validation' && showSignupChallenge && !hasCaptchaToken)}
                 className="gap-2 shadow-[0_8px_20px_rgba(30,77,140,0.18)] hover:translate-y-0 hover:shadow-[0_10px_24px_rgba(30,77,140,0.2)]"
               >
-                {submitting ? 'Création en cours…' : step === 4 ? 'Ouvrir mon dashboard' : 'Continuer'}
+                {submitting ? 'Création en cours…' : currentStepId === 'validation' ? 'Ouvrir mon dashboard' : 'Continuer'}
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           </form>
         </section>
 
-        <aside className="space-y-4">
-          <div className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
-            <ShieldCheck className="mb-4 h-7 w-7 text-primary" />
-            <h2 className="text-xl font-extrabold">Ce qui sera créé</h2>
-            <div className="mt-5 space-y-3 text-sm text-muted-foreground">
-              {['Dashboard client', 'Dossier initial', 'Checklist documentaire', 'Fil équipe-client', 'Planning de conformité'].map((item) => (
-                <div key={item} className="flex items-center gap-3">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                  <span>{item}</span>
-                </div>
-              ))}
+        {!mobileAuth ? (
+          <aside className="space-y-4">
+            <div className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
+              <ShieldCheck className="mb-4 h-7 w-7 text-primary" />
+              <h2 className="text-xl font-extrabold">Ce qui sera créé</h2>
+              <div className="mt-5 space-y-3 text-sm text-muted-foreground">
+                {['Dashboard client', 'Dossier initial', 'Checklist documentaire', 'Fil équipe-client', 'Planning de conformité'].map((item) => (
+                  <div key={item} className="flex items-center gap-3">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-          <div className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
-            <CreditCard className="mb-4 h-7 w-7 text-primary" />
-            <h2 className="text-xl font-extrabold">Paiement sécurisé</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">Paiement sécurisé Google Pay ou carte bancaire, avec retour sécurisé dans votre espace Greffio.</p>
-          </div>
-          <div className="rounded-md bg-[hsl(var(--greffio-blue))] p-5 text-white shadow-elevation-md">
-            <p className="text-sm font-bold">Équipe <BrandName /></p>
-            <p className="mt-2 text-sm leading-6 text-white/92">L’équipe <BrandName /> peut demander une pièce, commenter un document et suivre l’avancement directement dans votre espace.</p>
-          </div>
-        </aside>
+            <div className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
+              <CreditCard className="mb-4 h-7 w-7 text-primary" />
+              <h2 className="text-xl font-extrabold">Paiement sécurisé</h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">Paiement sécurisé Google Pay ou carte bancaire, avec retour sécurisé dans votre espace Greffio.</p>
+            </div>
+            <div className="rounded-md bg-[hsl(var(--greffio-blue))] p-5 text-white shadow-elevation-md">
+              <p className="text-sm font-bold">Équipe <BrandName /></p>
+              <p className="mt-2 text-sm leading-6 text-white/92">L’équipe <BrandName /> peut demander une pièce, commenter un document et suivre l’avancement directement dans votre espace.</p>
+            </div>
+          </aside>
+        ) : null}
       </main>
     </div>
   );

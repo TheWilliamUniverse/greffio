@@ -28,6 +28,7 @@ import { DossierMessageThread } from '@/components/messaging/DossierMessageThrea
 import {
   documentHasFile,
   filterClientActionRequiredDocuments,
+  filterClientVisibleDocuments,
   formatDocumentRejectionHint,
   getClientDocumentReviewHint,
   resolveClientDocumentStatus,
@@ -79,7 +80,7 @@ const mapDossierFromApi = (d) => {
   };
 };
 
-const mapDocumentsFromApi = (documents = [], { internalView = false } = {}) => documents.map((doc) => {
+const mapDocumentsFromApi = (documents = [], { internalView = false } = {}) => filterClientVisibleDocuments(documents).map((doc) => {
   const metadata = parseJsonField(doc.metadata, {});
   const hasFile = documentHasFile(doc);
   const rawStatus = String(doc.status || '').toUpperCase();

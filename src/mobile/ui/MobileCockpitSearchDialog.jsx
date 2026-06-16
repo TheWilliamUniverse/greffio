@@ -18,7 +18,6 @@ const COCKPIT_DOCUMENT_KEYS = [
   'manager_non_conviction',
   'subscribers_list',
   'formality_powers',
-  'filiation_declaration',
   'regulated_activity_proof',
   'minor_emancipation_order',
   'minor_parental_authorization',

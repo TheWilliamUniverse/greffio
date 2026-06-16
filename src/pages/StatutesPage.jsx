@@ -22,6 +22,7 @@ import { isEiLikeFormality } from '@/config/formalities.js';
 import { downloadStatutesOfficeExport } from '@/utils/statutesOfficeExport.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
+import { mapDocumentPreviewError, normalizePdfBlob, savePdfBlobToDevice } from '@/utils/dossierDocumentFile.js';
 import { useMobileSafeBottomPadding } from '@/hooks/useMobileSafeBottomPadding.js';
 import { cn } from '@/lib/utils.js';
 import { QUESTIONNAIRE_NEW_PATH, questionnaireResumePath } from '@/utils/questionnaireNavigation.js';
@@ -264,14 +265,13 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
     if (!dossierId) return;
     try {
       const blob = await downloadStatutesPdf(dossierId, { cacheBust: true });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'Statuts_Greffio.pdf';
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (_error) {
-      toast.error('Aucun PDF de statuts disponible.');
+      const pdfBlob = await normalizePdfBlob(blob);
+      await savePdfBlobToDevice(pdfBlob, 'Statuts_Greffio.pdf');
+      if (isCapacitorNative()) {
+        toast.success('PDF enregistré sur votre appareil.');
+      }
+    } catch (error) {
+      toast.error(mapDocumentPreviewError(error) || 'Aucun PDF de statuts disponible.');
     }
   };
 

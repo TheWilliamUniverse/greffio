@@ -31,7 +31,7 @@ import { getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.
 import { DossierVaultPickerOverlay } from '@/components/dossiers/DossierVaultPickerOverlay.jsx';
 import { isInternalUser } from '@/utils/roles.js';
 import { getDocumentStatusLabel, getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
-import { documentHasFile, formatDocumentRejectionHint, resolveClientDocumentStatus } from '@/utils/documentWorkflow.js';
+import { documentHasFile, filterClientVisibleDocuments, formatDocumentRejectionHint, resolveClientDocumentStatus } from '@/utils/documentWorkflow.js';
 import { isDocumentPreviewAction } from '@/utils/dossierDocumentFile.js';
 import { isCapacitorNative } from '@/utils/platform.js';
 import { isEiLikeFormality } from '@/config/formalities.js';
@@ -110,7 +110,7 @@ export const MobileDocumentsPage = () => {
   };
 
   const documents = useMemo(() => {
-    const apiDocuments = dossierPayload?.documents || [];
+    const apiDocuments = filterClientVisibleDocuments(dossierPayload?.documents || []);
     return apiDocuments.map((item) => {
       const label = getDocumentTypeLabel(item.docKey, item.label);
       const hasFile = documentHasFile(item);
