@@ -1,24 +1,25 @@
 /**
  * Configuration du système de mise à jour de l'application mobile Greffio.
  *
- * Cette configuration est consommée par la route `GET /api/app-version` et
- * pilote la stratégie de notification de mise à jour côté Android :
- *  - `latestVersionCode`        : dernier versionCode publié sur le Play Store ;
- *  - `minimumRequiredVersionCode` : versionCode en-dessous duquel la MAJ
- *                                   devient obligatoire (mode bloquant) ;
- *  - `latestVersionName`        : libellé sémantique affiché à l'utilisateur ;
- *  - `playStoreUrl`             : lien Play Store officiel (prioritaire) ;
- *  - `updateUrl`                : lien APK externe (fallback hors Play Store) ;
- *  - `title` / `message`        : copie affichée dans la modale ;
- *  - `changelog`                : liste de bullets affichées dans la modale ;
- *  - `optionalReminderHours`    : délai minimum avant de réafficher une MAJ
- *                                 optionnelle après un "Plus tard".
+ * Règle ops : ne monter `PUBLISHED_*` que lorsque la version est **effectivement
+ * publiée sur le Play Store** (confirmation explicite du porteur : « j'ai posté »).
+ * Un AAB préparé en local ne doit jamais déclencher la modale.
  *
- * Toutes les valeurs sont surchargeables par variable d'environnement, ce qui
- * permet aux ops de pousser une nouvelle version sans redéploiement de code.
+ * Consommé par `GET /api/app-version` :
+ *  - `latestVersionCode` / `latestVersionName` : dernière version Play Store publiée ;
+ *  - `minimumRequiredVersionCode` : en-dessous → MAJ obligatoire (bloquante) ;
+ *  - `playStoreUrl`, `updateUrl`, `title`, `message`, `changelog` ;
+ *  - `optionalReminderHours` : délai avant de réafficher une MAJ optionnelle.
+ *
+ * Les variables `APP_LATEST_VERSION_*` sont ignorées volontairement pour éviter
+ * une annonce prématurée depuis le .env VPS.
  */
 
 const PLAY_STORE_DEFAULT = 'https://play.google.com/store/apps/details?id=com.greffio.app';
+
+/** Dernière version réellement publiée sur le Play Store — ne monter qu'après « j'ai posté ». */
+const PUBLISHED_VERSION_CODE = 261510017;
+const PUBLISHED_VERSION_NAME = '1.2.18';
 
 const parseIntStrict = (value, fallback) => {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -34,30 +35,27 @@ const parseChangelog = (value) => {
     .filter(Boolean);
 };
 
-const DEFAULT_LATEST_VERSION_CODE = 261510018;
 const DEFAULT_MIN_VERSION_CODE = 261422041;
-const DEFAULT_LATEST_VERSION_NAME = '1.2.19';
 
-const DEFAULT_CHANGELOG = [
-  'Signature mobile dédiée',
-  'Paiement : vérification après retour Mollie',
-  'Questionnaire pas-à-pas et reprise douce (soft-continue)',
-  'Formulaires : respect des safe-area sur mobile',
-  'Statuts et PDF : ouverture via le lecteur système',
-  'Documents signés lisibles, procuration améliorée',
-  'Inscription progressive',
+const PUBLISHED_CHANGELOG = [
+  'Icône Greffio sur l’écran d’accueil',
+  'PDF : ouverture et enregistrement via le lecteur système',
+  'Questionnaire : choix de forme juridique plus clair',
+  'Paiement mobile optimisé',
 ];
 
 export const getAppVersionConfig = () => ({
-  latestVersionCode: parseIntStrict(process.env.APP_LATEST_VERSION_CODE, DEFAULT_LATEST_VERSION_CODE),
+  latestVersionCode: PUBLISHED_VERSION_CODE,
+  latestVersionName: PUBLISHED_VERSION_NAME,
+  publishedVersionCode: PUBLISHED_VERSION_CODE,
+  publishedVersionName: PUBLISHED_VERSION_NAME,
   minimumRequiredVersionCode: parseIntStrict(process.env.APP_MIN_VERSION_CODE, DEFAULT_MIN_VERSION_CODE),
-  latestVersionName: process.env.APP_LATEST_VERSION_NAME || DEFAULT_LATEST_VERSION_NAME,
   playStoreUrl: process.env.APP_PLAY_STORE_URL || PLAY_STORE_DEFAULT,
   updateUrl: process.env.APP_UPDATE_URL || null,
   title: process.env.APP_UPDATE_TITLE || 'Nouvelle version disponible',
   message:
     process.env.APP_UPDATE_MESSAGE
     || "Une nouvelle version de Greffio est disponible avec des corrections et améliorations.",
-  changelog: parseChangelog(process.env.APP_UPDATE_CHANGELOG) || DEFAULT_CHANGELOG,
+  changelog: parseChangelog(process.env.APP_UPDATE_CHANGELOG) || PUBLISHED_CHANGELOG,
   optionalReminderHours: parseIntStrict(process.env.APP_UPDATE_OPTIONAL_REMINDER_HOURS, 24),
 });

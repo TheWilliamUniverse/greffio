@@ -1,5 +1,7 @@
 # Greffio Android - release 1.2.19 (P0/P1 mobile + web prod)
 
+> **Statut : non publiée sur le Play Store** (AAB préparé localement). Ne pas annoncer via `/api/app-version` tant que le porteur n'a pas confirmé la publication.
+
 - **versionName** : `1.2.19`
 - **versionCode** : `261510018`
 - **Mode Capacitor** : **remote** (`server.url` → site live)
@@ -32,4 +34,7 @@ Déjà déployé (phases 1+2) avant cette release — pas de redéploiement web 
 
 ## API app-version
 
-Mettre à jour le VPS (`APP_LATEST_VERSION_CODE` / `APP_LATEST_VERSION_NAME`) ou déployer `server/config/appVersion.js` pour que `/api/app-version` annonce `1.2.19` (MAJ optionnelle, `minimumRequiredVersionCode` = `261422041`).
+Ne pas annoncer tant que la version n'est pas sur le Play Store. Après publication confirmée :
+1. Monter `PUBLISHED_VERSION_CODE` / `PUBLISHED_VERSION_NAME` dans `server/config/appVersion.js` ;
+2. Mettre à jour le changelog dans le même fichier ;
+3. Déployer le VPS (`scripts/vps-full-deploy.ps1`).
