@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ExternalLink, FileText, Mail, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { Sidebar } from '@/components/Sidebar.jsx';
@@ -51,6 +51,7 @@ const normalizeFields = (fields = {}) => {
 
 export const NonConvictionDeclarationPage = () => {
   const { dossierId } = useParams();
+  const navigate = useNavigate();
   const [fields, setFields] = useState(null);
   const [loadStatus, setLoadStatus] = useState('loading');
   const [loadError, setLoadError] = useState('');
@@ -339,8 +340,9 @@ export const NonConvictionDeclarationPage = () => {
                 anchor.click();
                 URL.revokeObjectURL(url);
               }}
-              onContinue={() => setSignedResult(null)}
+              onContinue={() => navigate('/documents')}
               continueLabel="Continuer l'édition"
+              validationNotchOnContinue
             />
           </div>
         ) : null}

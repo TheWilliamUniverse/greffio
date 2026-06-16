@@ -149,6 +149,7 @@ export const DocumentSignPage = () => {
             previewFilename="document-signe-greffio.pdf"
             onContinue={() => navigate('/documents')}
             continueLabel="Retour aux documents"
+            validationNotchOnContinue
           />
         </main>
       </div>

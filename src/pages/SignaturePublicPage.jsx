@@ -190,6 +190,7 @@ export const SignaturePublicPage = () => {
           secondaryHref={getPublicProofCertificateUrl(token)}
           continueHref={`${runtimeConfig.appUrl}/documents`}
           continueLabel="Fermer"
+          validationNotchOnContinue
         />
       </div>
     );

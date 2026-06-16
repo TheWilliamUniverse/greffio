@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { Sidebar } from '@/components/Sidebar.jsx';
@@ -47,6 +47,7 @@ const mapError = (error) => {
 
 export const FormalityPowersPage = () => {
   const { dossierId } = useParams();
+  const navigate = useNavigate();
   const [fields, setFields] = useState(null);
   const [loadStatus, setLoadStatus] = useState('loading');
   const [loadError, setLoadError] = useState('');
@@ -332,8 +333,9 @@ export const FormalityPowersPage = () => {
                 anchor.click();
                 URL.revokeObjectURL(url);
               }}
-              onContinue={() => setSignedResult(null)}
+              onContinue={() => navigate('/documents')}
               continueLabel="Continuer l'édition"
+              validationNotchOnContinue
             />
           </div>
         ) : null}

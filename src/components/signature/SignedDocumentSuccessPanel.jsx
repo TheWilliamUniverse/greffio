@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, Download, ExternalLink, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { PdfPreviewPanel } from '@/components/documents/PdfPreviewPanel.jsx';
+import { SignatureValidationNotch } from '@/components/signature/SignatureValidationNotch.jsx';
+import { triggerMobileHaptic } from '@/utils/mobileHaptics.js';
 import { cn } from '@/lib/utils.js';
+
+export const SIGNATURE_CONTINUE_VALIDATION_MS = 1400;
 
 const formatFrenchDateTime = (value) => {
   if (!value) return null;
@@ -34,11 +38,75 @@ export const SignedDocumentSuccessPanel = ({
   onContinue,
   continueLabel = 'Retour aux documents',
   continueHref = '/documents',
+  validationNotchOnContinue = false,
+  continueRedirectDelayMs = SIGNATURE_CONTINUE_VALIDATION_MS,
   className = '',
   layout = 'page',
 }) => {
   const signedAtLabel = formatFrenchDateTime(signedAt);
   const isPage = layout === 'page';
+  const [validating, setValidating] = useState(false);
+  const continueTimerRef = useRef(null);
+
+  useEffect(() => () => {
+    if (continueTimerRef.current) window.clearTimeout(continueTimerRef.current);
+  }, []);
+
+  const runContinueWithValidation = (action) => {
+    if (!validationNotchOnContinue) {
+      action();
+      return;
+    }
+    setValidating(true);
+    void triggerMobileHaptic('success');
+    continueTimerRef.current = window.setTimeout(() => {
+      action();
+    }, continueRedirectDelayMs);
+  };
+
+  const handleContinueClick = () => {
+    if (!onContinue) return;
+    runContinueWithValidation(onContinue);
+  };
+
+  const handleContinueHref = () => {
+    if (!continueHref) return;
+    runContinueWithValidation(() => {
+      if (/^https?:\/\//i.test(continueHref)) {
+        window.location.assign(continueHref);
+        return;
+      }
+      window.location.assign(continueHref);
+    });
+  };
+
+  if (validating) {
+    return (
+      <div
+        className={cn(
+          isPage
+            ? 'flex min-h-[calc(100dvh-8rem)] flex-col items-center justify-center py-6 text-center'
+            : 'rounded-2xl border border-border/70 bg-white p-6 shadow-elevation-sm',
+          className,
+        )}
+        role="status"
+        aria-live="polite"
+        aria-label="Document validé"
+      >
+        <article className="relative mx-auto w-full max-w-md overflow-hidden rounded-2xl border border-border bg-white px-6 py-10 pr-20 text-left shadow-elevation-md sm:pr-24">
+          <SignatureValidationNotch className="absolute right-0 top-5 animate-in fade-in slide-in-from-right-4 duration-300" />
+          <p className="text-xs font-bold uppercase tracking-wide text-primary">Validation Greffio</p>
+          <h1 className="mt-2 text-xl font-extrabold text-foreground">Document validé et enregistré</h1>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            {documentLabel
+              ? `« ${documentLabel} » a bien été signé et ajouté à votre dossier.`
+              : 'Votre signature a bien été enregistrée dans le dossier.'}
+          </p>
+          <p className="mt-4 text-xs text-muted-foreground">Redirection vers vos documents…</p>
+        </article>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -130,13 +198,13 @@ export const SignedDocumentSuccessPanel = ({
           </Button>
         ) : null}
         {onContinue ? (
-          <Button type="button" variant="ghost" className="h-11" onClick={onContinue}>
+          <Button type="button" variant="ghost" className="h-11" onClick={handleContinueClick}>
             {continueLabel}
           </Button>
         ) : null}
         {!onContinue && continueHref ? (
-          <Button asChild variant="ghost" className="h-11">
-            <a href={continueHref}>{continueLabel}</a>
+          <Button type="button" variant="ghost" className="h-11" onClick={handleContinueHref}>
+            {continueLabel}
           </Button>
         ) : null}
       </div>
