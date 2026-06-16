@@ -7,6 +7,7 @@ import { mapStatutesDataToRenderContext } from '../mappers/mapStatutesDataToRend
 import { renderWilliamSas2026Blocks, countWilliamArticles, estimatePageCount } from '../renderers/renderWilliamSas2026.js';
 import { validateGeneratedStatuts } from '../validators/validateGeneratedStatuts.js';
 import { generateStatutesDocument } from '../index.js';
+import { buildPowersAnnexe } from '../../legal/statutes/shared/annexes.js';
 import { joinStatutesArticleBody, classifyStatutesSubheading } from '../shared/normalizeStatutesParagraphs.js';
 import { formatLegalEntityAssociateDescription } from '../shared/formatLegalEntityAssociate.js';
 import { buildWilliamCover } from '../../legal/statutes/reference/williamHelpers.js';
@@ -538,4 +539,12 @@ test('deriveStatutsCapitalModel – montant libéré incompatible avec taux bloq
     }),
     (error) => error.code === 'STATUTES_CAPITAL_INCONSISTENT',
   );
+});
+
+test('buildPowersAnnexe – aligné procuration (elle, sans annonce légale)', () => {
+  const annex = buildPowersAnnexe({ mandataire: 'WILLIAM ESTABLISHMENTS' });
+  const joined = annex.paragraphs.join(' ');
+  assert.match(joined, /qu'elle désignera/);
+  assert.doesNotMatch(joined, /annonce légale/i);
+  assert.ok(annex.paragraphs.some((line) => /guichet unique/i.test(line)));
 });

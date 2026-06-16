@@ -1,6 +1,7 @@
 import React from 'react';
 import { QuestionBackButton } from '@/components/questionnaire/QuestionBackButton.jsx';
 import { QuestionContinueButton } from '@/components/questionnaire/QuestionContinueButton.jsx';
+import { MobileStickyFormActions } from '@/mobile/ui/MobileStickyFormActions.jsx';
 import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 import { cn } from '@/lib/utils.js';
 
@@ -25,15 +26,8 @@ export const StepLayout = ({
   const nativeApp = isCapacitorNative();
   const mobileShell = nativeApp || isMobileBrowserViewport();
   const tapToAdvanceMobile = mobileShell && hideContinueButton;
-  const bottomNavVar = nativeApp ? 'var(--bottom-nav-height)' : 'var(--bottom-nav-height-web, 3.5rem)';
-  const stickyBottomStyle = mobileShell && !tapToAdvanceMobile
-    ? { bottom: `calc(${bottomNavVar} + env(safe-area-inset-bottom))` }
-    : undefined;
   const actionBarClass = mobileShell
-    ? cn(
-      'border-t border-border bg-white/95 px-4 py-4 backdrop-blur-sm md:static md:bg-background md:px-6 md:py-5 md:backdrop-blur-none lg:px-8',
-      'sticky z-20',
-    )
+    ? 'border-t border-border bg-white/95 px-4 py-4 backdrop-blur-sm md:static md:bg-background md:px-6 md:py-5 md:backdrop-blur-none lg:px-8'
     : 'flex flex-wrap items-center justify-between gap-3 border-t border-border bg-background px-6 py-5 md:px-8';
 
   return (
@@ -103,12 +97,24 @@ export const StepLayout = ({
     </div>
 
     {!tapToAdvanceMobile ? (
-      <div className={cn(actionBarClass, 'flex flex-wrap items-center justify-between gap-3')} style={stickyBottomStyle}>
-        <QuestionBackButton type="button" onClick={onBack} disabled={!canGoBack} />
-        {!hideContinueButton ? (
-          <QuestionContinueButton type="button" label={continueLabel} onClick={onNext} disabled={!canGoNext} />
-        ) : null}
-      </div>
+      mobileShell ? (
+        <MobileStickyFormActions
+          aboveBottomNav
+          innerClassName="flex-row flex-wrap items-center justify-between gap-3"
+        >
+          <QuestionBackButton type="button" onClick={onBack} disabled={!canGoBack} />
+          {!hideContinueButton ? (
+            <QuestionContinueButton type="button" label={continueLabel} onClick={onNext} disabled={!canGoNext} />
+          ) : null}
+        </MobileStickyFormActions>
+      ) : (
+        <div className={cn(actionBarClass, 'flex flex-wrap items-center justify-between gap-3')}>
+          <QuestionBackButton type="button" onClick={onBack} disabled={!canGoBack} />
+          {!hideContinueButton ? (
+            <QuestionContinueButton type="button" label={continueLabel} onClick={onNext} disabled={!canGoNext} />
+          ) : null}
+        </div>
+      )
     ) : null}
   </section>
   );

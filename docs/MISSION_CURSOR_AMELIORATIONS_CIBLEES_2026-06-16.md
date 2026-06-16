@@ -317,8 +317,8 @@ Documenter seulement ; pas d'exécution bulk :
 | 1 | Signature mobile shell | DocumentSignPage, MobileSignableDocumentShell | Signature complète Android | **Fait** |
 | 2 | Cloche notifications backend | Header, DashboardPage, API summary | Badge dossiers actifs réels | **Fait** |
 | 3 | Paiement vérification polling | PaymentVerificationPage, paymentsRoutes | Statut paid affiché < 30 s | **Fait** |
-| 4 | CGV terminal paiement | GreffioPaymentTerminal | Texte visible sans scroll | À faire |
-| 5 | Sticky questionnaire safe-area | QuestionnairePage, MobileStickyFormActions | Champs pas cachés par nav | À faire |
+| 4 | CGV terminal paiement | GreffioPaymentTerminal | Texte visible sans scroll | **Fait** |
+| 5 | Sticky questionnaire safe-area | QuestionnairePage, MobileStickyFormActions | Champs pas cachés par nav | **Fait** |
 | 6 | **Correctifs juin 16** | StatutesPage, SignupPage, store.js | Voir section 8 | **Fait** |
 | 7 | Dossiers PC cliquables | DashboardPage | Lien `/dossier/:id` | **Fait** |
 

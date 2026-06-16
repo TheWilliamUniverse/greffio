@@ -3,6 +3,7 @@ import path from 'node:path';
 import { PDFDocument } from 'pdf-lib';
 import { formatFrenchDate } from './nonConvictionPdf.js';
 import { buildDocumentVerifyUrl } from '../services/documentIntegrityService.js';
+import { FORMALITY_POWERS_BULLETS } from '../legal/statutes/shared/annexes.js';
 import {
   CONTENT_WIDTH,
   COLOR_MUTED,
@@ -141,12 +142,7 @@ export const generateFormalityPowersPdf = async ({
 
   const bullets = (fields.paragraphs && fields.paragraphs.length > 1)
     ? fields.paragraphs.slice(1).map((item) => String(item).replace(/^•\s*/, '').trim())
-    : [
-      'procéder à la signature électronique des pièces lorsque la loi l\'autorise ;',
-      'effectuer le dépôt au greffe compétent et les formalités au guichet unique ;',
-      'demander l\'immatriculation et répondre aux demandes de compléments du greffe ;',
-      'corriger, compléter ou régulariser le dossier dans l\'intérêt de la Société.',
-    ];
+    : FORMALITY_POWERS_BULLETS.map((item) => String(item).replace(/^•\s*/, '').trim());
 
   bullets.forEach((bullet) => {
     const lines = wrapTextByWidth(bullet, font, SIZE_BODY, CONTENT_WIDTH - 18);

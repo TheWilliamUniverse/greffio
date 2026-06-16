@@ -1,19 +1,37 @@
-import { SECURITY_LABELS, usesActions } from './formatting.js';
+import { usesActions } from './formatting.js';
 import { formatFrInteger, parseFrenchAmount } from '../../../statuts/shared/numberFormat.js';
 import { deriveStatutsCapitalModel } from '../../../statuts/shared/deriveStatutsCapital.js';
+import { resolveGlobalLiberationPercent } from '../../../statuts/shared/parseLiberationPercent.js';
+import {
+  formatStatutesPersonDisplayName,
+  isLegalEntityParty,
+  sortAssociatesStatutesCanon,
+} from '../../../shared/partyIdentityFormatter.js';
+
+const resolveAssociateAnnexeLabel = (associate = {}) => (
+  isLegalEntityParty(associate)
+    ? (associate.companyName || associate.label || 'Société associée')
+    : formatStatutesPersonDisplayName(associate)
+);
 
 export const buildCapitalAnnexe = (data) => {
   const isAction = usesActions(data.legalForm);
   const unitLabel = isAction ? 'Nombre d’actions' : 'Nombre de parts sociales';
   const capitalAmount = parseFrenchAmount(data.capital) || parseFrenchAmount(data.capitalRaw);
   const shareCount = parseFrenchAmount(data.nombreTitres) || capitalAmount;
-  const liberationPercent = parseFrenchAmount(String(data.liberationCapital || '50 %').replace('%', '')) || 50;
+  const liberationPercent = resolveGlobalLiberationPercent({
+    liberationCapital: data.liberationCapital,
+    liberationRate: data.liberationRate,
+    liberationCapitalAutre: data.liberationCapitalAutre,
+    liberationCapitalCustom: data.liberationCapitalCustom,
+    liberationCapitalDetail: data.liberationCapitalDetail,
+  });
   const model = deriveStatutsCapitalModel({
     capitalAmount,
     shareCount,
     nominalValue: parseFrenchAmount(data.valeurNominale) || null,
     liberationPercent,
-    associates: data.associates || [],
+    associates: sortAssociatesStatutesCanon(data.associates || []),
   });
 
   return {
@@ -27,7 +45,7 @@ export const buildCapitalAnnexe = (data) => {
     table: {
       headers: ['Associé', unitLabel, 'Valeur nominale', 'Montant souscrit', 'Pourcentage'],
       rows: model.associatesComputed.map((associate) => [
-        associate.label || associate.fullName || associate.companyName,
+        resolveAssociateAnnexeLabel(associate),
         formatFrInteger(associate.shares),
         `${model.nominalValueFormatted} €`,
         `${formatFrInteger(associate.subscribedAmount)} €`,
@@ -63,17 +81,24 @@ export const buildActsAnnexe = (data) => {
   };
 };
 
-export const buildPowersAnnexe = (data) => ({
-  title: 'Annexe 3 – Pouvoirs pour formalités',
-  paragraphs: [
-    `Les pouvoirs sont expressément conférés à ${data.mandataire || 'WILLIAM ESTABLISHMENTS'}, ou à toute personne qu'il désignera, aux fins notamment de :`,
-    '• procéder à la signature électronique des pièces lorsque la loi l\'autorise ;',
-    '• effectuer le dépôt au greffe compétent et les formalités au guichet unique ;',
-    '• publier l\'annonce légale et accomplir toute publicité requise ;',
-    '• demander l\'immatriculation et répondre aux demandes de compléments du greffe ;',
-    '• corriger, compléter ou régulariser le dossier dans l\'intérêt de la Société.',
-  ],
-});
+/** Aligné sur formalityPowersPdf – annonce légale exclue (mandat distinct requis). */
+export const FORMALITY_POWERS_BULLETS = [
+  '• procéder à la signature électronique des pièces lorsque la loi l\'autorise ;',
+  '• effectuer le dépôt au greffe compétent et les formalités au guichet unique ;',
+  '• demander l\'immatriculation et répondre aux demandes de compléments du greffe ;',
+  '• corriger, compléter ou régulariser le dossier dans l\'intérêt de la Société.',
+];
+
+export const buildPowersAnnexe = (data) => {
+  const mandataire = data.mandataire || 'WILLIAM ESTABLISHMENTS';
+  return {
+    title: 'Annexe 3 – Pouvoirs pour formalités',
+    paragraphs: [
+      `Les pouvoirs sont expressément conférés à ${mandataire}, ou à toute personne qu'elle désignera, aux fins notamment de :`,
+      ...FORMALITY_POWERS_BULLETS,
+    ],
+  };
+};
 
 export const buildStandardAnnexes = (data) => [
   buildCapitalAnnexe(data),

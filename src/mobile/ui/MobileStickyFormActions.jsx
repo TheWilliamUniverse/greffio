@@ -11,9 +11,19 @@ export const MobileStickyFormActions = ({
   className,
   innerClassName,
   fixed = true,
+  aboveBottomNav = false,
 }) => {
   const keyboardOffset = useMobileKeyboardOffset();
   const mobileLayout = isCapacitorNative() || isMobileBrowserViewport();
+  const bottomNavVar = isCapacitorNative() ? 'var(--bottom-nav-height)' : 'var(--bottom-nav-height-web, 3.5rem)';
+  const bottomStyle = keyboardOffset
+    ? { bottom: `${keyboardOffset}px` }
+    : aboveBottomNav
+      ? { bottom: `calc(${bottomNavVar} + env(safe-area-inset-bottom))` }
+      : undefined;
+  const spacerStyle = aboveBottomNav
+    ? { height: `calc(5.5rem + ${bottomNavVar} + env(safe-area-inset-bottom))` }
+    : undefined;
 
   if (!mobileLayout) {
     return (
@@ -25,14 +35,20 @@ export const MobileStickyFormActions = ({
 
   return (
     <>
-      {fixed ? <div className="h-[5.5rem] shrink-0 md:hidden" aria-hidden="true" /> : null}
+      {fixed ? (
+        <div
+          className={cn('shrink-0 md:hidden', !aboveBottomNav && 'h-[5.5rem]')}
+          style={spacerStyle}
+          aria-hidden="true"
+        />
+      ) : null}
       <div
         className={cn(
           'mobile-sticky-form-actions',
           fixed && 'mobile-sticky-form-actions--fixed',
           className,
         )}
-        style={keyboardOffset ? { bottom: `${keyboardOffset}px` } : undefined}
+        style={bottomStyle}
       >
         <div className={cn('flex flex-col gap-2 sm:flex-row sm:flex-wrap', innerClassName)}>
           {children}

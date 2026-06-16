@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ArrowRight, Building2, CreditCard, Smartphone } from 'lucide-react';
 import { MolliePaymentTrustFooter } from '@/components/payments/MollieSecureTrustBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
@@ -230,6 +231,19 @@ export const GreffioPaymentTerminal = ({
           {localError}
         </p>
       ) : null}
+
+      <p className="text-center text-xs leading-5 text-muted-foreground">
+        En validant le paiement, vous acceptez les{' '}
+        <Link
+          to="/mentions-legales#cgv"
+          className="font-semibold text-primary hover:underline"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          conditions générales de vente
+        </Link>
+        {' '}Greffio.
+      </p>
 
       <Button
         type="button"
