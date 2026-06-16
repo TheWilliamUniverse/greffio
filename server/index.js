@@ -736,12 +736,15 @@ app.post('/api/assistant', assistantLimiter, requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error('ASSISTANT_API_FAILED', error);
-    return res.status(503).json({
-      ok: false,
-      error: 'ASSISTANT_UNAVAILABLE',
+    return res.status(200).json({
+      ok: true,
       answer: 'Je n’ai pas pu générer la réponse pour le moment. Réessayez dans quelques secondes.',
+      suggestedActions: [],
+      sources: [],
+      confidence: 'low',
       provider: 'local_fallback',
       model: null,
+      intent: null,
       configured: isAssistantConfigured(),
       degraded: true,
     });

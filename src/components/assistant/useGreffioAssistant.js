@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { askAssistant } from '@/api/assistant.js';
+import { resolveActiveDossierId } from '@/utils/resolveActiveDossierId.js';
 
 const INITIAL_MESSAGE = {
   role: 'assistant',
@@ -15,11 +16,22 @@ export const useGreffioAssistant = () => {
   const [messages, setMessages] = useState([INITIAL_MESSAGE]);
   const [suggestedActions, setSuggestedActions] = useState([]);
 
-  const dossierId = useMemo(() => {
-    if (params.dossierId) return params.dossierId;
-    const fromQuery = new URLSearchParams(location.search).get('dossierId');
-    return fromQuery || null;
-  }, [location.search, params.dossierId]);
+  const dossierId = useMemo(() => resolveActiveDossierId({
+    params,
+    pathname: location.pathname,
+    search: location.search,
+  }), [location.pathname, location.search, params]);
+
+  useEffect(() => {
+    if (dossierId) {
+      resolveActiveDossierId({
+        params,
+        pathname: location.pathname,
+        search: location.search,
+        persist: true,
+      });
+    }
+  }, [dossierId, location.pathname, location.search, params]);
 
   const sendMessage = useCallback(async (message = input) => {
     const clean = String(message || '').trim();

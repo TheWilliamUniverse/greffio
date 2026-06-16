@@ -42,6 +42,15 @@ const DOSSIER_KEYWORDS = [
 const MAX_KNOWLEDGE_SNIPPETS = 4;
 const MAX_SNIPPET_LENGTH = 320;
 
+const parseQuestionnaireJson = (dataJson) => {
+  if (!dataJson) return {};
+  try {
+    return JSON.parse(dataJson);
+  } catch (_error) {
+    return {};
+  }
+};
+
 export const isDossierSpecificQuestion = (message = '') => {
   const normalized = String(message || '')
     .toLowerCase()
@@ -144,7 +153,7 @@ export const buildAssistantContext = async ({
       if (!dossier || dossier.userId !== userId) {
         dossierAccessError = 'DOSSIER_FORBIDDEN';
       } else {
-        const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+        const questionnaire = parseQuestionnaireJson(dossier.dataJson);
         const documents = await listDossierDocuments(dossier.id);
         const visibleDocuments = filterClientVisibleDocuments(documents);
         const actionState = resolveDossierActionState({
@@ -158,7 +167,7 @@ export const buildAssistantContext = async ({
   } else if (dossierId && userId) {
     const dossier = await getDossier(dossierId);
     if (dossier?.userId === userId) {
-      const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+      const questionnaire = parseQuestionnaireJson(dossier.dataJson);
       const documents = await listDossierDocuments(dossier.id);
       const visibleDocuments = filterClientVisibleDocuments(documents);
       const actionState = resolveDossierActionState({

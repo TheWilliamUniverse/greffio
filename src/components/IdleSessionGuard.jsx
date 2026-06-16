@@ -13,29 +13,37 @@ export const IdleSessionGuard = ({ children }) => {
   const [locked, setLocked] = useState(false);
   const lastActivityRef = useRef(Date.now());
   const lockedRef = useRef(false);
+  const idleExpiredRef = useRef(false);
 
   const guardEnabled = isAuthenticated && !isCapacitorNative();
 
   const lockSession = useCallback(async () => {
-    if (lockedRef.current || !guardEnabled) return;
+    if (lockedRef.current) return;
     lockedRef.current = true;
+    idleExpiredRef.current = true;
     setLocked(true);
-    await logout();
-  }, [guardEnabled, logout]);
+    if (isAuthenticated) {
+      await logout({ silent: true, reason: 'idle' });
+    }
+  }, [isAuthenticated, logout]);
 
   const touchActivity = useCallback(() => {
-    if (!guardEnabled || lockedRef.current) return;
+    if (idleExpiredRef.current || lockedRef.current) return;
+    if (!guardEnabled) return;
     lastActivityRef.current = Date.now();
   }, [guardEnabled]);
 
   const evaluateIdle = useCallback(() => {
-    if (!guardEnabled || lockedRef.current) return;
+    if (idleExpiredRef.current || lockedRef.current) return;
+    if (!guardEnabled) return;
     if (Date.now() - lastActivityRef.current >= IDLE_MS) {
       void lockSession();
     }
   }, [guardEnabled, lockSession]);
 
   useEffect(() => {
+    if (idleExpiredRef.current) return undefined;
+
     if (!guardEnabled) {
       lockedRef.current = false;
       setLocked(false);

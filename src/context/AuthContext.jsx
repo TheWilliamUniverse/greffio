@@ -303,7 +303,7 @@ export const AuthProvider = ({ children }) => {
     return { success: true, user: effectiveUser };
   };
 
-  const logout = async () => {
+  const logout = async ({ silent = false, reason = null } = {}) => {
     const userId = currentUser?.id;
     if (isCapacitorNative()) {
       await disableBiometricUnlock();
@@ -315,7 +315,9 @@ export const AuthProvider = ({ children }) => {
     initializeClientDataCache(null);
     if (userId) clearLoginAlertsConfiguredLocal(userId);
     setCurrentUser(null);
-    toast.success('Déconnexion effectuée');
+    if (!silent && reason !== 'idle') {
+      toast.success('Déconnexion effectuée');
+    }
   };
 
   const updateProfile = (user) => {

@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Bot, Send, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { askAssistant } from '@/api/assistant.js';
+import { resolveActiveDossierId } from '@/utils/resolveActiveDossierId.js';
 
 const quickPrompts = [
   'Où en est mon dossier ?',
@@ -12,11 +14,17 @@ const quickPrompts = [
 ];
 
 export default function IntegratedAiChat() {
+  const location = useLocation();
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Bonjour, je suis l’assistant Greffio. Je vous guide sur vos formalités, documents, signatures et prochaines étapes – de façon claire et actionnable.' },
   ]);
+
+  const dossierId = useMemo(() => resolveActiveDossierId({
+    pathname: location.pathname,
+    search: location.search,
+  }), [location.pathname, location.search]);
 
   const canSend = useMemo(() => input.trim().length > 0, [input]);
 
@@ -42,6 +50,8 @@ export default function IntegratedAiChat() {
       const payload = await askAssistant({
         message: clean,
         history: nextMessages.slice(-8),
+        dossierId,
+        route: location.pathname,
       });
       setMessages((current) => [
         ...current.filter((item) => !item.pending),
