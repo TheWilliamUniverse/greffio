@@ -6,13 +6,10 @@ import { Button } from '@/components/ui/button.jsx';
 import { PaymentBrandBadges } from '@/components/layout/PaymentBrandBadges.jsx';
 import { GREFFIO_FOOTER_COLUMNS } from '@/config/siteFooter.js';
 import {
-  PUBLISHER_BRAND_EMAIL,
   PUBLISHER_CONTACT_EMAIL,
   PUBLISHER_ADDRESS_FULL,
   PUBLISHER_LEGAL_NAME,
-  PUBLISHER_PHONE,
   PUBLISHER_RCS,
-  PUBLISHER_SERVICE_DISCLAIMER,
 } from '@/config/publisher.js';
 import { cn } from '@/lib/utils.js';
 
@@ -88,7 +85,8 @@ export const GreffioUltraFooter = ({
                 Application SaaS de gestion de formalités administratives, greffe et vie juridique des entreprises.
               </p>
               <p className="mt-3 max-w-lg text-xs leading-6 text-white/55">
-                {PUBLISHER_SERVICE_DISCLAIMER}
+                Greffio est un service privé indépendant d&apos;assistance aux démarches administratives des entreprises.
+                Greffio n&apos;est pas un service officiel de l&apos;État, des greffes des tribunaux de commerce ou d&apos;Infogreffe.
               </p>
             </div>
             <div className={cn(
@@ -144,13 +142,7 @@ export const GreffioUltraFooter = ({
                 {PUBLISHER_RCS} · {PUBLISHER_ADDRESS_FULL}
               </p>
               <p className="mt-1">
-                <a href={`mailto:${PUBLISHER_BRAND_EMAIL}`} className="text-white/72 transition hover:text-white">
-                  {PUBLISHER_BRAND_EMAIL}
-                </a>
-                {' · '}
-                <a href={`tel:${PUBLISHER_PHONE.replace(/\s/g, '')}`} className="text-white/72 transition hover:text-white">
-                  {PUBLISHER_PHONE}
-                </a>
+                greffio@willentreprises.com · 04 11 81 86 70
               </p>
               <p className="mt-1">
                 Les contenus ne constituent pas un conseil juridique personnalisé sans validation professionnelle.
