@@ -187,6 +187,7 @@ import { persistEditableDocumentPdf } from './services/editableDocumentService.j
 import { registerPaymentsRoutes } from './routes/paymentsRoutes.js';
 import { registerMollieRoutes } from './routes/mollieRoutes.js';
 import { registerAppVersionRoutes } from './routes/appVersionRoutes.js';
+import { registerAppContextRoutes } from './routes/appContextRoutes.js';
 import { registerDocumentCompletionRoutes } from './routes/documentCompletionRoutes.js';
 import verificationRouter from './routes/verificationRoutes.js';
 import identityRouter, { createDiditWebhookHandler } from './routes/identityRoutes.js';
@@ -3013,6 +3014,7 @@ registerPaymentsRoutes(app, {
 });
 
 registerAppVersionRoutes(app);
+registerAppContextRoutes(app);
 
 registerDocumentCompletionRoutes(app, { requireAuth });
 

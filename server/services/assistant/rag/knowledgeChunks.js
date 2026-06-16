@@ -149,6 +149,11 @@ export const GREFFIO_KNOWLEDGE_CHUNKS = [
     topics: ['delai', 'duree', 'combien de temps'],
     text: 'Délais indicatifs : préparation dossier Greffio quelques jours à semaines selon complétude client ; instruction greffe variable (souvent 3 à 15 jours ouvrés après dépôt complet). Les compléments administratifs rallongent le délai.',
   },
+  {
+    id: 'audit-priorities-2026-06',
+    topics: ['audit', 'priorite', 'p0', 'critique', 'remote', 'app'],
+    text: 'Priorités Greffio (juin 2026) : P0 = questionnaire/dossier, documents PDF & signature, auth/biométrie, paiement Mollie, app remote & version. P1 = statuts, ops, sécurité CI, push/offline. L’app Android charge le site remote ; la plupart des correctifs UI passent par déploiement web sans nouvel AAB. API : GET /api/app-context pour l’audit à jour.',
+  },
   ...faqChunks,
   ...phoneScriptChunks,
   ...objectionChunks,

@@ -7,6 +7,7 @@ import { MobileWebHeader } from '@/mobile/MobileWebHeader.jsx';
 import { MobilePublicBottomNav } from '@/mobile/MobilePublicBottomNav.jsx';
 import { resolveMobileShellTitle } from '@/mobile/MobileWebShell.jsx';
 import { MobilePushRegistration } from '@/mobile/MobilePushRegistration.jsx';
+import { useGreffioRemoteContext } from '@/mobile/hooks/useGreffioRemoteContext.js';
 import { MobileNativeOfflineBanner } from '@/mobile/MobileNativeOfflineBanner.jsx';
 import { MobileNavCoachmarks } from '@/mobile/ui/MobileNavCoachmarks.jsx';
 import { NativePermissionOrchestrator } from '@/mobile/ui/NativePermissionOrchestrator.jsx';
@@ -53,6 +54,7 @@ const shouldHideAuthBottomNav = (pathname) => AUTH_BOTTOM_NAV_HIDE_PREFIXES.some
 );
 
 const MobileAppShellInner = ({ children }) => {
+  useGreffioRemoteContext();
   const location = useLocation();
   const navigate = useNavigate();
   const scrollRef = useRef(null);

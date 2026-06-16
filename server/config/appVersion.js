@@ -39,11 +39,12 @@ const DEFAULT_MIN_VERSION_CODE = 261422041;
 const DEFAULT_LATEST_VERSION_NAME = '1.2.18';
 
 const DEFAULT_CHANGELOG = [
-  'Icône Greffio corrigée sur l’écran d’accueil Android',
-  'PDF : ouverture dans un lecteur externe et enregistrement dans Documents/Greffio',
-  'Questionnaire création : catégories juridiques à deux niveaux (Autres)',
-  'Paiement mobile : logo Mollie complet et interface réorganisée',
-  'Navigation questionnaire : bouton Retour ne masque plus les champs',
+  'Navigation questionnaire : Retour et avance écran par écran (associés inclus)',
+  'Documents signés : filigranes intrusifs retirés, lecture PDF lisible',
+  'Procuration formalités : layout aéré, identité mandant et zone signature',
+  'Questionnaire SA : capital minimum 37 000 € avec message bienveillant',
+  'Associés mineurs : dirigeant accepté si représentants légaux renseignés',
+  'Choix du type de formalité restauré en début de parcours',
 ];
 
 export const getAppVersionConfig = () => ({
