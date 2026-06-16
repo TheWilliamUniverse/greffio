@@ -27,6 +27,7 @@ import {
   LazyOpsLookupObservabilityPage,
   LazyOpsShell,
   LazyFormalityPowersPage,
+  LazyDocumentWorkspaceEditPage,
   LazySubscribersListPage,
   LazyClientShopPage,
   LazyShopCheckoutPage,
@@ -236,6 +237,7 @@ function AppRoutes() {
             <Route path="/dossier/:dossierId/declaration-non-condamnation" element={<ProtectedRoute>{withSuspense(LazyNonConvictionDeclarationPage, 'Chargement déclaration…')}</ProtectedRoute>} />
             <Route path="/dossier/:dossierId/liste-souscripteurs" element={<ProtectedRoute>{withSuspense(LazySubscribersListPage, 'Chargement liste souscripteurs…')}</ProtectedRoute>} />
             <Route path="/dossier/:dossierId/pouvoirs-formalites" element={<ProtectedRoute>{withSuspense(LazyFormalityPowersPage, 'Chargement pouvoirs…')}</ProtectedRoute>} />
+            <Route path="/dossier/:dossierId/documents/:docKey/edit" element={<ProtectedRoute>{withSuspense(LazyDocumentWorkspaceEditPage, 'Chargement éditeur…')}</ProtectedRoute>} />
             <Route path="/statuts" element={<ProtectedRoute><StatutsEntry /></ProtectedRoute>} />
             <Route path="/documents/:id/sign" element={<ProtectedRoute><DocumentSignPage /></ProtectedRoute>} />
             <Route path="/signature/:token" element={<SignaturePublicPage />} />

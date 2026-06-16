@@ -194,6 +194,11 @@ import { registerMollieRoutes } from './routes/mollieRoutes.js';
 import { registerAppVersionRoutes } from './routes/appVersionRoutes.js';
 import { registerAppContextRoutes } from './routes/appContextRoutes.js';
 import { registerDocumentCompletionRoutes } from './routes/documentCompletionRoutes.js';
+import {
+  registerDocumentWorkspaceRoutes,
+  maybeCreateVersionAfterEditorSave,
+  buildEditorWorkspaceBlock,
+} from './routes/documentWorkspaceRoutes.js';
 import verificationRouter from './routes/verificationRoutes.js';
 import identityRouter, { createDiditWebhookHandler } from './routes/identityRoutes.js';
 import { startIdentityVerificationForDossier } from './services/identity/identity.provider.js';
@@ -2188,6 +2193,7 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async 
     ? await getUserById(dossier.userId)
     : await getUserById(req.auth?.sub);
   let savedFields = {};
+  let workspace = { enabled: false };
   try {
     await ensureDossierDocuments(dossier.id);
     const documents = await listDossierDocuments(dossier.id);
@@ -2195,6 +2201,11 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async 
     savedFields = existing?.metadata?.fields && typeof existing.metadata.fields === 'object'
       ? existing.metadata.fields
       : {};
+    workspace = await buildEditorWorkspaceBlock({
+      dossierId: dossier.id,
+      docKey,
+      document: existing || null,
+    });
   } catch (error) {
     console.error('DOCUMENT_EDITOR_LOAD_FAILED', error);
     return res.status(500).json({ ok: false, error: 'DOCUMENT_EDITOR_LOAD_FAILED' });
@@ -2214,6 +2225,7 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async 
         schemaVersion: editableConfig.schemaVersion,
         title: editableConfig.title,
         fields,
+        workspace,
       });
     }
   } catch (error) {
@@ -2257,6 +2269,7 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async 
     schemaVersion: NON_CONVICTION_SCHEMA_VERSION,
     title: 'Déclaration de non-condamnation et de filiation',
     fields,
+    workspace,
   });
 });
 
@@ -2279,7 +2292,9 @@ app.post('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async
     }
     try {
       await ensureDossierDocuments(dossier.id);
-      const { sha256, filename, updated } = await persistEditableDocumentPdf({
+      const documentsBeforeSave = await listDossierDocuments(dossier.id);
+      const existingDoc = documentsBeforeSave.find((item) => item.docKey === docKey) || null;
+      const { sha256, filename, updated, storageUrl, buffer } = await persistEditableDocumentPdf({
         docKey: editableConfig.docKey,
         schemaVersion: editableConfig.schemaVersion,
         dossier,
@@ -2295,11 +2310,30 @@ app.post('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async
       if (!updated) {
         return res.status(409).json({ ok: false, error: 'DOCUMENT_SLOT_NOT_FOUND' });
       }
+      const version = await maybeCreateVersionAfterEditorSave({
+        dossierId: dossier.id,
+        docKey,
+        document: updated || existingDoc,
+        storageUrl: storageUrl || updated?.storageUrl,
+        sha256,
+        fileSizeBytes: buffer?.length || updated?.fileSizeBytes || null,
+        createdBy: req.auth?.sub || null,
+        metadata: { filename, origin: 'editor_form' },
+      }).catch((versionError) => {
+        console.error('DOCUMENT_VERSION_CREATE_FAILED', versionError);
+        return null;
+      });
       return res.status(201).json({
         ok: true,
         filename,
         sha256,
         documents: await listDossierDocuments(dossier.id),
+        version: version ? {
+          id: version.id,
+          versionNumber: version.versionNumber,
+          status: version.status,
+          fileFormat: version.fileFormat,
+        } : null,
       });
     } catch (error) {
       console.error('DOCUMENT_EDITOR_GENERATION_FAILED', error);
@@ -3111,6 +3145,13 @@ registerAppVersionRoutes(app);
 registerAppContextRoutes(app);
 
 registerDocumentCompletionRoutes(app, { requireAuth });
+
+registerDocumentWorkspaceRoutes(app, {
+  requireAuth,
+  resolveDossierAccess,
+  listDossierDocuments,
+  appUrl,
+});
 
 const dossierMessageEvents = {
   notify: (_dossierId, _messages) => {},

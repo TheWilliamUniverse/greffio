@@ -1,6 +1,7 @@
 import React, { lazy, Suspense } from 'react';
-import { Download, ExternalLink, Loader2, X } from 'lucide-react';
+import { ExternalLink, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
+import { DocumentPreviewActions } from '@/components/documents/DocumentPreviewActions.jsx';
 
 const PdfJsCanvasViewer = lazy(() => import('@/components/documents/PdfJsCanvasViewer.jsx').then((module) => ({
   default: module.PdfJsCanvasViewer,
@@ -16,9 +17,13 @@ export const MobileDocumentPreviewSheet = ({
   filename = 'document.pdf',
   error = '',
   downloading = false,
+  dossierId = '',
+  docKey = '',
+  document = null,
   onClose,
   onDownload,
   onOpenExternal,
+  onModify,
 }) => {
   if (!open) return null;
 
@@ -32,6 +37,17 @@ export const MobileDocumentPreviewSheet = ({
           <p className="truncate text-xs text-white/60">{filename}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <DocumentPreviewActions
+            variant="mobile"
+            dossierId={dossierId}
+            docKey={docKey}
+            document={document}
+            downloading={downloading}
+            downloadDisabled={!hasPdfData}
+            onDownload={onDownload}
+            onModify={onModify}
+            className="mr-1"
+          />
           {onOpenExternal ? (
             <Button
               type="button"
@@ -45,17 +61,6 @@ export const MobileDocumentPreviewSheet = ({
               Ouvrir
             </Button>
           ) : null}
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            className="h-9 bg-white/10 text-white hover:bg-white/20"
-            onClick={onDownload}
-            disabled={downloading || !hasPdfData}
-          >
-            {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            Télécharger
-          </Button>
           <Button
             type="button"
             size="icon"
@@ -107,7 +112,7 @@ export const MobileDocumentPreviewSheet = ({
       {!error && hasPdfData ? (
         <div className="border-t border-white/10 bg-[#0f172a]/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <p className="text-xs leading-5 text-white/70">
-            « Ouvrir » lance votre lecteur PDF. « Télécharger » enregistre une copie dans Fichiers.
+            « Modifier » ouvre l’éditeur Greffio. « Télécharger » enregistre une copie dans Fichiers.
           </p>
         </div>
       ) : null}

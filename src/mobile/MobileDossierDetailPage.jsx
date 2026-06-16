@@ -269,6 +269,9 @@ export const MobileDossierDetailPage = () => {
         filename={previewDoc?.filename}
         error={previewError}
         downloading={previewDownloading}
+        dossierId={previewDoc?.dossierId || id}
+        docKey={previewDoc?.docKey}
+        document={(data?.documents || []).find((item) => item.docKey === previewDoc?.docKey) || null}
         onClose={closePreview}
         onDownload={() => {
           void downloadPreview().then((result) => {

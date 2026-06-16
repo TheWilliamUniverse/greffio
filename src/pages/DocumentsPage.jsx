@@ -21,6 +21,7 @@ import {
 import { IdentityVerificationCard } from '@/components/identity/IdentityVerificationCard.jsx';
 import { DossierBreadcrumb } from '@/components/layout/DossierBreadcrumb.jsx';
 import { PdfPreviewPanel } from '@/components/documents/PdfPreviewPanel.jsx';
+import { DocumentPreviewActions } from '@/components/documents/DocumentPreviewActions.jsx';
 import { FormalityPowerSummary } from '@/components/documents/FormalityPowerSummary.jsx';
 import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
 import { DocumentStatusCard } from '@/components/patterns/DocumentStatusCard.jsx';
@@ -766,11 +767,14 @@ export const DocumentsPage = () => {
 
           {previewDoc?.blobUrl ? (
             <section className="overflow-hidden rounded-md border border-border bg-white shadow-elevation-sm">
-              <div className="flex items-center justify-between border-b border-border px-5 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-3">
                 <p className="text-sm font-bold text-foreground">Aperçu – {previewDoc.label}</p>
-                <Button type="button" variant="outline" size="sm" className="bg-white" onClick={() => setPreviewDoc(null)}>
-                  Fermer
-                </Button>
+                <DocumentPreviewActions
+                  dossierId={resolvedDossierId}
+                  docKey={previewDoc.docKey}
+                  document={visibleApiDocuments.find((item) => item.docKey === previewDoc.docKey) || null}
+                  onDownload={() => openDocumentDownload(previewDoc.docKey)}
+                />
               </div>
               <PdfPreviewPanel
                 title={previewDoc.label}

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, CalendarClock, CheckCircle2, Clock3, Eye, FileText, Loader2, Upload } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CalendarClock, CheckCircle2, Clock3, Eye, FileText, Loader2, PencilLine, Upload } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
@@ -22,7 +22,10 @@ import { toast } from 'sonner';
 import { DossierTrashActions } from '@/components/dossiers/DossierTrashActions.jsx';
 import { DossierDeleteAction } from '@/components/dossiers/DossierDeleteAction.jsx';
 import { DossierBreadcrumb } from '@/components/layout/DossierBreadcrumb.jsx';
-import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
+import {
+  canShowDocumentModifyAction,
+  resolveDocumentWorkspaceEditPath,
+} from '@/utils/documentWorkspace.js';
 import { mapDossierStatusForBadge, mapDossierClientAction } from '@/utils/dossierClientStatus.js';
 import { DossierMessageThread } from '@/components/messaging/DossierMessageThread.jsx';
 import {
@@ -97,6 +100,7 @@ const mapDocumentsFromApi = (documents = [], { internalView = false } = {}) => f
     dossierId: doc.dossierId,
     docKey: doc.docKey,
     hasFile,
+    metadata,
     rejectedReason: doc.rejectedReason || null,
     reviewHint: internalView
       ? (metadata?.analysis?.requiresManualReview ? 'Vérification manuelle requise' : 'Analyse auto OK')
@@ -388,20 +392,34 @@ export const DossierDetailPage = () => {
                       <span className="text-sm font-semibold text-foreground">{document.source}</span>
                     ) : null}
                     <StatusBadge status={document.status} className="w-fit" />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-white"
-                      disabled={!document.hasFile || docPreviewing === document.docKey}
-                      onClick={() => void openDocumentPreview(document.docKey)}
-                    >
-                      {docPreviewing === document.docKey ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                      Aperçu
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      {canShowDocumentModifyAction({ docKey: document.docKey, document }) ? (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          asChild
+                        >
+                          <Link to={resolveDocumentWorkspaceEditPath(id, document.docKey)}>
+                            <PencilLine className="h-4 w-4" />
+                            Modifier
+                          </Link>
+                        </Button>
+                      ) : null}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="bg-white"
+                        disabled={!document.hasFile || docPreviewing === document.docKey}
+                        onClick={() => void openDocumentPreview(document.docKey)}
+                      >
+                        {docPreviewing === document.docKey ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                        Aperçu
+                      </Button>
+                    </div>
                   </div>
                 )) : (
                   <div className="p-5 text-sm text-muted-foreground">Aucun document n’est encore relié à ce dossier.</div>
