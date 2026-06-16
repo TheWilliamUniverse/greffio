@@ -49,8 +49,16 @@ console.log('helpers:', {
   stampY: subscribersListSignatureStampY(),
 });
 
-console.log('=== FORMALITY POWERS Y (unchanged) ===');
-console.log(fmtFp());
+console.log('=== FORMALITY POWERS Y (before → after) ===');
+console.log({
+  before: { lineY: 405, stampY: 413, timestampY: 405 - 12 },
+  after: {
+    lineY: FORMALITY_POWERS_SIGNATURE_LINE_Y,
+    stampY: formalityPowersSignatureStampY(),
+    timestampY: formalityPowersElectronicStampY(),
+    stampAboveLine: FORMALITY_POWERS_STAMP_ABOVE_LINE,
+  },
+});
 
 const signedAt = '2026-06-16T16:40:36.000Z';
 const signer = 'William Abdou';

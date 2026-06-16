@@ -1,5 +1,5 @@
 /** Baseline Y (pdf-lib, from page bottom) for the black signature line (trait noir). */
-export const FORMALITY_POWERS_SIGNATURE_LINE_Y = 405;
+export const FORMALITY_POWERS_SIGNATURE_LINE_Y = 402;
 
 /** Vertical offsets above the trait noir for the page-5 signature block. */
 export const FORMALITY_POWERS_SIGNATURE_HEADING_ABOVE_LINE = 108;
@@ -7,7 +7,7 @@ export const FORMALITY_POWERS_SIGNATURE_FAIT_ABOVE_LINE = 86;
 export const FORMALITY_POWERS_SIGNATURE_LABEL_ABOVE_LINE = 66;
 
 /** Image stamp sits this many pt above the trait noir (formality powers). */
-export const FORMALITY_POWERS_STAMP_ABOVE_LINE = 8;
+export const FORMALITY_POWERS_STAMP_ABOVE_LINE = 4;
 
 /** Reserved stamp image height above the trait noir. */
 export const FORMALITY_POWERS_STAMP_MAX_HEIGHT = 48;
