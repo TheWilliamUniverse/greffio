@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { loadPdfFonts } from './pdfFonts.js';
 import { replaceDraftWatermarkWithSignedBadge } from './pdfLayoutPremium.js';
+import { FORMALITY_POWERS_SIGNATURE_LINE_Y } from './pdfLegalConstants.js';
 
 const stampColor = rgb(0.35, 0.4, 0.48);
 
@@ -50,10 +51,10 @@ export const stampSignatureOnPdf = async ({
   const signatureColWidth = 204;
   const signatureOnRight = isOfficialLayout;
   const signatureX = isFormalityPowersLayout
-    ? marginH + 58
+    ? marginH + 52
     : (signatureOnRight ? width - marginH - signatureColWidth : marginH);
   const yBase = isFormalityPowersLayout
-    ? 82
+    ? FORMALITY_POWERS_SIGNATURE_LINE_Y + 8
     : (isSubscribersLayout ? 118 : (isOfficialLayout ? 228 : 168));
 
   const safeSignerName = pdfSafeText(signerFullName, 'Signataire');

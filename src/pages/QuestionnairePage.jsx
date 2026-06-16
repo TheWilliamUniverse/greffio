@@ -23,7 +23,6 @@ import { AutosaveIndicator } from '@/components/questionnaire/AutosaveIndicator.
 import { SecurityNotice } from '@/components/questionnaire/SecurityNotice.jsx';
 import { QuestionnaireNotice } from '@/components/questionnaire/QuestionnaireNotice.jsx';
 import { ProgressiveStepChips } from '@/components/ProgressiveStepChips.jsx';
-import { CompanyLookupCard } from '@/components/CompanyLookupCard.jsx';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   analyzeStepFieldStates,
@@ -68,7 +67,6 @@ import { useAuth } from '@/hooks/useAuth.js';
 import { isCapacitorNative, isMobileBrowserViewport, isMobileQuestionnaireViewport } from '@/utils/platform.js';
 import { fetchUserProfile } from '@/api/profile.js';
 import { contactDetailsFromUser } from '@/utils/userProfile.js';
-import { getIntelligentPrefill } from '@/api/intelligentIntake.js';
 import {
   useQuestionnairePresentation,
   shouldAutoAdvanceMobileField,
@@ -180,7 +178,6 @@ export const QuestionnairePage = () => {
   const wizardTopRef = useRef(null);
   const associatesWizardRef = useRef(null);
   const [loading, setLoading] = useState(true);
-  const [intakeHints, setIntakeHints] = useState({ score: null, warnings: [], issues: [] });
   const [stepError, setStepError] = useState('');
   const [demarcheCategory, setDemarcheCategory] = useState('');
   const [demarcheCategoryConfirmed, setDemarcheCategoryConfirmed] = useState(false);
@@ -262,7 +259,9 @@ export const QuestionnairePage = () => {
     0,
     progressiveSteps.findIndex((entry) => entry.id === step.id),
   );
-  const stepTitle = PROGRESSIVE_STEP_LABELS[step.id] || step.title;
+  const stepTitle = activeField?.key === 'typeFormalite'
+    ? 'Formalité'
+    : (PROGRESSIVE_STEP_LABELS[step.id] || step.title);
 
   const contactPayload = useMemo(() => ({
     initiatorType: formData.initiatorType,
@@ -390,6 +389,27 @@ export const QuestionnairePage = () => {
     }
   };
 
+  const mergeCompanyLookup = (current, company, fieldKey) => {
+    const denomination = String(company?.denomination || '').trim();
+    return {
+      ...current,
+      ...(fieldKey === 'existingBusinessSiren'
+        ? {
+            existingBusinessSiren: company.siren || current.existingBusinessSiren,
+            existingBusinessName: denomination || current.existingBusinessName,
+          }
+        : {
+            companySiren: company.siren || current.companySiren,
+            companyName: denomination || current.companyName,
+          }),
+      ...(denomination ? { denomination } : {}),
+      companyCountry: company.country || current.companyCountry,
+      villeSiege: current.villeSiege || company.city || '',
+      adresseSiege: current.adresseSiege || company.addressSiege || '',
+      activite: current.activite || company.apeCode || '',
+    };
+  };
+
   const lookupSiren = async (fieldKey = 'companySiren') => {
     const value = sanitizeCompanyIdentifier(formData[fieldKey]);
     if (value.length !== 9 && value.length !== 14) return;
@@ -401,13 +421,7 @@ export const QuestionnairePage = () => {
       if (company) {
         setFoundCompany(company);
         setFoundCompanyFieldKey(fieldKey);
-        setFormData((current) => ({
-          ...current,
-          ...(fieldKey === 'existingBusinessSiren'
-            ? { existingBusinessName: company.denomination || current.existingBusinessName }
-            : { companyName: company.denomination || current.companyName }),
-          companyCountry: company.country || current.companyCountry,
-        }));
+        setFormData((current) => mergeCompanyLookup(current, company, fieldKey));
         setSirenLookupMessage(`${company.denomination || 'Entreprise trouvée'} (${company.siretSiege || company.siren || value})`);
       }
       setSirenLookupState('done');
@@ -911,7 +925,7 @@ export const QuestionnairePage = () => {
       return;
     }
     if (
-      step.id === 'demarche'
+      (step.id === 'contact' || step.id === 'demarche')
       && isAuthenticated
       && demarcheCategoryConfirmed
       && activeField?.key === 'typeFormalite'
@@ -945,49 +959,6 @@ export const QuestionnairePage = () => {
         return;
       }
       prev -= 1;
-    }
-  };
-
-  const applyFoundCompany = () => {
-    if (!foundCompany) return;
-    setFormData((current) => ({
-      ...current,
-      ...(foundCompanyFieldKey === 'existingBusinessSiren'
-        ? {
-            existingBusinessSiren: foundCompany.siren || current.existingBusinessSiren,
-            existingBusinessName: foundCompany.denomination || current.existingBusinessName,
-          }
-        : {
-            companySiren: foundCompany.siren || current.companySiren,
-            companyName: foundCompany.denomination || current.companyName,
-          }),
-      companyCountry: foundCompany.country || current.companyCountry,
-      villeSiege: current.villeSiege || foundCompany.city || '',
-      adresseSiege: current.adresseSiege || foundCompany.addressSiege || '',
-      activite: current.activite || foundCompany.apeCode || '',
-    }));
-    toast.success("Informations de l'entreprise injectées. Vous pouvez modifier chaque champ.");
-  };
-
-  const applyIntelligentPrefill = async () => {
-    if (!dossierId) return;
-    try {
-      const payload = await getIntelligentPrefill(dossierId);
-      const prefill = payload?.prefill || {};
-      setFormData((current) => ({
-        ...current,
-        ...Object.fromEntries(
-          Object.entries(prefill).filter(([, value]) => value !== null && value !== undefined && value !== ''),
-        ),
-      }));
-      setIntakeHints({
-        score: payload?.coherence?.score ?? null,
-        warnings: payload?.coherence?.warnings || [],
-        issues: payload?.coherence?.issues || [],
-      });
-      toast.success('Préremplissage intelligent appliqué.');
-    } catch (_error) {
-      toast.error('Préremplissage intelligent indisponible.');
     }
   };
 
@@ -1195,7 +1166,7 @@ export const QuestionnairePage = () => {
                 categoryConfirmed={demarcheCategoryConfirmed}
                 onCategoryConfirmedChange={setDemarcheCategoryConfirmed}
                 mobilePresentation={isMobileChoicePresentation}
-                onAdvance={() => requestMobileTapAdvance(field.key)}
+                onAdvance={() => requestMobileTapAdvance('typeFormalite')}
               />
             </div>
           </div>
@@ -1484,11 +1455,6 @@ export const QuestionnairePage = () => {
                 {sirenLookupMessage}
               </p>
             ) : null}
-            {isSirenField && foundCompany && foundCompanyFieldKey === field.key ? (
-              <div className="mx-auto mt-3 max-w-md">
-                <CompanyLookupCard company={foundCompany} onUse={applyFoundCompany} />
-              </div>
-            ) : null}
           </>
         ),
       });
@@ -1556,33 +1522,13 @@ export const QuestionnairePage = () => {
           pattern={field.key === 'companySiren' || field.key === 'existingBusinessSiren' ? '[0-9]*' : undefined}
           className={`${fieldClass} ${showInlineError ? 'border-red-400' : ''}`}
         />
-        {field.key === 'companySiren' && formData.initiatorType === 'personne_morale' ? (
-          <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" className="bg-white" onClick={() => lookupSiren('companySiren')} disabled={![9, 14].includes(String(formData.companySiren || '').trim().length) || sirenLookupState === 'loading'}>
-              Recherche automatique annuaire
-            </Button>
-            {sirenLookupState === 'loading' ? <span className="text-xs text-muted-foreground">Recherche...</span> : null}
-            {sirenLookupState === 'done' ? <span className="text-xs text-emerald-600">Entreprise trouvée</span> : null}
-            {sirenLookupState === 'error' ? <span className="text-xs text-destructive">Aucune correspondance</span> : null}
-          </div>
+        {isSirenField && sirenLookupState === 'loading' ? (
+          <p className="text-xs text-muted-foreground">Recherche de l&apos;entreprise…</p>
         ) : null}
-        {field.key === 'existingBusinessSiren' && EXISTING_BUSINESS_FORMALITIES.has(String(formData.typeFormalite || '')) ? (
-          <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" className="bg-white" onClick={() => lookupSiren('existingBusinessSiren')} disabled={![9, 14].includes(String(formData.existingBusinessSiren || '').trim().length) || sirenLookupState === 'loading'}>
-              Recherche automatique annuaire
-            </Button>
-            {sirenLookupState === 'loading' ? <span className="text-xs text-muted-foreground">Recherche...</span> : null}
-            {sirenLookupState === 'done' ? <span className="text-xs text-emerald-600">Entreprise trouvée</span> : null}
-            {sirenLookupState === 'error' ? <span className="text-xs text-destructive">Aucune correspondance</span> : null}
-          </div>
-        ) : null}
-        {(field.key === 'companySiren' || field.key === 'existingBusinessSiren') && sirenLookupMessage ? (
+        {isSirenField && sirenLookupMessage ? (
           <p className={`text-xs ${sirenLookupState === 'error' ? 'text-destructive' : 'text-emerald-600'}`}>
             {sirenLookupMessage}
           </p>
-        ) : null}
-        {(field.key === 'companySiren' || field.key === 'existingBusinessSiren') && foundCompany && foundCompanyFieldKey === field.key ? (
-          <CompanyLookupCard company={foundCompany} onUse={applyFoundCompany} />
         ) : null}
         {showInlineError ? (
           <p className="text-xs text-destructive">{inlineMessage}</p>
@@ -1648,17 +1594,6 @@ export const QuestionnairePage = () => {
           </p>
         ) : null}
 
-        {step.id === 'contact' && safeGroupIndex === 0 && activeField?.key === 'initiatorType' ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/15 bg-secondary/40 px-4 py-3">
-            <div>
-              <p className="text-sm font-semibold text-foreground">Auto-collecte intelligente</p>
-              <p className="text-xs text-muted-foreground">Préremplissage depuis SIREN/SIRET ou documents OCR</p>
-            </div>
-            <Button type="button" variant="outline" className="h-9 rounded-xl bg-white text-xs" onClick={applyIntelligentPrefill}>
-              Préremplir
-            </Button>
-          </div>
-        ) : null}
 
         <AnimatePresence mode="wait">
           <motion.div

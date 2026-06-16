@@ -35,11 +35,11 @@ const resumeQuestionnaire = {
   },
 };
 
-const resumeAtDemarcheQuestionnaire = {
+const resumeAtContactFormaliteQuestionnaire = {
   ...resumeQuestionnaire,
   typeFormalite: '',
   _resume: {
-    stepId: 'demarche',
+    stepId: 'contact',
     fieldKey: 'typeFormalite',
     categoryConfirmed: false,
   },
@@ -157,7 +157,7 @@ test.beforeEach(async ({ context, page }) => {
 test.describe('questionnaire mobile – flux catégorie puis forme', () => {
   test('immatriculer une nouvelle structure → familles juridiques directement', async ({ page }) => {
     await page.unroute(/\/api\//);
-    await mockQuestionnaireApis(page, resumeAtDemarcheQuestionnaire);
+    await mockQuestionnaireApis(page, resumeAtContactFormaliteQuestionnaire);
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto(`/questionnaire?dossierId=${DOSSIER_ID}`);
     await dismissCookieBanner(page);

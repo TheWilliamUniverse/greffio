@@ -380,7 +380,7 @@ export const DashboardPage = () => {
                       ) : null}
                     </div>
                     <Button variant="ghost" size="sm" asChild>
-                      <Link to="/team">Voir tout</Link>
+                      <Link to="/documents">Voir le coffre</Link>
                     </Button>
                   </div>
                   {notifications.length ? (

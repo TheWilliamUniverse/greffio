@@ -191,20 +191,21 @@ export const QUESTIONNAIRE_FLOW = [
       },
       { key: 'email', label: 'Email', type: 'email', required: true, placeholder: 'vous@entreprise.fr' },
       { key: 'phone', label: 'Téléphone', type: 'tel', required: true, placeholder: '04 11 81 86 70' },
-    ],
-  },
-  {
-    id: 'demarche',
-    title: 'Votre formalité',
-    description: 'Choisissez le parcours à lancer : création, modification, établissement, régularisation ou documents.',
-    fields: [
       {
         key: 'typeFormalite',
-        label: 'Démarche',
+        label: 'Formalité',
         type: 'select',
         required: true,
         options: DEMARCHE_CATALOG,
       },
+    ],
+  },
+  {
+    id: 'demarche',
+    title: 'Entreprise concernée',
+    description: 'Identifiez la société existante pour la formalité choisie.',
+    condition: (data) => EXISTING_BUSINESS_FORMALITIES.has(String(data.typeFormalite || '')),
+    fields: [
       {
         key: 'existingBusinessSiren',
         label: 'SIREN / SIRET de l’entreprise existante',
@@ -443,14 +444,14 @@ const MOBILE_FIELD_GROUP_SPECS = Object.freeze({
     ['nationality'],
     ['birthDate'],
     ['companyCountry'],
+    ['companySiren'],
     ['companyName'],
     ['companyRepresentative'],
-    ['companySiren'],
     ['email'],
     ['phone'],
+    ['typeFormalite'],
   ],
   demarche: [
-    ['typeFormalite'],
     ['existingBusinessSiren'],
     ['existingBusinessName'],
   ],

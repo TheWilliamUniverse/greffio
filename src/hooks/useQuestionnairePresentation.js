@@ -18,7 +18,7 @@ export const resolveQuestionMode = (field) => {
 };
 
 export const shouldHideStickyContinueForMode = (mode) => (
-  ['choice', 'input', 'textarea', 'legal-confirmation', 'form_family', 'comparateur', 'associate-wizard'].includes(mode)
+  ['choice', 'input', 'textarea', 'legal-confirmation', 'form_family', 'comparateur', 'associate-wizard', 'composite'].includes(mode)
 );
 
 export const resolveFieldInputMode = (field) => {

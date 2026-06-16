@@ -87,6 +87,11 @@ export const DemarchePicker = ({
     onChange(CREATION_AUTO_FORMALITY);
   }, [shouldSkipCreationTiles, value, onChange]);
 
+  useEffect(() => {
+    if (!mobilePresentation || !shouldSkipCreationTiles || value !== CREATION_AUTO_FORMALITY) return;
+    onAdvance?.();
+  }, [mobilePresentation, shouldSkipCreationTiles, value, onAdvance]);
+
   if (categoryFirst && !categoryConfirmed) {
     return (
       <FormalityCategoryPicker

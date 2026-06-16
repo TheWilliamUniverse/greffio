@@ -19,7 +19,7 @@ import {
 import { getDocumentEditorLoadErrorMessage } from '@/utils/documentEditorErrors.js';
 import { DocumentEditorLoadGate } from '@/components/documents/DocumentEditorLoadGate.jsx';
 import { MobileStickyFormActions } from '@/mobile/ui/MobileStickyFormActions.jsx';
-import { MobileSignableDocumentHeader } from '@/mobile/ui/MobileSignableDocumentShell.jsx';
+import { MobileSignableDocumentShell } from '@/mobile/ui/MobileSignableDocumentShell.jsx';
 import { useMobileSignatureOverlay } from '@/mobile/hooks/useMobileSignatureOverlay.js';
 import { isCapacitorNative } from '@/utils/platform.js';
 import { triggerMobileHaptic } from '@/utils/mobileHaptics.js';
@@ -187,99 +187,130 @@ export const FormalityPowersPage = () => {
     );
   }
 
+  const formFields = (
+    <>
+      <div className="rounded-xl border border-[var(--we-border)] bg-[#fafcff] p-4 text-sm leading-6 text-muted-foreground">
+        <p className="font-semibold text-foreground">{fields.companyName || 'Société'}</p>
+        <p className="mt-1">{fields.legalForm || 'Forme juridique'} · Greffe de {fields.greffe || '—'}</p>
+        <p className="mt-1">Mandataire : {fields.mandataire || 'WILLIAM ESTABLISHMENTS'}</p>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <Label>Mandant – prénom et nom</Label>
+          <Input
+            className="mt-1"
+            value={fields.clientFullName || fields.signatoryName || ''}
+            onChange={(e) => {
+              const value = e.target.value;
+              updateField('clientFullName', value);
+              updateField('signatoryName', value);
+              updateField('signatureFullName', value);
+            }}
+          />
+        </div>
+        <div>
+          <Label>Date de naissance</Label>
+          <Input type="date" className="mt-1" value={fields.clientBirthDate || ''} onChange={(e) => updateField('clientBirthDate', e.target.value)} />
+        </div>
+        <div>
+          <Label>Lieu de naissance</Label>
+          <Input className="mt-1" value={fields.clientBirthPlace || ''} onChange={(e) => updateField('clientBirthPlace', e.target.value)} />
+        </div>
+        <div className="sm:col-span-2">
+          <Label>Adresse du mandant</Label>
+          <Input className="mt-1" value={fields.clientAddress || ''} onChange={(e) => updateField('clientAddress', e.target.value)} />
+        </div>
+        <div className="sm:col-span-2">
+          <Label>Qualité du signataire</Label>
+          <Input
+            className="mt-1"
+            value={fields.signatoryTitle || ''}
+            onChange={(e) => updateField('signatoryTitle', e.target.value)}
+            placeholder="Président, gérant, associé fondateur…"
+          />
+        </div>
+        <div>
+          <Label>Fait à</Label>
+          <Input className="mt-1" value={fields.statementCity || ''} onChange={(e) => updateField('statementCity', e.target.value)} />
+        </div>
+        <div>
+          <Label>Le</Label>
+          <Input type="date" className="mt-1" value={fields.statementDate || ''} onChange={(e) => updateField('statementDate', e.target.value)} />
+        </div>
+      </div>
+
+      <p className="mt-4 text-xs leading-5 text-muted-foreground">
+        Le PDF reprend intégralement le modèle juridique William Establishments. Vérifiez l&apos;aperçu avant signature.
+      </p>
+    </>
+  );
+
+  const signatureBlock = (
+    <GreffioSignatureActionBlock
+      saving={saving}
+      signMode={signMode}
+      onGeneratePreview={onGeneratePreview}
+      onSignModeChange={setSignMode}
+      onSignConfirm={(mode, payload) => {
+        if (mode === 'email') void onSendEmail(payload);
+        else void onSignNow(payload);
+      }}
+      defaultSignerName={fields.signatureFullName || fields.signatoryName || fields.clientFullName || ''}
+      defaultSignerEmail={fields.signerEmail || ''}
+      showInfoBanner={!nativeApp}
+    />
+  );
+
   return (
     <div className={cn(!nativeApp && 'flex min-h-[calc(100vh-4rem)] overflow-hidden bg-[var(--we-bg)]')}>
       {!nativeApp && <Sidebar />}
       <main className={cn(!nativeApp && 'flex flex-1 flex-col overflow-hidden', nativeApp && 'px-4 pb-2 pt-2')}>
         {nativeApp ? (
-          <MobileSignableDocumentHeader
-            eyebrow="Annexe distincte des statuts"
+          <MobileSignableDocumentShell
+            eyebrow="Procuration formalités"
             title="Pouvoirs pour formalités"
-            intro="Document séparé des statuts – confère les pouvoirs au mandataire pour le dépôt guichet unique et les formalités d’immatriculation."
-          />
+            intro="Modèle juridique William Establishments – vérifiez le PDF avant signature."
+          >
+            <div className="space-y-4">
+              <section className="rounded-2xl border border-border/70 bg-white p-4 shadow-sm">
+                {formFields}
+                <div className="mt-6">{signatureBlock}</div>
+              </section>
+              <PdfPreviewPanel
+                blobUrl={previewKey > 0 ? previewBlobUrl : ''}
+                filename="Pouvoirs_formalites.pdf"
+              />
+            </div>
+          </MobileSignableDocumentShell>
         ) : (
-          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--we-border)] bg-white px-5 py-4">
-            <div>
-              <p className="text-sm font-bold uppercase text-primary">Annexe distincte des statuts</p>
-              <h1 className="text-xl font-extrabold">Pouvoirs pour formalités</h1>
-            </div>
-            <Button variant="outline" className="bg-white" asChild>
-              <Link to="/documents">Retour documents</Link>
-            </Button>
-          </header>
-        )}
-
-        <div className={cn('grid flex-1', !nativeApp && 'lg:grid-cols-2')}>
-          <section className={cn('overflow-y-auto bg-white p-5', !nativeApp && 'border-r border-[var(--we-border)]')}>
-            {!nativeApp ? (
+          <>
+            <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--we-border)] bg-white px-5 py-4">
+              <div>
+                <p className="text-sm font-bold uppercase text-primary">Procuration formalités</p>
+                <h1 className="text-xl font-extrabold">Pouvoirs pour formalités</h1>
+              </div>
+              <Button variant="outline" className="bg-white" asChild>
+                <Link to="/documents">Retour documents</Link>
+              </Button>
+            </header>
+            <div className="grid flex-1 lg:grid-cols-2">
+            <section className="overflow-y-auto border-r border-[var(--we-border)] bg-white p-5">
               <p className="text-sm text-muted-foreground">
-                Document séparé des statuts – confère les pouvoirs au mandataire pour le dépôt guichet unique et les formalités d’immatriculation.
+                Document séparé des statuts – procuration pour le guichet unique et les formalités d&apos;immatriculation.
               </p>
-            ) : null}
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <Label>Société</Label>
-                <Input className="mt-1" value={fields.companyName || ''} onChange={(e) => updateField('companyName', e.target.value)} />
+              <div className="mt-4">
+                {formFields}
+                <div className="mt-6">{signatureBlock}</div>
               </div>
-              <div>
-                <Label>Forme juridique</Label>
-                <Input className="mt-1" value={fields.legalForm || ''} onChange={(e) => updateField('legalForm', e.target.value)} />
-              </div>
-              <div>
-                <Label>Greffe compétent</Label>
-                <Input className="mt-1" value={fields.greffe || ''} onChange={(e) => updateField('greffe', e.target.value)} />
-              </div>
-              <div className="sm:col-span-2">
-                <Label>Mandataire</Label>
-                <Input className="mt-1" value={fields.mandataire || ''} onChange={(e) => updateField('mandataire', e.target.value)} />
-              </div>
-              <div>
-                <Label>Fait à</Label>
-                <Input className="mt-1" value={fields.statementCity || ''} onChange={(e) => updateField('statementCity', e.target.value)} />
-              </div>
-              <div>
-                <Label>Le</Label>
-                <Input type="date" className="mt-1" value={fields.statementDate || ''} onChange={(e) => updateField('statementDate', e.target.value)} />
-              </div>
-              <div>
-                <Label>Signataire</Label>
-                <Input className="mt-1" value={fields.signatoryName || fields.signatureFullName || ''} onChange={(e) => {
-                  updateField('signatoryName', e.target.value);
-                  updateField('signatureFullName', e.target.value);
-                }} />
-              </div>
-              <div>
-                <Label>Qualité</Label>
-                <Input className="mt-1" value={fields.signatoryTitle || ''} onChange={(e) => updateField('signatoryTitle', e.target.value)} />
-              </div>
-            </div>
-
-            <div className="mt-6 rounded-xl border border-[var(--we-border)] bg-[#fafcff] p-4 text-sm leading-6 text-muted-foreground">
-              {(fields.paragraphs || []).map((paragraph) => (
-                <p key={paragraph.slice(0, 40)} className="mb-2 last:mb-0">{paragraph}</p>
-              ))}
-            </div>
-
-            <GreffioSignatureActionBlock
-              saving={saving}
-              signMode={signMode}
-              onGeneratePreview={onGeneratePreview}
-              onSignModeChange={setSignMode}
-              onSignConfirm={(mode, payload) => {
-                if (mode === 'email') void onSendEmail(payload);
-                else void onSignNow(payload);
-              }}
-              defaultSignerName={fields.signatureFullName || fields.signatoryName || ''}
-              defaultSignerEmail={fields.signerEmail || ''}
-              showInfoBanner={!nativeApp}
+            </section>
+            <PdfPreviewPanel
+              blobUrl={previewKey > 0 ? previewBlobUrl : ''}
+              filename="Pouvoirs_formalites.pdf"
             />
-          </section>
-
-          <PdfPreviewPanel
-            blobUrl={previewKey > 0 ? previewBlobUrl : ''}
-            filename="Pouvoirs_formalites.pdf"
-          />
-        </div>
+            </div>
+          </>
+        )}
 
         {signedResult ? (
           <div className="fixed inset-0 z-50 overflow-y-auto bg-[#f6f8fc]/95 p-4 backdrop-blur-sm">

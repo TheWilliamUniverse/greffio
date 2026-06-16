@@ -69,8 +69,11 @@ export const validateFormalityPowersFields = (fields = {}) => {
   if (!String(fields.statementCity || '').trim() || !String(fields.statementDate || '').trim()) {
     return { ok: false, error: 'DOCUMENT_EDITOR_SIGNATURE_PLACE_DATE_REQUIRED' };
   }
-  if (!String(fields.signatoryName || fields.signatureFullName || '').trim()) {
+  if (!String(fields.clientFullName || fields.signatoryName || '').trim()) {
     return { ok: false, error: 'DOCUMENT_EDITOR_SIGNATURE_REQUIRED' };
+  }
+  if (!String(fields.clientAddress || '').trim()) {
+    return { ok: false, error: 'DOCUMENT_EDITOR_ADDRESS_REQUIRED' };
   }
   if (fields.signatureIsLegalEntity && !String(fields.signatureRepresentativeName || '').trim()) {
     return { ok: false, error: 'DOCUMENT_EDITOR_LEGAL_ENTITY_REPRESENTATIVE_REQUIRED' };
