@@ -33,7 +33,7 @@ export const NON_CONVICTION_SIGNATURE_LINE_Y = 290;
 export const NON_CONVICTION_SIGNATURE_LABEL_OFFSET = 30;
 
 /** Name/image stamp sits this many pt above the trait noir (non-conviction only). */
-export const NON_CONVICTION_STAMP_ABOVE_LINE = 22;
+export const NON_CONVICTION_STAMP_ABOVE_LINE = 6;
 
 /** Electronic timestamp sits this many pt below the trait noir (non-conviction only). */
 export const NON_CONVICTION_ELECTRONIC_STAMP_BELOW_LINE = 14;
@@ -41,14 +41,22 @@ export const NON_CONVICTION_ELECTRONIC_STAMP_BELOW_LINE = 14;
 /** Left-column signature line for liste des souscripteurs (last page). */
 export const SUBSCRIBERS_LIST_SIGNATURE_LINE_Y = 278;
 
+/** Name/image stamp sits this many pt above the trait noir (subscribers list only). */
+export const SUBSCRIBERS_LIST_STAMP_ABOVE_LINE = 0;
+
 /** Signature line for procuration / mandat Greffio (single page). */
 export const MANDATE_SIGNATURE_LINE_Y = 278;
 
-/** Image/text stamp sits this many pt above the trait noir. */
+/** Image/text stamp sits this many pt above the trait noir (mandate default). */
 export const SIGNATURE_STAMP_ABOVE_LINE = 8;
 
 /** Stamp Y baseline = line Y + SIGNATURE_STAMP_ABOVE_LINE */
 export const signatureStampY = (lineY) => lineY + SIGNATURE_STAMP_ABOVE_LINE;
+
+/** Subscribers list name/image stamp baseline (above trait noir). */
+export const subscribersListSignatureStampY = (
+  lineY = SUBSCRIBERS_LIST_SIGNATURE_LINE_Y,
+) => lineY + SUBSCRIBERS_LIST_STAMP_ABOVE_LINE;
 
 /** Non-conviction signature image bottom / text anchor zone (above trait noir). */
 export const nonConvictionSignatureStampY = (
