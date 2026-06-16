@@ -106,6 +106,12 @@ export const getOpsEmailEvents = async ({
   return apiGet(`/api/ops/email-events?${params.toString()}`);
 };
 
+export const getOpsInvoicesPendingReview = async () => apiGet('/api/ops/invoices/pending-review');
+
+export const approveOpsInvoiceSend = async (invoiceId) => apiPost(
+  `/api/ops/invoices/${encodeURIComponent(invoiceId)}/approve-send`,
+);
+
 export const downloadOpsProofsExport = async (dossierId) => {
   const response = await apiFetch(
     `/api/ops/dossiers/${encodeURIComponent(dossierId)}/proofs-export`,

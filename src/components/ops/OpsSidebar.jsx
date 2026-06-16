@@ -8,6 +8,7 @@ import {
   Gauge,
   LayoutDashboard,
   Mail,
+  Receipt,
   Settings,
   ShieldCheck,
   Truck,
@@ -22,6 +23,7 @@ const navItems = [
   { to: '/ops/dossiers', label: 'Dossiers', icon: FolderKanban },
   { to: '/ops/documents', label: 'Documents', icon: FileSearch },
   { to: '/ops/relances', label: 'Relances', icon: Mail },
+  { to: '/ops/invoices', label: 'Factures', icon: Receipt, roles: ['ADMIN', 'OPS'] },
   { to: '/ops/depot', label: 'Dépôt GU', icon: Truck },
   { to: '/ops/qualite', label: 'Qualité', icon: ClipboardCheck },
   { to: '/ops/equipe', label: 'Équipe', icon: Users },
@@ -30,7 +32,14 @@ const navItems = [
   { to: '/ops/settings', label: 'Paramètres', icon: Settings },
 ];
 
-export const OpsSidebar = ({ collapsed = false, mobile = false, onClose }) => (
+export const OpsSidebar = ({ collapsed = false, mobile = false, onClose, userRole = null }) => {
+  const normalizedRole = String(userRole || '').toUpperCase();
+  const visibleItems = navItems.filter((item) => {
+    if (!item.roles?.length) return true;
+    return item.roles.includes(normalizedRole);
+  });
+
+  return (
   <aside className={cn(
     'flex h-full flex-col border-r border-slate-800 bg-slate-950 text-slate-100',
     collapsed ? 'w-[72px]' : mobile ? 'w-[88%] max-w-[280px]' : 'w-64',
@@ -60,7 +69,7 @@ export const OpsSidebar = ({ collapsed = false, mobile = false, onClose }) => (
     </div>
 
     <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-      {navItems.map(({ to, label, icon: Icon, end, external }) => (
+      {visibleItems.map(({ to, label, icon: Icon, end, external }) => (
         <NavLink
           key={to}
           to={to}
@@ -88,4 +97,5 @@ export const OpsSidebar = ({ collapsed = false, mobile = false, onClose }) => (
       </div>
     ) : null}
   </aside>
-);
+  );
+};

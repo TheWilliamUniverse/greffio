@@ -26,6 +26,10 @@ const pageMeta = {
     title: 'Relances',
     subtitle: 'Clients à relancer – suggestions automatiques (Lot 2).',
   },
+  '/ops/invoices': {
+    title: 'Factures',
+    subtitle: 'Validation ops avant envoi client (Qonto + email).',
+  },
   '/ops/depot': {
     title: 'Dépôt guichet unique',
     subtitle: 'Dossiers prêts au dépôt (Lot 2).',
@@ -114,11 +118,11 @@ export const OpsShell = () => {
               onClick={closeSidebar}
               className="absolute inset-0 bg-[#0a1220]/45 backdrop-blur-[2px]"
             />
-            <OpsSidebar mobile onClose={closeSidebar} />
+            <OpsSidebar mobile onClose={closeSidebar} userRole={currentUser?.role} />
           </div>
         ) : null
       ) : (
-        <OpsSidebar />
+        <OpsSidebar userRole={currentUser?.role} />
       )}
       <div className="flex min-w-0 flex-1 flex-col">
         <OpsTopbar

@@ -1088,8 +1088,14 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
   const choiceTapNoContinue = (
     step === 0
     || (step === 1 && projectSubStep === 2)
-    || (step === 1 && projectSubStep === 1 && isMobilePresentation && (activeInitiatorStep?.kind === 'choice' || activeInitiatorStep?.kind === 'select'))
-    || (step === 1 && projectSubStep === 4 && isMobilePresentation && isProjectDetailSelectStep)
+    || (step === 1 && projectSubStep === 0 && !isAccountCreationStep && isMobilePresentation)
+    || (step === 1 && projectSubStep === 1 && isMobilePresentation && (
+      activeInitiatorStep?.kind === 'choice'
+      || activeInitiatorStep?.kind === 'select'
+      || activeInitiatorStep?.kind === 'input'
+    ))
+    || (step === 1 && projectSubStep === 4 && isMobilePresentation)
+    || (step === 2 && step2Phase === 'profile' && isMobilePresentation)
     || (step === 2 && step2Phase === 'questionnaire' && activeQuestion?.type === 'select' && !questionnaireFinished && !questionExitPhase)
   );
 
@@ -1384,6 +1390,9 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                             placeholder={activeContactField.placeholder || ''}
                             inputMode={resolveInputMode(activeContactField.key)}
                             inputType={activeContactField.type}
+                            compact
+                            showProgressBar={false}
+                            showStepMeta={false}
                             canAdvance={canContinueContact()}
                             onChange={(nextValue) => update(activeContactField.key, nextValue)}
                             onAdvance={tryWizardContinue}
@@ -1495,6 +1504,9 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                                   stepTotal={initiatorMobileSteps.length}
                                   fieldId={`simulator-initiator-${activeInitiatorStep.key}`}
                                   value={data[activeInitiatorStep.key] || ''}
+                                  compact
+                                  showProgressBar={false}
+                                  showStepMeta={false}
                                   canAdvance={isInitiatorStepValid()}
                                   onChange={(nextValue) => update(activeInitiatorStep.key, nextValue)}
                                   onAdvance={advanceInitiatorFieldStep}
@@ -1630,6 +1642,9 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                                   fieldId={`simulator-project-${activeProjectDetailField.key}`}
                                   value={data[activeProjectDetailField.key] || ''}
                                   placeholder={activeProjectDetailField.placeholder || ''}
+                                  compact
+                                  showProgressBar={false}
+                                  showStepMeta={false}
                                   canAdvance={isProjectDetailFieldValid()}
                                   onChange={(nextValue) => update(activeProjectDetailField.key, nextValue)}
                                   onAdvance={advanceProjectDetailField}
@@ -1707,7 +1722,9 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                         placeholder={activeProfileQuestion.placeholder || ''}
                         inputMode={resolveInputMode(activeProfileQuestion.key)}
                         inputType={activeProfileQuestion.type === 'number' ? 'text' : activeProfileQuestion.type}
-                        compact={false}
+                        compact={isMobilePresentation}
+                        showProgressBar={!isMobilePresentation}
+                        showStepMeta={!isMobilePresentation}
                         canAdvance={isProfileQuestionValid()}
                         onChange={(nextValue) => {
                           update(activeProfileQuestion.key, activeProfileQuestion.type === 'number'

@@ -132,6 +132,7 @@ import { buildMobileNotifications } from './utils/mobileNotifications.js';
 import { upsertPushDeviceToken, revokePushDeviceToken } from './pushStore.js';
 import { uploadPdfOnly } from './uploads.js';
 import { analyzeDocument } from './documentAnalysis.js';
+import { scheduleMistralOcrEnrichment } from './services/mistralOcrEnrichmentService.js';
 import { createSignatureRecord, getLatestSignatureByDossier } from './signatureStore.js';
 import { generateMandatePdf } from './pdf/mandatePdf.js';
 import {
@@ -1986,6 +1987,16 @@ app.post('/api/dossiers/:dossierId/documents', uploadLimiter, requireAuth, uploa
       uploadedByRole: req.auth?.role || 'client',
       uploadedAt: new Date().toISOString(),
     },
+  });
+
+  scheduleMistralOcrEnrichment({
+    dossierId: dossier.id,
+    docKey,
+    buffer: req.file.buffer,
+    mimeType: req.file.mimetype,
+    filename: targetFilename,
+    listDossierDocuments,
+    updateDossierDocument,
   });
 
   const dossierData = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
