@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import {
   buildOnlyOfficeDocumentKey,
   buildOnlyOfficeEditorConfig,
+  convertDocumentViaOnlyOffice,
   getOnlyOfficeServerUrl,
   isOnlyOfficeConfigured,
   parseOnlyOfficeCallbackStatus,
@@ -16,9 +17,11 @@ import {
 } from '../services/documentEditorSessionService.js';
 import {
   createVersionFromEditorSave,
+  createVersion,
   getCurrentVersion,
+  syncDocumentVersionPointers,
 } from '../services/documentVersionService.js';
-import { downloadDocumentBufferFromConfiguredStorage, uploadDocumentToConfiguredStorage } from '../services/objectStorage.js';
+import { downloadDocumentBufferFromConfiguredStorage, uploadDocumentToConfiguredStorage, createSignedDownloadUrl } from '../services/objectStorage.js';
 import { isDocumentSignedLocked } from '../services/documentWorkspacePolicy.js';
 import { canEditStatutesInOnlyOffice } from '../domain/statutesWorkflow.js';
 
@@ -27,6 +30,80 @@ const callbackOk = (res, extra = {}) => res.json({ error: 0, ...extra });
 const resolveDocumentRecord = async (listDossierDocuments, dossierId, docKey) => {
   const documents = await listDossierDocuments(dossierId);
   return documents.find((item) => item.docKey === docKey) || null;
+};
+
+const persistOnlyOfficePdfPreview = async ({
+  session,
+  document,
+  docxStorageUrl,
+  createdBy,
+}) => {
+  const signed = await createSignedDownloadUrl(docxStorageUrl);
+  const fileUrl = signed?.url;
+  if (!fileUrl) {
+    console.warn('ONLYOFFICE_PDF_PREVIEW_NO_SIGNED_URL', { docxStorageUrl });
+    return null;
+  }
+
+  let pdfBuffer;
+  try {
+    pdfBuffer = await convertDocumentViaOnlyOffice({
+      fileUrl,
+      fileType: 'docx',
+      outputType: 'pdf',
+      key: buildOnlyOfficeDocumentKey({
+        dossierId: session.dossierId,
+        docKey: session.docKey,
+        sessionId: session.id,
+        sha256: session.sourceSha256,
+      }),
+    });
+  } catch (error) {
+    console.warn('ONLYOFFICE_PDF_PREVIEW_CONVERT_FAILED', error?.message || error);
+    return null;
+  }
+
+  const sha256 = createHash('sha256').update(pdfBuffer).digest('hex');
+  const uploadResult = await uploadDocumentToConfiguredStorage({
+    dossierId: session.dossierId,
+    docKey: session.docKey,
+    buffer: pdfBuffer,
+    originalFilename: `${session.docKey}_preview_${Date.now()}.pdf`,
+    mimeType: 'application/pdf',
+  });
+
+  const currentDocx = await getCurrentVersion(session.dossierId, session.docKey);
+  const pdfVersion = await createVersion({
+    dossierId: session.dossierId,
+    docKey: session.docKey,
+    documentId: document?.id || null,
+    origin: 'editor_free_pdf_preview',
+    status: 'draft',
+    fileFormat: 'pdf',
+    mimeType: 'application/pdf',
+    storageUrl: uploadResult.storageUrl,
+    fileSizeBytes: pdfBuffer.length,
+    sha256,
+    contentHash: sha256,
+    sourceVersionId: currentDocx?.id || null,
+    editorProvider: 'onlyoffice',
+    metadata: {
+      sourceDocxStorageUrl: docxStorageUrl,
+      generatedBy: 'onlyoffice_convert',
+    },
+    createdBy,
+    markCurrent: false,
+  });
+
+  await syncDocumentVersionPointers({
+    dossierId: session.dossierId,
+    docKey: session.docKey,
+    versionId: currentDocx?.id || pdfVersion.id,
+    pdfVersionId: pdfVersion.id,
+    lastFreeEditAt: new Date().toISOString(),
+  });
+
+  return { pdfVersion, uploadResult, sha256 };
 };
 
 export const registerOnlyOfficeRoutes = (app, {
@@ -111,6 +188,7 @@ export const registerOnlyOfficeRoutes = (app, {
         sha256,
         fileSizeBytes: buffer.length,
         mimeType,
+        fileFormat,
         origin: 'editor_free',
         editorProvider: 'onlyoffice',
         createdBy: session.userId,
@@ -120,20 +198,40 @@ export const registerOnlyOfficeRoutes = (app, {
         },
       });
 
+      let previewUpdate = null;
+      if (fileFormat === 'docx') {
+        previewUpdate = await persistOnlyOfficePdfPreview({
+          session,
+          document,
+          docxStorageUrl: uploadResult.storageUrl,
+          createdBy: session.userId,
+        }).catch((previewError) => {
+          console.warn('ONLYOFFICE_PDF_PREVIEW_UPDATE_FAILED', previewError?.message || previewError);
+          return null;
+        });
+      }
+
       if (updateDossierDocument && document) {
+        const nextStorageUrl = previewUpdate?.uploadResult?.storageUrl
+          || (fileFormat === 'pdf' ? uploadResult.storageUrl : document.storageUrl || document.fileUrl);
+        const nextMimeType = previewUpdate ? 'application/pdf' : mimeType;
+        const nextFilename = previewUpdate
+          ? `${session.docKey}.pdf`
+          : `${session.docKey}.${fileFormat}`;
         await updateDossierDocument({
           dossierId: session.dossierId,
           docKey: session.docKey,
           status: document.status,
-          fileUrl: uploadResult.storageUrl,
-          storageUrl: uploadResult.storageUrl,
-          filename: `${session.docKey}.${fileFormat}`,
-          fileSizeBytes: buffer.length,
-          mimeType,
-          sha256,
+          fileUrl: nextStorageUrl,
+          storageUrl: nextStorageUrl,
+          filename: nextFilename,
+          fileSizeBytes: previewUpdate?.uploadResult?.fileSizeBytes || buffer.length,
+          mimeType: nextMimeType,
+          sha256: previewUpdate?.sha256 || sha256,
           metadata: {
             ...(document.metadata || {}),
             lastOnlyOfficeSaveAt: new Date().toISOString(),
+            lastDocxStorageUrl: fileFormat === 'docx' ? uploadResult.storageUrl : document.metadata?.lastDocxStorageUrl,
             unsigned: true,
           },
         });

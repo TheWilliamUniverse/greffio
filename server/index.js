@@ -3178,6 +3178,8 @@ registerDocumentWorkspaceRoutes(app, {
   updateDossierDocument,
   requireRole,
   appUrl,
+  getDossier,
+  getUserById,
 });
 
 registerOnlyOfficeRoutes(app, {

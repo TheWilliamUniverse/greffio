@@ -39,8 +39,14 @@ export const isStatutesSignedLocked = (document = null) => (
   getStatutesWorkflowStatus(document) === STATUTES_WORKFLOW_STATUSES.SIGNED
 );
 
+const STATUTES_ONLYOFFICE_EDITABLE_STATUSES = new Set([
+  STATUTES_WORKFLOW_STATUSES.DRAFT,
+  STATUTES_WORKFLOW_STATUSES.PENDING_CLIENT_REVIEW,
+  STATUTES_WORKFLOW_STATUSES.PENDING_OPS_REVIEW,
+]);
+
 export const canEditStatutesInOnlyOffice = (document = null) => (
-  !isStatutesSignedLocked(document)
+  STATUTES_ONLYOFFICE_EDITABLE_STATUSES.has(getStatutesWorkflowStatus(document))
 );
 
 export const canRequestStatutesSignature = (document = null) => (

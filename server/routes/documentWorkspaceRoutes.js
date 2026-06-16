@@ -26,6 +26,10 @@ import {
   listVersions,
 } from '../services/documentVersionService.js';
 import {
+  bootstrapDocumentVersionFromRecord,
+  ensureStatutesDocxEditVersion,
+} from '../services/statutesDocxVersionService.js';
+import {
   getStatutesWorkflowLabel,
   getStatutesWorkflowStatus,
   transitionStatutesWorkflow,
@@ -52,9 +56,30 @@ const resolveDocumentRecord = async (listDossierDocuments, dossierId, docKey) =>
   return documents.find((item) => item.docKey === docKey) || null;
 };
 
-const buildWorkspacePayload = async ({ dossierId, docKey, document }) => {
-  const currentVersion = await getCurrentVersion(dossierId, docKey);
-  const currentPdfVersion = await getCurrentPdfVersion(dossierId, docKey);
+const buildWorkspacePayload = async ({ dossierId, docKey, document, dossier = null, user = null }) => {
+  let currentVersion = null;
+  let currentPdfVersion = null;
+  let versionsCount = 0;
+
+  try {
+    if (document && (document.storageUrl || document.fileUrl)) {
+      await bootstrapDocumentVersionFromRecord({
+        dossierId,
+        docKey,
+        document,
+      });
+    }
+    currentVersion = await getCurrentVersion(dossierId, docKey);
+    currentPdfVersion = await getCurrentPdfVersion(dossierId, docKey);
+    versionsCount = (await listVersions(dossierId, docKey, { limit: 100 })).length;
+  } catch (versionError) {
+    console.warn('[document-workspace] version metadata unavailable', {
+      dossierId,
+      docKey,
+      message: versionError?.message,
+    });
+  }
+
   const capabilities = buildDocumentWorkspaceCapabilities({ docKey, document });
   const config = getEditableDocumentConfig(docKey);
 
@@ -67,7 +92,7 @@ const buildWorkspacePayload = async ({ dossierId, docKey, document }) => {
     capabilities,
     currentVersion: mapVersionResponse(currentVersion),
     currentPdfVersion: mapVersionResponse(currentPdfVersion),
-    versionsCount: (await listVersions(dossierId, docKey, { limit: 100 })).length,
+    versionsCount,
     lastEditedAt: currentVersion?.updatedAt || document?.updatedAt || null,
     signedLocked: isDocumentSignedLocked(document),
     defaultProvider: resolveDefaultEditorProvider({ docKey }),
@@ -79,7 +104,14 @@ const buildWorkspacePayload = async ({ dossierId, docKey, document }) => {
   };
 };
 
-const handleCreateEditSession = async (req, res, { preferFreeEdit = false, appUrl, resolveDossierAccess, listDossierDocuments }) => {
+const handleCreateEditSession = async (req, res, {
+  preferFreeEdit = false,
+  appUrl,
+  resolveDossierAccess,
+  listDossierDocuments,
+  getDossier,
+  getUserById,
+}) => {
   const access = await resolveDossierAccess(req, req.params.dossierId, { allowClaim: true });
   if (!access.ok) return res.status(access.status).json({ ok: false, error: access.error });
 
@@ -130,10 +162,41 @@ const handleCreateEditSession = async (req, res, { preferFreeEdit = false, appUr
     });
   }
 
-  const currentVersion = await getCurrentVersion(access.dossier.id, docKey);
+  const currentVersion = docKey === 'signed_statutes'
+    ? await (async () => {
+      try {
+        const dossierRecord = access.dossier || (getDossier ? await getDossier(access.dossier.id) : null);
+        const questionnaire = dossierRecord?.dataJson ? JSON.parse(dossierRecord.dataJson) : {};
+        const user = dossierRecord?.userId && getUserById
+          ? await getUserById(dossierRecord.userId)
+          : null;
+        return await ensureStatutesDocxEditVersion({
+          dossierId: access.dossier.id,
+          document,
+          dossier: dossierRecord,
+          questionnaire,
+          user,
+          createdBy: req.auth?.sub,
+        });
+      } catch (ensureError) {
+        console.error('[document-workspace] statutes docx ensure failed', {
+          dossierId: access.dossier.id,
+          message: ensureError?.message,
+        });
+        return null;
+      }
+    })()
+    : await getCurrentVersion(access.dossier.id, docKey);
+
   const sourceStorageUrl = currentVersion?.storageUrl || document?.storageUrl || document?.fileUrl;
   if (!sourceStorageUrl) {
-    return res.status(404).json({ ok: false, error: 'SOURCE_VERSION_NOT_FOUND' });
+    return res.status(404).json({
+      ok: false,
+      error: docKey === 'signed_statutes' ? 'STATUTES_DOCX_ENSURE_FAILED' : 'SOURCE_VERSION_NOT_FOUND',
+      message: docKey === 'signed_statutes'
+        ? 'Impossible de préparer la version DOCX des statuts pour ONLYOFFICE.'
+        : 'Version source introuvable.',
+    });
   }
 
   const freeEditProvider = providerId === 'onlyoffice' && OnlyOfficeProvider.isAvailable()
@@ -147,7 +210,7 @@ const handleCreateEditSession = async (req, res, { preferFreeEdit = false, appUr
     provider: freeEditProvider,
     userId: req.auth?.sub,
     userEmail: req.auth?.email || null,
-    fileFormat: currentVersion?.fileFormat || 'pdf',
+    fileFormat: currentVersion?.fileFormat || (docKey === 'signed_statutes' ? 'docx' : 'pdf'),
     sourceStorageUrl,
     sourceSha256: currentVersion?.sha256 || document?.sha256 || null,
   });
@@ -191,6 +254,8 @@ export const registerDocumentWorkspaceRoutes = (app, {
   updateDossierDocument,
   requireRole,
   appUrl,
+  getDossier,
+  getUserById,
 }) => {
   app.get('/api/dossiers/:dossierId/documents/:docKey/workspace', requireAuth, async (req, res) => {
     try {
@@ -207,6 +272,7 @@ export const registerDocumentWorkspaceRoutes = (app, {
         dossierId: access.dossier.id,
         docKey,
         document,
+        dossier: access.dossier,
       });
       return res.json(payload);
     } catch (error) {
@@ -246,6 +312,8 @@ export const registerDocumentWorkspaceRoutes = (app, {
       appUrl,
       resolveDossierAccess,
       listDossierDocuments,
+      getDossier,
+      getUserById,
     })
   ));
 
@@ -255,6 +323,8 @@ export const registerDocumentWorkspaceRoutes = (app, {
       appUrl,
       resolveDossierAccess,
       listDossierDocuments,
+      getDossier,
+      getUserById,
     })
   ));
 

@@ -121,6 +121,62 @@ export const buildOnlyOfficeEditorConfig = ({
   return config;
 };
 
+export const convertDocumentViaOnlyOffice = async ({
+  fileUrl,
+  fileType = 'docx',
+  outputType = 'pdf',
+  key = null,
+}) => {
+  const serverUrl = getOnlyOfficeServerUrl();
+  if (!serverUrl) {
+    const error = new Error('ONLYOFFICE_NOT_CONFIGURED');
+    error.code = 'ONLYOFFICE_NOT_CONFIGURED';
+    throw error;
+  }
+
+  const payload = {
+    async: false,
+    filetype: String(fileType || 'docx').toLowerCase(),
+    key: key || createHash('sha256').update(String(fileUrl)).digest('hex').slice(0, 20),
+    outputtype: String(outputType || 'pdf').toLowerCase(),
+    url: fileUrl,
+  };
+
+  const token = signOnlyOfficePayload(payload);
+  const response = await fetch(`${serverUrl}/ConvertService.ashx`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(token ? { token } : payload),
+  });
+
+  if (!response.ok) {
+    const error = new Error(`ONLYOFFICE_CONVERT_HTTP_${response.status}`);
+    error.code = 'ONLYOFFICE_CONVERT_FAILED';
+    throw error;
+  }
+
+  const result = await response.json();
+  if (result?.error) {
+    const error = new Error(`ONLYOFFICE_CONVERT_${result.error}`);
+    error.code = 'ONLYOFFICE_CONVERT_FAILED';
+    throw error;
+  }
+  if (!result?.fileUrl) {
+    const error = new Error('ONLYOFFICE_CONVERT_NO_URL');
+    error.code = 'ONLYOFFICE_CONVERT_FAILED';
+    throw error;
+  }
+
+  const convertedResponse = await fetch(String(result.fileUrl));
+  if (!convertedResponse.ok) {
+    const error = new Error(`ONLYOFFICE_CONVERT_DOWNLOAD_${convertedResponse.status}`);
+    error.code = 'ONLYOFFICE_CONVERT_FAILED';
+    throw error;
+  }
+
+  return Buffer.from(await convertedResponse.arrayBuffer());
+};
+
 export const parseOnlyOfficeCallbackStatus = (body = {}) => {
   const status = Number(body?.status);
   return {

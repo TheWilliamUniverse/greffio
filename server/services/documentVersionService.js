@@ -434,24 +434,33 @@ export const createVersionFromEditorSave = async ({
   sha256,
   fileSizeBytes = null,
   mimeType = 'application/pdf',
+  fileFormat = 'pdf',
   origin = 'editor_form',
   editorProvider = 'internal',
   createdBy = null,
   metadata = {},
+  pdfVersionId = null,
 }) => {
   const parentVersion = await fetchCurrentVersion(dossierId, docKey);
+  const normalizedFormat = String(fileFormat || 'pdf').toLowerCase();
+  const resolvedPdfVersionId = pdfVersionId
+    || (normalizedFormat === 'pdf'
+      ? null
+      : parentVersion?.pdfVersionId || (parentVersion?.fileFormat === 'pdf' ? parentVersion.id : null));
+
   const version = await createVersion({
     dossierId,
     docKey,
     documentId: document?.id || null,
     origin,
     status: 'draft',
-    fileFormat: 'pdf',
+    fileFormat: normalizedFormat,
     mimeType,
     storageUrl,
     fileSizeBytes,
     sha256,
     parentVersionId: parentVersion?.id || null,
+    pdfVersionId: normalizedFormat === 'pdf' ? null : resolvedPdfVersionId,
     editorProvider,
     metadata: {
       ...(parentVersion?.metadata || {}),
@@ -461,12 +470,28 @@ export const createVersionFromEditorSave = async ({
     markCurrent: true,
   });
 
+  const nextPdfVersionId = normalizedFormat === 'pdf' ? version.id : resolvedPdfVersionId;
   await syncDocumentVersionPointers({
     dossierId,
     docKey,
     versionId: version.id,
-    pdfVersionId: version.id,
+    pdfVersionId: nextPdfVersionId,
+    lastFreeEditAt: nowIso(),
   });
+
+  if (normalizedFormat === 'pdf' && version.pdfVersionId !== version.id) {
+    if (hasPostgres) {
+      await query(
+        'UPDATE document_versions SET pdf_version_id = $2, updated_at = $3 WHERE id = $1',
+        [version.id, version.id, nowIso()],
+      );
+    } else {
+      sqlite.prepare(
+        'UPDATE document_versions SET pdf_version_id = ?, updated_at = ? WHERE id = ?',
+      ).run(version.id, nowIso(), version.id);
+    }
+    version.pdfVersionId = version.id;
+  }
 
   return version;
 };
