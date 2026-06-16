@@ -15,6 +15,7 @@ import {
   isDocumentWorkspaceEnabled,
   resolveDocumentViewerPath,
 } from '@/utils/documentWorkspace.js';
+import { mapDocumentPreviewError } from '@/utils/dossierDocumentFile.js';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 
 export const DocumentViewerTab = () => {
@@ -24,6 +25,7 @@ export const DocumentViewerTab = () => {
   const [workspace, setWorkspace] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [workspaceWarning, setWorkspaceWarning] = useState('');
   const [preview, setPreview] = useState(null);
   const [editorPayload, setEditorPayload] = useState(null);
   const [editorLoading, setEditorLoading] = useState(false);
@@ -52,19 +54,43 @@ export const DocumentViewerTab = () => {
     });
   }, [dossierId, docKey]);
 
-  const loadWorkspace = useCallback(async () => {
+  const loadDocument = useCallback(async () => {
     if (!dossierId || !docKey) return;
     setLoading(true);
     setError('');
-    try {
-      const payload = await getDocumentWorkspace(dossierId, docKey);
-      setWorkspace(payload);
-      await loadPreview();
-    } catch (loadError) {
-      setError(loadError?.message || 'Impossible de charger ce document.');
-    } finally {
-      setLoading(false);
+    setWorkspaceWarning('');
+    let previewLoaded = false;
+
+    const previewTask = loadPreview()
+      .then(() => {
+        previewLoaded = true;
+      })
+      .catch((previewError) => {
+        setError(mapDocumentPreviewError(previewError));
+      });
+
+    const workspaceTask = getDocumentWorkspace(dossierId, docKey)
+      .then((payload) => {
+        setWorkspace(payload);
+      })
+      .catch((workspaceError) => {
+        setWorkspaceWarning(mapDocumentPreviewError(workspaceError));
+        if (import.meta.env.DEV) {
+          // eslint-disable-next-line no-console
+          console.warn('[DocumentViewerTab] workspace metadata unavailable', {
+            dossierId,
+            docKey,
+            code: workspaceError?.code || workspaceError?.message,
+          });
+        }
+      });
+
+    await Promise.allSettled([previewTask, workspaceTask]);
+
+    if (!previewLoaded) {
+      setError((current) => current || 'Impossible d’afficher ce document pour le moment.');
     }
+    setLoading(false);
   }, [dossierId, docKey, loadPreview]);
 
   const openEditor = useCallback(async () => {
@@ -93,8 +119,8 @@ export const DocumentViewerTab = () => {
   }, [dossierId, docKey]);
 
   useEffect(() => {
-    void loadWorkspace();
-  }, [loadWorkspace]);
+    void loadDocument();
+  }, [loadDocument]);
 
   useEffect(() => {
     if (mode === 'edit' && workspace?.capabilities?.freeEdit && !editorPayload && !editorLoading) {
@@ -127,7 +153,7 @@ export const DocumentViewerTab = () => {
     try {
       const result = await submitStatutesWorkflowAction(dossierId, action);
       setWorkflowMessage(`Statut mis à jour : ${result.label || result.statutesWorkflowStatus}.`);
-      await loadWorkspace();
+      await loadDocument();
     } catch (workflowError) {
       setWorkflowMessage(workflowError?.message || 'Action impossible pour le moment.');
     } finally {
@@ -151,7 +177,7 @@ export const DocumentViewerTab = () => {
     );
   }
 
-  if (error) {
+  if (error && !preview?.blobUrl) {
     return (
       <main className="mx-auto max-w-5xl px-4 py-8">
         <p className="text-sm text-destructive">{error}</p>
@@ -202,6 +228,10 @@ export const DocumentViewerTab = () => {
             </Button>
           </div>
         </div>
+
+        {workspaceWarning ? (
+          <p className="mt-3 text-sm text-amber-700">{workspaceWarning}</p>
+        ) : null}
 
         {workflowMessage ? (
           <p className="mt-3 text-sm text-muted-foreground">{workflowMessage}</p>

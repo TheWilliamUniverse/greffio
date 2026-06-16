@@ -428,6 +428,9 @@ export const mapDocumentPreviewError = (error) => {
   if (code === 'DOCUMENT_DOWNLOAD_FAILED' || code === 'AUTH_TOKEN_MISSING') {
     return 'Impossible de récupérer ce document pour le moment.';
   }
+  if (code === 'DOCUMENT_WORKSPACE_UNAVAILABLE' || code === 'DOCUMENT_WORKSPACE_UNSUPPORTED') {
+    return 'Les options d’édition ne sont pas disponibles pour le moment. L’aperçu PDF reste accessible.';
+  }
   if (code === 'API_TRANSIENT_UNAVAILABLE' || code === 'Failed to fetch') {
     return 'Connexion instable. Réessayez dans quelques secondes.';
   }

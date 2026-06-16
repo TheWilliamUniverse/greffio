@@ -193,21 +193,34 @@ export const registerDocumentWorkspaceRoutes = (app, {
   appUrl,
 }) => {
   app.get('/api/dossiers/:dossierId/documents/:docKey/workspace', requireAuth, async (req, res) => {
-    const access = await resolveDossierAccess(req, req.params.dossierId, { allowClaim: true });
-    if (!access.ok) return res.status(access.status).json({ ok: false, error: access.error });
+    try {
+      const access = await resolveDossierAccess(req, req.params.dossierId, { allowClaim: true });
+      if (!access.ok) return res.status(access.status).json({ ok: false, error: access.error });
 
-    const docKey = String(req.params.docKey || '');
-    if (!isWorkspaceDocKeyAllowed(docKey)) {
-      return res.status(400).json({ ok: false, error: 'DOCUMENT_WORKSPACE_UNSUPPORTED' });
+      const docKey = String(req.params.docKey || '');
+      if (!isWorkspaceDocKeyAllowed(docKey)) {
+        return res.status(400).json({ ok: false, error: 'DOCUMENT_WORKSPACE_UNSUPPORTED' });
+      }
+
+      const document = await resolveDocumentRecord(listDossierDocuments, access.dossier.id, docKey);
+      const payload = await buildWorkspacePayload({
+        dossierId: access.dossier.id,
+        docKey,
+        document,
+      });
+      return res.json(payload);
+    } catch (error) {
+      console.error('[document-workspace] workspace load failed', {
+        dossierId: req.params.dossierId,
+        docKey: req.params.docKey,
+        message: error?.message,
+      });
+      return res.status(500).json({
+        ok: false,
+        error: 'DOCUMENT_WORKSPACE_UNAVAILABLE',
+        message: 'Impossible de charger les métadonnées du document.',
+      });
     }
-
-    const document = await resolveDocumentRecord(listDossierDocuments, access.dossier.id, docKey);
-    const payload = await buildWorkspacePayload({
-      dossierId: access.dossier.id,
-      docKey,
-      document,
-    });
-    return res.json(payload);
   });
 
   app.get('/api/dossiers/:dossierId/documents/:docKey/versions', requireAuth, async (req, res) => {

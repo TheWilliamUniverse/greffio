@@ -23,6 +23,7 @@ import { DossierBreadcrumb } from '@/components/layout/DossierBreadcrumb.jsx';
 import { PdfPreviewPanel } from '@/components/documents/PdfPreviewPanel.jsx';
 import { DocumentPreviewActions } from '@/components/documents/DocumentPreviewActions.jsx';
 import { StatutesWorkflowBadge } from '@/components/documents/StatutesWorkflowBadge.jsx';
+import { mapDocumentPreviewError } from '@/utils/dossierDocumentFile.js';
 import { openDocumentViewerTab } from '@/pages/DocumentViewerTab.jsx';
 import { FormalityPowerSummary } from '@/components/documents/FormalityPowerSummary.jsx';
 import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
@@ -335,8 +336,8 @@ export const DocumentsPage = () => {
           blobUrl: URL.createObjectURL(blob),
         };
       });
-    } catch (_error) {
-      setUploadError('Impossible d’afficher l’aperçu de ce document pour le moment.');
+    } catch (error) {
+      setUploadError(mapDocumentPreviewError(error));
     } finally {
       setPreviewLoadingDocKey(null);
     }
