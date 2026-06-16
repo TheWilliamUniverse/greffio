@@ -17,6 +17,9 @@ export const PUBLISHER_ADDRESS_FULL = `${PUBLISHER_ADDRESS_LINE}, ${PUBLISHER_AD
 
 export const PUBLISHER_CONTACT_EMAIL = 'contact@willentreprises.com';
 
+/** Email support produit Greffio (footer, emails transactionnels). */
+export const PUBLISHER_BRAND_EMAIL = 'greffio@willentreprises.com';
+
 export const PUBLISHER_PHONE = '04 11 81 86 70';
 
 export const PUBLISHER_WEBSITE = 'https://greffio.willentreprises.com';
