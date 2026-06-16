@@ -86,6 +86,7 @@ import { NativeAppHomePage } from '@/mobile/NativeAppHomePage.jsx';
 import { BiometricSessionProvider } from '@/context/BiometricSessionContext.jsx';
 import { shouldUseMobileShell, shouldUseMobileWebShell, isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 import { AppUpdateGate } from '@/components/AppUpdateGate.jsx';
+import { ConnectedAssistantOrb } from '@/components/assistant/ConnectedAssistantOrb.jsx';
 import { IdleSessionGuard } from '@/components/IdleSessionGuard.jsx';
 import { GlobalErrorBoundary } from '@/components/system/GlobalErrorBoundary.jsx';
 import { RouteErrorBoundary } from '@/components/system/RouteErrorBoundary.jsx';
@@ -252,6 +253,7 @@ function AppRoutes() {
       </Layout>
       <CookieConsentBanner />
       <AppUpdateGate />
+      <ConnectedAssistantOrb />
       <Toaster richColors position="top-right" />
     </>
   );

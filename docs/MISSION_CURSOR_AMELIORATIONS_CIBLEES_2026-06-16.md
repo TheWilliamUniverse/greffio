@@ -324,15 +324,16 @@ Documenter seulement ; pas d'exécution bulk :
 
 ### Phase 2 – Semaines 2–3 (medium validés)
 
-| # | Tâche |
-|---|-------|
-| 7 | Dashboard PC – bandeau dossier sélectionné |
-| 8 | Sélecteur dossier PC (parité mobile) |
-| 9 | GreffioAssistantOrb + chat léger |
-| 10 | Questionnaire `missing_but_continue_allowed` (début) |
-| 11 | Interconnectivité restante front/backend |
-| 12 | Accessibilité StatusBadge + focus |
-| 13 | Ops mobile guard page |
+| # | Tâche | Statut |
+|---|-------|--------|
+| 7 | Dashboard PC – bandeau dossier sélectionné | **Fait** |
+| 8 | Sélecteur dossier PC (parité mobile) | **Fait** |
+| 9 | GreffioAssistantOrb + chat léger | **Fait** |
+| 10 | Questionnaire `missing_but_continue_allowed` (début) | **Fait** |
+| 11 | Interconnectivité restante front/backend (`GET action-state`) | **Fait** |
+| 12 | Accessibilité StatusBadge + focus | **Fait** |
+| 13 | Ops mobile guard page | **Fait** |
+| 14 | Preuves/certificats ops-only (export ZIP) | **Fait** |
 
 ### Phase 3 – Semaines 4–6 (strategic)
 
@@ -405,27 +406,27 @@ Documenter seulement ; pas d'exécution bulk :
 
 ### Questionnaire strategic (Phase 2–3)
 
-- [ ] Étapes non critiques passables avec avertissement
-- [ ] Champs greffe bloquants inchangés
-- [ ] `dataJson` reflète les champs manquants
+- [x] Étapes non critiques passables avec avertissement
+- [x] Champs greffe bloquants inchangés
+- [x] `dataJson` reflète les champs manquants
 
 ### Dashboard PC (Phase 2)
 
-- [ ] Bandeau dossier visible si et seulement si dossier sélectionné
-- [ ] Pas de carte globale « prochaine action »
-- [ ] Sélecteur dossier fonctionnel comme mobile
+- [x] Bandeau dossier visible si et seulement si dossier sélectionné
+- [x] Pas de carte globale « prochaine action »
+- [x] Sélecteur dossier fonctionnel comme mobile
 
 ### Documents (Phase 2–3)
 
 - [ ] Pas de nouveaux filtres client
 - [ ] Lien vérification publique accessible depuis ops
-- [ ] `filiation_declaration` absent de la checklist client
+- [x] `filiation_declaration` absent de la checklist client
 
 ### Assistant (Phase 2)
 
-- [ ] Orb visible espace connecté uniquement
-- [ ] Chat utilise `/api/assistant`
-- [ ] Pas de dérive vers refonte landing
+- [x] Orb visible espace connecté uniquement
+- [x] Chat utilise `/api/assistant`
+- [x] Pas de dérive vers refonte landing
 
 ### Identité
 

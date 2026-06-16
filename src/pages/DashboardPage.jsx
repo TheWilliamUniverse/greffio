@@ -33,7 +33,10 @@ import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 import { countActionableDocuments, filterClientVisibleDocuments, resolveClientDocumentStatus, documentHasFile } from '@/utils/documentWorkflow.js';
 import { useDossierQuery } from '@/hooks/queries/useDossierQuery.js';
 import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
+import { useDossierActionStateQuery } from '@/hooks/queries/useDossierActionStateQuery.js';
 import { useNotificationsSummary } from '@/hooks/useNotificationsSummary.js';
+import { DossierActiveBanner } from '@/components/dossiers/DossierActiveBanner.jsx';
+import { DossierVaultPickerOverlay } from '@/components/dossiers/DossierVaultPickerOverlay.jsx';
 import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 
 export const DashboardPage = () => {
@@ -45,7 +48,9 @@ export const DashboardPage = () => {
     () => !isLoginAlertsConfigured(currentUser),
   );
   const [activeDossierId, setActiveDossierId] = useState(() => getCurrentDossierId());
+  const [pickerOpen, setPickerOpen] = useState(false);
   const { data: activeDossierPayload } = useDossierQuery(activeDossierId);
+  const { data: actionState } = useDossierActionStateQuery(activeDossierId);
 
   useEffect(() => {
     const dossierIds = dossiersRaw.map((dossier) => dossier.id).filter(Boolean);
@@ -183,6 +188,15 @@ export const DashboardPage = () => {
     || (documents.some((item) => item.type === 'ubo_declaration') ? 'personne_morale' : 'personne_physique');
   const declarantLabel = declarantProfile === 'personne_morale' ? 'Personne morale' : 'Personne physique';
 
+  const handleSelectActiveDossier = (dossier) => {
+    saveCurrentDossierId(dossier.id);
+    setActiveDossierId(dossier.id);
+    setPickerOpen(false);
+  };
+
+  const activeDossierRecord = activeDossierPayload?.dossier
+    || dossiersRaw.find((item) => item.id === activeDossierId);
+
   return (
     <div className="flex min-h-[calc(100dvh-4rem)] bg-background">
       <Sidebar />
@@ -234,6 +248,15 @@ export const DashboardPage = () => {
               </div>
             </div>
           </section>
+
+          {activeDossierId && activeDossierRecord ? (
+            <DossierActiveBanner
+              className="hidden md:block"
+              dossier={activeDossierRecord}
+              actionState={actionState}
+              onChangeDossier={dossiersRaw.length > 1 ? () => setPickerOpen(true) : undefined}
+            />
+          ) : null}
 
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {loadingApi ? Array.from({ length: 4 }).map((_, index) => (
@@ -407,6 +430,12 @@ export const DashboardPage = () => {
           )}
         </div>
       </main>
+      <DossierVaultPickerOverlay
+        open={pickerOpen}
+        dossiers={dossiersRaw}
+        onSelect={handleSelectActiveDossier}
+        onClose={() => setPickerOpen(false)}
+      />
     </div>
   );
 };

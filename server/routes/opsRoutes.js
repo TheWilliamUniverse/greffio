@@ -3,6 +3,10 @@ import { isEphemeralPlaceholderDossier } from '../utils/placeholderDossier.js';
 import { computeDossierRisk, sortAntiRejectionQueue } from '../services/opsRisk.js';
 import { buildCanonicalDocumentFilename } from '../documentNaming.js';
 import { downloadDocumentBufferFromConfiguredStorage } from '../services/objectStorage.js';
+import {
+  buildDossierAuditZipBuffer,
+  buildDossierAuditZipFilename,
+} from '../services/dossierAuditExportService.js';
 import { issueQontoInvoiceWithMolliePayment } from '../services/qonto/qontoInvoiceService.js';
 import { notifyInvoiceAvailable } from '../services/invoicePaymentNotifications.js';
 
@@ -291,6 +295,26 @@ export const registerOpsRoutes = (app, deps) => {
         error: 'INVOICE_ISSUE_FAILED',
         message: error?.message || 'Échec émission facture',
       });
+    }
+  });
+
+  app.get('/api/ops/dossiers/:dossierId/proofs-export', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
+    const dossier = await getDossier(req.params.dossierId);
+    if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+
+    try {
+      const zipBuffer = await buildDossierAuditZipBuffer({
+        dossier,
+        listDossierDocuments,
+      });
+      const downloadName = buildDossierAuditZipFilename(dossier);
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
+      res.setHeader('Cache-Control', 'no-store');
+      return res.send(zipBuffer);
+    } catch (error) {
+      console.error('OPS_PROOFS_EXPORT_FAILED', error);
+      return res.status(500).json({ ok: false, error: 'OPS_PROOFS_EXPORT_FAILED' });
     }
   });
 };

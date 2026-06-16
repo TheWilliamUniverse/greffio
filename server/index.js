@@ -79,6 +79,10 @@ import {
 } from './store.js';
 import { DOSSIER_DOCUMENT_MAX_BYTES } from './config/uploadLimits.js';
 import { filterClientVisibleDocuments } from './domain/clientDocuments.js';
+import { resolveDossierActionState } from './domain/dossierActionState.js';
+import {
+  validateQuestionnaireStepCompletion,
+} from './domain/questionnaireStepValidation.js';
 import { resolveDossierDocumentPlan } from './domain/formalityDocuments.js';
 import { computePaymentAmounts } from './pricing.js';
 import {
@@ -1594,6 +1598,25 @@ app.get('/api/dossiers/:dossierId', requireAuth, async (req, res) => {
   });
 });
 
+app.get('/api/dossiers/:dossierId/action-state', requireAuth, async (req, res) => {
+  const access = await resolveDossierAccess(req, req.params.dossierId);
+  if (!access.ok) {
+    return res.status(access.status).json({ ok: false, error: access.error });
+  }
+  const { dossier } = access;
+  const questionnaire = dossier.dataJson ? JSON.parse(dossier.dataJson) : {};
+  const documents = await listDossierDocuments(dossier.id);
+  const visibleDocuments = isInternalRole(req.auth?.role)
+    ? documents
+    : filterClientVisibleDocuments(documents);
+  const actionState = resolveDossierActionState({
+    dossier,
+    documents: visibleDocuments,
+    questionnaire,
+  });
+  return res.json({ ok: true, actionState });
+});
+
 app.post('/api/dossiers', requireAuth, async (req, res) => {
   const {
     companyName,
@@ -1729,12 +1752,49 @@ app.post('/api/dossiers/:dossierId/complete-step', requireAuth, async (req, res)
   const isOwner = dossier.userId && dossier.userId === req.auth?.sub;
   if (!isOps && !isOwner) return res.status(403).json({ ok: false, error: 'DOSSIER_FORBIDDEN' });
 
-  const { stepId, dataPatch = {}, progressPercent = null } = req.body || {};
+  const {
+    stepId,
+    dataPatch = {},
+    progressPercent = null,
+    continueWithWarnings = false,
+    missingFieldKeys = [],
+  } = req.body || {};
+
+  const preMergeData = {
+    ...(dossier.dataJson ? JSON.parse(dossier.dataJson) : {}),
+    ...dataPatch,
+  };
+  const stepValidation = validateQuestionnaireStepCompletion({
+    stepId,
+    data: preMergeData,
+    missingFieldKeys: Array.isArray(missingFieldKeys) ? missingFieldKeys : [],
+    continueWithWarnings: Boolean(continueWithWarnings),
+  });
+  if (!stepValidation.ok) {
+    return res.status(422).json({
+      ok: false,
+      error: stepValidation.error,
+      blockingMissing: stepValidation.blockingMissing,
+      softMissing: stepValidation.softMissing,
+      requiresWarningAck: stepValidation.requiresWarningAck || false,
+      missingButContinueAllowed: stepValidation.missingButContinueAllowed || false,
+    });
+  }
+
+  const warningPatch = stepValidation.missingButContinueAllowed
+    ? {
+      questionnaireWarnings: stepValidation.data?.questionnaireWarnings,
+      questionnaireSoftMissing: stepValidation.data?.questionnaireSoftMissing,
+      questionnaireContinueAllowed: stepValidation.data?.questionnaireContinueAllowed,
+    }
+    : {};
+  const patchWithWarnings = { ...dataPatch, ...warningPatch };
+
   let updated;
   try {
     updated = await updateDossierQuestionnaire({
       dossierId: dossier.id,
-      dataPatch,
+      dataPatch: patchWithWarnings,
       progressPercent,
     });
   } catch (error) {

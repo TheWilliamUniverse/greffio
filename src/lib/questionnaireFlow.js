@@ -8,6 +8,7 @@ import {
   shouldShowComparateurCta,
   shouldShowFormeJuridiqueField,
 } from '@/lib/questionnaireFormFamilies.js';
+import { isGreffeBlockingField } from '@/lib/questionnaireFieldPolicy.js';
 
 export const DEMARCHE_CATEGORIES = [
   { id: 'creation', label: 'Création', description: 'Immatriculer une nouvelle structure' },
@@ -209,6 +210,7 @@ export const QUESTIONNAIRE_FLOW = [
         label: 'SIREN / SIRET de l’entreprise existante',
         type: 'text',
         required: true,
+        missingButContinueAllowed: true,
         placeholder: '123456789 ou 12345678900013',
         condition: (data) => EXISTING_BUSINESS_FORMALITIES.has(String(data.typeFormalite || '')),
       },
@@ -705,6 +707,58 @@ export const resolveContinueBlockMessage = (step, formData, activeField, visible
     if (!directorCheck.ok && directorCheck.message) return directorCheck.message;
   }
   return 'Complétez les informations demandées avant de continuer.';
+};
+
+export const analyzeStepFieldStates = (step, formData = {}) => {
+  if (!step) {
+    return {
+      blockingMissing: [],
+      softMissing: [],
+      continueAllowed: true,
+      missingButContinueAllowed: false,
+    };
+  }
+
+  if (step.id === 'recap') {
+    const recapOk = formData.recapAcknowledged === true || formData.validationConfirmed === true;
+    return {
+      blockingMissing: recapOk ? [] : [{ key: 'recapAcknowledged', label: 'Confirmation du récapitulatif' }],
+      softMissing: [],
+      continueAllowed: recapOk,
+      missingButContinueAllowed: false,
+    };
+  }
+
+  const visibleFields = getVisibleFieldsForStep(step, formData);
+  const blockingMissing = [];
+  const softMissing = [];
+
+  visibleFields.forEach((field) => {
+    if (isFieldValueValid(field, formData[field.key], formData)) return;
+    const entry = { key: field.key, label: field.label || field.key };
+    if (isGreffeBlockingField(field)) {
+      blockingMissing.push(entry);
+    } else if (field.required) {
+      softMissing.push(entry);
+    }
+  });
+
+  if (step.id === 'gouvernance') {
+    const directorCheck = validateDirectorEligibility(formData);
+    if (!directorCheck.ok) {
+      blockingMissing.push({
+        key: 'dirigeant',
+        label: directorCheck.message || 'Dirigeant',
+      });
+    }
+  }
+
+  return {
+    blockingMissing,
+    softMissing,
+    continueAllowed: blockingMissing.length === 0,
+    missingButContinueAllowed: blockingMissing.length === 0 && softMissing.length > 0,
+  };
 };
 
 export const getFieldValidationMessage = (field, value, formData = {}) => {

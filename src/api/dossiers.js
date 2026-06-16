@@ -22,6 +22,10 @@ export const listDossiers = async () => {
 
 export const getDossierById = async (dossierId) => apiGet(`/api/dossiers/${dossierId}`);
 
+export const getDossierActionState = async (dossierId) => (
+  apiGet(`/api/dossiers/${encodeURIComponent(dossierId)}/action-state`)
+);
+
 export const fetchDossierDetail = async (dossierId, { allowOpsFallback = false } = {}) => {
   try {
     return await getDossierById(dossierId);

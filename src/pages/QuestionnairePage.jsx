@@ -26,6 +26,7 @@ import { ProgressiveStepChips } from '@/components/ProgressiveStepChips.jsx';
 import { CompanyLookupCard } from '@/components/CompanyLookupCard.jsx';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
+  analyzeStepFieldStates,
   EXISTING_BUSINESS_FORMALITIES,
   QUESTIONNAIRE_FLOW,
   getApplicableFlowSteps,
@@ -228,8 +229,12 @@ export const QuestionnairePage = () => {
       return valid;
     });
   }, [activeGroup, formData]);
-  const canCompleteStep = (step.id === 'recap' || isStepComplete(step, formData))
-    && (step.id !== 'gouvernance' || validateDirectorEligibility(formData).ok);
+  const stepFieldStates = useMemo(
+    () => analyzeStepFieldStates(step, formData),
+    [step, formData],
+  );
+  const canCompleteStep = (step.id === 'recap' || stepFieldStates.continueAllowed)
+    && (step.id !== 'gouvernance' || validateDirectorEligibility(formData).ok || stepFieldStates.continueAllowed);
   const canContinue = isLastGroupInStep ? canCompleteStep : canAdvanceCurrentGroup;
   const presentation = useQuestionnairePresentation({
     activeGroup,
@@ -840,6 +845,8 @@ export const QuestionnairePage = () => {
         stepId: step.id,
         dataPatch: buildPersistPayload(persistData),
         progressPercent: progress,
+        continueWithWarnings: stepFieldStates.missingButContinueAllowed,
+        missingFieldKeys: stepFieldStates.softMissing.map((item) => item.key),
       });
       setAutosaveState('saved');
     } catch (error) {
@@ -848,6 +855,10 @@ export const QuestionnairePage = () => {
         clearCurrentDossierId();
         setDossierId(null);
         setStepError('Ce dossier n’est pas rattaché à votre compte. Réessayez : un nouveau dossier sera créé.');
+      } else if (apiError === 'QUESTIONNAIRE_SOFT_MISSING') {
+        setStepError('Certains champs facultatifs restent à compléter – vous pouvez continuer et les finaliser plus tard.');
+      } else if (apiError === 'QUESTIONNAIRE_BLOCKING_FIELDS') {
+        setStepError('Des informations essentielles manquent pour constituer le dossier greffe.');
       } else if (apiError === 'IDENTITY_VERIFICATION_REQUIRED') {
         setStepError("La vérification d'identité sera demandée avant le dépôt officiel, pas à cette étape.");
       } else if (apiError === 'QUESTIONNAIRE_SAVE_FAILED') {
@@ -1613,6 +1624,14 @@ export const QuestionnairePage = () => {
           </QuestionnaireNotice>
         ) : null}
 
+        {stepFieldStates.missingButContinueAllowed ? (
+          <QuestionnaireNotice variant="info" title="À compléter plus tard" className="mt-3">
+            {stepFieldStates.softMissing.length === 1
+              ? `« ${stepFieldStates.softMissing[0].label} » peut être complété ultérieurement.`
+              : `${stepFieldStates.softMissing.length} informations secondaires peuvent être complétées plus tard.`}
+            {' '}Vous pouvez continuer – Greffio vous rappellera de les finaliser.
+          </QuestionnaireNotice>
+        ) : null}
         {!isCompactMobileStep ? (
           <ProgressiveStepChips
             steps={progressiveSteps}

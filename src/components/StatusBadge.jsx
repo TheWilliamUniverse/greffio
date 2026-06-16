@@ -71,8 +71,13 @@ export const StatusBadge = ({ status, className, showGlossary = true }) => {
 
   return (
     <span
-      className={cn('inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border', getStatusStyles(normalizedStatus), className)}
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+        getStatusStyles(normalizedStatus),
+        className,
+      )}
       title={glossary || undefined}
+      tabIndex={showGlossary ? 0 : undefined}
     >
       {label}
       {glossary ? (

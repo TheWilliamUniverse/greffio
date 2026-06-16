@@ -16,8 +16,12 @@ export const completeQuestionnaireStep = async ({
   stepId,
   dataPatch,
   progressPercent,
+  continueWithWarnings = false,
+  missingFieldKeys = [],
 }) => apiPost(`/api/dossiers/${dossierId}/complete-step`, {
   stepId,
   dataPatch,
   progressPercent,
+  continueWithWarnings,
+  missingFieldKeys,
 });

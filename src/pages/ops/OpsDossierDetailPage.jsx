@@ -3,6 +3,7 @@ import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom
 import { toast } from 'sonner';
 import {
   ArrowLeft,
+  Archive,
   CalendarClock,
   CheckCircle2,
   Circle,
@@ -19,6 +20,7 @@ import { StatusBadge } from '@/components/StatusBadge.jsx';
 import {
   createOpsNote,
   downloadOpsDocument,
+  downloadOpsProofsExport,
   getOpsDossierDetail,
   updateOpsAssignment,
   updateOpsDocumentStatus,
@@ -55,6 +57,7 @@ export const OpsDossierDetailPage = () => {
   const [saving, setSaving] = useState(false);
   const [docUpdating, setDocUpdating] = useState('');
   const [docPreviewing, setDocPreviewing] = useState('');
+  const [proofsExporting, setProofsExporting] = useState(false);
   const [rejectingDocKey, setRejectingDocKey] = useState('');
   const [rejectReason, setRejectReason] = useState('');
   const {
@@ -116,6 +119,27 @@ export const OpsDossierDetailPage = () => {
       setNewNote('');
     } catch (_err) {
       setError('Impossible d’ajouter la note.');
+    }
+  };
+
+  const exportProofs = async () => {
+    if (!dossier) return;
+    setProofsExporting(true);
+    setError('');
+    try {
+      const { blob, filename } = await downloadOpsProofsExport(dossier.id);
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      window.URL.revokeObjectURL(url);
+      toast.success('Export preuves téléchargé');
+    } catch (_err) {
+      setError('Impossible d’exporter les preuves pour ce dossier.');
+      toast.error('Export preuves indisponible');
+    } finally {
+      setProofsExporting(false);
     }
   };
 
@@ -421,6 +445,28 @@ export const OpsDossierDetailPage = () => {
               <Button type="button" onClick={() => void saveAssignment()} disabled={saving}>
                 {saving ? 'Enregistrement…' : 'Enregistrer'}
               </Button>
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-start gap-3">
+              <Archive className="mt-0.5 h-5 w-5 text-primary" />
+              <div className="flex-1">
+                <h3 className="text-lg font-extrabold text-slate-900">Preuves & certificats</h3>
+                <p className="mt-1 text-sm leading-6 text-slate-600">
+                  Export ops : certificats de signature, journal d’audit et manifeste documentaire (ZIP).
+                  Réservé à l’équipe Greffio – non visible côté client.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-4 bg-white"
+                  disabled={proofsExporting}
+                  onClick={() => void exportProofs()}
+                >
+                  {proofsExporting ? 'Export en cours…' : 'Télécharger le ZIP preuves'}
+                </Button>
+              </div>
             </div>
           </section>
 

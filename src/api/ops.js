@@ -97,3 +97,27 @@ export const getOpsEmailEvents = async ({
   if (recipientEmail) params.set('recipientEmail', String(recipientEmail));
   return apiGet(`/api/ops/email-events?${params.toString()}`);
 };
+
+export const downloadOpsProofsExport = async (dossierId) => {
+  const response = await apiFetch(
+    `/api/ops/dossiers/${encodeURIComponent(dossierId)}/proofs-export`,
+    { parseJson: false },
+  );
+  if (!response.ok) {
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch (_error) {
+      payload = null;
+    }
+    const error = new Error(payload?.error || 'OPS_PROOFS_EXPORT_FAILED');
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
+  }
+  const contentDisposition = response.headers.get('content-disposition') || '';
+  const nameMatch = contentDisposition.match(/filename="([^"]+)"/i);
+  const filename = nameMatch?.[1] || `greffio-preuves-${dossierId}.zip`;
+  const blob = await response.blob();
+  return { filename, blob };
+};
