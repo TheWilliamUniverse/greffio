@@ -3,57 +3,7 @@ import { PDFDocument, rgb } from 'pdf-lib';
 import { loadPdfFonts } from './pdfFonts.js';
 import { replaceDraftWatermarkWithSignedBadge } from './pdfLayoutPremium.js';
 
-const buildProofFingerprint = (documentId = '') => {
-  const seed = String(documentId || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase() || 'GRF';
-  const parts = [];
-  for (let i = 0; i < 6; i += 1) {
-    const slice = seed.slice(i * 2, i * 2 + 2).padEnd(2, '0');
-    parts.push(`GRF-${slice}${String(i).padStart(2, '0')}`);
-  }
-  return parts.join('');
-};
-
 const stampColor = rgb(0.35, 0.4, 0.48);
-const proofColor = rgb(0.2, 0.35, 0.65);
-
-const drawWhiteTextBlock = (page, {
-  x,
-  y,
-  width,
-  lines,
-  font,
-  size = 8,
-  lineHeight = 11,
-  padding = 5,
-}) => {
-  const safeLines = (lines || []).filter(Boolean);
-  if (!safeLines.length) return y;
-
-  const blockHeight = safeLines.length * lineHeight + padding * 2;
-  page.drawRectangle({
-    x: x - padding,
-    y: y - padding,
-    width: width + padding * 2,
-    height: blockHeight,
-    color: rgb(1, 1, 1),
-    borderWidth: 0,
-  });
-
-  let cursorY = y + blockHeight - padding - size;
-  safeLines.forEach((line) => {
-    page.drawText(pdfSafeText(line), {
-      x,
-      y: cursorY,
-      size,
-      font,
-      color: stampColor,
-      maxWidth: width,
-    });
-    cursorY -= lineHeight;
-  });
-
-  return y - padding;
-};
 
 const pdfSafeText = (value, fallback = '') => {
   const raw = String(value ?? fallback);
@@ -81,9 +31,9 @@ export const stampSignatureOnPdf = async ({
   outputPath,
   signerFullName,
   signedAtIso,
-  documentId,
+  documentId: _documentId,
   signatureImagePngBase64 = null,
-  proofLines = [],
+  proofLines: _proofLines = [],
   layout = 'default',
 }) => {
   const bytes = fs.readFileSync(inputPath);
@@ -118,18 +68,7 @@ export const stampSignatureOnPdf = async ({
     });
   });
 
-  const proof = pdfSafeText(buildProofFingerprint(documentId));
   const signedLabel = formatSignatureTimestampFr(signedAtIso);
-
-  // Empreinte GRF – position validée (bas de page, marge blanche).
-  page.drawText(proof, {
-    x: marginH,
-    y: 42,
-    size: 7,
-    font,
-    color: proofColor,
-    maxWidth: width - marginH * 2,
-  });
 
   const signatureMaxWidth = signatureOnRight ? 180 : 220;
   const signatureMaxHeight = 60;
@@ -169,48 +108,14 @@ export const stampSignatureOnPdf = async ({
     });
   }
 
-  const metaX = isFormalityPowersLayout
-    ? marginH
-    : (signatureOnRight ? signatureX : Math.max(marginH, width - marginH - signatureColWidth));
-  const metaWidth = signatureColWidth;
-  const metaLines = [
-    pdfSafeText(`Signé électroniquement par ${safeSignerName}`),
-    pdfSafeText(`Le ${signedLabel}`),
-  ];
-  const metaBaseY = isFormalityPowersLayout ? 52 : yBase - 42;
-  drawWhiteTextBlock(page, {
-    x: metaX,
-    y: metaBaseY,
-    width: metaWidth,
-    lines: metaLines,
+  page.drawText(pdfSafeText(`Signé électroniquement le ${signedLabel}`), {
+    x: signatureX,
+    y: Math.max(34, yBase - 18),
+    size: 7,
     font,
-    size: 8,
-    lineHeight: 11,
+    color: stampColor,
+    maxWidth: signatureColWidth,
   });
-
-  const footerLines = isFormalityPowersLayout
-    ? [
-      pdfSafeText(`Document signé le ${signedLabel}`),
-      'Greffio – horodatage et empreinte documentaire',
-      ...(proofLines || []).slice(0, 2).map((line) => pdfSafeText(line)),
-    ]
-    : [
-      pdfSafeText(`Document signé le ${signedLabel}`),
-      'Greffio – signature électronique simple (SES)',
-      ...(proofLines || []).slice(0, 2).map((line) => pdfSafeText(line)),
-    ];
-  if (footerLines.length) {
-    drawWhiteTextBlock(page, {
-      x: marginH,
-      y: 24,
-      width: Math.min(280, width - marginH * 2),
-      lines: footerLines,
-      font,
-      size: 7,
-      lineHeight: 10,
-      padding: 4,
-    });
-  }
 
   const outBytes = await pdfDoc.save();
   fs.writeFileSync(outputPath, outBytes);

@@ -33,14 +33,14 @@ const ENSURE_ACCOUNTS = [
     firstName: 'William',
     lastName: 'Abdou',
     role: 'ADMIN',
-    company: { ...COMPANY, jobTitle: 'Président — Co-fondateur' },
+    company: { ...COMPANY, jobTitle: 'Président – Co-fondateur' },
   },
   {
     email: 'nobatene@willentreprises.com',
     firstName: 'Nobatène',
     lastName: 'Abdou',
     role: 'ADMIN',
-    company: { ...COMPANY, jobTitle: 'Directeur Général — Co-fondateur' },
+    company: { ...COMPANY, jobTitle: 'Directeur Général – Co-fondateur' },
   },
   {
     email: 'ibtissam@willentreprises.com',

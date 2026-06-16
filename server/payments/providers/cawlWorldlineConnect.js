@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { PAYMENT_STATUSES } from '../types.js';
 
 /**
- * Worldline Connect webhooks (Payment API) — distinct de l'IPN e-Transactions Paybox.
+ * Worldline Connect webhooks (Payment API) – distinct de l'IPN e-Transactions Paybox.
  *
  * Doc : https://docs.connect.worldline-solutions.com/documentation/webhooks/
  * Headers : X-GCS-KeyId, X-GCS-Signature (base64 HMAC-SHA256 du corps brut UTF-8).

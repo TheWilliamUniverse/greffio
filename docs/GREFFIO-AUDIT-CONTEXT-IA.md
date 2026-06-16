@@ -1,6 +1,6 @@
-# Greffio — Contexte d’audit IA (équipe & professionnels)
+# Greffio – Contexte d’audit IA (équipe & professionnels)
 
-> **Usage** : document de contexte pour qu’une IA ou un auditeur produit évalue les fonctionnalités existantes et propose des évolutions **côté administrateurs, formalistes et équipe Greffio** — sans accès aux secrets, credentials, ni détails d’exploitation sensibles.
+> **Usage** : document de contexte pour qu’une IA ou un auditeur produit évalue les fonctionnalités existantes et propose des évolutions **côté administrateurs, formalistes et équipe Greffio** – sans accès aux secrets, credentials, ni détails d’exploitation sensibles.
 >
 > **Dernière mise à jour** : juin 2026 · **Repo** : Greffio SaaS (monorepo React + Express)
 
@@ -34,14 +34,14 @@ Les rôles internes partagent la plupart des endpoints `/api/ops/*`.
 
 ---
 
-## 3. Parcours client — fonctionnalités actuelles
+## 3. Parcours client – fonctionnalités actuelles
 
 ### 3.1 Acquisition & simulateur
 - Landing animée, CTA vers simulateur / tarifs / création d’espace
 - **Simulateur** (`/simulateur`) : choix formalité (création, modification, statuts gratuits), forme juridique, questionnaire progressif une question à la fois, synthèse documentaire, offres payantes
 - **Recherche entreprise** : préremplissage par SIREN/SIRET (API publique rate-limitée + recherche authentifiée)
 - **Tarifs** : offres Starter / Formalité / partenaire, bloc « En clair »
-- **Guide** : FAQ client (pièces, procuration, bonnes pratiques) — contenu ops retiré du public
+- **Guide** : FAQ client (pièces, procuration, bonnes pratiques) – contenu ops retiré du public
 - **Recherche site** (header) : index pages + services + raccourci Ctrl+K
 
 ### 3.2 Compte & espace client
@@ -69,7 +69,7 @@ Les rôles internes partagent la plupart des endpoints `/api/ops/*`.
 
 ---
 
-## 4. Back-office ops — fonctionnalités actuelles
+## 4. Back-office ops – fonctionnalités actuelles
 
 ### 4.1 Dashboard ops (`/ops`)
 - KPI dossiers, volume paiements
@@ -124,18 +124,18 @@ Emails transactionnels déclenchés sur certaines transitions (Brevo/Resend).
 
 ## 6. Modules métier backend (cartographie)
 
-- `server/stateMachine.js` — transitions dossier
-- `server/store.js` — persistance dossiers, documents, paiements, generated_documents
-- `server/statuts/` — pipeline statuts William (adaptateurs, validateurs, PDF)
-- `server/legal/statutes/` — catalogues formes juridiques
-- `server/services/verification/` — moteur pré-vérification
-- `server/services/identity/` — Didit
-- `server/services/objectStorage.js` — abstraction stockage
-- `server/services/nonConvictionDocumentService.js` — PDF non-condamnation + S3
-- `server/services/statutesPdfService.js` — génération statuts + S3
-- `server/emails/` — templates transactionnels
-- `server/payments/` — registry multi-PSP
-- `server/routes/` — modules routes (payments, verification, identity, signatures, app-version)
+- `server/stateMachine.js` – transitions dossier
+- `server/store.js` – persistance dossiers, documents, paiements, generated_documents
+- `server/statuts/` – pipeline statuts William (adaptateurs, validateurs, PDF)
+- `server/legal/statutes/` – catalogues formes juridiques
+- `server/services/verification/` – moteur pré-vérification
+- `server/services/identity/` – Didit
+- `server/services/objectStorage.js` – abstraction stockage
+- `server/services/nonConvictionDocumentService.js` – PDF non-condamnation + S3
+- `server/services/statutesPdfService.js` – génération statuts + S3
+- `server/emails/` – templates transactionnels
+- `server/payments/` – registry multi-PSP
+- `server/routes/` – modules routes (payments, verification, identity, signatures, app-version)
 
 ---
 

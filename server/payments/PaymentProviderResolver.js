@@ -220,7 +220,7 @@ export class PaymentProviderResolver {
   }
 
   /**
-   * Variante non-bloquante (booléenne) — utile en UI/route pour suggérer.
+   * Variante non-bloquante (booléenne) – utile en UI/route pour suggérer.
    */
   isProviderAllowedForCustomerType(provider, customerType) {
     try {

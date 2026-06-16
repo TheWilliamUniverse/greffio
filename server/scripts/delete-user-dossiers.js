@@ -65,7 +65,7 @@ const run = async () => {
 
   process.stdout.write(`FOUND:${dossiers.length} dossier(s) for ${email}\n`);
   for (const dossier of dossiers) {
-    process.stdout.write(`  - ${dossier.id} | ${dossier.reference || '—'} | ${dossier.companyName} | ${dossier.status}${dossier.deletedAt ? ' (corbeille)' : ''}\n`);
+    process.stdout.write(`  - ${dossier.id} | ${dossier.reference || '–'} | ${dossier.companyName} | ${dossier.status}${dossier.deletedAt ? ' (corbeille)' : ''}\n`);
   }
 
   let storageDeleted = 0;

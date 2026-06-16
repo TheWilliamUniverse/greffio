@@ -89,7 +89,7 @@ export const TERMINAL_STATUSES = new Set([
  * @property {string} [dossierId]
  * @property {string} [userId]
  * @property {string} [offerCode]
- * @property {PaymentProviderName} [providerOverride] Force un provider — vérifié par le resolver.
+ * @property {PaymentProviderName} [providerOverride] Force un provider – vérifié par le resolver.
  *
  * @typedef {Object} CreatePaymentResult
  * @property {string} internalPaymentId
@@ -109,7 +109,7 @@ export const TERMINAL_STATUSES = new Set([
  */
 
 /**
- * Erreur métier paiement — toujours rejeter via cette classe pour que les
+ * Erreur métier paiement – toujours rejeter via cette classe pour que les
  * routes API renvoient un code HTTP propre.
  */
 export class PaymentError extends Error {

@@ -19,7 +19,7 @@ const phoneScriptChunks = phoneScripts.map((item) => ({
 const objectionChunks = commonObjections.map((item) => ({
   id: item.id,
   topics: ['objection', 'commercial', 'tarif', 'prix'],
-  text: `Objection : « ${item.objection} » — Réponse : ${item.response}`,
+  text: `Objection : « ${item.objection} » – Réponse : ${item.response}`,
 }));
 
 /** Base de connaissances Greffio (RAG local, sans secrets). */

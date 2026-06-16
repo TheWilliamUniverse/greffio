@@ -9,7 +9,7 @@ import { PAYMENT_PROVIDERS, PAYMENT_STATUSES, PaymentError } from '../types.js';
 import { CUSTOMER_TYPES } from '../types.js';
 
 /**
- * Adapter GoCardless — RÉSERVÉ aux paiements B2B (SEPA / virement).
+ * Adapter GoCardless – RÉSERVÉ aux paiements B2B (SEPA / virement).
  *
  * Toute tentative d'utilisation pour un client B2C doit être rejetée avant
  * d'arriver ici (PaymentProviderResolver), mais on rajoute une garde

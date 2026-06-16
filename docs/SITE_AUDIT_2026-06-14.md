@@ -1,4 +1,4 @@
-# Audit site Greffio — web + mobile
+# Audit site Greffio – web + mobile
 
 **Date :** 14 juin 2026  
 **Périmètre :** frontend React/Capacitor, API Express, intégration mobile Android, sécurité, paiement, auth  
@@ -12,8 +12,8 @@
 | Priorité | Domaine | État |
 |----------|---------|------|
 | **P0 corrigé** | Biométrie native au cold start | Bug race condition auth `loading` → gate contournée |
-| **P0** | iOS natif | Non démarré — pas de dossier `ios/`, pas de compte Apple Developer |
-| **P1** | Page secrète téléchargement | Implémentée `/telechargement-app` — voir sécurité ci-dessous |
+| **P0** | iOS natif | Non démarré – pas de dossier `ios/`, pas de compte Apple Developer |
+| **P1** | Page secrète téléchargement | Implémentée `/telechargement-app` – voir sécurité ci-dessous |
 | **P1** | Sync version Android prod | API `latestVersionName` peut laguer vs AAB local (1.2.15) |
 | **P2** | Fragmentation UI espace client | Voir `docs/UI_UX_AUDIT_2026-06-13.md` |
 | **P2** | Footer légal incomplet | Pages login/contact sans footer unifié |
@@ -22,7 +22,7 @@
 
 ## 1. Bugs / flux cassés
 
-### 1.1 Biométrie — déverrouillage après fermeture app (CORRIGÉ)
+### 1.1 Biométrie – déverrouillage après fermeture app (CORRIGÉ)
 
 **Symptôme :** utilisateur active Face ID / empreinte, ferme l’app, rouvre → pas de verrou ou déverrouillage inopérant.
 
@@ -30,9 +30,9 @@
 
 **Correctif :** attendre la fin du bootstrap auth ; si biométrie activée, forcer `unlocked = false` et lancer `performUnlock()` automatiquement au cold start et au retour foreground (`appStateChange`).
 
-**Fichiers :** `src/context/BiometricSessionContext.jsx`, `src/utils/biometricAuth.js` (inchangé — stockage Keychain OK).
+**Fichiers :** `src/context/BiometricSessionContext.jsx`, `src/utils/biometricAuth.js` (inchangé – stockage Keychain OK).
 
-### 1.2 Capacitor remote — cache stale possible
+### 1.2 Capacitor remote – cache stale possible
 
 L’app Android charge `https://greffio.willentreprises.com/?nativeApp=1`. Un déploiement web peut être servi avant rebuild AAB Play Store → écarts UX (ex. terminal paiement accordéon, cf. `docs/MOBILE_NAVIGATION_ETAT_PRODUCTION_2026-06-13.md`).
 
@@ -40,7 +40,7 @@ L’app Android charge `https://greffio.willentreprises.com/?nativeApp=1`. Un d�
 
 ### 1.3 Questionnaire / statuts
 
-Fichier `src/pages/QuestionnairePage.jsx` non tracké git — risque de perte ou dérive locale.
+Fichier `src/pages/QuestionnairePage.jsx` non tracké git – risque de perte ou dérive locale.
 
 ---
 
@@ -59,20 +59,20 @@ Fichier `src/pages/QuestionnairePage.jsx` non tracké git — risque de perte ou
 | Session navigateur 24 h (`sessionStorage`) | ✅ |
 
 **Risques résiduels :**
-- Codes stockés en mémoire serveur (perdus au restart PM2) — acceptable pour usage interne.
-- URL « secrète » = obscurité, pas authentification forte — ne pas diffuser.
+- Codes stockés en mémoire serveur (perdus au restart PM2) – acceptable pour usage interne.
+- URL « secrète » = obscurité, pas authentification forte – ne pas diffuser.
 - **Backend requis** pour les routes `/api/public/app-download/*` en production.
 
 ### 2.2 Auth / sessions
 
 - Refresh token + MFA email/TOTP opérationnels.
 - `IdleSessionGuard` actif sur web.
-- Biométrie : refresh token dans Keychain natif (`@capgo/capacitor-native-biometric`) — bon modèle.
-- Turnstile sur login risqué (web) ; désactivé en native — cohérent.
+- Biométrie : refresh token dans Keychain natif (`@capgo/capacitor-native-biometric`) – bon modèle.
+- Turnstile sur login risqué (web) ; désactivé en native – cohérent.
 
 ### 2.3 Credentials unlock
 
-Flux `/credentials-unlock?token=` avec SMS — pattern solide (rate limit, consommation unique).
+Flux `/credentials-unlock?token=` avec SMS – pattern solide (rate limit, consommation unique).
 
 ---
 
@@ -90,7 +90,7 @@ Flux `/credentials-unlock?token=` avec SMS — pattern solide (rate limit, conso
 **Gaps :**
 - Pas de projet Xcode / provisioning profiles.
 - TestFlight impossible sans Apple Developer Program.
-- `NativePermissionOrchestrator` : prompt biométrie après onboarding — OK mais dépend session fraîche.
+- `NativePermissionOrchestrator` : prompt biométrie après onboarding – OK mais dépend session fraîche.
 
 ---
 
@@ -98,15 +98,15 @@ Flux `/credentials-unlock?token=` avec SMS — pattern solide (rate limit, conso
 
 - Terminal accordéon web déployé (juin 2026).
 - Google Pay routes backend présentes.
-- Amazon Pay retiré du frontend (grep vide) — aligné runbook retrait.
+- Amazon Pay retiré du frontend (grep vide) – aligné runbook retrait.
 - **Vérifier** en prod : webhooks Stripe/Brevo paiement ressources après chaque release.
 
 ---
 
 ## 5. Navigation / auth routing
 
-- Triple shell : desktop / `MobileWebShell` / `MobileAppShell` — complexité maintenue, drawer mobile OK en prod.
-- Route ops `/ops-legacy` redirect — legacy propre.
+- Triple shell : desktop / `MobileWebShell` / `MobileAppShell` – complexité maintenue, drawer mobile OK en prod.
+- Route ops `/ops-legacy` redirect – legacy propre.
 - Login native : `NativeWebLoginPage` + handoff `/auth/app-bridge`.
 
 ---
@@ -114,8 +114,8 @@ Flux `/credentials-unlock?token=` avec SMS — pattern solide (rate limit, conso
 ## 6. Recommandations priorisées
 
 ### Immédiat (fait ou à déployer)
-1. ✅ Fix biométrie cold start — rebuild AAB 1.2.16+ recommandé.
-2. ✅ Page `/telechargement-app` + API — **déployer backend** avec env email.
+1. ✅ Fix biométrie cold start – rebuild AAB 1.2.16+ recommandé.
+2. ✅ Page `/telechargement-app` + API – **déployer backend** avec env email.
 3. Définir `ADMIN_APP_DOWNLOAD_CODE` en prod pour accès de secours.
 
 ### Court terme (P1)

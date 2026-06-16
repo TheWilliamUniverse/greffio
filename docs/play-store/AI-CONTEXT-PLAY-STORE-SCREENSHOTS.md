@@ -1,4 +1,4 @@
-# Contexte IA — Captures Play Store & mockup iPhone 17 Pro
+# Contexte IA – Captures Play Store & mockup iPhone 17 Pro
 
 > Document de briefing pour assistants IA (ChatGPT, Cursor, etc.) travaillant sur les assets Google Play de **Greffio**. Lire ce fichier avant toute modification.
 
@@ -13,7 +13,7 @@ Ils doivent :
 - Respecter les contraintes Play Console (dimensions, ratio, taille fichier).
 - Présenter des **écrans fictifs mais crédibles** du parcours Greffio (pas de données personnelles réelles).
 - Pour le téléphone : afficher l’UI dans un **mockup iPhone 17 Pro** sur fond blanc (choix esthétique marketing, l’app reste Android).
-- Rester conformes légalement : Greffio est un **service privé indépendant** — pas de logos État, INPI, Infogreffe ou tiers non autorisés.
+- Rester conformes légalement : Greffio est un **service privé indépendant** – pas de logos État, INPI, Infogreffe ou tiers non autorisés.
 
 Références complémentaires :
 
@@ -29,9 +29,9 @@ assets/play-store/
 ├── icon-512.png                          # Icône (générée)
 ├── feature-graphic-1024x500.png          # Bannière (générée)
 ├── screenshots/
-│   ├── phone/                            # 1080×1920 — mockup iPhone
-│   ├── tablet-7/                         # 1440×2560 — plein écran
-│   ├── tablet-10/                        # 2880×5120 — plein écran
+│   ├── phone/                            # 1080×1920 – mockup iPhone
+│   ├── tablet-7/                         # 1440×2560 – plein écran
+│   ├── tablet-10/                        # 2880×5120 – plein écran
 │   ├── chromebook/                       # 1920×1080
 │   └── android-xr/                       # 1920×1080
 └── source/
@@ -93,15 +93,15 @@ Le mockup est appliqué **uniquement** aux captures `phone/`. Implémenté en CS
 
 ### Éléments chrome
 
-- **Dynamic Island** noire avec capteur (`.di-sensor`) — injectée dans la status bar au rendu phone.
-- **Boutons latéraux** : volume haut/bas (gauche), power (droite) — spans décoratifs, pas interactifs.
-- **Pas de logo Apple** — interdit explicitement.
+- **Dynamic Island** noire avec capteur (`.di-sensor`) – injectée dans la status bar au rendu phone.
+- **Boutons latéraux** : volume haut/bas (gauche), power (droite) – spans décoratifs, pas interactifs.
+- **Pas de logo Apple** – interdit explicitement.
 - **Fond blanc** autour du device (pas de dégradé sur le canvas phone).
 - **Status icons masquées** en mode phone (seule l’heure « 9:41 » reste à gauche).
 
 ### Références design
 
-Commentaire source CSS : style inspiré **Behance / Dribbble / iOS 17** — rendu générique « iPhone Pro », pas une reproduction pixel-perfect d’Apple.
+Commentaire source CSS : style inspiré **Behance / Dribbble / iOS 17** – rendu générique « iPhone Pro », pas une reproduction pixel-perfect d’Apple.
 
 ### UI Greffio à l’intérieur
 
@@ -135,7 +135,7 @@ L’UI interne est **redimensionnée nativement** pour 804 px de large (pas de `
 
 ---
 
-## 5. Contenu Greffio — 6 scènes
+## 5. Contenu Greffio – 6 scènes
 
 Chaque scène = 1 HTML source + 1 PNG de sortie. Données fictives : **Nova Atelier SAS**, SIREN `123 456 789`.
 
@@ -150,8 +150,8 @@ Chaque scène = 1 HTML source + 1 PNG de sortie. Données fictives : **Nova Atel
 
 ### Navigation
 
-- **Publique** (`bottom-nav-public.html`) — calquée sur `MobilePublicBottomNav.jsx` : Accueil, Simuler, Services, Tarifs, Compte.
-- **Auth / cockpit** (`bottom-nav-auth.html`) — calquée sur `MobileAppShell.jsx` : Accueil, Dossiers, Nouveau (+), Documents, Compte.
+- **Publique** (`bottom-nav-public.html`) – calquée sur `MobilePublicBottomNav.jsx` : Accueil, Simuler, Services, Tarifs, Compte.
+- **Auth / cockpit** (`bottom-nav-auth.html`) – calquée sur `MobileAppShell.jsx` : Accueil, Dossiers, Nouveau (+), Documents, Compte.
 
 L’onglet actif est défini dans `SCENES` du script JS (`activeNavTab`) et appliqué via `data-tab` dans les fragments.
 
@@ -173,7 +173,7 @@ Ces classes activent des **trims phone** (masquer éléments, ajuster typo) dans
 
 ### Viewport source HTML
 
-Les HTML déclarent `width=1080, height=1920` — c’est le **canvas logique tablette/default**. En mode phone, le CSS redefinit `--capture-logical-width/height` à 804 × 1748 à l’intérieur de la coque.
+Les HTML déclarent `width=1080, height=1920` – c’est le **canvas logique tablette/default**. En mode phone, le CSS redefinit `--capture-logical-width/height` à 804 × 1748 à l’intérieur de la coque.
 
 ---
 
@@ -292,7 +292,7 @@ assets/play-store/feature-graphic-1024x500.png
 
 ## Fichiers clés à lire en premier
 
-1. [`scripts/generate-play-store-screenshots.js`](../../scripts/generate-play-store-screenshots.js) — logique SCENES, injection nav, coque iPhone
-2. [`assets/play-store/source/phone/play-store-shared.css`](../../assets/play-store/source/phone/play-store-shared.css) — styles tablet + phone + trims scène
-3. [`assets/play-store/source/phone/01-accueil-greffio.html`](../../assets/play-store/source/phone/01-accueil-greffio.html) — modèle de structure HTML
-4. [`docs/play-store/assets-spec.md`](./assets-spec.md) — contraintes Google Play
+1. [`scripts/generate-play-store-screenshots.js`](../../scripts/generate-play-store-screenshots.js) – logique SCENES, injection nav, coque iPhone
+2. [`assets/play-store/source/phone/play-store-shared.css`](../../assets/play-store/source/phone/play-store-shared.css) – styles tablet + phone + trims scène
+3. [`assets/play-store/source/phone/01-accueil-greffio.html`](../../assets/play-store/source/phone/01-accueil-greffio.html) – modèle de structure HTML
+4. [`docs/play-store/assets-spec.md`](./assets-spec.md) – contraintes Google Play

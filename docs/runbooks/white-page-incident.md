@@ -1,4 +1,4 @@
-# Runbook — page blanche Greffio
+# Runbook – page blanche Greffio
 
 ## Symptômes
 - Écran vide (`#root` sans contenu)
@@ -19,7 +19,7 @@
 ## Actions équipe
 1. Lancer `node scripts/verify-build-assets.js` après build.
 2. Rollback Hostinger au commit précédent si mismatch assets.
-3. Purger CDN si activé — ne jamais cacher `index.html` ni `sw.js`.
+3. Purger CDN si activé – ne jamais cacher `index.html` ni `sw.js`.
 4. Redéployer backend si 401 massifs (`/api/auth/refresh`).
 
 ## Prévention

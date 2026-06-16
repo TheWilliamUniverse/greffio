@@ -19,7 +19,7 @@ Configurer ces secrets dans **Settings > Secrets and variables > Actions**.
 - `GOOGLE_PAY_MERCHANT_ID`
 - `CAWL_API_KEY`
 - `CAWL_WEBHOOK_SECRET`
-- `FCM_SERVICE_ACCOUNT_JSON` (push mobile Android — aussi sur le VPS via `.env`)
+- `FCM_SERVICE_ACCOUNT_JSON` (push mobile Android – aussi sur le VPS via `.env`)
 
 ## Android / Google Play (`mobile-artifacts.yml`)
 
@@ -28,7 +28,7 @@ Configurer ces secrets dans **Settings > Secrets and variables > Actions**.
 - `ANDROID_STORE_PASSWORD`
 - `ANDROID_KEY_ALIAS`
 - `ANDROID_KEY_PASSWORD`
-- `ANDROID_UPLOAD_KEY_SHA256` (App Links — voir `ANDROID_PLAY_RELEASE.md`)
+- `ANDROID_UPLOAD_KEY_SHA256` (App Links – voir `ANDROID_PLAY_RELEASE.md`)
 - `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`
 - `GOOGLE_PLAY_PACKAGE_NAME` (`com.greffio.app`)
 - `GOOGLE_PLAY_TRACK` (`internal` | `alpha` | `beta` | `production`)

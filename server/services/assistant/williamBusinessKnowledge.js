@@ -1,4 +1,4 @@
-/** Base métier William / Greffio — assistance opérationnelle, pas conseil juridique personnalisé. */
+/** Base métier William / Greffio – assistance opérationnelle, pas conseil juridique personnalisé. */
 
 export const williamBusinessFaq = [
   {
@@ -106,7 +106,7 @@ export const williamBusinessFaq = [
 export const phoneScripts = [
   {
     id: 'script_greffe_suivi_dossier',
-    title: 'Appel greffe / organisme — suivi de dossier',
+    title: 'Appel greffe / organisme – suivi de dossier',
     context: 'À utiliser quand un dossier est en attente ou en régularisation.',
     script: [
       'Bonjour, je vous appelle au sujet d’un dossier de formalité d’entreprise actuellement en cours de traitement.',
@@ -120,7 +120,7 @@ export const phoneScripts = [
   },
   {
     id: 'script_client_piece_manquante',
-    title: 'Appel client — pièce manquante',
+    title: 'Appel client – pièce manquante',
     context: 'À utiliser quand le dossier est bloqué par une pièce absente ou non conforme.',
     script: [
       'Bonjour [Prénom], je vous appelle concernant votre dossier de création / modification.',
@@ -133,7 +133,7 @@ export const phoneScripts = [
   },
   {
     id: 'script_client_regularisation',
-    title: 'Appel client — dossier en régularisation',
+    title: 'Appel client – dossier en régularisation',
     context: 'À utiliser quand le Guichet unique, le greffe ou l’organisme demande une correction.',
     script: [
       'Bonjour [Prénom], je vous appelle car votre dossier a fait l’objet d’une demande de régularisation.',
@@ -145,7 +145,7 @@ export const phoneScripts = [
   },
   {
     id: 'script_client_choix_forme',
-    title: 'Appel client — choix de forme juridique',
+    title: 'Appel client – choix de forme juridique',
     context: 'À utiliser pour cadrer un prospect hésitant entre micro, EI, SASU, EURL, SAS ou SARL.',
     script: [
       'Avant de parler de forme juridique, je vais vous poser quelques questions pour comprendre votre situation.',
@@ -460,7 +460,7 @@ export const formatLegalFormChecklist = (formKey) => {
   if (!rules) return null;
 
   const lines = [
-    `Checklist indicative — ${rules.label} :`,
+    `Checklist indicative – ${rules.label} :`,
     '',
     'Pièces fréquentes :',
     ...rules.requiredCommon.map((item) => `• ${item}`),
@@ -471,7 +471,7 @@ export const formatLegalFormChecklist = (formKey) => {
   }
 
   if (rules.notes?.length) {
-    lines.push('', ...rules.notes.map((note) => `— ${note}`));
+    lines.push('', ...rules.notes.map((note) => `– ${note}`));
   }
 
   lines.push('', legalFormDocumentRules.meta.warning);

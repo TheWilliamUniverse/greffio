@@ -1,10 +1,10 @@
-# Contexte Greffio — Intégrations API (référence ChatGPT / Cursor)
+# Contexte Greffio – Intégrations API (référence ChatGPT / Cursor)
 
 > **Usage** : document de référence pour les intégrations externes Greffio. **Ne jamais exposer de secrets dans le frontend versionné.**
 
 ---
 
-## 1. Paiements B2C — Google Pay → CAWL
+## 1. Paiements B2C – Google Pay → CAWL
 
 | Étape | Composant | Rôle |
 |-------|-----------|------|
@@ -49,7 +49,7 @@ CAWL_WEBHOOK_SECRET=
 
 ---
 
-## 2. Paiements B2B — GoCardless
+## 2. Paiements B2B – GoCardless
 
 Prélèvement SEPA pour comptes professionnels. Inchangé.
 

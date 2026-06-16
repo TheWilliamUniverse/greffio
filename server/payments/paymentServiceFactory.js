@@ -8,7 +8,7 @@ import {
 let cachedService = null;
 
 /**
- * Singleton de PaymentService — initialisé paresseusement avec les
+ * Singleton de PaymentService – initialisé paresseusement avec les
  * dépendances réelles (store SQL).
  */
 export const getPaymentService = ({

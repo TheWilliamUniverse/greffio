@@ -42,8 +42,8 @@ export const generateSignatureProofCertificatePdf = async ({
   drawLine(page, font, `Titre : ${signatureMeta.documentTitle || signatureRequest.docKey}`, y); y -= 14;
   drawLine(page, font, `Type : ${signatureRequest.docKey}`, y); y -= 14;
   drawLine(page, font, `Dossier : ${signatureRequest.dossierId}`, y); y -= 14;
-  drawLine(page, font, `Hash SHA-256 (brouillon) : ${signatureRequest.sha256Draft || '—'}`, y); y -= 14;
-  drawLine(page, font, `Hash SHA-256 (signé) : ${signatureRequest.sha256Signed || signatureMeta.sha256Signed || '—'}`, y); y -= 20;
+  drawLine(page, font, `Hash SHA-256 (brouillon) : ${signatureRequest.sha256Draft || '–'}`, y); y -= 14;
+  drawLine(page, font, `Hash SHA-256 (signé) : ${signatureRequest.sha256Signed || signatureMeta.sha256Signed || '–'}`, y); y -= 20;
 
   section('Signataire');
   drawLine(page, font, `Nom : ${signatureMeta.signerFullName || signatureRequest.signerFullName}`, y); y -= 14;
@@ -53,18 +53,18 @@ export const generateSignatureProofCertificatePdf = async ({
   section('Signature');
   drawLine(page, font, `Provider : ${signatureMeta.provider || 'greffio_internal'}`, y); y -= 14;
   drawLine(page, font, `Niveau : ${signatureMeta.level || 'ses_reinforced'}`, y); y -= 14;
-  drawLine(page, font, `Preuve : ${signatureMeta.proofId || signatureRequest.proofId || '—'}`, y); y -= 14;
-  drawLine(page, font, `Signé le : ${signatureMeta.signedAt || signatureRequest.signedAt || '—'}`, y); y -= 14;
+  drawLine(page, font, `Preuve : ${signatureMeta.proofId || signatureRequest.proofId || '–'}`, y); y -= 14;
+  drawLine(page, font, `Signé le : ${signatureMeta.signedAt || signatureRequest.signedAt || '–'}`, y); y -= 14;
   drawLine(page, font, signatureMeta.proofLine || '', y); y -= 20;
 
   section('Consentement');
-  drawLine(page, font, `Version : ${signatureMeta.consentVersion || signatureRequest.consentTextVersion || '—'}`, y); y -= 14;
+  drawLine(page, font, `Version : ${signatureMeta.consentVersion || signatureRequest.consentTextVersion || '–'}`, y); y -= 14;
   const consentLines = String(signatureMeta.consentSnapshot || signatureRequest.consentTextSnapshot || '').slice(0, 280);
   drawLine(page, font, consentLines, y); y -= 20;
 
   section('Chronologie');
   auditEvents.slice(0, 12).forEach((event) => {
-    drawLine(page, font, `${event.createdAt || event.at} — ${event.eventType || event.type}`, y);
+    drawLine(page, font, `${event.createdAt || event.at} – ${event.eventType || event.type}`, y);
     y -= 12;
   });
 

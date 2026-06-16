@@ -1,5 +1,5 @@
 /**
- * Signaturit — stub provider (no live API calls yet).
+ * Signaturit – stub provider (no live API calls yet).
  * Yousign is intentionally not wired here.
  */
 

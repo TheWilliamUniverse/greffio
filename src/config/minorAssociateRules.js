@@ -116,10 +116,8 @@ const namesMatch = (associate, directorName) => {
   const candidates = [
     normalizeName(associate.label),
     normalizeName(`${associate.firstName} ${associate.lastName}`),
-    normalizeName(associate.firstName),
-    normalizeName(associate.lastName),
-  ].filter(Boolean);
-  return candidates.some((candidate) => candidate === director || director.includes(candidate) || candidate.includes(director));
+  ].filter((candidate) => candidate && candidate.split(' ').length >= 2);
+  return candidates.some((candidate) => candidate === director);
 };
 
 export const validateDirectorEligibility = (questionnaire = {}) => {

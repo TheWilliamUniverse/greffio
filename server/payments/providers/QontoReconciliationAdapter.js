@@ -1,7 +1,7 @@
 import { PAYMENT_PROVIDERS, PAYMENT_STATUSES, PaymentError } from '../types.js';
 
 /**
- * Adapter Qonto — rapprochement bancaire et suivi financier.
+ * Adapter Qonto – rapprochement bancaire et suivi financier.
  *
  * Qonto N'EST PAS un PSP B2C : `createPayment` lève toujours une erreur.
  * Le rôle de cet adapter est d'exposer les hooks futurs pour la

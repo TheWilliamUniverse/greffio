@@ -1,4 +1,4 @@
-# Checklist revue site Mollie — Greffio
+# Checklist revue site Mollie – Greffio
 
 **Date :** 14 juin 2026  
 **Domaine principal :** `https://greffio.willentreprises.com`  
@@ -31,7 +31,7 @@ Attendu : JSON pour `/status`, redirection 302 pour `/callback`, pas de HTML SPA
 
 ## 2. Redirections canoniques (4 variantes)
 
-Mollie teste souvent `http://www.` — toutes doivent aboutir en **HTTPS sans www** :
+Mollie teste souvent `http://www.` – toutes doivent aboutir en **HTTPS sans www** :
 
 | URL testée | Attendu |
 |------------|---------|
@@ -59,9 +59,9 @@ Vérifier que chaque page répond **200** en HTTPS (sans www) :
 
 Pages complémentaires utiles :
 
-- `/faq` — questions fréquentes
-- `/creation-entreprise` — description du service
-- `/paiement` — flux de paiement client
+- `/faq` – questions fréquentes
+- `/creation-entreprise` – description du service
+- `/paiement` – flux de paiement client
 
 ---
 
@@ -80,7 +80,7 @@ Points à valider visuellement :
 
 ---
 
-## 5. Paiements — architecture Greffio
+## 5. Paiements – architecture Greffio
 
 | Flux | Prestataire | Usage |
 |------|-------------|-------|

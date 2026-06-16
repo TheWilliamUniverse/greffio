@@ -1,10 +1,10 @@
-# Contexte Greffio — Comparateur de forme juridique (brief ChatGPT / Cursor)
+# Contexte Greffio – Comparateur de forme juridique (brief ChatGPT / Cursor)
 
 > **Usage** : document de référence **exhaustif** pour concevoir un questionnaire comparateur de formes juridiques sur Greffio, avant rédaction du contenu métier par ChatGPT.
 >
 > **Code source de vérité** : le repo `TheWilliamUniverse/greffio` prime sur ce document en cas de divergence.
 >
-> **Contrainte produit** : ne pas modifier l’identité globale (landing hero, palette, header/footer public, tokens CSS globaux) — voir `.cursor/rules/preserve-brand-identity.mdc`.
+> **Contrainte produit** : ne pas modifier l’identité globale (landing hero, palette, header/footer public, tokens CSS globaux) – voir `.cursor/rules/preserve-brand-identity.mdc`.
 
 ---
 
@@ -23,7 +23,7 @@ Créer un **comparateur / questionnaire guidé** permettant à un entrepreneur d
 |-------|-------------|
 | `/simulateur?type=statuts` | Parcours complet création (coordonnées → forme → questionnaire → synthèse → offres) |
 | **Nouveau comparateur** (à créer) | Outil **secondaire**, plus court, orienté **choix de forme** sans engager tout le wizard |
-| Section `#outils-estimateurs` sur `/ressources` | Liens + mini-calculs inline (charges, ACRE, nom…) — le comparateur forme y est **mentionné** mais renvoie encore vers `/simulateur` |
+| Section `#outils-estimateurs` sur `/ressources` | Liens + mini-calculs inline (charges, ACRE, nom…) – le comparateur forme y est **mentionné** mais renvoie encore vers `/simulateur` |
 
 ---
 
@@ -31,17 +31,17 @@ Créer un **comparateur / questionnaire guidé** permettant à un entrepreneur d
 
 ### 2.1 Page hôte recommandée
 
-**Option A (recommandée)** — page secondaire dédiée :
+**Option A (recommandée)** – page secondaire dédiée :
 
 - **URL** : `/ressources/comparateur-forme-juridique`
 - **Entrées** :
-  - Carte dans `ResourceEstimatorsSection` (`src/components/resources/ResourceEstimatorsSection.jsx`) — remplacer le lien actuel `/simulateur?type=statuts`
+  - Carte dans `ResourceEstimatorsSection` (`src/components/resources/ResourceEstimatorsSection.jsx`) – remplacer le lien actuel `/simulateur?type=statuts`
   - Ancre depuis `/ressources#outils-estimateurs`
   - Lien depuis `/services`, `/tarifs`, SEO pages création entreprise
 - **Route React** : à ajouter dans `src/App.jsx` à côté de `/ressources/guides/:slug`
 - **Header** : même pattern que `ResourcesPage` (logo + CTA « Démarrer ») **ou** hero compact sans dupliquer la landing
 
-**Option B** — section full-width dans `/ressources` (moins isolée, plus longue page)
+**Option B** – section full-width dans `/ressources` (moins isolée, plus longue page)
 
 ### 2.2 Shell mobile navigateur
 
@@ -84,7 +84,7 @@ Sur viewport `< 768px`, les routes publiques passent par `MobileWebShell` (`src/
 | `--greffio-citron` | Mise en avant douce (hero ressources) |
 | `--greffio-coral` | Alerte chaleureuse |
 | `--radius` | 8px (composants shadcn) |
-| Marketing `.we-card` | coins ~22px (landing — ne pas imposer partout dans l’outil) |
+| Marketing `.we-card` | coins ~22px (landing – ne pas imposer partout dans l’outil) |
 
 **Typographie** : Inter (corps), Plus Jakarta Sans (titres h1–h6).
 
@@ -175,7 +175,7 @@ Sur viewport `< 768px`, les routes publiques passent par `MobileWebShell` (`src/
 
 **Toutes les autres** → `MANUAL_QUOTE` par défaut.
 
-### 4.4 Statuts PDF — formes réellement générées (backend)
+### 4.4 Statuts PDF – formes réellement générées (backend)
 
 **5 formes** avec moteur statuts complet (27 articles SAS pour SAS/SASU) :
 
@@ -217,7 +217,7 @@ Source : `LEGAL_STRUCTURES` + regroupement `COMPANY_FORM_CATALOG`.
 | Groupes, montages | Holding, Filiale, Franchise, GIE… |
 | Situations atypiques | Société de fait, tacite… |
 
-**Formes « top 9 »** (famille « Formes les plus courantes », rank 1–9) — cœur du comparateur :
+**Formes « top 9 »** (famille « Formes les plus courantes », rank 1–9) – cœur du comparateur :
 
 | key | label | hasStatutes | Disponibilité Greffio |
 |-----|-------|-------------|------------------------|
@@ -265,14 +265,14 @@ Pour chaque forme recommandée, afficher :
 | Forme | SASU |
 | Pourquoi | Associé unique, flexibilité statutaire, assimilé salarié |
 | Responsabilité | Limitée au apport |
-| Fiscalité (indicatif) | IS — **non conseil fiscal personnalisé** |
+| Fiscalité (indicatif) | IS – **non conseil fiscal personnalisé** |
 | Social dirigeant | Assimilé salarié |
 | Capital minimum | 1 € symbolique |
 | Greffio | Disponible · Statuts PDF 27 art. |
 | Prix indicatif Greffio | 0€ statuts / 149€ formalité |
 | CTA | « Générer mes statuts » |
 
-### 6.3 Matrice indicative (base ChatGPT — à valider juridiquement)
+### 6.3 Matrice indicative (base ChatGPT – à valider juridiquement)
 
 | Critère | SASU / SAS | SARL / EURL | EI / Micro | SCI |
 |---------|------------|-------------|------------|-----|
@@ -306,7 +306,7 @@ flowchart TD
 - Progression visible (barre + « 3/10 »)
 - Possibilité de **revenir en arrière** sans perdre les réponses
 - Sauvegarde locale optionnelle : `saveProjectDraft()` pattern (`src/utils/localStorage.js`)
-- Résultat **partageable** (URL avec query hash ou localStorage — pas de données sensibles en URL)
+- Résultat **partageable** (URL avec query hash ou localStorage – pas de données sensibles en URL)
 
 ---
 
@@ -335,9 +335,9 @@ Estimation frais légaux inline ressources : société commerciale ~250€, civi
 
 Reprendre / adapter depuis :
 
-- `PRICING_FAQ` — Greffio n’est pas un service officiel, ne remplace pas avocat/EC/notaire
-- `formalityEngine.js` — clause « Absence de transfert de responsabilité »
-- `MANUAL_QUOTE_LOCK_COPY` (FormalityWizardPage) — formalités sur devis
+- `PRICING_FAQ` – Greffio n’est pas un service officiel, ne remplace pas avocat/EC/notaire
+- `formalityEngine.js` – clause « Absence de transfert de responsabilité »
+- `MANUAL_QUOTE_LOCK_COPY` (FormalityWizardPage) – formalités sur devis
 
 **Formulation type résultat** :
 
@@ -360,7 +360,7 @@ Reprendre / adapter depuis :
 
 | Champ | Proposition |
 |-------|-------------|
-| Title | Comparateur de forme juridique — SAS, SARL, EI, SCI \| Greffio |
+| Title | Comparateur de forme juridique – SAS, SARL, EI, SCI \| Greffio |
 | Description | Comparez SASU, SAS, SARL, EURL, micro-entreprise et SCI selon votre projet. Recommandation guidée, sans engagement. |
 | Canonical | `https://greffio.willentreprises.com/ressources/comparateur-forme-juridique` |
 | Schema | `WebApplication` ou `FAQPage` si FAQ en bas |
@@ -371,7 +371,7 @@ S’inscrire dans la stratégie existante : `docs/contexte-seo-greffio-chatgpt.m
 
 ## 12. Accessibilité & mobile (checklist implémentation)
 
-- [ ] Champs `font-size: 16px` minimum sur mobile (évite zoom iOS — déjà dans `index.css`)
+- [ ] Champs `font-size: 16px` minimum sur mobile (évite zoom iOS – déjà dans `index.css`)
 - [ ] `min-w-0`, `w-full`, `box-border` sur inputs
 - [ ] Pas de `min-w-max` sur conteneurs principaux (cause scroll horizontal)
 - [ ] Barre sticky au-dessus du bottom nav web
@@ -384,11 +384,11 @@ S’inscrire dans la stratégie existante : `docs/contexte-seo-greffio-chatgpt.m
 
 | Élément | Statut |
 |---------|--------|
-| Lien « Simulateur de choix de forme juridique » | Pointe vers `/simulateur?type=statuts` — **à remplacer** |
+| Lien « Simulateur de choix de forme juridique » | Pointe vers `/simulateur?type=statuts` – **à remplacer** |
 | Wizard complet forme | `FormalityWizardPage` étapes 0–3 + questionnaire |
 | Comparateurs charges / ACRE / nom / mentions | Modules `compareModules` dans simulateur (`?type=charges`, etc.) |
 | Mini-select « Famille juridique » ressources | Estimation coût only, pas vrai comparateur |
-| Moteur scoring forme | **N’existe pas encore** — à créer (`legalFormComparatorEngine.js` ou similaire) |
+| Moteur scoring forme | **N’existe pas encore** – à créer (`legalFormComparatorEngine.js` ou similaire) |
 
 ---
 
@@ -408,7 +408,7 @@ docs/
   contexte-comparateur-forme-juridique-greffio-chatgpt.md  # ce fichier
 ```
 
-**Tests suggérés** : `legalFormComparatorEngine.test.js` — cas solo tech → SASU ; immobilier → SCI ; commerce familial → SARL.
+**Tests suggérés** : `legalFormComparatorEngine.test.js` – cas solo tech → SASU ; immobilier → SCI ; commerce familial → SARL.
 
 ---
 
@@ -440,8 +440,8 @@ Quand l’utilisateur enverra ses indications ChatGPT, fusionner avec ce documen
 
 - Correctif **simulateur mobile** (zoom / champs pleine largeur) : modifié localement, **à commit + push** avant prod
 - **Google Pay** B2C : déployé backend `d8682c4` ; CAWL en aval
-- Bouton Power app mobile : déconnexion réelle mais libellé « Mettre en veille » — clarification UX à prévoir
+- Bouton Power app mobile : déconnexion réelle mais libellé « Mettre en veille » – clarification UX à prévoir
 
 ---
 
-*Document généré pour alimenter ChatGPT / Cursor — Greffio / William Establishments — juin 2026.*
+*Document généré pour alimenter ChatGPT / Cursor – Greffio / William Establishments – juin 2026.*

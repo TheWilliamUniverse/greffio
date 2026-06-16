@@ -23,7 +23,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturePath = path.join(__dirname, '../fixtures/williamEstablishments.fixture.json');
 const fixture = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
 
-test('fixture William — 27 articles et 16 pages', () => {
+test('fixture William – 27 articles et 16 pages', () => {
   const context = mapStatutesDataToRenderContext({
     legalForm: 'SAS',
     denomination: fixture.company.name,
@@ -72,7 +72,7 @@ test('fixture William — 27 articles et 16 pages', () => {
   assert.equal(validation.ok, true, validation.errors.join('; '));
 });
 
-test('joinStatutesArticleBody — fusionne les césures de lignes', () => {
+test('joinStatutesArticleBody – fusionne les césures de lignes', () => {
   const body = joinStatutesArticleBody([
     'Dans les rapports entre Associés, le Président peut accomplir tous',
     "actes de direction, de disposition, de gestion et d'administration de la",
@@ -84,7 +84,7 @@ test('joinStatutesArticleBody — fusionne les césures de lignes', () => {
   assert.match(body, /accomplir tous actes de direction/);
 });
 
-test('generateStatutesDocument — article 9 sans fragments éclatés', () => {
+test('generateStatutesDocument – article 9 sans fragments éclatés', () => {
   const doc = generateStatutesDocument({
     legalForm: 'SAS',
     denomination: 'TRUE POWER',
@@ -102,7 +102,7 @@ test('generateStatutesDocument — article 9 sans fragments éclatés', () => {
   assert.doesNotMatch(art9?.body || '', /accomplir tous\n\nactes/);
 });
 
-test('generateStatutesDocument — document legacy avec métadonnées', () => {
+test('generateStatutesDocument – document legacy avec métadonnées', () => {
   const doc = generateStatutesDocument({
     legalForm: 'SAS',
     denomination: fixture.company.name,
@@ -151,7 +151,7 @@ test('generateStatutesDocument — document legacy avec métadonnées', () => {
   assert.ok(article17?.title?.toLowerCase().includes('exclusion'), 'Article 17 doit porter sur l\'exclusion');
 });
 
-test('dossier sans mineur non émancipé — pas de clause Ibtissam parasite', () => {
+test('dossier sans mineur non émancipé – pas de clause Ibtissam parasite', () => {
   const doc = generateStatutesDocument({
     legalForm: 'SAS',
     denomination: 'FONDATION ABDOU ALI',
@@ -182,7 +182,7 @@ test('dossier sans mineur non émancipé — pas de clause Ibtissam parasite', (
   assert.ok(!doc.signatures?.minorRepresentationNote, 'note mineur sans mineur non émancipé');
 });
 
-test('dossier avec mineur — pas de clause boilerplate art. 382 en signatures', () => {
+test('dossier avec mineur – pas de clause boilerplate art. 382 en signatures', () => {
   const doc = generateStatutesDocument({
     legalForm: 'SAS',
     denomination: fixture.company.name,
@@ -240,7 +240,7 @@ test('tribunal de commerce déterminé par la ville du siège', () => {
   assert.ok(!/Tribunal compétent du siège social/i.test(doc.blocks.map((b) => b.body || '').join('\n')));
 });
 
-test('commune sans TC — rattachement catalogue (Cagnes → Nice)', () => {
+test('commune sans TC – rattachement catalogue (Cagnes → Nice)', () => {
   const doc = generateStatutesDocument({
     legalForm: 'SAS',
     denomination: 'TEST CAGNES',
@@ -258,7 +258,7 @@ test('commune sans TC — rattachement catalogue (Cagnes → Nice)', () => {
   assert.ok(!body.includes('Tribunal de commerce de Cagnes-sur-Mer'));
 });
 
-test('commune sans TC — rattachement catalogue (Cannes → Grasse)', () => {
+test('commune sans TC – rattachement catalogue (Cannes → Grasse)', () => {
   const doc = generateStatutesDocument({
     legalForm: 'SAS',
     denomination: 'TEST CANNES',
@@ -274,7 +274,7 @@ test('commune sans TC — rattachement catalogue (Cannes → Grasse)', () => {
   const body = doc.blocks.filter((b) => b.kind === 'article').map((b) => b.body).join('\n');
   assert.ok(body.includes('Tribunal de commerce de Grasse'), 'Cannes rattachée à Grasse');
 });
-test('catalogue tribunal — couverture nationale exhaustive', () => {
+test('catalogue tribunal – couverture nationale exhaustive', () => {
   const stats = getTribunalCatalogStats();
   assert.ok(stats?.communes >= 34000, `au moins 34000 communes, obtenu ${stats?.communes}`);
   assert.ok(stats?.seats >= 100, 'sièges TC référencés');
@@ -308,7 +308,7 @@ test('dates de naissance sans slash dans le préambule', () => {
   assert.ok(art5?.body.includes('31 décembre'), 'clôture sans slash');
 });
 
-test('joinStatutesArticleBody — sous-parties numérotées sur paragraphes distincts', () => {
+test('joinStatutesArticleBody – sous-parties numérotées sur paragraphes distincts', () => {
   const body = joinStatutesArticleBody([
     '7.4 Libération partielle des apports',
     'Les apports en numéraire qui ne sont pas libérés au moment de la constitution de la Société, le seront par appel du Président.',
@@ -320,14 +320,14 @@ test('joinStatutesArticleBody — sous-parties numérotées sur paragraphes dist
   assert.match(parts[0], /^7\.4 Libération/);
 });
 
-test('classifyStatutesSubheading — gras seul ou gras + souligné', () => {
+test('classifyStatutesSubheading – gras seul ou gras + souligné', () => {
   assert.equal(classifyStatutesSubheading('7.4 Libération partielle des apports'), 'bold');
   assert.equal(classifyStatutesSubheading('7.1 Apports de William ABDOU :'), 'underline');
   assert.equal(classifyStatutesSubheading('27.1 - Langue officielle des documents juridiques :'), 'underline');
   assert.equal(classifyStatutesSubheading('Les associés apportent en numéraire'), null);
 });
 
-test('buildWilliamCover — immatriculation RCS par défaut', () => {
+test('buildWilliamCover – immatriculation RCS par défaut', () => {
   const cover = buildWilliamCover({
     greffe: 'Nice',
     denomination: 'TEST',
@@ -337,7 +337,7 @@ test('buildWilliamCover — immatriculation RCS par défaut', () => {
   assert.doesNotMatch(cover.registryLine, /En cours d'immatriculation/);
 });
 
-test('personne morale — descriptif complet dans le préambule', () => {
+test('personne morale – descriptif complet dans le préambule', () => {
   const context = mapStatutesDataToRenderContext({
     legalForm: 'SAS',
     denomination: 'WILLIAM ESTABLISHMENTS',
@@ -374,7 +374,7 @@ test('personne morale — descriptif complet dans le préambule', () => {
   assert.ok(lines.some((line) => line.includes('Ci-après dénommés collectivement « les Associés »')));
 });
 
-test('formatLegalEntityAssociateDescription — forme juridique explicite', () => {
+test('formatLegalEntityAssociateDescription – forme juridique explicite', () => {
   const text = formatLegalEntityAssociateDescription({
     fullName: 'WILLIAM ESTABLISHMENTS',
     legalFormLabel: 'Société par Actions Simplifiée (SAS)',
@@ -386,7 +386,7 @@ test('formatLegalEntityAssociateDescription — forme juridique explicite', () =
   assert.match(text, /WILLIAM ESTABLISHMENTS, Société par Actions Simplifiée \(SAS\), immatriculée au RCS de Nice sous le numéro 102 230 414/);
 });
 
-test('layoutStatutesCover — page de garde sur une page avec espacement flexible', () => {
+test('layoutStatutesCover – page de garde sur une page avec espacement flexible', () => {
   const layout = layoutStatutesCover({
     title: 'STATUTS',
     legalFormLabel: 'Société par Actions Simplifiée (SAS)',
@@ -401,7 +401,7 @@ test('layoutStatutesCover — page de garde sur une page avec espacement flexibl
   assert.ok(formatCoverSeatLines('Siège social :\n470 Promenade des Anglais\n06200 Nice')[0].includes('470 Promenade des Anglais'));
 });
 
-test('buildStatutesCoverExportElements — sauts d’espaces réguliers avant RCS', () => {
+test('buildStatutesCoverExportElements – sauts d’espaces réguliers avant RCS', () => {
   const elements = buildStatutesCoverExportElements({
     title: 'STATUTS',
     legalFormLabel: 'Société par Actions Simplifiée (SAS)',
@@ -417,7 +417,7 @@ test('buildStatutesCoverExportElements — sauts d’espaces réguliers avant RC
   assert.ok(registryIdx > lastSpacerIdx);
 });
 
-test('generateStatutesDocument — article 7 avec sous-parties séparées', () => {
+test('generateStatutesDocument – article 7 avec sous-parties séparées', () => {
   const doc = generateStatutesDocument({
     legalForm: 'SAS',
     denomination: fixture.company.name,
@@ -442,7 +442,7 @@ test('generateStatutesDocument — article 7 avec sous-parties séparées', () =
   assert.ok(art7?.body.split('\n\n').some((p) => /^7\.1 Apports de/.test(p.trim())));
 });
 
-test('generateStatutesDocument — capital 10 000 € cohérent article 5 / 7 / annexe', () => {
+test('generateStatutesDocument – capital 10 000 € cohérent article 5 / 7 / annexe', () => {
   const doc = generateStatutesDocument({
     legalForm: 'SAS',
     denomination: 'TRUE POWER',
@@ -469,7 +469,7 @@ test('generateStatutesDocument — capital 10 000 € cohérent article 5 / 7 / 
   assert.ok(annexe?.paragraphs?.some((p) => p.includes('Valeur nominale : 10 euro')));
 });
 
-test('generateStatutesDocument — libération 100 % article 7.4 intégrale', () => {
+test('generateStatutesDocument – libération 100 % article 7.4 intégrale', () => {
   const doc = generateStatutesDocument({
     legalForm: 'SAS',
     denomination: 'TRUE POWER',
@@ -487,7 +487,7 @@ test('generateStatutesDocument — libération 100 % article 7.4 intégrale', ()
   assert.ok(art7?.body.includes('entièrement libérés lors de la constitution'));
 });
 
-test('generateStatutesDocument — libération différenciée par associé', () => {
+test('generateStatutesDocument – libération différenciée par associé', () => {
   const doc = generateStatutesDocument({
     legalForm: 'SAS',
     denomination: 'TRUE POWER',
@@ -508,7 +508,7 @@ test('generateStatutesDocument — libération différenciée par associé', () 
   assert.ok(art7?.body.includes('entièrement libérés lors de la constitution'));
 });
 
-test('resolveGlobalLiberationPercent — Autre sans valeur bloque la génération', () => {
+test('resolveGlobalLiberationPercent – Autre sans valeur bloque la génération', () => {
   assert.throws(
     () => mapStatutesDataToRenderContext({
       legalForm: 'SAS',
@@ -523,7 +523,7 @@ test('resolveGlobalLiberationPercent — Autre sans valeur bloque la génératio
   );
 });
 
-test('deriveStatutsCapitalModel — montant libéré incompatible avec taux bloque', () => {
+test('deriveStatutsCapitalModel – montant libéré incompatible avec taux bloque', () => {
   assert.throws(
     () => mapStatutesDataToRenderContext({
       legalForm: 'SAS',

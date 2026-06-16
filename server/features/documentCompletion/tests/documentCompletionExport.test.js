@@ -25,7 +25,7 @@ test('parsePdfDocument scales cerfa-like page units to pdf-lib points', async ()
 
 test('generateFillableCompletionPdf places interactive fields on fixture PDF', async (t) => {
   if (!fs.existsSync(fixturePdf)) {
-    t.skip('fixture PDF missing — run generate-test-document.mjs first');
+    t.skip('fixture PDF missing – run generate-test-document.mjs first');
   }
   const pdfBytes = fs.readFileSync(fixturePdf);
   const analysis = await analyzeDocumentForCompletion({

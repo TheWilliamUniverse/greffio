@@ -1,4 +1,4 @@
-# Greffio — stockage documentaire (AWS S3)
+# Greffio – stockage documentaire (AWS S3)
 
 ## Architecture
 
@@ -41,9 +41,9 @@ Exemple : `dossiers/dos_9283/identity_card/7f7e8f4e-a3f4-4c5c-bdf4.pdf`
 
 ## Endpoints API
 
-- `POST /api/dossiers/:id/documents` — upload (mémoire → S3)
-- `GET /api/dossiers/:id/documents/:docKey/download` — redirection URL signée
-- `GET /api/dossiers/:id/documents/:docKey/download-url` — JSON `{ url, expiresIn }`
+- `POST /api/dossiers/:id/documents` – upload (mémoire → S3)
+- `GET /api/dossiers/:id/documents/:docKey/download` – redirection URL signée
+- `GET /api/dossiers/:id/documents/:docKey/download-url` – JSON `{ url, expiresIn }`
 
 ## IAM minimal (bucket dédié)
 

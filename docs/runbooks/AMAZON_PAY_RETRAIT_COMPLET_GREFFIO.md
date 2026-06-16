@@ -1,12 +1,12 @@
-# Runbook — Retrait complet Amazon Pay Greffio (désactivation + suppression code)
+# Runbook – Retrait complet Amazon Pay Greffio (désactivation + suppression code)
 
-> **Usage** : coller ce document **entier** dans Cursor (ou ChatGPT) quand tu voudras **retirer Amazon Pay** de Greffio — UI, API, webhooks, variables serveur, mentions marketing, Seller Central.
+> **Usage** : coller ce document **entier** dans Cursor (ou ChatGPT) quand tu voudras **retirer Amazon Pay** de Greffio – UI, API, webhooks, variables serveur, mentions marketing, Seller Central.
 >
-> **Statut au 13 juin 2026** : Amazon Pay est **intégré techniquement** (backend + terminal accordéon frontend) mais la **vérification marchand Seller Central est bloquée** (pages légales — corrigées séparément). Ce runbook sert à **couper proprement** l’intégration en attendant une éventuelle réactivation future.
+> **Statut au 13 juin 2026** : Amazon Pay est **intégré techniquement** (backend + terminal accordéon frontend) mais la **vérification marchand Seller Central est bloquée** (pages légales – corrigées séparément). Ce runbook sert à **couper proprement** l’intégration en attendant une éventuelle réactivation future.
 >
 > **Ne pas confondre avec** :
-> - `docs/runbooks/AMAZON_PAY_VERIFICATION_LEGAL_GREFFIO.md` — débloquer la vérification (pages légales)
-> - `docs/AMAZON_PAY_SETUP.md` — config Seller Central / variables
+> - `docs/runbooks/AMAZON_PAY_VERIFICATION_LEGAL_GREFFIO.md` – débloquer la vérification (pages légales)
+> - `docs/AMAZON_PAY_SETUP.md` – config Seller Central / variables
 
 **Domaine production** : `https://greffio.willentreprises.com`  
 **API** : `https://api.greffio.willentreprises.com`  
@@ -19,8 +19,8 @@
 1. [Consigne Cursor (copier-coller)](#1-consigne-cursor-copier-coller)
 2. [Objectifs et périmètre](#2-objectifs-et-périmètre)
 3. [Stratégie recommandée : 2 phases](#3-stratégie-recommandée--2-phases)
-4. [Phase A — Désactivation rapide (sans supprimer le code)](#4-phase-a--désactivation-rapide-sans-supprimer-le-code)
-5. [Phase B — Suppression complète dans le repo](#5-phase-b--suppression-complète-dans-le-repo)
+4. [Phase A – Désactivation rapide (sans supprimer le code)](#4-phase-a--désactivation-rapide-sans-supprimer-le-code)
+5. [Phase B – Suppression complète dans le repo](#5-phase-b--suppression-complète-dans-le-repo)
 6. [Inventaire exhaustif des fichiers](#6-inventaire-exhaustif-des-fichiers)
 7. [Modifications frontend détaillées](#7-modifications-frontend-détaillées)
 8. [Modifications backend détaillées](#8-modifications-backend-détaillées)
@@ -39,12 +39,12 @@
 ```
 Tu travailles sur le repo Greffio SaaS.
 
-Objectif : RETIRER COMPLÈTEMENT Amazon Pay pour le moment — aucune référence UI,
+Objectif : RETIRER COMPLÈTEMENT Amazon Pay pour le moment – aucune référence UI,
 aucun endpoint actif, aucune variable serveur requise, aucun script externe Amazon chargé.
 
 Suis le runbook docs/runbooks/AMAZON_PAY_RETRAIT_COMPLET_GREFFIO.md :
 
-1. Phase B complète (suppression code) — pas seulement masquage UI.
+1. Phase B complète (suppression code) – pas seulement masquage UI.
 2. Ne pas toucher à la landing (LandingPage.jsx), navbar globale, tokens CSS globaux.
 3. Conserver Google Pay, carte bancaire, GoCardless SEPA pro.
 4. GreffioPaymentTerminal : retirer l’accordéon Amazon Pay ; Google Pay ou carte par défaut.
@@ -52,7 +52,7 @@ Suis le runbook docs/runbooks/AMAZON_PAY_RETRAIT_COMPLET_GREFFIO.md :
 6. Retirer registerAmazonPayRoutes de server/index.js.
 7. Mettre à jour tous les textes marketing (mentions légales, footer badges, FAQ SEO, signup, payment pages).
 8. Ne pas committer de secrets (.env, .pem).
-9. Laisser les lignes DB provider='amazon_pay' intactes (historique) — documenter seulement.
+9. Laisser les lignes DB provider='amazon_pay' intactes (historique) – documenter seulement.
 10. Mettre à jour .env.example et PRODUCTION_SECRETS_TEMPLATE.env (section Amazon commentée/supprimée).
 
 Livrables :
@@ -89,15 +89,15 @@ Réponds en français. Exécute les changements, ne te contente pas de lister.
 
 ### Dossiers à ignorer pour le diff (non production)
 
-- `staging-deploy/` — miroir déploiement ; resync ou regénération séparée
-- `staging/` — idem
+- `staging-deploy/` – miroir déploiement ; resync ou regénération séparée
+- `staging/` – idem
 - Archives `dist_*.zip`, `greffio-deploy.tar.gz`
 
 ---
 
 ## 3. Stratégie recommandée : 2 phases
 
-### Phase A — Désactivation rapide (~30 min)
+### Phase A – Désactivation rapide (~30 min)
 
 Utile si tu veux **couper immédiatement** en production sans gros refactor :
 
@@ -107,7 +107,7 @@ Utile si tu veux **couper immédiatement** en production sans gros refactor :
 
 **Limite** : l’UI Amazon Pay reste visible (accordéon, badges footer, textes légaux).
 
-### Phase B — Suppression complète (~2–4 h dev + déploiement)
+### Phase B – Suppression complète (~2–4 h dev + déploiement)
 
 À exécuter via la consigne Cursor section 1. C’est **ce que tu demanderas plus tard**.
 
@@ -124,14 +124,14 @@ Code repo (frontend + backend)
 
 ---
 
-## 4. Phase A — Désactivation rapide (sans supprimer le code)
+## 4. Phase A – Désactivation rapide (sans supprimer le code)
 
-### VPS — vider les variables
+### VPS – vider les variables
 
 Éditer `/opt/greffio/.env` (ou chemin réel) :
 
 ```bash
-# Désactivation Amazon Pay — laisser vides ou commenter tout le bloc
+# Désactivation Amazon Pay – laisser vides ou commenter tout le bloc
 # AMAZON_PAY_SANDBOX=false
 # AMAZON_PAY_MERCHANT_ID=
 # AMAZON_PAY_CLIENT_ID=
@@ -154,11 +154,11 @@ curl -sS https://api.greffio.willentreprises.com/api/payments/amazon-pay/config
 ### Effet côté utilisateur
 
 - `AmazonPayCheckoutPanel` affiche : *« Amazon Pay est prêt côté interface, mais les variables serveur ne sont pas encore complètes »* ou message indisponible.
-- L’accordéon Amazon Pay reste **visible** — mauvaise UX si tu restes longtemps en Phase A seule.
+- L’accordéon Amazon Pay reste **visible** – mauvaise UX si tu restes longtemps en Phase A seule.
 
 ---
 
-## 5. Phase B — Suppression complète dans le repo
+## 5. Phase B – Suppression complète dans le repo
 
 ### 5.1 Fichiers à **supprimer** entièrement
 
@@ -204,7 +204,7 @@ Voir sections 7 et 8 pour le détail ligne par ligne.
 | `services/amazonPayService.js` | **Supprimer** |
 | `routes/amazonPayRoutes.js` | **Supprimer** |
 | `index.js` | Retirer `import registerAmazonPayRoutes`, appel `registerAmazonPayRoutes(...)`, exception raw body `/api/webhooks/amazon-pay` |
-| `payments/types.js` | Retirer `AMAZON_PAY: 'amazon_pay'` du commentaire/const (garder compat lecture DB si besoin — voir §11) |
+| `payments/types.js` | Retirer `AMAZON_PAY: 'amazon_pay'` du commentaire/const (garder compat lecture DB si besoin – voir §11) |
 
 ### Config / docs / env
 
@@ -221,8 +221,8 @@ Voir sections 7 et 8 pour le détail ligne par ligne.
 
 | Fichier | Action |
 |---------|--------|
-| `src/mobile/MobilePaymentPage.jsx` | Via PaymentEntry — même changements que PaymentPage |
-| `releases/MOBILE_RELEASE_1.2.10.md` | Mention historique — pas de changement obligatoire |
+| `src/mobile/MobilePaymentPage.jsx` | Via PaymentEntry – même changements que PaymentPage |
+| `releases/MOBILE_RELEASE_1.2.10.md` | Mention historique – pas de changement obligatoire |
 
 ### Hors repo (VPS / Seller Central)
 
@@ -293,7 +293,7 @@ Retirer l’entrée :
 { id: 'amazonpay', label: 'Amazon Pay', ... }
 ```
 
-### 7.6 `catalog.js` — PAYMENT_METHODS
+### 7.6 `catalog.js` – PAYMENT_METHODS
 
 Supprimer l’objet :
 
@@ -342,7 +342,7 @@ registerAmazonPayRoutes(app, { requireAuth, appUrl });
 if (req.path === '/api/webhooks/amazon-pay') return next();
 ```
 
-> Après retrait, le webhook Amazon ne doit plus exister — les IPN Amazon recevront 404 (normal).
+> Après retrait, le webhook Amazon ne doit plus exister – les IPN Amazon recevront 404 (normal).
 
 ### 8.2 Supprimer fichiers
 
@@ -356,7 +356,7 @@ rm src/components/payments/AmazonPayCheckoutPanel.jsx
 
 Option **conservatrice** (recommandée) : garder `'amazon_pay'` dans le typedef JSDoc pour que le code qui lit l’historique DB ne casse pas, mais retirer la constante exportée `AMAZON_PAY` si plus utilisée.
 
-Option **agressive** : retirer toute mention — OK si grep confirme zéro usage runtime.
+Option **agressive** : retirer toute mention – OK si grep confirme zéro usage runtime.
 
 ### 8.4 `src/api/payments.js`
 
@@ -406,16 +406,16 @@ Chemin typique documenté :
 
 Mettre à jour :
 
-- `.env.example` — retirer bloc lignes ~62–76
-- `PRODUCTION_SECRETS_TEMPLATE.env` — retirer lignes ~70–83
+- `.env.example` – retirer bloc lignes ~62–76
+- `PRODUCTION_SECRETS_TEMPLATE.env` – retirer lignes ~70–83
 
 ---
 
 ## 10. Seller Central Amazon Pay
 
-Actions **manuelles** (fondateur — Cursor ne peut pas les faire) :
+Actions **manuelles** (fondateur – Cursor ne peut pas les faire) :
 
-### Option 1 — Suspendre / ne plus utiliser (recommandé temporairement)
+### Option 1 – Suspendre / ne plus utiliser (recommandé temporairement)
 
 1. [Integration Central](https://sellercentral-europe.amazon.com/external-payments/amazon-pay/integration-central/lwa)
 2. Store Greffio → **Edit**
@@ -424,13 +424,13 @@ Actions **manuelles** (fondateur — Cursor ne peut pas les faire) :
 5. **IPN URL** : supprimer `https://api.greffio.willentreprises.com/api/webhooks/amazon-pay`
 6. **Save**
 
-### Option 2 — Fermer le compte marchand
+### Option 2 – Fermer le compte marchand
 
 Contact Seller Central si tu ne prévois **aucune** réactivation → [Contact](https://sellercentral-europe.amazon.com/cu/contact-us)
 
 ### Business info
 
-Pas obligatoire de modifier [Business and contact info](https://sellercentral-europe.amazon.com/external-payments/business-and-contact-info) pour un simple retrait technique — sauf si tu closes le compte.
+Pas obligatoire de modifier [Business and contact info](https://sellercentral-europe.amazon.com/external-payments/business-and-contact-info) pour un simple retrait technique – sauf si tu closes le compte.
 
 ### Appeal en cours
 
@@ -449,11 +449,11 @@ provider = 'amazon_pay'
 provider_payload JSON contenant amazonPay, amazonCheckoutSessionId, etc.
 ```
 
-**Ne pas supprimer** ces lignes — obligation d’audit / comptabilité.
+**Ne pas supprimer** ces lignes – obligation d’audit / comptabilité.
 
 ### Ops / dashboard
 
-Si l’ops affiche le nom du provider tel quel, `amazon_pay` peut rester visible sur **anciens** dossiers — c’est normal.
+Si l’ops affiche le nom du provider tel quel, `amazon_pay` peut rester visible sur **anciens** dossiers – c’est normal.
 
 ### Aucune migration SQL requise
 
@@ -470,9 +470,9 @@ Pas besoin de migration pour « nettoyer » l’enum provider.
 2. npm run build
 3. Déployer dist/ → Hostinger (frontend)
 4. Déployer server/ → VPS (rsync ou pscp des fichiers modifiés + suppressions)
-5. Éditer /opt/greffio/.env — retirer AMAZON_PAY_*
+5. Éditer /opt/greffio/.env – retirer AMAZON_PAY_*
 6. pm2 restart greffio-api --update-env
-7. Seller Central — retirer origins / IPN
+7. Seller Central – retirer origins / IPN
 8. Tests §13
 ```
 
@@ -497,13 +497,13 @@ curl -sS -o /dev/null -w "%{http_code}" https://api.greffio.willentreprises.com/
 
 ### Frontend
 
-- [ ] `/paiement` — terminal sans accordéon Amazon Pay
-- [ ] `/paiement` — Google Pay + carte fonctionnent
-- [ ] Footer — plus de badge Amazon Pay
-- [ ] `/mentions-legales` — textes sans Amazon Pay
-- [ ] `/signup` — texte paiement sans Amazon
-- [ ] Mobile web `/paiement` — idem
-- [ ] App native Android — parcours paiement sans crash
+- [ ] `/paiement` – terminal sans accordéon Amazon Pay
+- [ ] `/paiement` – Google Pay + carte fonctionnent
+- [ ] Footer – plus de badge Amazon Pay
+- [ ] `/mentions-legales` – textes sans Amazon Pay
+- [ ] `/signup` – texte paiement sans Amazon
+- [ ] Mobile web `/paiement` – idem
+- [ ] App native Android – parcours paiement sans crash
 
 ### Backend
 
@@ -574,10 +574,10 @@ Commits de référence :
 
 ---
 
-## Annexe — grep de vérification (post-retrait)
+## Annexe – grep de vérification (post-retrait)
 
 ```bash
-# Depuis la racine du repo — doit retourner uniquement docs/ et éventuellement staging-deploy/
+# Depuis la racine du repo – doit retourner uniquement docs/ et éventuellement staging-deploy/
 rg -i "amazon.?pay|amazon-pay|amazon_pay|AMAZON_PAY" --glob "!staging-deploy/**" --glob "!staging/**" --glob "!docs/**"
 ```
 
@@ -585,7 +585,7 @@ Résultat attendu : **aucune** occurrence dans `src/` et `server/`.
 
 ---
 
-## Annexe — URLs Amazon Pay actuelles (référence avant retrait)
+## Annexe – URLs Amazon Pay actuelles (référence avant retrait)
 
 | Type | URL |
 |------|-----|
@@ -597,4 +597,4 @@ Résultat attendu : **aucune** occurrence dans `src/` et `server/`.
 
 ---
 
-*Document généré pour Greffio / WILLIAM ESTABLISHMENTS — retrait Amazon Pay temporaire. À renvoyer tel quel à Cursor pour exécution automatisée.*
+*Document généré pour Greffio / WILLIAM ESTABLISHMENTS – retrait Amazon Pay temporaire. À renvoyer tel quel à Cursor pour exécution automatisée.*

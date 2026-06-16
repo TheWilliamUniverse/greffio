@@ -1,10 +1,10 @@
-# Contexte Greffio — Audit mobile web & application native (référence ChatGPT)
+# Contexte Greffio – Audit mobile web & application native (référence ChatGPT)
 
 > **Usage** : coller ce fichier (ou des sections) dans une conversation ChatGPT pour qu’il **audite** l’expérience mobile Greffio (navigateur &lt;768px et app Android Capacitor), **cartographie les écarts** vs desktop, et propose un **plan d’actions** priorisé (immédiat / durable).
 >
 > **Code source de vérité** : le repo `TheWilliamUniverse/greffio` prime sur ce document en cas de divergence.
 >
-> **Identité visuelle** : la landing desktop (`LandingPage.jsx`) et le design system global sont **figés** — toute recommandation mobile doit enrichir localement sans refonte transversale (voir règle `.cursor/rules/preserve-brand-identity.mdc`).
+> **Identité visuelle** : la landing desktop (`LandingPage.jsx`) et le design system global sont **figés** – toute recommandation mobile doit enrichir localement sans refonte transversale (voir règle `.cursor/rules/preserve-brand-identity.mdc`).
 
 ---
 
@@ -13,7 +13,7 @@
 | Surface | Détection | Shell / layout | Navigation principale |
 |---------|-----------|----------------|------------------------|
 | **Desktop web** | `window.innerWidth >= 768` et pas Capacitor | `Header` + contenu page + `Sidebar` (`hidden md:flex`) | Sidebar fixe gauche |
-| **Mobile navigateur** | `isMobileBrowserViewport()` — web, largeur &lt;768 | `MobileWebShell` (header sticky + bottom nav) | Bottom nav publique ou cockpit + **drawer latéral** (hamburger) si connecté |
+| **Mobile navigateur** | `isMobileBrowserViewport()` – web, largeur &lt;768 | `MobileWebShell` (header sticky + bottom nav) | Bottom nav publique ou cockpit + **drawer latéral** (hamburger) si connecté |
 | **App native Android** | `isCapacitorNative()` | `MobileAppShell` (top bar + bottom tabs) | 5 onglets `MOBILE_BOTTOM_TABS` + **drawer latéral** (hamburger) si connecté |
 
 ### 1.1 Point d’entrée routing (`App.jsx`)
@@ -43,12 +43,12 @@ Fichier clé : `src/utils/platform.js`.
 | `src/mobile/MobileAppShell.jsx` | Enveloppe app native : top bar, drawer, push, bottom tabs |
 | `src/mobile/MobileWebHeader.jsx` | Header sticky web mobile (logo ou titre + hamburger si auth) |
 | `src/mobile/MobileTopBar.jsx` | Header app native (logo, hamburger, cloche notifications) |
-| `src/components/MobileSidebarDrawer.jsx` | **Drawer latéral** — miroir fonctionnel de `Sidebar.jsx` |
+| `src/components/MobileSidebarDrawer.jsx` | **Drawer latéral** – miroir fonctionnel de `Sidebar.jsx` |
 | `src/mobile/MobileAuthenticatedNav.jsx` | Wrapper drawer + `MobileMenuButton` |
 | `src/components/WebMobileBottomNav.jsx` | Bottom nav cockpit **web mobile** (5 icônes) |
 | `src/mobile/MobilePublicBottomNav.jsx` | Bottom nav **visiteur** web mobile |
 | `src/config/mobileStore.js` | Métadonnées Play Store + `MOBILE_BOTTOM_TABS` app native |
-| `src/components/Sidebar.jsx` | Sidebar desktop — **`return null` sur Capacitor** |
+| `src/components/Sidebar.jsx` | Sidebar desktop – **`return null` sur Capacitor** |
 
 ### 2.2 Pages mobile dédiées
 
@@ -96,7 +96,7 @@ Pattern : `isCapacitorNative() || isMobileBrowserViewport() ? MobileX : DesktopX
 
 ## 3. État des corrections récentes (session en cours)
 
-### 3.1 Landing mobile navigateur — enrichie
+### 3.1 Landing mobile navigateur – enrichie
 
 `MobileLandingPage.jsx` alignée fonctionnellement sur la landing desktop :
 
@@ -109,7 +109,7 @@ Pattern : `isCapacitorNative() || isMobileBrowserViewport() ? MobileX : DesktopX
 - Section app (`GooglePlayStoreLink`, lien `/app`)
 - FAQ (3 items), footer légal étendu
 
-### 3.2 Barre latérale app + web mobile — branchée
+### 3.2 Barre latérale app + web mobile – branchée
 
 Avant : `Sidebar.jsx` invisible sur Capacitor ; drawer présent seulement sur certaines pages desktop.
 
@@ -119,7 +119,7 @@ Après :
 - `MobileWebShell` : drawer + hamburger via `MobileWebHeader.onMenuClick` (utilisateur connecté, hors landing)
 - `MobileSidebarDrawer` : retrait de `md:hidden` sur le overlay pour compatibilité tablette native
 
-### 3.3 Header cockpit mobile — premium (v1.2.6)
+### 3.3 Header cockpit mobile – premium (v1.2.6)
 
 - `MobileAccountQuickSheet` : sheet compte calquée desktop (avatar, profil, paramètres, déconnexion)
 - `MobileConnectedStrip` : « Connecté à l’équipe Greffio »
@@ -128,7 +128,7 @@ Après :
 - `MobileStickyHeaderGroup` : header + pastille sticky, ombre au scroll
 - `MobileShellOverlayContext` : back Android ferme recherche, sheet, dialog logout
 
-### 3.4 Parité routes cockpit — entries complètes
+### 3.4 Parité routes cockpit – entries complètes
 
 - `DocumentsEntry`, `TeamEntry`, `ChatEntry`, `AnalyticsEntry`, `StatutsEntry`, `QuestionnaireEntry`
 - Bottom nav unifiée via `src/config/mobileNavigation.js` (web Messages / native Compte)
@@ -136,7 +136,7 @@ Après :
 - `MOBILE_SHELL_PREFIXES` étendu (`/paiement`, `/tarifs`)
 - Landing : sections tarifs/FAQ/footer lazy (`MobileLandingDeferredSections`)
 
-### 3.6 Session juin 2026 — audit mobile complet (commit `4b9ab18`)
+### 3.6 Session juin 2026 – audit mobile complet (commit `4b9ab18`)
 
 - **Landing mobile** : trust chips, micro-copy CTA, aperçu produit SASU, services groupés, FAQ étendue, bandeau tarifs sticky
 - **Cockpit** : `MobilePageContainer`, carte état dossier, timeline, pills navigation, onboarding 3 cards, empty states premium
@@ -148,7 +148,7 @@ Après :
 
 ---
 
-## 4. Matrice d’audit — ce que ChatGPT doit vérifier
+## 4. Matrice d’audit – ce que ChatGPT doit vérifier
 
 ### 4.1 Landing mobile vs desktop
 
@@ -156,14 +156,14 @@ Après :
 |-------------------------------------|----------------------------------|---------------|
 | Hero animé + visuel droite | Hero texte seul | Pas de visuel / motion (acceptable si identité figée) |
 | Navbar dropdown complète | Header logo + Connexion | Pas de menu services / ressources en header |
-| `#services` — grille complète | 6 services + lien « Tout voir » | Pas les 27 formalités inline |
+| `#services` – grille complète | 6 services + lien « Tout voir » | Pas les 27 formalités inline |
 | `#platform` | 4 cartes | OK fonctionnel |
 | `#comment-ca-marche` | Steps + 4 blocs | OK |
 | `#inpi-like-lookup` | Recherche SIREN | OK |
 | Bandeau Greffio indépendant | OK | OK |
 | `#pricing` | `LandingPricingSection` | Vérifier lisibilité petit écran |
 | `#app-mobile` | Play Store + `/app` | OK |
-| `#faq` | 3 Q/R | Desktop peut en avoir plus — comparer listes |
+| `#faq` | 3 Q/R | Desktop peut en avoir plus – comparer listes |
 | Footer mentions | 6 liens | Desktop peut avoir colonnes supplémentaires |
 | `MobilePublicBottomNav` | 5 onglets publics | Cohérent avec parcours visiteur |
 
@@ -191,14 +191,14 @@ Après :
 | Fonction | Attendu | Risque actuel |
 |----------|---------|---------------|
 | Drawer latéral | Hamburger → `MobileSidebarDrawer` | OK post-fix |
-| Bottom tabs | `MOBILE_AUTH_TABS_NATIVE` | Unifié avec web (Nouveau FAB) ; 5e onglet : Compte natif vs Messages web — documenté |
+| Bottom tabs | `MOBILE_AUTH_TABS_NATIVE` | Unifié avec web (Nouveau FAB) ; 5e onglet : Compte natif vs Messages web – documenté |
 | Notifications | Cloche + sheet | OK |
 | Biométrie | `BiometricSessionContext` | Tester unlock cold start |
 | Deep links | `appUrlOpen` dans `MobileAppShell` | Tester liens `greffio.willentreprises.com` |
 | Push | `MobilePushRegistration` | Permissions Android 13+ |
 | Mise à jour forcée | `AppUpdateGate` | Version `server/config/appVersion.js` vs Play |
 | Scanner documents | `MobileDocumentScanner` | Permissions caméra |
-| Routes hors `MOBILE_SHELL_PREFIXES` | Pas de shell native | Header desktop peut réapparaître — incohérent |
+| Routes hors `MOBILE_SHELL_PREFIXES` | Pas de shell native | Header desktop peut réapparaître – incohérent |
 
 **Checklist app native**
 
@@ -207,22 +207,22 @@ Après :
 - [ ] Bottom tab active state sur sous-routes
 - [ ] Keyboard ne masque pas les champs (formulaires questionnaire)
 - [x] Retour Android (back button) ferme drawer, recherche, sheet compte, logout dialog
-- [ ] Offline / erreur réseau — messages clairs
+- [ ] Offline / erreur réseau – messages clairs
 
 ---
 
 ## 5. Plan d’actions priorisé
 
-### P0 — Immédiat (qualité perçue, blocants UX)
+### P0 – Immédiat (qualité perçue, blocants UX)
 
 | # | Mesure | Fichiers | Effort |
 |---|--------|----------|--------|
 | P0-1 | **Déployer** landing mobile + drawer | ✅ Fait |
-| P0-2 | QA drawer 10 routes auth | Manuel — checklist §4 |
+| P0-2 | QA drawer 10 routes auth | Manuel – checklist §4 |
 | P0-3 | Padding bottom pages mobile | ✅ Hook + pages mobile |
 | P0-4 | Back Android overlays | ✅ Fait |
 
-### P1 — Court terme (parité fonctionnelle)
+### P1 – Court terme (parité fonctionnelle)
 
 | # | Mesure | Fichiers | Effort |
 |---|--------|----------|--------|
@@ -230,19 +230,19 @@ Après :
 | P1-2 | Harmoniser bottom nav | ✅ `mobileNavigation.js` |
 | P1-3 | `useWebMobileBottomNavPadding` | ✅ Alias hook |
 | P1-4 | Étendre `MOBILE_SHELL_PREFIXES` | ✅ `/paiement`, `/tarifs` |
-| P1-5 | Landing accès Services / Ressources | Optionnel — lien « Tout voir » services |
+| P1-5 | Landing accès Services / Ressources | Optionnel – lien « Tout voir » services |
 
-### P2 — Durable (architecture & maintenance)
+### P2 – Durable (architecture & maintenance)
 
 | # | Mesure | Description |
 |---|--------|-------------|
 | P2-1 | **Layout authentifié unifié** | Un seul composant `AuthenticatedMobileLayout` (drawer + header + bottom nav + padding) utilisé par web shell et app shell |
 | P2-2 | **Matrice de routes** | Table CSV/MD : route → surface → composant → tests E2E |
 | P2-3 | Tests Playwright mobile viewport | Parcours : landing → simulateur → login → dossier → message |
-| P2-4 | Tests Capacitor | Appium ou Detox sur émulateur Android — drawer, tabs, push |
+| P2-4 | Tests Capacitor | Appium ou Detox sur émulateur Android – drawer, tabs, push |
 | P2-5 | Performance bundle | Code-split `MobileLandingPage`, lazy mobile entries |
-| P2-6 | iOS | Préparer shell si `ios/` activé — safe-area, App Store metadata |
-| P2-7 | Tablette 768–1024 | `isTabletViewport()` force desktop — documenter choix produit |
+| P2-6 | iOS | Préparer shell si `ios/` activé – safe-area, App Store metadata |
+| P2-7 | Tablette 768–1024 | `isTabletViewport()` force desktop – documenter choix produit |
 
 ---
 
@@ -256,7 +256,7 @@ Après :
 4. Documents → `/documents`
 5. Messages → `/team`
 
-### App native (`MOBILE_AUTH_TABS_NATIVE` — `mobileNavigation.js`)
+### App native (`MOBILE_AUTH_TABS_NATIVE` – `mobileNavigation.js`)
 
 1. Accueil → `/dashboard`
 2. Dossiers → `/dossiers`
@@ -268,7 +268,7 @@ Après :
 
 ---
 
-## 7. Routes & shells — référence rapide
+## 7. Routes & shells – référence rapide
 
 ### `MOBILE_SHELL_PREFIXES` (app native avec shell)
 
@@ -299,8 +299,8 @@ Après :
 1. **Inventorier** : parcourir `src/mobile/`, `*Entry.jsx`, `platform.js`, shells.
 2. **Comparer** : pour chaque route dans `App.jsx`, noter composant rendu en mobile web vs app vs desktop.
 3. **Tester visuellement** (si accès au site) :
-   - Chrome DevTools iPhone 14 — `/`, `/login`, `/dashboard`, `/dossiers`, `/documents`, `/team`
-   - App Android 1.2.x — mêmes routes + drawer + notifications
+   - Chrome DevTools iPhone 14 – `/`, `/login`, `/dashboard`, `/dossiers`, `/documents`, `/team`
+   - App Android 1.2.x – mêmes routes + drawer + notifications
 4. **Lister écarts** par gravité : bloquant / gênant / cosmétique.
 5. **Proposer PRs atomiques** : une PR = un thème (drawer, entries documents, bottom nav, padding).
 6. **Ne pas proposer** de refonte landing desktop, palette globale, ou navbar desktop.
@@ -335,7 +335,7 @@ Après :
 | Sync Capacitor | `npm run mobile:build` (build + `cap sync`) |
 | AAB Android | `cd android && ./gradlew bundleRelease` |
 | Version | `android/release-version.properties`, `server/config/appVersion.js` |
-| Web embarqué app | `capacitor.config` → `webDir: dist` — **chaque fix web nécessite rebuild AAB** pour les utilisateurs app |
+| Web embarqué app | `capacitor.config` → `webDir: dist` – **chaque fix web nécessite rebuild AAB** pour les utilisateurs app |
 
 Dernière version connue : **1.2.6** (build `261510005`).
 
@@ -363,6 +363,6 @@ Dernière version connue : **1.2.6** (build `261510005`).
 
 ---
 
-*Document généré pour audit ChatGPT — Greffio mobile web & app native. Mettre à jour après chaque release mobile significative.*
+*Document généré pour audit ChatGPT – Greffio mobile web & app native. Mettre à jour après chaque release mobile significative.*
 
 **Audit app native dédié** → `docs/contexte-audit-app-mobile-chatgpt.md` (prompt §8).

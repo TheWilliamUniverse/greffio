@@ -1,4 +1,4 @@
-# Greffio — Fichier contexte sécurité pour Cursor
+# Greffio – Fichier contexte sécurité pour Cursor
 
 ## Objectif du fichier
 
@@ -79,7 +79,7 @@ Cursor doit respecter les contraintes suivantes :
 
 Ces menaces doivent être traitées en priorité.
 
-#### T1 — Saturation API / DDoS applicatif
+#### T1 – Saturation API / DDoS applicatif
 
 Un attaquant ou botnet envoie un volume élevé de requêtes sur :
 
@@ -94,29 +94,29 @@ Un attaquant ou botnet envoie un volume élevé de requêtes sur :
 
 Risque : CPU/RAM saturés, PM2 instable, Nginx débordé, base Supabase sollicitée inutilement, coût OpenAI ou fournisseurs externes.
 
-#### T2 — Brute-force login / credential stuffing
+#### T2 – Brute-force login / credential stuffing
 
 Un attaquant teste des combinaisons email/mot de passe volées.
 
 Risque : compromission de comptes clients, accès dossiers, fuite documents, réputation atteinte.
 
-#### T3 — Upload bombing
+#### T3 – Upload bombing
 
 Un attaquant envoie de nombreux fichiers PDF volumineux ou malformés.
 
 Risque : CPU parsing PDF saturé, stockage disque temporaire, mémoire, crash parser, coûts S3.
 
-#### T4 — IDOR / accès horizontal aux dossiers
+#### T4 – IDOR / accès horizontal aux dossiers
 
 Un utilisateur connecté tente d'accéder aux dossiers d'un autre utilisateur via ID manipulé.
 
 Risque : fuite de documents et données client.
 
-#### T5 — Fuite de secrets ou mauvaise configuration prod
+#### T5 – Fuite de secrets ou mauvaise configuration prod
 
 Risque : compromission JWT, S3, PSP, OpenAI, webhooks, base de données.
 
-#### T6 — Webhooks forgés
+#### T6 – Webhooks forgés
 
 Un attaquant appelle un endpoint webhook pour changer un statut métier.
 
@@ -307,9 +307,9 @@ Aucune couche ne suffit seule.
 
 ---
 
-## 5. Mesures P0 — À implémenter en premier
+## 5. Mesures P0 – À implémenter en premier
 
-## P0.1 — Rate limit global sur `/api/*`
+## P0.1 – Rate limit global sur `/api/*`
 
 ### Problème
 
@@ -352,7 +352,7 @@ app.use('/api', globalApiLimiter);
 
 ---
 
-## P0.2 — Durcissement Nginx anti-saturation
+## P0.2 – Durcissement Nginx anti-saturation
 
 ### Problème
 
@@ -409,7 +409,7 @@ Les valeurs doivent être adaptées après observation du trafic réel. Commence
 
 ---
 
-## P0.3 — WAF/CDN devant front et API
+## P0.3 – WAF/CDN devant front et API
 
 ### Problème
 
@@ -458,7 +458,7 @@ Cloudflare est la piste la plus cohérente pour combiner :
 
 ---
 
-## P0.4 — Turnstile sur contact, reset password, signup, login risqué
+## P0.4 – Turnstile sur contact, reset password, signup, login risqué
 
 ### Problème
 
@@ -493,7 +493,7 @@ Ajouter une vérification anti-bot sobre, sans casser l'identité visuelle.
 
 ---
 
-## P0.5 — Lockout progressif persistant par compte
+## P0.5 – Lockout progressif persistant par compte
 
 ### Problème
 
@@ -540,7 +540,7 @@ Si ces identifiants correspondent à un compte, vous pourrez réessayer dans que
 
 ---
 
-## P0.6 — MFA obligatoire pour rôles internes
+## P0.6 – MFA obligatoire pour rôles internes
 
 ### Problème
 
@@ -565,7 +565,7 @@ Imposer MFA aux rôles : `ADMIN`, `OPS`, `FORMALISTE`.
 
 ---
 
-## P0.7 — Vérification stricte de tous les webhooks
+## P0.7 – Vérification stricte de tous les webhooks
 
 ### Problème
 
@@ -592,7 +592,7 @@ Auditer tous les webhooks et refuser tout webhook non signé ou non vérifiable.
 
 ---
 
-## P0.8 — Audit IDOR automatisé
+## P0.8 – Audit IDOR automatisé
 
 ### Problème
 
@@ -619,7 +619,7 @@ Résultat attendu : 403 ou 404 générique.
 
 ---
 
-## P0.9 — Protection upload bombing
+## P0.9 – Protection upload bombing
 
 ### Problème
 
@@ -648,7 +648,7 @@ Limiter les abus sans gêner l'utilisateur légitime.
 
 ---
 
-## P0.10 — Logs d'audit minimum viables
+## P0.10 – Logs d'audit minimum viables
 
 ### Problème
 
@@ -693,9 +693,9 @@ Logger les événements sécurité utiles sans exposer de données sensibles.
 
 ---
 
-## 6. Mesures P1 — Renforcement sérieux sur 1 à 3 mois
+## 6. Mesures P1 – Renforcement sérieux sur 1 à 3 mois
 
-## P1.1 — Rate limit distribué Redis ou Supabase
+## P1.1 – Rate limit distribué Redis ou Supabase
 
 ### Objectif
 
@@ -713,7 +713,7 @@ Si PM2 redémarre ou si plusieurs instances sont ajoutées, les compteurs mémoi
 
 ---
 
-## P1.2 — CSP stricte
+## P1.2 – CSP stricte
 
 ### Objectif
 
@@ -744,7 +744,7 @@ Content-Security-Policy:
 
 ---
 
-## P1.3 — Permissions-Policy
+## P1.3 – Permissions-Policy
 
 Ajouter :
 
@@ -756,7 +756,7 @@ Adapter si une fonctionnalité légitime nécessite caméra ou paiement browser 
 
 ---
 
-## P1.4 — Security headers complets
+## P1.4 – Security headers complets
 
 Vérifier :
 
@@ -770,7 +770,7 @@ Vérifier :
 
 ---
 
-## P1.5 — Secrets scanning CI
+## P1.5 – Secrets scanning CI
 
 ### Objectif
 
@@ -785,7 +785,7 @@ Vérifier :
 
 ---
 
-## P1.6 — Sentry front/back sans PII
+## P1.6 – Sentry front/back sans PII
 
 ### Objectif
 
@@ -801,7 +801,7 @@ Détecter les erreurs rapidement.
 
 ---
 
-## P1.7 — Alertes sécurité
+## P1.7 – Alertes sécurité
 
 Créer des alertes sur :
 
@@ -820,7 +820,7 @@ Créer des alertes sur :
 
 ---
 
-## P1.8 — Protection assistant IA
+## P1.8 – Protection assistant IA
 
 ### Risques
 
@@ -842,7 +842,7 @@ Créer des alertes sur :
 
 ---
 
-## P1.9 — S3 hardening
+## P1.9 – S3 hardening
 
 ### Actions
 
@@ -857,7 +857,7 @@ Créer des alertes sur :
 
 ---
 
-## P1.10 — Backup et restauration testée
+## P1.10 – Backup et restauration testée
 
 ### Objectif
 
@@ -874,33 +874,33 @@ Une sauvegarde non testée n'est pas une sauvegarde.
 
 ---
 
-## 7. Mesures P2 — Maturité sécurité long terme
+## 7. Mesures P2 – Maturité sécurité long terme
 
-### P2.1 — SIEM léger
+### P2.1 – SIEM léger
 
 Centraliser les logs dans un outil consultable : Grafana Loki, Datadog, Better Stack, ELK ou autre.
 
-### P2.2 — OWASP ZAP en CI
+### P2.2 – OWASP ZAP en CI
 
 Scanner staging régulièrement.
 
-### P2.3 — Nuclei templates défensifs
+### P2.3 – Nuclei templates défensifs
 
 Scanner ses propres endpoints avec templates sûrs.
 
-### P2.4 — Play Integrity API Android
+### P2.4 – Play Integrity API Android
 
 Détecter environnements Android compromis, sans bloquer abusivement les utilisateurs.
 
-### P2.5 — Certificate pinning optionnel
+### P2.5 – Certificate pinning optionnel
 
 À considérer uniquement si l'équipe accepte la complexité opérationnelle.
 
-### P2.6 — Bug bounty privé
+### P2.6 – Bug bounty privé
 
 À envisager quand la surface est stabilisée.
 
-### P2.7 — Second VPS / haute disponibilité
+### P2.7 – Second VPS / haute disponibilité
 
 Préparer architecture multi-instance si trafic et budget le justifient.
 
@@ -908,7 +908,7 @@ Préparer architecture multi-instance si trafic et budget le justifient.
 
 ## 8. Plan d'action Cursor par lots
 
-## Lot 1 — Sécurité applicative immédiate
+## Lot 1 – Sécurité applicative immédiate
 
 ### Objectif
 
@@ -938,7 +938,7 @@ Réduire les risques d'abus simples sans dépendance infra lourde.
 
 ---
 
-## Lot 2 — Turnstile sobre
+## Lot 2 – Turnstile sobre
 
 ### Objectif
 
@@ -973,7 +973,7 @@ Ajouter anti-bot discret sur actions publiques.
 
 ---
 
-## Lot 3 — Auth brute-force durable
+## Lot 3 – Auth brute-force durable
 
 ### Objectif
 
@@ -998,7 +998,7 @@ Passer de mémoire process à persistance.
 
 ---
 
-## Lot 4 — Nginx hardening documenté
+## Lot 4 – Nginx hardening documenté
 
 ### Objectif
 
@@ -1014,7 +1014,7 @@ Donner à l'ops un fichier prêt à appliquer.
 
 ---
 
-## Lot 5 — Webhook audit
+## Lot 5 – Webhook audit
 
 ### Objectif
 
@@ -1030,7 +1030,7 @@ S'assurer qu'aucun webhook ne modifie un état sans signature.
 
 ---
 
-## Lot 6 — IDOR tests
+## Lot 6 – IDOR tests
 
 ### Objectif
 
@@ -1046,7 +1046,7 @@ Empêcher régression d'autorisation.
 
 ---
 
-## Lot 7 — Runbooks incident
+## Lot 7 – Runbooks incident
 
 ### Objectif
 
@@ -1062,7 +1062,7 @@ Préparer la réaction en cas d'attaque.
 
 ---
 
-## 9. Runbook incident — attaque DDoS en cours
+## 9. Runbook incident – attaque DDoS en cours
 
 ### Symptômes
 
@@ -1107,7 +1107,7 @@ sudo systemctl reload nginx
 
 ---
 
-## 10. Runbook — credential stuffing
+## 10. Runbook – credential stuffing
 
 ### Symptômes
 
@@ -1129,7 +1129,7 @@ sudo systemctl reload nginx
 
 ---
 
-## 11. Runbook — fuite de secret
+## 11. Runbook – fuite de secret
 
 ### Réponse immédiate
 

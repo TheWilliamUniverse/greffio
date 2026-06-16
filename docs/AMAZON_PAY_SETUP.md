@@ -1,9 +1,9 @@
-# Amazon Pay — DÉSACTIVÉ (retrait juin 2026, voir docs/runbooks/AMAZON_PAY_RETRAIT_COMPLET_GREFFIO.md)
+# Amazon Pay – DÉSACTIVÉ (retrait juin 2026, voir docs/runbooks/AMAZON_PAY_RETRAIT_COMPLET_GREFFIO.md)
 # Réactivation : restaurer depuis Git + docs/AMAZON_PAY_SETUP.md
 
 # Amazon Pay Greffio
 
-## Seller Central — Paramètres d'intégration
+## Seller Central – Paramètres d'intégration
 
 ### Allowed return URL
 

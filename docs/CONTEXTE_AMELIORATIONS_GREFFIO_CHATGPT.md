@@ -1,16 +1,16 @@
-# Greffio — Contexte pour proposer des améliorations (ChatGPT)
+# Greffio – Contexte pour proposer des améliorations (ChatGPT)
 
-> **Usage** : coller ce document entier dans ChatGPT, puis ajouter la consigne de la section 1 (ou une variante ciblée). ChatGPT doit **proposer des améliorations concrètes** — produit, UX, parcours, technique front — en respectant les contraintes de marque.
+> **Usage** : coller ce document entier dans ChatGPT, puis ajouter la consigne de la section 1 (ou une variante ciblée). ChatGPT doit **proposer des améliorations concrètes** – produit, UX, parcours, technique front – en respectant les contraintes de marque.
 >
 > **Pour transformer les propositions en plan d’exécution Cursor** : utiliser ensuite `docs/CONTEXTE_PLAN_ACTIONS_UI_UX_CHATGPT.md`.
 >
 > **Documents détaillés** (à demander à ChatGPT de lire si tu les colles en complément) :
-> - `docs/UI_UX_AUDIT_2026-06-13.md` — audit UI/UX complet (682 lignes)
-> - `docs/CONTEXTE_PLAN_ACTIONS_UI_UX_CHATGPT.md` — backlog priorisé + format ACTION-XXX pour Cursor
-> - `docs/PAYMENT_TERMINAL_MODIFICATIONS_2026-06-13.md` — paiement récent (Amazon Pay, Google Pay, terminal accordéon)
-> - `docs/GREFFIO-AUDIT-CONTEXT-IA.md` — contexte ops / équipe interne
-> - `docs/audit-branding-greffio.md` — tokens et identité visuelle
-> - `.cursor/rules/preserve-brand-identity.mdc` — règle impérative identité
+> - `docs/UI_UX_AUDIT_2026-06-13.md` – audit UI/UX complet (682 lignes)
+> - `docs/CONTEXTE_PLAN_ACTIONS_UI_UX_CHATGPT.md` – backlog priorisé + format ACTION-XXX pour Cursor
+> - `docs/PAYMENT_TERMINAL_MODIFICATIONS_2026-06-13.md` – paiement récent (Amazon Pay, Google Pay, terminal accordéon)
+> - `docs/GREFFIO-AUDIT-CONTEXT-IA.md` – contexte ops / équipe interne
+> - `docs/audit-branding-greffio.md` – tokens et identité visuelle
+> - `.cursor/rules/preserve-brand-identity.mdc` – règle impérative identité
 
 **Snapshot** : 13 juin 2026 · repo `Greffio SaaS` · branche `main`
 
@@ -18,7 +18,7 @@
 
 ## 1. Consignes à coller dans ChatGPT (choisir une variante)
 
-### Variante A — Améliorations globales (recommandée)
+### Variante A – Améliorations globales (recommandée)
 
 ```
 Tu es lead produit + UX senior sur une plateforme SaaS juridique (Greffio).
@@ -26,7 +26,7 @@ Tu es lead produit + UX senior sur une plateforme SaaS juridique (Greffio).
 À partir du contexte fourni :
 
 1. Propose des améliorations classées P0 (urgent) / P1 (important) / P2 (finition).
-2. Respecte STRICTEMENT la conservation de l’identité Greffio (section 3) — aucune refonte landing, navbar publique, footer, tokens globaux.
+2. Respecte STRICTEMENT la conservation de l’identité Greffio (section 3) – aucune refonte landing, navbar publique, footer, tokens globaux.
 3. Pour chaque proposition, indique :
    - Problème utilisateur (1 phrase)
    - Amélioration concrète
@@ -34,14 +34,14 @@ Tu es lead produit + UX senior sur une plateforme SaaS juridique (Greffio).
    - Impact attendu (crédibilité, conversion, rétention, ops…)
    - Effort estimé (S / M / L)
    - Risques et ce qu’il ne faut PAS toucher
-4. Priorise l’espace client authentifié, le mobile, le questionnaire/simulateur, le paiement, et l’ops — pas le marketing figé.
+4. Priorise l’espace client authentifié, le mobile, le questionnaire/simulateur, le paiement, et l’ops – pas le marketing figé.
 5. Distingue « quick wins » (< 1 jour dev) vs chantiers structurants.
 6. Termine par : top 5 actions à faire en premier, métriques de succès, questions ouvertes pour le fondateur.
 
 Réponds en français. Sois spécifique au produit Greffio, pas générique.
 ```
 
-### Variante B — UX espace client uniquement
+### Variante B – UX espace client uniquement
 
 ```
 Propose des améliorations UX uniquement pour l’espace client authentifié Greffio (dashboard, dossiers, documents, paiement, questionnaire connecté).
@@ -51,7 +51,7 @@ Contraintes : identité landing figée ; pas de refonte design system global ; p
 Format : tableau Problème | Page | Solution | Priorité | Fichiers.
 ```
 
-### Variante C — Mobile (Capacitor + web mobile)
+### Variante C – Mobile (Capacitor + web mobile)
 
 ```
 Propose des améliorations pour l’expérience mobile Greffio (app Android Capacitor + web mobile).
@@ -61,7 +61,7 @@ Contexte : ~10 features en double desktop/mobile ; bottom nav 5 items vs sidebar
 Contraintes : pas de refonte tab bar design ; améliorations fonctionnelles et cohérence parcours OK.
 ```
 
-### Variante D — Transformer en plan Cursor
+### Variante D – Transformer en plan Cursor
 
 ```
 À partir du contexte + de tes propositions, produis un PLAN D’ACTIONS exécutable pour l’agent Cursor.
@@ -96,7 +96,7 @@ Landing / SEO → Simulateur (/simulateur) → Signup → Questionnaire → Docu
 ### Formalités & statuts
 
 - **27 formalités** au catalogue simulateur
-- **Statuts générés** : SAS, SASU, SARL, SCI (template William 27 articles — **livrable complet obligatoire**)
+- **Statuts générés** : SAS, SASU, SARL, SCI (template William 27 articles – **livrable complet obligatoire**)
 - **Pas de statuts** : micro-entreprise, EI
 - Documents : déclaration non-condamnation, liste souscripteurs, pouvoirs, procuration, mandat
 
@@ -106,11 +106,11 @@ Landing / SEO → Simulateur (/simulateur) → Signup → Questionnaire → Docu
 |------|-------|
 | Visiteur | Marketing, simulateur, tarifs, contact |
 | CLIENT | Dossiers, questionnaire, documents, paiement, assistant |
-| FORMALISTE / OPS / ADMIN | `/ops/*` — file dossiers, validation docs, risques, emails |
+| FORMALISTE / OPS / ADMIN | `/ops/*` – file dossiers, validation docs, risques, emails |
 
 ---
 
-## 3. Règle absolue — identité figée (NON NÉGOCIABLE)
+## 3. Règle absolue – identité figée (NON NÉGOCIABLE)
 
 Source : `.cursor/rules/preserve-brand-identity.mdc`
 
@@ -130,7 +130,7 @@ Source : `.cursor/rules/preserve-brand-identity.mdc`
 - Bug UI **ponctuel** dans un composant (ex. badge notif fictif dans `Header.jsx`)
 - **Patterns réutilisables** nouveaux (`EmptyState`, `PageLoadingState` dans `src/components/patterns/`)
 - Amélioration UX **locale** à une feature (loading documents, erreurs inline login)
-- Remplacer hex locaux par **tokens existants** (`border-border`, `text-destructive`, `hsl(var(--greffio-blue))`) — sans nouvelles vars `:root`
+- Remplacer hex locaux par **tokens existants** (`border-border`, `text-destructive`, `hsl(var(--greffio-blue))`) – sans nouvelles vars `:root`
 - Fonctionnalités métier, nettoyage code mort, ops
 
 ### Zone grise (prudence)
@@ -141,19 +141,19 @@ Source : `.cursor/rules/preserve-brand-identity.mdc`
 
 ---
 
-## 4. Architecture UI — trois surfaces
+## 4. Architecture UI – trois surfaces
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ MARKETING / SEO / PUBLIC (identité premium FIGÉE)            │
 │ NavbarDropdown · landing · tarifs · contact · pages SEO      │
-│ Score perçu ~7,5/10 — ne pas dégrader                       │
+│ Score perçu ~7,5/10 – ne pas dégrader                       │
 └─────────────────────────────────────────────────────────────┘
                               ↓ signup/login
 ┌─────────────────────────────────────────────────────────────┐
-│ APP CLIENT AUTHENTIFIÉE (fragmentée — priorité améliorations)│
+│ APP CLIENT AUTHENTIFIÉE (fragmentée – priorité améliorations)│
 │ Header + Sidebar desktop · Mobile*Page.jsx · bottom nav      │
-│ Score perçu ~5,5/10 — loading, empty, erreurs incohérents    │
+│ Score perçu ~5,5/10 – loading, empty, erreurs incohérents    │
 └─────────────────────────────────────────────────────────────┘
                               ↓ rôles internes
 ┌─────────────────────────────────────────────────────────────┐
@@ -166,7 +166,7 @@ Source : `.cursor/rules/preserve-brand-identity.mdc`
 
 ---
 
-## 5. Cartographie rapide — où agir
+## 5. Cartographie rapide – où agir
 
 ### Layout & navigation
 
@@ -198,21 +198,21 @@ Source : `.cursor/rules/preserve-brand-identity.mdc`
 
 55 fichiers dans `src/components/ui/`. Sous-utilisés ou morts : `form`, `field`, `empty`, `skeleton`, `progress` (0 usage pages pour form/field/empty).
 
-**Patterns à créer** (recommandation audit — dossier `src/components/patterns/` n’existe pas encore) :
+**Patterns à créer** (recommandation audit – dossier `src/components/patterns/` n’existe pas encore) :
 
 ```
-EmptyState.jsx       — wrap ui/empty, props icon/title/description/cta
-PageLoadingState.jsx — skeleton ou Loader2 + label
-PageHeader.jsx       — titre, subtitle, breadcrumb, actions
-FieldError.jsx       — text-destructive + aria
-GreffioField.jsx     — Label + Input + FieldError
+EmptyState.jsx       – wrap ui/empty, props icon/title/description/cta
+PageLoadingState.jsx – skeleton ou Loader2 + label
+PageHeader.jsx       – titre, subtitle, breadcrumb, actions
+FieldError.jsx       – text-destructive + aria
+GreffioField.jsx     – Label + Input + FieldError
 ```
 
 ---
 
-## 6. Problèmes connus — matière pour propositions
+## 6. Problèmes connus – matière pour propositions
 
-### P0 — Urgent (crédibilité / bug visible)
+### P0 – Urgent (crédibilité / bug visible)
 
 | ID | Problème | Fichier(s) |
 |----|----------|------------|
@@ -223,7 +223,7 @@ GreffioField.jsx     — Label + Input + FieldError
 | P0-05 | CSS safe-area calc invalide | `index.css` (~L1045) |
 | P0-06 | Code mort | `ProjectsPage.jsx`, `ProjectDetailPage.jsx`, `WalletPaymentTerminal.jsx`, `MobileAuthShell.jsx`, `LoadingSpinner.jsx`, `NotificationToast.jsx` |
 
-### P1 — Important (cohérence espace client)
+### P1 – Important (cohérence espace client)
 
 | ID | Problème | Fichier(s) |
 |----|----------|------------|
@@ -240,7 +240,7 @@ GreffioField.jsx     — Label + Input + FieldError
 | P1-11 | Mobile : 12 entrées sidebar vs 5 tabs bottom nav | Drawer « Plus » |
 | P1-12 | Bandeau Google Pay TEST non visible pour l’utilisateur | `PaymentPage.jsx`, `GreffioPaymentTerminal.jsx` |
 
-### P2 — Finition (long terme)
+### P2 – Finition (long terme)
 
 - `PageHeader` commun, `AuthenticatedLayout` wrapper
 - Fusion progressive desktop/mobile (10 paires dupliquées)
@@ -251,7 +251,7 @@ GreffioField.jsx     — Label + Input + FieldError
 
 ---
 
-## 7. Travaux récents — ne pas casser
+## 7. Travaux récents – ne pas casser
 
 | Zone | État au 13/06/2026 | Fichiers clés |
 |------|-------------------|---------------|
@@ -343,4 +343,4 @@ Puis un **Top 5 priorisé** et **questions ouvertes** pour arbitrage produit.
 
 ---
 
-*Document généré le 13 juin 2026 — Greffio SaaS — pour brainstorming améliorations ChatGPT.*
+*Document généré le 13 juin 2026 – Greffio SaaS – pour brainstorming améliorations ChatGPT.*

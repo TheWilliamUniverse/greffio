@@ -172,7 +172,7 @@ export const finalizeInternalSignature = async ({
     signedAtIso,
     documentId: proofId,
     signatureImagePngBase64,
-    proofLines: [proofLine, `Hash brouillon : ${request.sha256Draft?.slice(0, 16) || ''}…`],
+    proofLines: [],
     layout,
   });
 

@@ -1,7 +1,7 @@
 /** Templates d’alerte de connexion informative (respectent loginAlertsEnabled). */
 export const LOGIN_ALERT_EMAIL_TEMPLATES = new Set(['login_notification']);
 
-/** Notifications de sécurité essentielles — jamais bloquées par loginAlertsEnabled. */
+/** Notifications de sécurité essentielles – jamais bloquées par loginAlertsEnabled. */
 export const CRITICAL_SECURITY_EMAIL_TEMPLATES = new Set([
   'suspicious_login_attempt',
   'authentication_code',

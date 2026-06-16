@@ -1,4 +1,4 @@
-# Plan signature électronique Greffio — référence ChatGPT
+# Plan signature électronique Greffio – référence ChatGPT
 
 Ce document résume le plan d'optimisation maximal fourni par ChatGPT (juin 2026).
 

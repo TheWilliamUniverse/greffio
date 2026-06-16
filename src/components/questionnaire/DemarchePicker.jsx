@@ -91,6 +91,7 @@ export const DemarchePicker = ({
           if (categoryId === 'creation') {
             onChange(CREATION_AUTO_FORMALITY);
             onSkipCreationTiles?.();
+            if (mobilePresentation) onAdvance?.();
           }
           if (categoryId) setCategoryConfirmed(true);
         }}

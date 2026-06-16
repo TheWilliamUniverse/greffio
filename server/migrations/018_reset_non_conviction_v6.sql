@@ -1,4 +1,4 @@
--- Remise à zéro des déclarations non-condamnation générées (template PDF v6 — modèle service-public).
+-- Remise à zéro des déclarations non-condamnation générées (template PDF v6 – modèle service-public).
 -- Conserve les champs formulaire (metadata.fields) pour préremplissage client.
 
 UPDATE documents

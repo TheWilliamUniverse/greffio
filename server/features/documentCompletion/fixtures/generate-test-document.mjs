@@ -39,7 +39,7 @@ const generateTextPages = () => new Promise((resolve, reject) => {
   doc.on('end', () => resolve(Buffer.concat(chunks)));
   doc.on('error', reject);
 
-  doc.fontSize(16).fillColor('#0b3d91').text('Formulaire de test — Complétion documentaire Greffio', {
+  doc.fontSize(16).fillColor('#0b3d91').text('Formulaire de test – Complétion documentaire Greffio', {
     align: 'center',
   });
   doc.moveDown(0.4);
@@ -49,10 +49,10 @@ const generateTextPages = () => new Promise((resolve, reject) => {
   );
   doc.moveDown(1);
 
-  doc.fontSize(13).fillColor('#111111').text('Page 1 — Identité et coordonnées du demandeur', { underline: true });
+  doc.fontSize(13).fillColor('#111111').text('Page 1 – Identité et coordonnées du demandeur', { underline: true });
   doc.moveDown(0.6);
 
-  doc.fontSize(12).fillColor('#333333').text('Section A — État civil');
+  doc.fontSize(12).fillColor('#333333').text('Section A – État civil');
   doc.moveDown(0.4);
   line(doc, 'Nom');
   line(doc, 'Prénom');
@@ -64,13 +64,13 @@ const generateTextPages = () => new Promise((resolve, reject) => {
   line(doc, 'Nationalité');
   doc.moveDown(0.4);
 
-  doc.fontSize(12).fillColor('#333333').text('Section B — Civilité et forme juridique');
+  doc.fontSize(12).fillColor('#333333').text('Section B – Civilité et forme juridique');
   doc.moveDown(0.4);
   checkboxLine(doc, ['Monsieur', 'Madame', 'Autre']);
   squareCheckboxLine(doc, ['SAS', 'SARL', 'SASU', 'EURL']);
   doc.moveDown(0.4);
 
-  doc.fontSize(12).fillColor('#333333').text('Section C — Adresse et contact');
+  doc.fontSize(12).fillColor('#333333').text('Section C – Adresse et contact');
   doc.moveDown(0.4);
   line(doc, 'Domicile');
   line(doc, 'Adresse');
@@ -93,10 +93,10 @@ const generateTextPages = () => new Promise((resolve, reject) => {
 
   doc.addPage();
 
-  doc.fontSize(13).fillColor('#111111').text('Page 2 — Société et informations registrales', { underline: true });
+  doc.fontSize(13).fillColor('#111111').text('Page 2 – Société et informations registrales', { underline: true });
   doc.moveDown(0.6);
 
-  doc.fontSize(12).fillColor('#333333').text('Section D — Identification de la société');
+  doc.fontSize(12).fillColor('#333333').text('Section D – Identification de la société');
   doc.moveDown(0.4);
   line(doc, 'Dénomination sociale');
   line(doc, 'Raison sociale');
@@ -107,7 +107,7 @@ const generateTextPages = () => new Promise((resolve, reject) => {
   doc.text('Montant du capital : _________________________________ EUR', { lineGap: 6 });
   doc.moveDown(0.4);
 
-  doc.fontSize(12).fillColor('#333333').text('Section E — Registre du commerce');
+  doc.fontSize(12).fillColor('#333333').text('Section E – Registre du commerce');
   doc.moveDown(0.4);
   line(doc, 'Numéro SIREN', 20);
   line(doc, 'SIREN', 20);
@@ -119,7 +119,7 @@ const generateTextPages = () => new Promise((resolve, reject) => {
   line(doc, 'Code NAF', 16);
   doc.moveDown(0.4);
 
-  doc.fontSize(12).fillColor('#333333').text('Section F — Siège et compte bancaire');
+  doc.fontSize(12).fillColor('#333333').text('Section F – Siège et compte bancaire');
   doc.moveDown(0.4);
   line(doc, 'Siège social');
   line(doc, "Adresse de l'établissement");
@@ -128,7 +128,7 @@ const generateTextPages = () => new Promise((resolve, reject) => {
   line(doc, 'Compte bancaire');
   doc.moveDown(0.4);
 
-  doc.fontSize(12).fillColor('#333333').text('Section G — Objet social (zone longue)');
+  doc.fontSize(12).fillColor('#333333').text('Section G – Objet social (zone longue)');
   doc.moveDown(0.4);
   doc.text('Activité principale exercée : _________________________________', { lineGap: 6 });
   doc.text('Objet social :', { lineGap: 4 });
@@ -145,7 +145,7 @@ const generateTextPages = () => new Promise((resolve, reject) => {
 
   doc.addPage();
 
-  doc.fontSize(13).fillColor('#111111').text('Page 3 — Champs AcroForm natifs (PDF interactif)', { underline: true });
+  doc.fontSize(13).fillColor('#111111').text('Page 3 – Champs AcroForm natifs (PDF interactif)', { underline: true });
   doc.moveDown(0.6);
   doc.fontSize(10).fillColor('#555555').text(
     'Cette page contient des champs de formulaire PDF préexistants (AcroForm). '

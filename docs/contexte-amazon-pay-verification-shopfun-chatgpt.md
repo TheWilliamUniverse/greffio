@@ -1,14 +1,14 @@
-# Greffio — Contexte Amazon Pay / ShopFun — Vérification marchand (Seller Central)
+# Greffio – Contexte Amazon Pay / ShopFun – Vérification marchand (Seller Central)
 
 > **Usage** : coller ce document entier dans la fenêtre ChatGPT (session **ShopFun**) ou dans Cursor pour débloquer la **vérification du compte Amazon Pay** après le refus reçu le 13 juin 2026.
 >
 > **Objectif** : faire correspondre le site `https://greffio.willentreprises.com` avec l’entité légale déclarée dans Seller Central, puis relancer la review via **Appeal**.
 >
 > **Documents liés** :
-> - `docs/AMAZON_PAY_SETUP.md` — URLs Seller Central (origin, return, IPN)
-> - `docs/PAYMENT_TERMINAL_MODIFICATIONS_2026-06-13.md` — intégration Amazon Pay production
-> - `docs/contexte-integrations-greffio-chatgpt.md` — stack paiements
-> - `.cursor/rules/preserve-brand-identity.mdc` — identité landing figée ; **pages légales modifiables**
+> - `docs/AMAZON_PAY_SETUP.md` – URLs Seller Central (origin, return, IPN)
+> - `docs/PAYMENT_TERMINAL_MODIFICATIONS_2026-06-13.md` – intégration Amazon Pay production
+> - `docs/contexte-integrations-greffio-chatgpt.md` – stack paiements
+> - `.cursor/rules/preserve-brand-identity.mdc` – identité landing figée ; **pages légales modifiables**
 
 **Snapshot** : 13 juin 2026 · domaine production `greffio.willentreprises.com`
 
@@ -26,7 +26,7 @@ n’affiche pas correctement l’identité légale (raison sociale, adresse, num
 
 1. Diagnostique précisément ce qui manque sur chaque page légale exigée par Amazon Pay.
 2. Propose un plan d’action minimal (site + Seller Central + appeal) sans refonte de la landing.
-3. Rédige le bloc légal canonique à afficher (FR) — raison sociale, forme, siège, RCS, SIRET, TVA, contact.
+3. Rédige le bloc légal canonique à afficher (FR) – raison sociale, forme, siège, RCS, SIRET, TVA, contact.
 4. Liste les fichiers Greffio à modifier et le diff fonctionnel attendu.
 5. Donne la checklist de validation avant appeal (URLs publiques, cohérence Seller Central, capture d’écran).
 6. Signale les points à confirmer avec le fondateur (adresse siège exacte si divergence KBIS / Seller Central).
@@ -40,7 +40,7 @@ Contraintes :
 
 ---
 
-## 2. Email Amazon Pay reçu — synthèse
+## 2. Email Amazon Pay reçu – synthèse
 
 ### Motif du blocage
 
@@ -69,7 +69,7 @@ Amazon exige que les pages légales du site affichent clairement :
 | Contact Amazon Pay | https://sellercentral-europe.amazon.com/cu/contact-us |
 | Doc « Information required from merchants » | https://sellercentral-europe.amazon.com/help/hub/reference/G202146230 |
 
-### Procédure Seller Central — JavaScript origin
+### Procédure Seller Central – JavaScript origin
 
 1. **Manage Client/Store ID configurations** (lien ci-dessus).
 2. Sélectionner le store Greffio dans le dropdown.
@@ -83,7 +83,7 @@ Amazon exige que les pages légales du site affichent clairement :
 
 ---
 
-## 3. Entité légale Greffio — référence canonique
+## 3. Entité légale Greffio – référence canonique
 
 Ces valeurs sont déjà partiellement dans le code. **À valider une dernière fois** contre le KBIS et Seller Central avant publication.
 
@@ -97,7 +97,7 @@ Ces valeurs sont déjà partiellement dans le code. **À valider une dernière f
 | Email | **contact@willentreprises.com** | `publisher.js`, `runtime.js` |
 | Téléphone | **04 11 81 86 70** | `runtime.js`, footer |
 | Site | **https://greffio.willentreprises.com** | `runtime.js` |
-| Siège social (adresse postale) | **470 Promenade des Anglais, 06200 Nice, France** | fixtures tests statuts William — **pas encore sur les pages légales publiques** |
+| Siège social (adresse postale) | **470 Promenade des Anglais, 06200 Nice, France** | fixtures tests statuts William – **pas encore sur les pages légales publiques** |
 
 ### Point critique identifié
 
@@ -107,16 +107,16 @@ Le nom, RCS, SIRET et TVA sont présents sur `/mentions-legales` ; l’adresse p
 
 ---
 
-## 4. Pages légales Amazon — mapping et état actuel
+## 4. Pages légales Amazon – mapping et état actuel
 
 Amazon cite quatre types de pages. Correspondance Greffio :
 
 | Exigence Amazon | Page Greffio | URL production | État au 13/06/2026 |
 |-----------------|--------------|----------------|---------------------|
-| **Terms and conditions** | Mentions légales + CGU + CGV | `/mentions-legales` | Raison sociale, RCS, SIRET, TVA ✅ — **adresse ❌** |
-| **Privacy policy** | Politique de confidentialité | `/confidentialite` | Contenu RGPD ✅ — **bloc éditeur / adresse ❌** |
-| **Contact us** | Contact | `/contact` | Email + téléphone ✅ — **bloc société / adresse ❌** |
-| **About us** | *Aucune page dédiée* | — | **Manquante** — pas de `/a-propos` ni équivalent |
+| **Terms and conditions** | Mentions légales + CGU + CGV | `/mentions-legales` | Raison sociale, RCS, SIRET, TVA ✅ – **adresse ❌** |
+| **Privacy policy** | Politique de confidentialité | `/confidentialite` | Contenu RGPD ✅ – **bloc éditeur / adresse ❌** |
+| **Contact us** | Contact | `/contact` | Email + téléphone ✅ – **bloc société / adresse ❌** |
+| **About us** | *Aucune page dédiée* | – | **Manquante** – pas de `/a-propos` ni équivalent |
 
 ### URLs à fournir à Amazon (après correction)
 
@@ -163,7 +163,7 @@ Le blocage actuel est **administratif / conformité site**, pas un bug d’inté
 
 ---
 
-## 5bis. ShopFun — boutique client Greffio
+## 5bis. ShopFun – boutique client Greffio
 
 Dans le vocabulaire interne, **ShopFun** désigne le parcours **boutique / checkout** côté client :
 
@@ -177,9 +177,9 @@ Amazon Pay y est affiché comme moyen de paiement B2C. La vérification marchand
 
 ---
 
-## 6. Diagnostic écarts — ce qu’il faut corriger (P0)
+## 6. Diagnostic écarts – ce qu’il faut corriger (P0)
 
-### P0 — Bloquant Amazon Pay
+### P0 – Bloquant Amazon Pay
 
 1. **Ajouter l’adresse du siège social** sur toutes les pages exigées (mentions, confidentialité, contact).
 2. **Créer ou enrichir une page « À propos »** (`/a-propos`) avec :
@@ -191,11 +191,11 @@ Amazon Pay y est affiché comme moyen de paiement B2C. La vérification marchand
 5. **Déployer** le frontend sur Hostinger / VPS, vérifier en navigation privée.
 6. **Appeal** Seller Central avec URLs exactes.
 
-### P1 — Renforcement conformité
+### P1 – Renforcement conformité
 
 - Bloc « Responsable du traitement / Éditeur » en tête de `PrivacyPolicyPage.jsx`.
 - Lien croisé footer : À propos · Mentions · Confidentialité · Contact.
-- Aligner `siteSearchIndex.js` (`/politique-confidentialite` vs `/confidentialite` — incohérence mineure).
+- Aligner `siteSearchIndex.js` (`/politique-confidentialite` vs `/confidentialite` – incohérence mineure).
 - Vérifier que Seller Central **Business and contact info** = même adresse que le site.
 
 ### Hors scope (ne pas faire dans ce lot)
@@ -205,7 +205,7 @@ Amazon Pay y est affiché comme moyen de paiement B2C. La vérification marchand
 
 ---
 
-## 7. Bloc légal proposé (template FR — à valider fondateur)
+## 7. Bloc légal proposé (template FR – à valider fondateur)
 
 ```text
 WILLIAM ESTABLISHMENTS
@@ -240,7 +240,7 @@ Site : https://greffio.willentreprises.com
 
 ### Composant réutilisable (recommandé)
 
-Créer `src/components/legal/PublisherLegalBlock.jsx` — bloc compact ou complet — importé par mentions, contact, confidentialité, à propos, footer. Évite 5 copies du même texte.
+Créer `src/components/legal/PublisherLegalBlock.jsx` – bloc compact ou complet – importé par mentions, contact, confidentialité, à propos, footer. Évite 5 copies du même texte.
 
 ---
 
@@ -275,19 +275,19 @@ Créer `src/components/legal/PublisherLegalBlock.jsx` — bloc compact ou comple
 ## 10. Déploiement après modification
 
 1. Build frontend : `npm run build`
-2. Déployer `dist/` sur Hostinger (comme les déploiements récents — archives `dist_*.zip` du 12–13/06)
+2. Déployer `dist/` sur Hostinger (comme les déploiements récents – archives `dist_*.zip` du 12–13/06)
 3. Vérifier en navigation privée les 4 URLs
 4. Relancer appeal Seller Central
 5. Tester bouton Amazon Pay sur `/paiement` une fois compte validé
 
-Backend Amazon Pay **déjà déployé** (commits `168024b`, `50dfe6a` — voir `PAYMENT_TERMINAL_MODIFICATIONS_2026-06-13.md`). Pas de changement serveur requis pour ce lot légal, sauf alignement `server/config/publisher.js` optionnel.
+Backend Amazon Pay **déjà déployé** (commits `168024b`, `50dfe6a` – voir `PAYMENT_TERMINAL_MODIFICATIONS_2026-06-13.md`). Pas de changement serveur requis pour ce lot légal, sauf alignement `server/config/publisher.js` optionnel.
 
 ---
 
 ## 11. Questions ouvertes pour le fondateur
 
 1. **Adresse siège** : confirmer `470 Promenade des Anglais, 06200 Nice` vs adresse enregistrée Seller Central ?
-2. **Forme juridique** à afficher (SAS, SARL, etc.) — utile pour Amazon et mentions légales ?
+2. **Forme juridique** à afficher (SAS, SARL, etc.) – utile pour Amazon et mentions légales ?
 3. **Page About** : créer `/a-propos` dédiée ou enrichir `/services` + lien footer ?
 4. **Capital social / dirigeant** : à mentionner sur About ou mentions uniquement ?
 5. **Appeal** : qui envoie depuis le compte Seller Central (William) ?

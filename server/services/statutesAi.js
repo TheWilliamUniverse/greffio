@@ -5,12 +5,12 @@ Tu rédiges des statuts juridiques en français pour une ${input.legalForm}.
 Contraintes impératives :
 - intégrer explicitement la dénomination, l'objet social, le siège, le capital, le président et la répartition ;
 - produire entre 24 et 30 articles numérotés, rédigés de façon professionnelle ;
-- chaque article doit commencer par "Article X — Titre" suivi du corps juridique ;
+- chaque article doit commencer par "Article X – Titre" suivi du corps juridique ;
 - inclure préambule des soussignés, clauses de gouvernance, annexes de capital et pouvoirs pour formalités.
 
 Format strict JSON :
 {
-  "clauses": ["Article 1 — Forme : ...", "Article 2 — Dénomination sociale : ..."]
+  "clauses": ["Article 1 – Forme : ...", "Article 2 – Dénomination sociale : ..."]
 }
 
 Contexte dossier :

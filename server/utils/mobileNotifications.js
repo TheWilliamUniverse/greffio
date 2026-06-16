@@ -14,7 +14,7 @@ export const buildMobileNotifications = async ({ userId, role }) => {
     notifications.push({
       id: `dossier-${dossier.id}`,
       title: dossier.companyName || 'Dossier Greffio',
-      body: `${dossier.service || 'Formalité'} — ${dossier.status || 'En cours'} (${progress}%)`,
+      body: `${dossier.service || 'Formalité'} – ${dossier.status || 'En cours'} (${progress}%)`,
       tone: progress < 100 ? 'action' : 'info',
       path: `/dossier/${dossier.id}`,
       createdAt: dossier.updatedAt || dossier.createdAt || new Date().toISOString(),

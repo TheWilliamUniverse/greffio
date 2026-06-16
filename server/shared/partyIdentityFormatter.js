@@ -152,7 +152,7 @@ export const formatSubscriberListRow = (associate = {}, { securitiesUnit = 'Acti
         ? `Signataire : ${repName} (${repQuality}), agissant au nom et pour le compte de ${companyName}`
         : 'Représentant légal à compléter',
       titlesCount: String(associate.titlesCount || associate.share || '0').replace(/\s/g, ' ').trim(),
-      sharePercent: String(associate.share || '').trim() || '—',
+      sharePercent: String(associate.share || '').trim() || '–',
       contributionCash: associate.contributionCash
         ? `${associate.contributionCash}`.replace(/(?<=\d)\s?(?=€)/, ' ')
         : '0 €',
@@ -161,8 +161,8 @@ export const formatSubscriberListRow = (associate = {}, { securitiesUnit = 'Acti
         ? `${associate.liberationAmount}`.replace(/(?<=\d)\s?(?=€)/, ' ')
         : '0 €',
       observations: repName
-        ? `Personne morale — représentée par ${repName}, ${repQuality}`
-        : 'Personne morale — représentant légal requis',
+        ? `Personne morale – représentée par ${repName}, ${repQuality}`
+        : 'Personne morale – représentant légal requis',
       securitiesUnit,
     };
   }
@@ -192,7 +192,7 @@ export const formatSubscriberListRow = (associate = {}, { securitiesUnit = 'Acti
     address: String(associate.address || 'Adresse à compléter').trim(),
     sectionHeading: `${roleTitle} – ${fullName}`,
     titlesCount: String(associate.titlesCount || associate.share || '0').replace(/\s/g, ' ').trim(),
-    sharePercent: String(associate.share || '').trim() || '—',
+    sharePercent: String(associate.share || '').trim() || '–',
     contributionCash: associate.contributionCash
       ? `${associate.contributionCash}`.replace(/(?<=\d)\s?(?=€)/, ' ')
       : '0 €',

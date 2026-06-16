@@ -133,9 +133,9 @@ pm2 logs greffio-api
 ## 11) Google Pay + CAWL
 
 Backend env (B2C) :
-- `GOOGLE_PAY_API_KEY` — clé Google Cloud (Pay API)
-- `GOOGLE_PAY_MERCHANT_ID` — console Google Pay Business
-- `CAWL_API_KEY` + `CAWL_WEBHOOK_SECRET` — capture du token en aval
+- `GOOGLE_PAY_API_KEY` – clé Google Cloud (Pay API)
+- `GOOGLE_PAY_MERCHANT_ID` – console Google Pay Business
+- `CAWL_API_KEY` + `CAWL_WEBHOOK_SECRET` – capture du token en aval
 
 Webhook CAWL :
 - `https://api.greffio.willentreprises.com/api/webhooks/cawl`

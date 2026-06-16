@@ -1,4 +1,4 @@
-# Durcissement Nginx — Greffio API (VPS)
+# Durcissement Nginx – Greffio API (VPS)
 
 Snippets réversibles à appliquer sur le VPS derrière Certbot/HTTPS. Ne pas remplacer la configuration existante sans sauvegarde.
 

@@ -194,9 +194,8 @@ export const QUESTIONNAIRE_FLOW = [
   },
   {
     id: 'demarche',
-    title: 'Quelle démarche ?',
-    description: '',
-    condition: () => false,
+    title: 'Votre formalité',
+    description: 'Choisissez le parcours à lancer : création, modification, établissement, régularisation ou documents.',
     fields: [
       {
         key: 'typeFormalite',
@@ -578,7 +577,12 @@ export const isFieldValueValid = (field, value, formData = {}) => {
   }
   if (field.type === 'number' || field.key === 'capital') {
     const amount = Number(normalized.replace(',', '.'));
-    return Number.isFinite(amount) && amount > 0;
+    if (!Number.isFinite(amount) || amount <= 0) return false;
+    const legalForm = String(formData.formeJuridique || '').trim().toUpperCase();
+    if (field.key === 'capital' && ['SA', 'SA_CA', 'SA_DIRECTOIRE'].includes(legalForm)) {
+      return amount >= 37000;
+    }
+    return true;
   }
   return true;
 };
@@ -712,6 +716,9 @@ export const getFieldValidationMessage = (field, value, formData = {}) => {
   if (field.key === 'connaissezFormeJuridique') return 'Indiquez si vous connaissez déjà la forme juridique visée.';
   if (field.key === 'typeFormalite') return 'Choisissez la formalité correspondant à votre projet.';
   if (field.key === 'formeJuridique') return 'Indiquez la forme juridique de votre structure.';
+  if (field.key === 'capital' && ['SA', 'SA_CA', 'SA_DIRECTOIRE'].includes(String(formData.formeJuridique || '').trim().toUpperCase())) {
+    return 'Pour une SA, le capital social minimum légal est de 37 000 €. Indiquez au moins ce montant pour continuer.';
+  }
   if (field.key === 'activite') return 'Décrivez l’activité en au moins 12 caractères.';
   if (field.key === 'capital') return 'Indiquez un capital social en euros (nombre positif).';
   if (field.key === 'dirigeant') return 'Le dirigeant doit être identifié conformément à la réglementation.';

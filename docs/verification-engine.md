@@ -1,4 +1,4 @@
-# Greffio — Verification Engine (V1)
+# Greffio – Verification Engine (V1)
 
 Couche interne de **pré-vérification** : cohérence, complétude, audit trail.  
 Ce n’est **pas** une certification juridique.
@@ -23,8 +23,8 @@ Ce n’est **pas** une certification juridique.
 
 ## Providers optionnels
 
-- `PAPPERS_API_TOKEN` — enrichissement entreprise (si configuré)
-- API Recherche d’Entreprises — toujours disponible (open data)
+- `PAPPERS_API_TOKEN` – enrichissement entreprise (si configuré)
+- API Recherche d’Entreprises – toujours disponible (open data)
 
 ## Niveaux de risque
 

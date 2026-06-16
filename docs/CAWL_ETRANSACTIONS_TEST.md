@@ -1,6 +1,6 @@
-# CAWL — tests e-Transactions & Worldline Connect
+# CAWL – tests e-Transactions & Worldline Connect
 
-Référence courte pour activer le paiement carte B2C Greffio. **Ne pas committer de secrets** — voir `.env` VPS ou back-office CAWL.
+Référence courte pour activer le paiement carte B2C Greffio. **Ne pas committer de secrets** – voir `.env` VPS ou back-office CAWL.
 
 ## Deux intégrations complémentaires
 
@@ -37,7 +37,7 @@ CAWL_IPN_URL=https://api.greffio.willentreprises.com/api/webhooks/cawl
 
 ### Compte mutualisé Paybox recette (tests sans contrat dédié)
 
-Document Verifone « Paramètres test » — **uniquement pour recette** :
+Document Verifone « Paramètres test » – **uniquement pour recette** :
 
 | Variable | Valeur test mutualisée |
 |----------|------------------------|
@@ -80,7 +80,7 @@ curl -s -o /dev/null -w "%{http_code}" -X POST https://api.greffio.willentrepris
 curl -s -o /dev/null -w "%{http_code}" -X POST https://api.greffio.willentreprises.com/api/webhooks/cawl
 ```
 
-Attendu si configuré : `401` ou `400` sans payload valide — **pas** `503`.
+Attendu si configuré : `401` ou `400` sans payload valide – **pas** `503`.
 
 ## Tests unitaires
 
@@ -93,6 +93,6 @@ node --test server/payments/tests/cawlWorldlineConnect.test.js
 
 Extrait CAWL dans `tmp/cawl-example/exemple-integration.php_8ADqVo3/` :
 
-- `formulaire_HMAC.php` — hosted checkout
-- `Readme.txt` — carte test, FAQ IPN
-- `testsign.php` — vérification signature IPN RSA
+- `formulaire_HMAC.php` – hosted checkout
+- `Readme.txt` – carte test, FAQ IPN
+- `testsign.php` – vérification signature IPN RSA

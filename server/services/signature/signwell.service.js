@@ -4,7 +4,7 @@ const DEFAULT_BASE = 'https://www.signwell.com/api/v1';
 
 export const SIGNWELL_PROVIDER = 'signwell';
 
-/** Dormant par défaut — activer uniquement pour legacy explicite (SIGNWELL_ENABLED=true). */
+/** Dormant par défaut – activer uniquement pour legacy explicite (SIGNWELL_ENABLED=true). */
 export const isSignwellEnabled = () => process.env.SIGNWELL_ENABLED === 'true';
 
 export const isSignwellConfigured = () => Boolean(

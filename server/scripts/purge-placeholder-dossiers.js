@@ -27,7 +27,7 @@ const run = async () => {
   const targets = dossiers.filter((entry) => isEphemeralPlaceholderDossier(entry));
   process.stdout.write(`USER:${email} PLACEHOLDERS:${targets.length}\n`);
   for (const entry of targets) {
-    process.stdout.write(`  - ${entry.id} | ${entry.reference || '—'} | ${entry.companyName} | ${entry.status}\n`);
+    process.stdout.write(`  - ${entry.id} | ${entry.reference || '–'} | ${entry.companyName} | ${entry.status}\n`);
   }
 
   const result = await purgePlaceholderDossiersForUser({ userId: user.id, deletedBy: user.id });

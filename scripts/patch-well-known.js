@@ -37,7 +37,7 @@ const patchAppleAssociation = () => {
   const file = path.join(publicDir, 'apple-app-site-association');
   if (!fs.existsSync(file)) return;
   if (!teamId) {
-    console.info('[patch-well-known] APPLE_TEAM_ID absent — apple-app-site-association inchangé');
+    console.info('[patch-well-known] APPLE_TEAM_ID absent – apple-app-site-association inchangé');
     return;
   }
   const payload = {

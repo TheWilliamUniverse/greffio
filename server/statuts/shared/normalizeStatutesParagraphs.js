@@ -1,5 +1,5 @@
 const SENTENCE_END_RE = /[.!?;:»")\]]\s*$/u;
-const LOWER_START_RE = /^[a-zàâäéèêëïîôùûüç0-9(«"—-]/u;
+const LOWER_START_RE = /^[a-zàâäéèêëïîôùûüç0-9(«"–-]/u;
 const NUMBERED_SUBSECTION_RE = /^\d+\.\d+\s+/;
 
 const normalizeInline = (value) => String(value || '').replace(/\s+/g, ' ').trim();

@@ -1,6 +1,6 @@
-# Greffio — Dossier maître architecture & historique des demandes
+# Greffio – Dossier maître architecture & historique des demandes
 
-> **CONFIDENTIEL — Équipe William Establishments / Greffio uniquement**
+> **CONFIDENTIEL – Équipe William Establishments / Greffio uniquement**
 >
 > **Emplacement VPS** : `/opt/greffio/docs/internal/GREFFIO-MASTER-ARCHITECTURE-ET-HISTORIQUE.md`
 >
@@ -20,7 +20,7 @@
 6. [Machine à états & emails](#6-machine-à-états--emails)
 7. [Mobile Android](#7-mobile-android)
 8. [Chronologie des demandes utilisateur](#8-chronologie-des-demandes-utilisateur)
-9. [Travaux récents (sessions Cursor — mai/juin 2026)](#9-travaux-récents-sessions-cursor--maijuin-2026)
+9. [Travaux récents (sessions Cursor – mai/juin 2026)](#9-travaux-récents-sessions-cursor--maijuin-2026)
 10. [Variables d’environnement (catégories)](#10-variables-denvironnement-catégories)
 11. [Scripts ops & CLI](#11-scripts-ops--cli)
 12. [Décisions techniques structurantes](#12-décisions-techniques-structurantes)
@@ -35,7 +35,7 @@
 
 Greffio naît d’une refonte d’un site existant livré en archive **`SiteGreffio.zip`**, avec pour ambition de devenir un **SaaS complet de formalités d’entreprise**, comparable en UX à **Qonto / Finom** et en complétude juridique à **Legalstart**.
 
-**Commande originale (Codex / Cursor, 17 mai 2026)** — synthèse :
+**Commande originale (Codex / Cursor, 17 mai 2026)** – synthèse :
 - Conserver le logo et le style Greffio, enrichir animations et effets
 - Dashboard client complet une fois connecté
 - Backend réel (pas de maquette statique)
@@ -57,7 +57,7 @@ Greffio naît d’une refonte d’un site existant livré en archive **`SiteGref
 ### 1.3 Repository & organisation
 
 - **GitHub** : `TheWilliamUniverse/greffio`, branche `main`
-- **Monorepo** : un `package.json` — frontend Vite, API Express, Capacitor Android, scripts deploy
+- **Monorepo** : un `package.json` – frontend Vite, API Express, Capacitor Android, scripts deploy
 - **Workspace local** : `Application SaaS créée/Greffio SaaS`
 
 ---
@@ -86,7 +86,7 @@ Greffio naît d’une refonte d’un site existant livré en archive **`SiteGref
 
 ### 2.3 Promesse client
 
-Parcours guidé de la formalité : simulateur → questionnaire → documents → statuts (si société) → mandat → paiement → suivi greffe — avec assistant IA et app mobile.
+Parcours guidé de la formalité : simulateur → questionnaire → documents → statuts (si société) → mandat → paiement → suivi greffe – avec assistant IA et app mobile.
 
 ---
 
@@ -134,12 +134,12 @@ Parcours guidé de la formalité : simulateur → questionnaire → documents �
 | `src/utils/` | Export statuts office, session, preview |
 
 **Pages critiques** :
-- `FormalityWizardPage.jsx` — simulateur statuts / création
-- `QuestionnairePage.jsx` — questionnaire dossier authentifié
-- `StatutesPage.jsx` — génération & export statuts
-- `NonConvictionDeclarationPage.jsx` — déclaration + signature
-- `OpsDashboardPage.jsx` — back-office
-- `GuidePage.jsx` — FAQ publique nettoyée
+- `FormalityWizardPage.jsx` – simulateur statuts / création
+- `QuestionnairePage.jsx` – questionnaire dossier authentifié
+- `StatutesPage.jsx` – génération & export statuts
+- `NonConvictionDeclarationPage.jsx` – déclaration + signature
+- `OpsDashboardPage.jsx` – back-office
+- `GuidePage.jsx` – FAQ publique nettoyée
 
 ### 3.3 Backend (`server/`)
 
@@ -165,16 +165,16 @@ Parcours guidé de la formalité : simulateur → questionnaire → documents �
 ### 3.5 Stockage documents
 
 Driver `DOCUMENT_STORAGE_DRIVER` :
-- **`s3`** (production actuelle) — bucket dédié, IAM minimal (`docs/aws-iam-greffio-documents-policy.json`)
-- **`supabase`** — legacy
-- **`local`** — dev / fallback
+- **`s3`** (production actuelle) – bucket dédié, IAM minimal (`docs/aws-iam-greffio-documents-policy.json`)
+- **`supabase`** – legacy
+- **`local`** – dev / fallback
 
 Clés S3 : `{dossierId}/{docKey}/{timestamp}_{filename}`
 
 Services :
-- `objectStorage.js` — upload/delete/signed URL
-- `statutesPdfService.js` — génère + upload statuts
-- `nonConvictionDocumentService.js` — génère + upload non-condamnation
+- `objectStorage.js` – upload/delete/signed URL
+- `statutesPdfService.js` – génère + upload statuts
+- `nonConvictionDocumentService.js` – génère + upload non-condamnation
 
 ---
 
@@ -252,7 +252,7 @@ Services :
 - Schema `manager_non_conviction_v7`
 - PDF layout officiel (Times, sections Identité/Déclaration/Information légale)
 - Persist S3 à chaque génération/signature (`nonConvictionDocumentService.js`)
-- Migration `019_reset_non_conviction_v7.sql` — reset PDFs obsolètes
+- Migration `019_reset_non_conviction_v7.sql` – reset PDFs obsolètes
 - Fix frontend : import `runtimeConfig` dans `nonConviction.js`
 
 ### 5.6 Mandat / procuration
@@ -273,9 +273,9 @@ Services :
 
 ### 5.9 Assistant IA
 
-- `POST /api/assistant` — OpenAI côté serveur
+- `POST /api/assistant` – OpenAI côté serveur
 - Modèle configurable `OPENAI_MODEL`
-- UI : `/chat`, widgets intégrés — mention « propulsé par ChatGPT »
+- UI : `/chat`, widgets intégrés – mention « propulsé par ChatGPT »
 
 ### 5.10 Emails transactionnels
 
@@ -407,14 +407,14 @@ Table `dossier_status_events` : from, to, actor, reason, timestamp
 - Guide public : retrait contenu ops (noms fichiers, workflow interne, FAQ ZIP/VPS)
 - Email statuts : retrait encart ChatGPT, message « relire vos statuts »
 
-### 8.11 Documentation (6 juin 2026 — present)
+### 8.11 Documentation (6 juin 2026 – present)
 
 - Fichier audit IA sans divulgation (`docs/GREFFIO-AUDIT-CONTEXT-IA.md`)
 - Present dossier maître interne VPS
 
 ---
 
-## 9. Travaux récents (sessions Cursor — mai/juin 2026)
+## 9. Travaux récents (sessions Cursor – mai/juin 2026)
 
 ### Commits significatifs (fin mai – début juin 2026)
 
@@ -428,7 +428,7 @@ Table `dossier_status_events` : from, to, actor, reason, timestamp
 
 ### Migrations récentes
 
-- `019_reset_non_conviction_v7.sql` — invalidation PDF non-condamnation v6
+- `019_reset_non_conviction_v7.sql` – invalidation PDF non-condamnation v6
 
 ### État prod vérifié (juin 2026)
 
@@ -479,24 +479,24 @@ pwsh -File scripts/deploy-backend-vps.ps1
 
 ## 12. Décisions techniques structurantes
 
-1. **Monorepo** — un repo, frontend + API + mobile
-2. **Postgres obligatoire prod** — SQLite dev only
-3. **S3 documents prod** — Supabase storage legacy
-4. **PDF statuts serveur** — pas jsPDF client pour livrable greffe
-5. **Machine à états centralisée** — transitions contrôlées + audit
-6. **Emails template builder** — HTML responsive + texte plain
-7. **Identité landing figée** — évolutions métier ailleurs
-8. **EI sans statuts** — règle non négociable produit
-9. **Tarball deploy VPS** — pas git pull sur serveur (staging directory)
-10. **Assistant OpenAI server-side** — clé jamais frontend
+1. **Monorepo** – un repo, frontend + API + mobile
+2. **Postgres obligatoire prod** – SQLite dev only
+3. **S3 documents prod** – Supabase storage legacy
+4. **PDF statuts serveur** – pas jsPDF client pour livrable greffe
+5. **Machine à états centralisée** – transitions contrôlées + audit
+6. **Emails template builder** – HTML responsive + texte plain
+7. **Identité landing figée** – évolutions métier ailleurs
+8. **EI sans statuts** – règle non négociable produit
+9. **Tarball deploy VPS** – pas git pull sur serveur (staging directory)
+10. **Assistant OpenAI server-side** – clé jamais frontend
 
 ---
 
 ## 13. Points ouverts & dette connue
 
-- Coexistence Mollie legacy + multi-PSP nouveau — consolidation à terme
+- Coexistence Mollie legacy + multi-PSP nouveau – consolidation à terme
 - `FormalityWizardPage` export DOCX simulateur encore via ancien `downloadPreview` (StatutsPage corrigée)
-- README racine mentionne encore Mollie/Supabase seuls — doc à harmoniser
+- README racine mentionne encore Mollie/Supabase seuls – doc à harmoniser
 - RBAC ops = rôle global, pas permissions granulaires UI
 - Pas de kanban ops natif
 - Relances email automatiques partielles
@@ -509,7 +509,7 @@ pwsh -File scripts/deploy-backend-vps.ps1
 
 ### Documentation publique / technique repo
 
-- `docs/GREFFIO-AUDIT-CONTEXT-IA.md` — contexte audit IA (sans secrets)
+- `docs/GREFFIO-AUDIT-CONTEXT-IA.md` – contexte audit IA (sans secrets)
 - `docs/PAYMENTS_ARCHITECTURE.md`
 - `docs/storage.md`
 - `docs/verification-engine.md`
@@ -519,9 +519,9 @@ pwsh -File scripts/deploy-backend-vps.ps1
 
 ### Code critique
 
-- `server/index.js` — routes API
-- `server/stateMachine.js` — workflow
-- `server/statuts/` — statuts
+- `server/index.js` – routes API
+- `server/stateMachine.js` – workflow
+- `server/statuts/` – statuts
 - `server/services/statutesPdfService.js`
 - `server/services/nonConvictionDocumentService.js`
 - `server/emails/transactionalTemplates.js`
@@ -537,7 +537,7 @@ pwsh -File scripts/deploy-backend-vps.ps1
 
 ---
 
-## Annexe A — Structure repo (arborescence utile)
+## Annexe A – Structure repo (arborescence utile)
 
 ```
 Greffio SaaS/
@@ -560,7 +560,7 @@ Greffio SaaS/
 
 ---
 
-## Annexe B — Contacts & support ops
+## Annexe B – Contacts & support ops
 
 - Site : https://greffio.willentreprises.com
 - API : https://api.greffio.willentreprises.com/api/health

@@ -12,7 +12,7 @@ const fail = (message) => {
 };
 
 if (!fs.existsSync(indexPath)) {
-  fail('dist/index.html introuvable — lancez npm run build.');
+  fail('dist/index.html introuvable – lancez npm run build.');
 }
 
 const html = fs.readFileSync(indexPath, 'utf8');
@@ -34,4 +34,4 @@ if (!fs.existsSync(swPath)) {
   fail('dist/sw.js manquant.');
 }
 
-console.log(`[verify-build-assets] OK — ${assetRefs.length} assets hashés vérifiés.`);
+console.log(`[verify-build-assets] OK – ${assetRefs.length} assets hashés vérifiés.`);

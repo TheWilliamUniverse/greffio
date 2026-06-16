@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Remplace le tiret cadratin (—) par le tiret demi-cadratin (–) dans les chaînes user-facing.
- * Cible : src/, server/emails/, server/legal/, server/pdf/, server/documents/, server/services (sélectif).
+ * Remplace le tiret cadratin (— U+2014) par le tiret demi-cadratin (– U+2013) dans le copy Greffio.
+ * Cible : src/, server/, docs/, e2e/, releases/, android/, assets/, templates publics.
+ * Exclut : staging/, staging-deploy/, node_modules/, dist/
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -12,33 +13,42 @@ const EN = '\u2013';
 
 const TARGET_DIRS = [
   'src',
-  path.join('server', 'emails'),
-  path.join('server', 'legal'),
-  path.join('server', 'pdf'),
-  path.join('server', 'documents'),
+  'server',
+  'docs',
+  'e2e',
+  'releases',
+  'android',
+  'assets',
+  'public',
+  'scripts',
 ];
 
 const EXTRA_FILES = [
-  path.join('server', 'services', 'assistant', 'localRules.js'),
-  path.join('server', 'services', 'opsCockpitService.js'),
-  path.join('server', 'services', 'resourceFulfillment.js'),
-  path.join('server', 'services', 'signature', 'signwell.service.js'),
-  path.join('server', 'domain', 'formalityLabels.js'),
-  path.join('index.html'),
-  path.join('public', 'confidentialite', 'index.html'),
-  path.join('public', 'suppression-compte', 'index.html'),
-  path.join('public', 'suppression-donnees', 'index.html'),
+  '.env.example',
+  'PRODUCTION_SECRETS_TEMPLATE.env',
+  'GITHUB_SECRETS_TEMPLATE.md',
+  'ANDROID_PLAY_RELEASE.md',
+  'DEPLOY_VPS_HOSTINGER.md',
+  'MOBILE_RELEASE_PLAN.md',
+  'index.html',
+  'lighthouserc.cjs',
+  'lighthouserc.mobile.cjs',
 ];
 
-const EXT = new Set(['.js', '.jsx', '.ts', '.tsx', '.html', '.json']);
+const SKIP_DIRS = new Set(['node_modules', 'dist', 'staging', 'staging-deploy', '.git']);
+
+const EXT = new Set([
+  '.js', '.jsx', '.ts', '.tsx', '.html', '.json', '.md', '.css', '.xml',
+  '.mjs', '.cjs', '.example', '.env',
+]);
 
 const walk = (dir, out = []) => {
   if (!fs.existsSync(dir)) return out;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name === 'node_modules' || entry.name === 'dist') continue;
+    if (SKIP_DIRS.has(entry.name)) continue;
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) walk(full, out);
-    else if (EXT.has(path.extname(entry.name))) out.push(full);
+    else if (EXT.has(path.extname(entry.name)) || entry.name.endsWith('.env')) out.push(full);
   }
   return out;
 };

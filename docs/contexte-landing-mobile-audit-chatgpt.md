@@ -1,8 +1,8 @@
-# Greffio — Contexte landing & cockpit mobile (audit design ChatGPT)
+# Greffio – Contexte landing & cockpit mobile (audit design ChatGPT)
 
 > **Usage** : joindre ce fichier à ChatGPT avec le **prompt §7** pour obtenir un audit UX/UI mobile actionnable.
 >
-> **Repo** : `TheWilliamUniverse/greffio` — identité desktop figée (`LandingPage.jsx`, tokens CSS). Ne pas proposer de refonte globale de marque.
+> **Repo** : `TheWilliamUniverse/greffio` – identité desktop figée (`LandingPage.jsx`, tokens CSS). Ne pas proposer de refonte globale de marque.
 
 ---
 
@@ -35,20 +35,20 @@ MobileWebShell / MobileAppShell
 
 ---
 
-## 3. Landing mobile — contenu actuel
+## 3. Landing mobile – contenu actuel
 
 `MobileLandingPage.jsx` (sections principales) :
 
-1. Hero — titre Greffio, sous-titre formalités, CTA « Générer mes statuts » + « Accéder au dashboard »
+1. Hero – titre Greffio, sous-titre formalités, CTA « Générer mes statuts » + « Accéder au dashboard »
 2. Grille 6 services (`LEGAL_SERVICES`) + lien `/services`
-3. Plateforme — 4 cartes valeur
-4. Parcours — étapes + blocs « comment ça marche »
-5. Recherche entreprise — `CompanyLookupCard` SIREN/SIRET
+3. Plateforme – 4 cartes valeur
+4. Parcours – étapes + blocs « comment ça marche »
+5. Recherche entreprise – `CompanyLookupCard` SIREN/SIRET
 6. Bandeau indépendance Greffio
-7. Tarifs — `LandingPricingSection` (hover desktop, cartes empilées mobile)
-8. App Android — `GooglePlayStoreLink`
+7. Tarifs – `LandingPricingSection` (hover desktop, cartes empilées mobile)
+8. App Android – `GooglePlayStoreLink`
 9. FAQ (3 items) + footer légal
-10. `MobilePublicBottomNav` — visiteur non connecté
+10. `MobilePublicBottomNav` – visiteur non connecté
 
 **Écarts vs desktop** (à auditer) :
 
@@ -59,7 +59,7 @@ MobileWebShell / MobileAppShell
 
 ---
 
-## 4. Cockpit mobile — état UX (juin 2026)
+## 4. Cockpit mobile – état UX (juin 2026)
 
 ### Accueil (`MobileHomePage`)
 
@@ -77,8 +77,8 @@ Trois formulaires signables : non-condamnation, liste souscripteurs, pouvoirs fo
 | Statut API | Badge client | Hint |
 |------------|--------------|------|
 | REQUESTED | À fournir | Remplissage auto + signature |
-| UPLOADED / GENERATED / PENDING_REVIEW | Déposé / En vérification | Envoyé — en cours de vérification |
-| VALID / VALIDATED / SIGNED | Validé | Validé — document enregistré |
+| UPLOADED / GENERATED / PENDING_REVIEW | Déposé / En vérification | Envoyé – en cours de vérification |
+| VALID / VALIDATED / SIGNED | Validé | Validé – document enregistré |
 | INVALID / REJECTED | À corriger | À corriger puis renvoyer |
 
 Utilitaire : `src/utils/onlineDocumentStatus.js`.
@@ -91,7 +91,7 @@ Utilitaire : `src/utils/onlineDocumentStatus.js`.
 
 ### Choix dossier documents
 
-- Overlay plein écran (style reconnexion idle) si plusieurs dossiers — `DossierVaultPickerOverlay`
+- Overlay plein écran (style reconnexion idle) si plusieurs dossiers – `DossierVaultPickerOverlay`
 
 ---
 
@@ -152,4 +152,4 @@ Contraintes :
 
 ---
 
-*Dernière mise à jour : juin 2026 — post statuts documents en ligne + bouton veille ⏻.*
+*Dernière mise à jour : juin 2026 – post statuts documents en ligne + bouton veille ⏻.*

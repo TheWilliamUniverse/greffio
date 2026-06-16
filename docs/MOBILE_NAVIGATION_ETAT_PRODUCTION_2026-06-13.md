@@ -1,4 +1,4 @@
-# Greffio — État navigation mobile, drawer et production
+# Greffio – État navigation mobile, drawer et production
 
 **Date :** 13 juin 2026  
 **Périmètre :** barre latérale mobile (drawer ☰), shell site web mobile, app Android Capacitor, alignement production  
@@ -18,12 +18,12 @@
 
 | Question | Réponse |
 |----------|---------|
-| Le drawer ☰ groupé est-il en production web ? | **Oui** — vérifié dans le bundle JS déployé |
-| Les modifs site web mobile (shell, bottom nav, entries) sont-elles en prod ? | **Oui** — bundle `index-DXWQJ50I.js` du 13/06/2026 |
-| Le drawer est-il dans l’app Android 1.2.9 ? | **Oui** — inclus dans l’AAB archivé (build 08/06) |
+| Le drawer ☰ groupé est-il en production web ? | **Oui** – vérifié dans le bundle JS déployé |
+| Les modifs site web mobile (shell, bottom nav, entries) sont-elles en prod ? | **Oui** – bundle `index-DXWQJ50I.js` du 13/06/2026 |
+| Le drawer est-il dans l’app Android 1.2.9 ? | **Oui** – inclus dans l’AAB archivé (build 08/06) |
 | Le terminal paiement accordéon est-il partout ? | **Web prod : oui** · **AAB 1.2.9 : non** (build antérieur au déploiement paiement) |
-| Le code paiement est-il commité sur Git ? | **Non** — `GreffioPaymentTerminal.jsx` et refactors associés sont locaux |
-| iOS | **Non démarré** — pas de dossier `ios/` |
+| Le code paiement est-il commité sur Git ? | **Non** – `GreffioPaymentTerminal.jsx` et refactors associés sont locaux |
+| iOS | **Non démarré** – pas de dossier `ios/` |
 
 **Conclusion :** la navigation mobile (drawer latéral + shell web mobile) est **opérationnelle en production**. L’écart principal concerne le **paiement accordéon** : présent sur le site déployé, absent de l’AAB Android 1.2.9 tant qu’un rebuild n’est pas fait.
 
@@ -66,7 +66,7 @@ Analyse par recherche de chaînes dans `index-DXWQJ50I.js` :
 | `WalletPaymentTerminal` | ❌ Absent | Ancien terminal retiré du build déployé |
 | Onglets `Accueil`, `Dossiers`, `Documents`, `Messages`, `Compte` | ✅ Présents | Bottom nav web + native |
 
-> Les noms de fonctions minifiés (`buildMobileDrawerNavGroups`, `shouldUseMobileWebShell`) n’apparaissent pas en clair dans le bundle — comportement normal après build Vite.
+> Les noms de fonctions minifiés (`buildMobileDrawerNavGroups`, `shouldUseMobileWebShell`) n’apparaissent pas en clair dans le bundle – comportement normal après build Vite.
 
 ### 2.3 API production
 
@@ -90,7 +90,7 @@ curl -sS https://api.greffio.willentreprises.com/api/payments/google-pay/config
 
 ---
 
-## 3. Architecture — trois surfaces
+## 3. Architecture – trois surfaces
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -116,7 +116,7 @@ curl -sS https://api.greffio.willentreprises.com/api/payments/google-pay/config
 ### Point d’entrée routing (`src/App.jsx`)
 
 ```javascript
-// Layout — choix du shell
+// Layout – choix du shell
 const content = shouldUseMobileShell(location.pathname)
   ? <MobileAppShell>{children}</MobileAppShell>
   : <MobileWebShell>{children}</MobileWebShell>;
@@ -155,7 +155,7 @@ Source : `MOBILE_DRAWER_NAV_GROUPS` dans `mobileNavigation.js`
 
 **Hint contextuel :**
 - Web mobile : « Messages, pilotage et statuts sont accessibles via ce menu ☰ »
-- App native : « … — l’onglet Compte remplace Messages sur l’app. »
+- App native : « … – l’onglet Compte remplace Messages sur l’app. »
 
 ### 4.3 Comportement
 
@@ -170,10 +170,10 @@ Source : `MOBILE_DRAWER_NAV_GROUPS` dans `mobileNavigation.js`
 
 | Commit | Date | Contenu |
 |--------|------|---------|
-| `d4b5d63` | — | responsive mobile + bottom nav + drawer cockpit |
-| `bdaa2e6` | — | drawer centralisé |
-| `6ddb4d8` | — | parité cockpit, entries, release 1.2.6 |
-| `4b9ab18` | — | audit UX, signature sticky, offline natif |
+| `d4b5d63` | – | responsive mobile + bottom nav + drawer cockpit |
+| `bdaa2e6` | – | drawer centralisé |
+| `6ddb4d8` | – | parité cockpit, entries, release 1.2.6 |
+| `4b9ab18` | – | audit UX, signature sticky, offline natif |
 | `c928531` | juin 2026 | ajout Boutique dans drawer |
 
 **État Git au 13/06 :** aucune modification locale en attente sur `MobileSidebarDrawer.jsx`, `MobileWebShell.jsx`, `MobileAppShell.jsx`, `mobileNavigation.js`.
@@ -192,7 +192,7 @@ Source : `MOBILE_DRAWER_NAV_GROUPS` dans `mobileNavigation.js`
 | 4 | Documents → `/documents` | Documents → `/documents` |
 | 5 | **Messages** → `/team` | **Compte** → `/mobile/account` |
 
-**Conséquence :** sur l’app native, Messages n’est pas un onglet direct — il est dans le drawer ☰. Sur le site mobile, Messages est le 5e onglet.
+**Conséquence :** sur l’app native, Messages n’est pas un onglet direct – il est dans le drawer ☰. Sur le site mobile, Messages est le 5e onglet.
 
 ### 5.2 Headers
 
@@ -219,7 +219,7 @@ Source : `MOBILE_DRAWER_NAV_GROUPS` dans `mobileNavigation.js`
 | Fonctionnalité | Code source (Git) | Prod web (`index-DXWQJ50I.js`) | AAB Android 1.2.9 | Notes |
 |----------------|-------------------|-------------------------------|-------------------|-------|
 | Drawer ☰ groupé | ✅ Commité | ✅ Déployé | ✅ Inclus (build 08/06) | Même composant |
-| Bottom nav web 5 onglets | ✅ Commité | ✅ Déployé | N/A (navigateur) | — |
+| Bottom nav web 5 onglets | ✅ Commité | ✅ Déployé | N/A (navigateur) | – |
 | Bottom nav native (Compte) | ✅ Commité | N/A | ✅ Inclus | 5e onglet = Compte |
 | Entries mobile (`*Entry.jsx`) | ✅ Commité | ✅ Déployé | ✅ Inclus | 12 entries |
 | Boutique dans drawer | ✅ `c928531` | ✅ Déployé | ✅ Si AAB post-commit | Commit avant build 1.2.9 |
@@ -232,7 +232,7 @@ Source : `MOBILE_DRAWER_NAV_GROUPS` dans `mobileNavigation.js`
 
 ---
 
-## 7. Pages mobile — pattern Entry
+## 7. Pages mobile – pattern Entry
 
 Chaque route cockpit majeure passe par un **Entry** qui bascule automatiquement :
 
@@ -317,18 +317,18 @@ server/services/googlePayService.js                (modifié)
 
 Le site production reflète le **build local déployé**, pas nécessairement `main` sur GitHub.
 
-### 9.3 Finitions UX (audit 13/06 — non bloquantes)
+### 9.3 Finitions UX (audit 13/06 – non bloquantes)
 
 | ID | Sujet | Priorité | Statut |
 |----|-------|----------|--------|
 | MO3 | Découvrabilité entrées secondaires | 🟠 | Partiellement couvert par drawer groupé |
-| — | Tablette 768–1024 : sidebar desktop | 🟠 | Non traité |
-| — | Badges dossiers harmonisés | 🟡 | Non traité |
+| – | Tablette 768–1024 : sidebar desktop | 🟠 | Non traité |
+| – | Badges dossiers harmonisés | 🟡 | Non traité |
 | P1-11 | Drawer « Plus » enrichi | P1 | Groupes actuels = première itération |
 
 ---
 
-## 10. Android — release 1.2.9
+## 10. Android – release 1.2.9
 
 | Champ | Valeur |
 |-------|--------|
@@ -338,7 +338,7 @@ Le site production reflète le **build local déployé**, pas nécessairement `m
 | AAB | `releases/android/greffio-1.2.9-261510008.aab` |
 | SHA256 | `CBC79D67828454C08C8723D11F0B54A9AA2E41E4ADC7AB2C1476CEF433F35AA1` |
 | Date build | 2026-06-08 |
-| Notes | Repackage 1.2.8 — voir `releases/MOBILE_RELEASE_1.2.9.md` |
+| Notes | Repackage 1.2.8 – voir `releases/MOBILE_RELEASE_1.2.9.md` |
 
 **Inclus dans 1.2.9 :** drawer groupé, shell natif, biométrie, offline, scanner PDF, entries mobile, parcours simulateur/questionnaire récents (commits ≤ 08/06).
 
@@ -427,7 +427,7 @@ cd android && ./gradlew.bat bundleRelease
 
 ---
 
-## 14. Fichiers source — index rapide
+## 14. Fichiers source – index rapide
 
 | Fichier | Rôle |
 |---------|------|
@@ -447,4 +447,4 @@ cd android && ./gradlew.bat bundleRelease
 
 ---
 
-*Document généré le 13 juin 2026 — vérification production effectuée par analyse du bundle `index-DXWQJ50I.js` et des endpoints API.*
+*Document généré le 13 juin 2026 – vérification production effectuée par analyse du bundle `index-DXWQJ50I.js` et des endpoints API.*

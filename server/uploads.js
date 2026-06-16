@@ -24,7 +24,7 @@ const uploadMiddleware = multer({
   },
 });
 
-/** @deprecated use uploadMiddleware — kept for existing imports */
+/** @deprecated use uploadMiddleware – kept for existing imports */
 const uploadPdfOnly = uploadMiddleware;
 
 export {

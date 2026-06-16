@@ -1,4 +1,4 @@
-/** Lighthouse CI — mobile / tablette (mesures 9–12) */
+/** Lighthouse CI – mobile / tablette (mesures 9–12) */
 module.exports = {
   ci: {
     collect: {

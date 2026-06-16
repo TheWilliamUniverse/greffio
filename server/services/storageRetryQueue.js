@@ -27,7 +27,7 @@ export const getStorageFailureSnapshot = () => {
   };
 };
 
-/** @deprecated La file mémoire n'était jamais traitée — conservé pour compat observabilité. */
+/** @deprecated La file mémoire n'était jamais traitée – conservé pour compat observabilité. */
 export const getStorageRetryQueueSnapshot = () => getStorageFailureSnapshot();
 
 export const registerStorageFailureForOps = (payload = {}) => {

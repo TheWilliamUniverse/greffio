@@ -49,7 +49,7 @@ export const buildMobileSearchResponse = async ({ userId, role, query }) => {
   const primary = dossierMatches[0];
   let summary = 'Aucun dossier correspondant trouvé pour cette recherche.';
   if (primary) {
-    summary = `Dossier trouvé : ${primary.companyName || 'Formalité'} — statut ${primary.status || 'en cours'}, progression ${Number(primary.progressPercent || 0)}%.`;
+    summary = `Dossier trouvé : ${primary.companyName || 'Formalité'} – statut ${primary.status || 'en cours'}, progression ${Number(primary.progressPercent || 0)}%.`;
     actions.unshift({ label: 'Ouvrir le dossier', path: `/dossier/${primary.id}` });
   } else if (/où en|ou en/.test(q)) {
     summary = 'Je n’ai pas identifié de dossier actif. Lancez une nouvelle formalité ou consultez la liste des dossiers.';

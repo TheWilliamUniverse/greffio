@@ -2,7 +2,7 @@
 
 ## Provider par défaut
 
-`greffio_internal` — signature électronique simple renforcée (SES).
+`greffio_internal` – signature électronique simple renforcée (SES).
 
 SignWell : legacy, désactivé sauf `GREFFIO_SIGNATURE_PROVIDER=signwell` + clé API.
 
@@ -31,10 +31,10 @@ Yousign / Signaturit : prévus via abstraction provider (roadmap).
 
 ## Tables
 
-- `signature_requests` — demande + token hash + hashes SHA256
-- `signatures` — enregistrement final
-- `signature_audit_events` — audit trail structuré
-- `signature_otps` — OTP hashés (jamais en clair)
+- `signature_requests` – demande + token hash + hashes SHA256
+- `signatures` – enregistrement final
+- `signature_audit_events` – audit trail structuré
+- `signature_otps` – OTP hashés (jamais en clair)
 
 ## Migration
 

@@ -1,4 +1,4 @@
-# Revue trimestrielle — Universal Web Greffio
+# Revue trimestrielle – Universal Web Greffio
 
 ## Périmètre
 - Desktop web (≥768px)
@@ -24,4 +24,4 @@
 - [ ] Retour arrière après paiement PSP
 
 ## Prochaine revue
-Date cible : +3 mois — responsable : équipe produit Greffio.
+Date cible : +3 mois – responsable : équipe produit Greffio.

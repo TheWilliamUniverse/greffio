@@ -1,4 +1,4 @@
-# Contexte incident DNS — greffio.willentreprises.com (référence ChatGPT)
+# Contexte incident DNS – greffio.willentreprises.com (référence ChatGPT)
 
 > **Usage** : coller ce fichier dans ChatGPT pour **diagnostiquer et résoudre** l’erreur Chrome `DNS_PROBE_FINISHED_NXDOMAIN` sur Greffio.
 >
@@ -15,7 +15,7 @@
 - URL concernée : `https://greffio.willentreprises.com`
 - URL API liée : `https://api.greffio.willentreprises.com`
 
-L’utilisateur voit une page blanche / erreur DNS — **pas** une erreur applicative React (502, 503, CORS, etc.).
+L’utilisateur voit une page blanche / erreur DNS – **pas** une erreur applicative React (502, 503, CORS, etc.).
 
 ---
 
@@ -47,12 +47,12 @@ L’utilisateur voit une page blanche / erreur DNS — **pas** une erreur applic
 | Incident | Suppression enregistrements Cloudflare → **NXDOMAIN global** sur `greffio.*` et `api.greffio.*` |
 | Correctif infra | Nginx VPS corrigé (script `configure-nginx-vps.ps1` avait cassé `limit_req_zone`) |
 | Décision user | Table rase Cloudflare → DNS **100 % Hostinger** + reCAPTCHA Google (plus Turnstile) |
-| Import BIND | Fichier fourni avec IP `147.79.116.56` — **IP incorrecte** pour le frontend Greffio |
+| Import BIND | Fichier fourni avec IP `147.79.116.56` – **IP incorrecte** pour le frontend Greffio |
 | 2026-06-08 ~15h | Enregistrements ajoutés/corrigés côté Hostinger ; authoritative DNS OK |
 
 ---
 
-## 4. Diagnostic technique (2026-06-08) — RÉSULTATS CLÉS
+## 4. Diagnostic technique (2026-06-08) – RÉSULTATS CLÉS
 
 ### 4.1 DNS authoritative (source de vérité)
 
@@ -144,9 +144,9 @@ api.greffio     IN      A       187.127.232.210
 
 ---
 
-## 7. Plan de résolution — ordre strict
+## 7. Plan de résolution – ordre strict
 
-### Étape A — Vérifier que Hostinger a bien les enregistrements
+### Étape A – Vérifier que Hostinger a bien les enregistrements
 
 hPanel → Noms de domaine → `willentreprises.com` → DNS :
 
@@ -157,7 +157,7 @@ hPanel → Noms de domaine → `willentreprises.com` → DNS :
 
 Alternative : Sites web → application Greffio → Domaines → connecter `greffio.willentreprises.com` (Hostinger crée parfois les records automatiquement).
 
-### Étape B — Vérifier propagation (3 résolveurs)
+### Étape B – Vérifier propagation (3 résolveurs)
 
 ```powershell
 nslookup greffio.willentreprises.com ns1.dns-parking.com
@@ -168,9 +168,9 @@ nslookup api.greffio.willentreprises.com 8.8.8.8
 
 Si **autoritaire + 8.8.8.8 OK** mais **DNS local NXDOMAIN** → passer à l’étape C.
 
-### Étape C — Débloquer immédiatement la machine de l’utilisateur
+### Étape C – Débloquer immédiatement la machine de l’utilisateur
 
-**Option 1 (recommandée)** — Changer DNS Windows :
+**Option 1 (recommandée)** – Changer DNS Windows :
 
 1. Paramètres → Réseau → Wi-Fi → Propriétés du réseau
 2. Modifier DNS → **Manuel**
@@ -178,11 +178,11 @@ Si **autoritaire + 8.8.8.8 OK** mais **DNS local NXDOMAIN** → passer à l’é
 4. `ipconfig /flushdns`
 5. Redémarrer Chrome (ou navigation privée)
 
-**Option 2** — Redémarrer la box / attendre 2–24 h (cache NXDOMAIN du FAI).
+**Option 2** – Redémarrer la box / attendre 2–24 h (cache NXDOMAIN du FAI).
 
-**Option 3** — Tester sur 4G (hors réseau box) pour confirmer.
+**Option 3** – Tester sur 4G (hors réseau box) pour confirmer.
 
-### Étape D — Valider le site
+### Étape D – Valider le site
 
 ```powershell
 curl -I https://greffio.willentreprises.com
@@ -191,7 +191,7 @@ curl https://api.greffio.willentreprises.com/api/health
 
 Navigateur : `https://greffio.willentreprises.com` en navigation privée.
 
-### Étape E — Si NXDOMAIN persiste PARTOUT (même 8.8.8.8)
+### Étape E – Si NXDOMAIN persiste PARTOUT (même 8.8.8.8)
 
 Alors seulement :
 1. Re-vérifier hPanel (enregistrements supprimés ?)
@@ -251,7 +251,7 @@ Utiliser ce contexte pour répondre **sans supposer** :
 
 6. **Comment éviter la récidive** si on change encore de DNS provider ?
 
-7. **Mobile / Play Store** : deep links `greffio.willentreprises.com` — impact si DNS down ?
+7. **Mobile / Play Store** : deep links `greffio.willentreprises.com` – impact si DNS down ?
 
 ---
 
@@ -283,4 +283,4 @@ Utiliser ce contexte pour répondre **sans supposer** :
 
 ---
 
-*Document généré pour investigation incident DNS Greffio — à mettre à jour si les IP Hostinger changent (vérifier via nslookup authoritative).*
+*Document généré pour investigation incident DNS Greffio – à mettre à jour si les IP Hostinger changent (vérifier via nslookup authoritative).*

@@ -1,8 +1,8 @@
-# Contexte Greffio — Génération statutaire & formalités (référence ChatGPT)
+# Contexte Greffio – Génération statutaire & formalités (référence ChatGPT)
 
 > **Usage** : coller ce fichier (ou des sections) dans une conversation ChatGPT pour qu’il comprenne **concrètement** comment Greffio produit les statuts, quelles données client déclenchent quels textes, et quelles formalités existent sur la plateforme.
 >
-> **Référence qualité statuts SAS** : style « TRUE POWER v1 » — document aéré, juridique, cohérent mathématiquement, sans marketing, sans emoji, sans référence dossier interne en version finale.
+> **Référence qualité statuts SAS** : style « TRUE POWER v1 » – document aéré, juridique, cohérent mathématiquement, sans marketing, sans emoji, sans référence dossier interne en version finale.
 >
 > **Code source de vérité** : le moteur Greffio (`server/statuts/`, `server/utils/statutesDataMapper.js`) prime sur ce document en cas de divergence.
 
@@ -14,14 +14,14 @@
 
 Greffio est une plateforme SaaS de formalités d’entreprise (création, modification, établissements, gestion, documents). Le parcours client passe par :
 
-1. **Choix de la formalité** (27 démarches — voir §3)
+1. **Choix de la formalité** (27 démarches – voir §3)
 2. **Questionnaire** (`/questionnaire` connecté ou simulateur `/simulateur`)
 3. **Constitution du dossier** (pièces, paiement, validation Greffio)
 4. **Génération documentaire** (statuts PDF/ODT, liste souscripteurs, pouvoirs, etc.)
 5. **Dépôt guichet unique / instruction greffe**
 
 **Seules 5 formes produisent des statuts aujourd’hui** : SAS, SASU, SARL, EURL, SCI.  
-**Pas de statuts** : micro-entreprise, EI, et toutes les formalités sur société déjà existante (sauf si elles impliquent une refonte statutaire — non automatisée en création complète).
+**Pas de statuts** : micro-entreprise, EI, et toutes les formalités sur société déjà existante (sauf si elles impliquent une refonte statutaire – non automatisée en création complète).
 
 ---
 
@@ -160,11 +160,11 @@ PDF (statutesPdf.js) / ODT-DOCX (statutesOfficeExport.js)
 |--------|----------------|----------------|
 | `capital` | ex. 10 000 € | Art. 5 « fixé à la somme de … » |
 | `nombreTitres` | ex. 1 000 | « divisé en X actions de Y euros » |
-| **Règle absolue** | — | `capital = nombreTitres × valeurNominale` — sinon **erreur** |
+| **Règle absolue** | – | `capital = nombreTitres × valeurNominale` – sinon **erreur** |
 | `capitalType: Variable` | Fixe | Art. 5 + clauses L.231-1 à L.231-8 + min/max |
 | `liberationCapital` | **50 %** (questionnaire) / 100 % (simulateur) | Voir §5.4 |
-| `apportsNature: Non` | — | « **Il n'y a aucun apport en nature.** » |
-| `apportsNature: Oui` + montant | — | « Les apports en nature sont chiffrés à X euros » + détail par associé |
+| `apportsNature: Non` | – | « **Il n'y a aucun apport en nature.** » |
+| `apportsNature: Oui` + montant | – | « Les apports en nature sont chiffrés à X euros » + détail par associé |
 | `exerciceFin` | 31 décembre | Art. 5 clôture |
 | `premierExerciceFin` | 31/12 année en cours | « premier exercice clôturé le … » |
 
@@ -212,7 +212,7 @@ Par associé, un paragraphe :
 {NOM} : {X}% des actions, soit {N} actions.
 ```
 
-### 5.4 Libération des apports numéraires (art. 7) — **cas de figure**
+### 5.4 Libération des apports numéraires (art. 7) – **cas de figure**
 
 **Taux global unique** pour tous les associés (`liberationCapital`).
 
@@ -248,7 +248,7 @@ Apport de 7 500 €, libéré à hauteur de 100 %, soit 3 750 €.
 
 ### 5.6 Clauses statutaires optionnelles (template + personnalisation)
 
-Champs simulateur avancé (`formalityEngine.js`) — impact principalement preview / clauses template :
+Champs simulateur avancé (`formalityEngine.js`) – impact principalement preview / clauses template :
 
 | Champ | Impact |
 |-------|--------|
@@ -261,7 +261,7 @@ Champs simulateur avancé (`formalityEngine.js`) — impact principalement previ
 
 **SASU :** articles **17** (exclusion) et **18** (sortie conjointe) **supprimés** automatiquement.
 
-### 5.7 Article 6 — mineurs
+### 5.7 Article 6 – mineurs
 
 | Situation | Texte |
 |-----------|-------|
@@ -279,12 +279,12 @@ SIGNATURES
 En {N} exemplaires originaux.
 …
 
-Annexe 1 — Répartition du capital
-Annexe 2 — État des actes …
-Annexe 3 — Pouvoirs pour formalités
+Annexe 1 – Répartition du capital
+Annexe 2 – État des actes …
+Annexe 3 – Pouvoirs pour formalités
 ```
 
-**Annexe 2 — variantes :**
+**Annexe 2 – variantes :**
 - Défaut : liste à puces (compte bancaire, bail, contrats…)
 - Si `actsInFormation[]` renseigné : tableau date / nature / partie / montant
 
@@ -319,16 +319,16 @@ Annexe 1 / 2 / 3
 
 | Pièce | Obligatoire | Condition |
 |-------|-------------|-----------|
-| Pièce d'identité | Oui | — |
-| Justificatif domicile | Oui | — |
-| Justificatif siège | Oui | — |
+| Pièce d'identité | Oui | – |
+| Justificatif domicile | Oui | – |
+| Justificatif siège | Oui | – |
 | **Statuts signés** | Oui | Générés Greffio |
 | Liste souscripteurs | Oui | Générée |
 | Pouvoirs formalités | Oui | Générés |
 | Attestation dépôt capital | Non | Si libération partielle |
-| Annonce légale | Non | — |
-| Déclaration BE | Non | — |
-| Non-condamnation dirigeant | Non | — |
+| Annonce légale | Non | – |
+| Déclaration BE | Non | – |
+| Non-condamnation dirigeant | Non | – |
 | Ordonnance émancipation | Non | Si associé mineur émancipé |
 | Autorisation parentale | Non | Si associé mineur non émancipé |
 
@@ -338,7 +338,7 @@ Annexe 1 / 2 / 3
 
 ### 7.3 Formalités modification / établissement
 
-Pas de génération statuts complète automatisée ; dossier = pièces greffe + formulaires selon démarche (PV, JAL, etc.) — **hors scope moteur statuts création**.
+Pas de génération statuts complète automatisée ; dossier = pièces greffe + formulaires selon démarche (PV, JAL, etc.) – **hors scope moteur statuts création**.
 
 ---
 
@@ -390,7 +390,7 @@ Pas de génération statuts complète automatisée ; dossier = pièces greffe + 
 
 ## 10. Scénarios types à maîtriser (checklist ChatGPT)
 
-### Création SAS — 2 associés (1 PM + 1 PP mineur émancipé)
+### Création SAS – 2 associés (1 PM + 1 PP mineur émancipé)
 
 - [ ] Couverture « en cours d'immatriculation »
 - [ ] PM en tête des soussignés, capital PM distinct
@@ -400,14 +400,14 @@ Pas de génération statuts complète automatisée ; dossier = pièces greffe + 
 - [ ] Président PM avec représentant art. 8
 - [ ] Signatures avant annexes
 
-### Création SASU — associé unique, capital 1 000 €, 100 % libéré
+### Création SASU – associé unique, capital 1 000 €, 100 % libéré
 
 - [ ] 25 articles (pas 17–18)
 - [ ] « Associé unique » partout
 - [ ] Art. 7 « entièrement libérés »
 - [ ] 7.5 = 1 000 €
 
-### Création SARL — 3 associés, gérant, parts sociales
+### Création SARL – 3 associés, gérant, parts sociales
 
 - [ ] Moteur parts (pas actions)
 - [ ] Libellés gérant / parts (pas Président SAS)
@@ -415,11 +415,11 @@ Pas de génération statuts complète automatisée ; dossier = pièces greffe + 
 
 ### Création EI
 
-- [ ] **Pas de statuts Greffio** — orienter vers formalité EI
+- [ ] **Pas de statuts Greffio** – orienter vers formalité EI
 
 ### Transfert siège / changement dirigeant
 
-- [ ] **Pas de statuts complets** — PV modificatif / formalité greffe
+- [ ] **Pas de statuts complets** – PV modificatif / formalité greffe
 
 ---
 
@@ -455,9 +455,9 @@ Apports nature = 0 → « Il n'y a aucun apport en nature ».
 Noms de famille en MAJUSCULES. Civilités Monsieur/Madame.
 PM associée : représentant + qualité dans le préambule et art. 8 si Président.
 Pas de référence dossier interne. Signatures avant annexes. Style TRUE POWER v1 : aéré, 14 pt, formel.
-Si incohérence : signaler la variable manquante ou le calcul erroné — ne pas inventer.
+Si incohérence : signaler la variable manquante ou le calcul erroné – ne pas inventer.
 ```
 
 ---
 
-*Document généré pour Greffio SaaS — à maintenir synchronisé avec le moteur `server/statuts/`.*
+*Document généré pour Greffio SaaS – à maintenir synchronisé avec le moteur `server/statuts/`.*

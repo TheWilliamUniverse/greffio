@@ -2,12 +2,12 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { PAYMENT_STATUSES } from '../types.js';
 
-/** Serveurs Up2pay e-Transactions — recette / sandbox (voir exemple PHP CAWL). */
+/** Serveurs Up2pay e-Transactions – recette / sandbox (voir exemple PHP CAWL). */
 export const ET_SERVERS_TEST = Object.freeze([
   'recette-tpeweb.e-transactions.fr',
 ]);
 
-/** Serveurs Up2pay e-Transactions — production. */
+/** Serveurs Up2pay e-Transactions – production. */
 export const ET_SERVERS_PRODUCTION = Object.freeze([
   'tpeweb.e-transactions.fr',
   'tpeweb1.e-transactions.fr',

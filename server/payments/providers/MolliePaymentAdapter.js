@@ -10,7 +10,7 @@ import { resolveMolliePaymentRedirectUrl, resolveMollieWebhookUrl } from '../../
 import { PAYMENT_PROVIDERS, PAYMENT_STATUSES, PaymentError } from '../types.js';
 
 /**
- * Adapter Mollie — PSP principal Greffio (B2C carte, B2B, factures).
+ * Adapter Mollie – PSP principal Greffio (B2C carte, B2B, factures).
  * Checkout avancé : Methods API + Components (carte) + hosted (Apple Pay, virement).
  */
 export class MolliePaymentAdapter {

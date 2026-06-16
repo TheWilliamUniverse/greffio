@@ -1,5 +1,5 @@
 /**
- * Maintenance dossier personne morale — audit et régénération optionnelle.
+ * Maintenance dossier personne morale – audit et régénération optionnelle.
  *
  * Usage :
  *   node server/scripts/fix-true-power-dossier.js "TRUE POWER" --dry-run
@@ -169,9 +169,9 @@ const run = async () => {
           SET data_json = $1, updated_at = $2
           WHERE id = $3
         `, [JSON.stringify(data), new Date().toISOString(), row.id]);
-        console.log(`UPDATED ${row.reference || row.id} — representativeQuality=${setQuality}`);
+        console.log(`UPDATED ${row.reference || row.id} – representativeQuality=${setQuality}`);
       } else if (applied.changed) {
-        console.log(`DRY_RUN ${row.reference || row.id} — would set representativeQuality=${setQuality}`);
+        console.log(`DRY_RUN ${row.reference || row.id} – would set representativeQuality=${setQuality}`);
       }
     }
 
@@ -189,9 +189,9 @@ const run = async () => {
     }, null, 2));
 
     if (issues.length) {
-      console.log(`CHECK ${row.reference || row.id} — ${issues.length} point(s) à traiter côté client`);
+      console.log(`CHECK ${row.reference || row.id} – ${issues.length} point(s) à traiter côté client`);
     } else {
-      console.log(`CHECK ${row.reference || row.id} — associés PM OK`);
+      console.log(`CHECK ${row.reference || row.id} – associés PM OK`);
     }
 
     if (!regenerate || dryRun || issues.length) continue;

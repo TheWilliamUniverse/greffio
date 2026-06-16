@@ -30,7 +30,7 @@ export const maskIpAddress = (ip) => {
 
 export const buildGreffioProofLine = ({ proofId, signedAtIso }) => {
   const label = new Date(signedAtIso).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' });
-  return `Greffio — signature électronique simple renforcée — Preuve ${proofId} — Signé le ${label}`;
+  return `Greffio – signature électronique simple renforcée – Preuve ${proofId} – Signé le ${label}`;
 };
 
 export const generateOtpCode = () => String(Math.floor(100000 + Math.random() * 900000));

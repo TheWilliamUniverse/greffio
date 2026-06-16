@@ -7,8 +7,8 @@
 
 ## Interdit (network-only)
 - Toutes routes `/api/*`
-- Tous fichiers `/assets/*` (hash Vite — servis avec cache immutable via Hostinger)
-- Navigations HTML (`mode: navigate`) — network-first
+- Tous fichiers `/assets/*` (hash Vite – servis avec cache immutable via Hostinger)
+- Navigations HTML (`mode: navigate`) – network-first
 
 ## Version
 - Nom de cache : `greffio-shell-v2`

@@ -1,4 +1,4 @@
-/** Lighthouse CI — desktop + routes publiques clés */
+/** Lighthouse CI – desktop + routes publiques clés */
 module.exports = {
   ci: {
     collect: {

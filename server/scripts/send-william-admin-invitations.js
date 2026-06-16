@@ -12,12 +12,12 @@ const appUrl = String(process.env.APP_URL || 'https://greffio.willentreprises.co
 const ADMIN_USERS = [
   {
     email: 'william@willentreprises.com',
-    jobTitle: 'Président — Co-fondateur',
+    jobTitle: 'Président – Co-fondateur',
     needsPasswordSetup: false,
   },
   {
     email: 'nobatene@willentreprises.com',
-    jobTitle: 'Directeur Général — Co-fondateur',
+    jobTitle: 'Directeur Général – Co-fondateur',
     needsPasswordSetup: true,
   },
   {

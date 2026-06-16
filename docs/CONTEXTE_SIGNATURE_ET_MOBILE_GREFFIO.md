@@ -1,8 +1,8 @@
-# Contexte Greffio — Signature, mobile & refonte UX (pour ChatGPT + Cursor)
+# Contexte Greffio – Signature, mobile & refonte UX (pour ChatGPT + Cursor)
 
-> **Objectif de ce document** : donner à ChatGPT (ou tout autre assistant) le contexte complet pour co-concevoir avec Cursor les évolutions Greffio — signature documentaire, app mobile native, pages publiques cassées/lentes, et différenciation vs Legalstart / LegalPlace / Qonto.
+> **Objectif de ce document** : donner à ChatGPT (ou tout autre assistant) le contexte complet pour co-concevoir avec Cursor les évolutions Greffio – signature documentaire, app mobile native, pages publiques cassées/lentes, et différenciation vs Legalstart / LegalPlace / Qonto.
 >
-> **Dernière mise à jour** : 13 juin 2026 — après correctifs login, pages mobile tarifs/services, refonte panneaux signature.
+> **Dernière mise à jour** : 13 juin 2026 – après correctifs login, pages mobile tarifs/services, refonte panneaux signature.
 
 ---
 
@@ -14,11 +14,11 @@
 | **URL prod** | https://greffio.willentreprises.com |
 | **API prod** | https://api.greffio.willentreprises.com |
 | **Éditeur mobile** | App Android Capacitor (AAB 1.2.12, versionCode 261510011) |
-| **Repo GitHub** | `TheWilliamUniverse/greffio` — branche `main` |
+| **Repo GitHub** | `TheWilliamUniverse/greffio` – branche `main` |
 | **Hébergement frontend** | Hostinger Node.js (build Vite → `dist`, `npm run hostinger:start`) |
-| **Backend** | VPS `/opt/greffio` — PM2 `greffio-api`, SQLite/Postgres |
+| **Backend** | VPS `/opt/greffio` – PM2 `greffio-api`, SQLite/Postgres |
 
-**Positionnement** : SaaS de formalités d'entreprise (création, modification, greffe, documents) avec équipe ops intégrée — **pas** un simple générateur de statuts. Parcours : simulateur → questionnaire → dossier → pièces → signature → paiement → dépôt → Kbis.
+**Positionnement** : SaaS de formalités d'entreprise (création, modification, greffe, documents) avec équipe ops intégrée – **pas** un simple générateur de statuts. Parcours : simulateur → questionnaire → dossier → pièces → signature → paiement → dépôt → Kbis.
 
 **Références UX à imiter (sans copier)** :
 - **Legalstart / LegalPlace** : catalogue formalités clair, cartes par catégorie, CTA « Démarrer », confiance juridique.
@@ -105,10 +105,10 @@ Fichier maître : `server/services/signature/signatureProvider.js`
 
 | Provider | Activation | Niveau juridique |
 |----------|------------|------------------|
-| **`greffio_internal`** (défaut) | Pas de `GREFFIO_SIGNATURE_PROVIDER=signwell` | SES — signature électronique simple |
-| **SignWell** | `GREFFIO_SIGNATURE_PROVIDER=signwell` + `SIGNWELL_API_KEY` | SES (US, trial expiré — **à éviter**) |
-| **Signaturit** | Stub `signaturit.service.js` — **non implémenté** | AES/QES possible — candidat futur |
-| **Yousign** | Non câblé — **recommandé** pour eIDAS FR pas cher | AES/QES |
+| **`greffio_internal`** (défaut) | Pas de `GREFFIO_SIGNATURE_PROVIDER=signwell` | SES – signature électronique simple |
+| **SignWell** | `GREFFIO_SIGNATURE_PROVIDER=signwell` + `SIGNWELL_API_KEY` | SES (US, trial expiré – **à éviter**) |
+| **Signaturit** | Stub `signaturit.service.js` – **non implémenté** | AES/QES possible – candidat futur |
+| **Yousign** | Non câblé – **recommandé** pour eIDAS FR pas cher | AES/QES |
 
 **Recommandation produit** : garder `greffio_internal` pour 90 % des docs ; brancher Yousign/Signaturit uniquement si formalité exige AES/QES.
 
@@ -128,15 +128,15 @@ flowchart TD
 ```
 
 **Routes backend** :
-- `server/routes/nonConvictionSignatureRoutes.js` — déclaration non-condamnation
-- `server/routes/editableDocumentSignatureRoutes.js` — pouvoirs, liste souscripteurs, etc.
-- `server/pdf/stampSignatureOnPdf.js` — estampillage pdf-lib + empreinte GRF + ligne SES
+- `server/routes/nonConvictionSignatureRoutes.js` – déclaration non-condamnation
+- `server/routes/editableDocumentSignatureRoutes.js` – pouvoirs, liste souscripteurs, etc.
+- `server/pdf/stampSignatureOnPdf.js` – estampillage pdf-lib + empreinte GRF + ligne SES
 
 **Frontend signature** :
-- `src/pages/SignaturePublicPage.jsx` — page publique `/signature/:token`
-- `src/components/signature/SignatureAdoptPanel.jsx` — panneau adopt (nom, email, généré/dessiné, consentement)
-- `src/components/signature/SignatureDocumentAcknowledge.jsx` — « J'ai lu le document »
-- `src/mobile/ui/MobileSignatureOverlay.jsx` — bottom sheet in-app
+- `src/pages/SignaturePublicPage.jsx` – page publique `/signature/:token`
+- `src/components/signature/SignatureAdoptPanel.jsx` – panneau adopt (nom, email, généré/dessiné, consentement)
+- `src/components/signature/SignatureDocumentAcknowledge.jsx` – « J'ai lu le document »
+- `src/mobile/ui/MobileSignatureOverlay.jsx` – bottom sheet in-app
 
 **Tables** : `signatures`, `signature_requests` (via stores)
 
@@ -145,7 +145,7 @@ flowchart TD
 - UI claire fond blanc `#f6f8fc` (plus de thème sombre `#0f172a`)
 - Mention SES explicite dans consentement et footer PDF
 - `getSignatureLegalNotice()` / `getSignatureProofLine()` dans `signatureProvider.js`
-- Empreinte PDF : `Greffio — signature électronique simple (SES)`
+- Empreinte PDF : `Greffio – signature électronique simple (SES)`
 
 ### 4.4 Pistes d'évolution signature (pour ChatGPT)
 
@@ -157,7 +157,7 @@ flowchart TD
 
 ---
 
-## 5. Pages publiques mobile — état & cibles UX
+## 5. Pages publiques mobile – état & cibles UX
 
 ### 5.1 Connexion (`/login`)
 
@@ -222,7 +222,7 @@ npm run android:release  # ou script projet
 
 **Variables VPS signature** :
 ```env
-# Recommandé — signature interne
+# Recommandé – signature interne
 # GREFFIO_SIGNATURE_PROVIDER=internal  (ou absent)
 # Ne pas définir SIGNWELL_API_KEY si SignWell abandonné
 ```
@@ -282,13 +282,13 @@ server/
 
 ## 9. Checklist QA mobile (avant release)
 
-- [ ] `/login` — formulaire visible, pas d'erreur boundary, MFA natif auto-submit
-- [ ] `/tarifs` — cartes pricing + FAQ, pas de double header
-- [ ] `/services` — catalogue scrollable, liens service OK
-- [ ] `/app/home` — quick links Services/Tarifs/Simuler
-- [ ] `/signature/:token` — preview PDF, checkbox, panneau signature clair, succès
-- [ ] Bottom nav — 5 onglets, Compte → login ou dashboard si connecté
-- [ ] Build Hostinger — state `completed` (pas `failed` sur exports manquants)
+- [ ] `/login` – formulaire visible, pas d'erreur boundary, MFA natif auto-submit
+- [ ] `/tarifs` – cartes pricing + FAQ, pas de double header
+- [ ] `/services` – catalogue scrollable, liens service OK
+- [ ] `/app/home` – quick links Services/Tarifs/Simuler
+- [ ] `/signature/:token` – preview PDF, checkbox, panneau signature clair, succès
+- [ ] Bottom nav – 5 onglets, Compte → login ou dashboard si connecté
+- [ ] Build Hostinger – state `completed` (pas `failed` sur exports manquants)
 
 ---
 
@@ -303,4 +303,4 @@ server/
 
 ---
 
-*Document généré pour synchroniser ChatGPT et Cursor sur l'état Greffio — signature, mobile public, et roadmap UX. Modifier ce fichier à chaque livraison significative.*
+*Document généré pour synchroniser ChatGPT et Cursor sur l'état Greffio – signature, mobile public, et roadmap UX. Modifier ce fichier à chaque livraison significative.*

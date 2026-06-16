@@ -11,14 +11,14 @@ import {
 } from './cawlETransactions.js';
 
 /**
- * Adapter CAWL — paiements B2C via Up2pay e-Transactions (hosted checkout HMAC).
+ * Adapter CAWL – paiements B2C via Up2pay e-Transactions (hosted checkout HMAC).
  *
  * Intégration basée sur l'exemple PHP CAWL / Worldline / Ingenico :
  *   - Redirection POST vers recette-tpeweb.e-transactions.fr (mode TEST)
  *   - Signature HMAC-SHA512 (PBX_HMAC)
  *   - IPN serveur-à-serveur sur /api/webhooks/cawl
  *
- * Variables d'environnement (mode TEST par défaut — CAWL_ENV=test) :
+ * Variables d'environnement (mode TEST par défaut – CAWL_ENV=test) :
  *   CAWL_ENV                 test | production
  *   CAWL_PBX_SITE            Numéro de site (alias CAWL_MERCHANT_ID)
  *   CAWL_PBX_RANG            Numéro de rang
@@ -214,7 +214,7 @@ export class CawlPaymentAdapter {
     };
   }
 
-  /** Conservé pour compatibilité — l'IPN e-Transactions utilise RSA, pas HMAC webhook. */
+  /** Conservé pour compatibilité – l'IPN e-Transactions utilise RSA, pas HMAC webhook. */
   verifyWebhookSignature() {
     return { ok: true, reason: 'ETRANS_USES_RSA_IPN' };
   }

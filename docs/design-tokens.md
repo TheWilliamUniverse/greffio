@@ -1,4 +1,4 @@
-# Greffio — Design tokens (cockpit & mobile)
+# Greffio – Design tokens (cockpit & mobile)
 
 > Audit complet : voir [`docs/audit-branding-greffio.md`](./audit-branding-greffio.md) (palette normalisée, typographie, mini brand book).
 

@@ -25,4 +25,4 @@ export const getSignatureLegalNotice = () => (
 );
 
 /** Ligne de preuve estampillée sur le PDF signé. */
-export const getSignatureProofLine = () => 'Greffio — signature électronique simple (SES)';
+export const getSignatureProofLine = () => 'Greffio – signature électronique simple (SES)';

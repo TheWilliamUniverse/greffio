@@ -105,7 +105,7 @@ const defaultData = {
   existingBusinessName: '',
   email: '',
   phone: '',
-  typeFormalite: 'creation_societe',
+  typeFormalite: '',
   formeJuridiqueFamillePrimary: '',
   formeJuridiqueFamilleSecondary: '',
   formeJuridiqueFamille: '',
@@ -140,6 +140,7 @@ const getFormAvailabilityLabel = (formKey) => {
 };
 const STEP_TITLES_BY_ID = Object.freeze({
   contact: 'Type de déclarant',
+  demarche: 'Formalité',
   forme: 'Structure',
   entreprise: 'Informations',
   gouvernance: 'Associés',
@@ -147,12 +148,10 @@ const STEP_TITLES_BY_ID = Object.freeze({
   recap: 'Récapitulatif',
   validation: 'Validation',
 });
-const PROGRESSIVE_STEPS = QUESTIONNAIRE_FLOW
-  .filter((flowStep) => flowStep.id !== 'demarche')
-  .map((flowStep) => ({
-    id: flowStep.id,
-    label: STEP_TITLES_BY_ID[flowStep.id] || flowStep.title,
-  }));
+const PROGRESSIVE_STEPS = QUESTIONNAIRE_FLOW.map((flowStep) => ({
+  id: flowStep.id,
+  label: STEP_TITLES_BY_ID[flowStep.id] || flowStep.title,
+}));
 
 const normalizeFormalityToService = (typeFormalite, formeJuridique) => (
   resolveServiceFromFormality(typeFormalite, formeJuridique)
@@ -574,15 +573,12 @@ export const QuestionnairePage = () => {
             );
             return { stepIndex: 0, fieldIndex: isMobileQuestionnaireViewport() ? groupIdx : firstInvalid };
           }
-          const formeIndex = QUESTIONNAIRE_FLOW.findIndex((entry) => entry.id === 'forme');
-          return { stepIndex: Math.max(formeIndex, 0), fieldIndex: 0 };
+          const demarcheIndex = QUESTIONNAIRE_FLOW.findIndex((entry) => entry.id === 'demarche');
+          return { stepIndex: Math.max(demarcheIndex, 0), fieldIndex: 0 };
         };
 
         const resume = mergedData._resume || {};
-        mergedData = normalizeQuestionnaireFormFamilyFields({
-          ...mergedData,
-          typeFormalite: mergedData.typeFormalite || 'creation_societe',
-        });
+        mergedData = normalizeQuestionnaireFormFamilyFields(mergedData);
         const resumeResult = startNewQuestionnaire
           ? { ...resolveNewStartPosition(mergedData), demarcheCategory: inferDemarcheCategory(mergedData.typeFormalite), categoryConfirmed: false }
           : resolveResumePosition(mergedData, resume);
@@ -676,10 +672,6 @@ export const QuestionnairePage = () => {
     }, 900);
     return () => window.clearTimeout(timeout);
   }, [dossierId, formData, progress, loading]);
-
-  useEffect(() => {
-    setGroupIndex(0);
-  }, [stepIndex]);
 
   useEffect(() => {
     if (groupIndex !== safeGroupIndex) {
@@ -1154,14 +1146,6 @@ export const QuestionnairePage = () => {
                 onCategoryConfirmedChange={setDemarcheCategoryConfirmed}
                 mobilePresentation={isMobileChoicePresentation}
                 onAdvance={() => requestMobileTapAdvance(field.key)}
-                onSkipCreationTiles={() => {
-                  if (!isMobileChoicePresentation) return;
-                  const formeStepIndex = QUESTIONNAIRE_FLOW.findIndex((entry) => entry.id === 'forme');
-                  if (formeStepIndex >= 0) {
-                    setStepIndex(formeStepIndex);
-                    setGroupIndex(0);
-                  }
-                }}
               />
             </div>
           </div>

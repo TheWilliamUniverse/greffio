@@ -19,12 +19,12 @@ Stabilité et expérience mobile :
 
 ### Améliorations
 
-- **Navigation Android** — Le bouton Retour ferme les overlays dans le bon ordre (veille, compte, notifications, recherche, choix de dossier, signature, menu).
-- **Documents signables** — Interface mobile dédiée sans sidebar desktop ; CTA sticky au-dessus du clavier ; retour Android ferme la feuille de signature.
-- **Hors connexion** — Bannière explicite et message de reconnexion lorsque le réseau revient.
-- **Compte** — Version, build, état des notifications et de la biométrie ; accès rapide à la mise en veille et au support.
-- **Permissions** — Messages clairs si notifications ou caméra refusées, avec alternatives (accueil, import manuel).
-- **Tarifs (navigateur mobile)** — Les blocs « Prestation Greffio » et « Frais légaux » s’affichent côte à côte pour une lecture plus rapide.
+- **Navigation Android** – Le bouton Retour ferme les overlays dans le bon ordre (veille, compte, notifications, recherche, choix de dossier, signature, menu).
+- **Documents signables** – Interface mobile dédiée sans sidebar desktop ; CTA sticky au-dessus du clavier ; retour Android ferme la feuille de signature.
+- **Hors connexion** – Bannière explicite et message de reconnexion lorsque le réseau revient.
+- **Compte** – Version, build, état des notifications et de la biométrie ; accès rapide à la mise en veille et au support.
+- **Permissions** – Messages clairs si notifications ou caméra refusées, avec alternatives (accueil, import manuel).
+- **Tarifs (navigateur mobile)** – Les blocs « Prestation Greffio » et « Frais légaux » s’affichent côte à côte pour une lecture plus rapide.
 
 ### Recommandation de test
 

@@ -1,4 +1,4 @@
-# Contexte SEO Greffio — référence ChatGPT (juin 2026)
+# Contexte SEO Greffio – référence ChatGPT (juin 2026)
 
 > **Repo** : `TheWilliamUniverse/greffio` · commit prod `4aad544`  
 > **Domaine** : `https://greffio.willentreprises.com`  
@@ -32,8 +32,8 @@ Chaque pilier : H1, intro, sections H2, bloc « Ce que Greffio clarifie », FAQ 
 - `/faq`
 
 ### Routing
-- `src/App.jsx` — routes SEO + header masqué sur pages piliers
-- `src/pages/SeoPages.jsx` — composants rendu
+- `src/App.jsx` – routes SEO + header masqué sur pages piliers
+- `src/pages/SeoPages.jsx` – composants rendu
 - Footer : colonne « Formalités & SEO » (`src/config/siteFooter.js`)
 
 ### Session web (distinct app native)
@@ -53,7 +53,7 @@ Toutes URLs → HTTP 200 :
 
 Meta home en prod :
 ```html
-<title>Greffio — Simplifiez vos démarches d'entreprise en France</title>
+<title>Greffio – Simplifiez vos démarches d'entreprise en France</title>
 ```
 
 ---

@@ -37,7 +37,7 @@ export const objectStorageConfig = {
   supabaseCredentialsPresent: hasSupabaseCredentials,
   /** Storage Supabase actif uniquement si DOCUMENT_STORAGE_DRIVER=supabase. */
   supabaseStorageActive: activeDriver === 'supabase',
-  /** @deprecated Utiliser supabaseCredentialsPresent — ne signifie pas que le bucket Storage existe. */
+  /** @deprecated Utiliser supabaseCredentialsPresent – ne signifie pas que le bucket Storage existe. */
   supabaseConfigured: hasSupabaseCredentials,
   bucket: activeDriver === 's3'
     ? process.env.AWS_S3_BUCKET

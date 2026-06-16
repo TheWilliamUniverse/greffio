@@ -1,12 +1,12 @@
-# Contexte Greffio — Audit UI/UX → plan d’actions Cursor (ChatGPT)
+# Contexte Greffio – Audit UI/UX → plan d’actions Cursor (ChatGPT)
 
 > **Usage** : coller ce document dans ChatGPT avec la consigne ci-dessous. ChatGPT doit produire un **plan d’actions exécutable** pour l’agent Cursor (Auto) sur le repo `Greffio SaaS`, **sans modifier l’identité globale du site**.
 >
 > **Documents complémentaires** (ne pas dupliquer, s’y référer si besoin) :
-> - `docs/UI_UX_AUDIT_2026-06-13.md` — audit détaillé findings
-> - `docs/audit-branding-greffio.md` — tokens et contraintes marque
-> - `.cursor/rules/preserve-brand-identity.mdc` — règle Cursor impérative
-> - `docs/PAYMENT_TERMINAL_MODIFICATIONS_2026-06-13.md` — travail paiement récent
+> - `docs/UI_UX_AUDIT_2026-06-13.md` – audit détaillé findings
+> - `docs/audit-branding-greffio.md` – tokens et contraintes marque
+> - `.cursor/rules/preserve-brand-identity.mdc` – règle Cursor impérative
+> - `docs/PAYMENT_TERMINAL_MODIFICATIONS_2026-06-13.md` – travail paiement récent
 
 ---
 
@@ -34,7 +34,7 @@ Tu es un lead produit + tech lead front-end. À partir du contexte fourni :
 | Élément | Détail |
 |---------|--------|
 | Framework | React 19 + Vite 7 |
-| Routing | React Router — ~80 routes (`src/App.jsx`) |
+| Routing | React Router – ~80 routes (`src/App.jsx`) |
 | UI | shadcn/Radix (`src/components/ui/`, 55 fichiers) |
 | Styles | Tailwind + CSS vars (`src/index.css`) |
 | Mobile | Capacitor + shells (`MobileAppShell`, `MobileWebShell`) |
@@ -48,7 +48,7 @@ Tu es un lead produit + tech lead front-end. À partir du contexte fourni :
 ┌─────────────────────────────────────────────────────────────┐
 │ MARKETING / SEO / PUBLIC                                     │
 │ NavbarDropdown · pages SEO · landing · tarifs · contact      │
-│ Footer : GreffioUltraFooter (partiel — voir gaps)            │
+│ Footer : GreffioUltraFooter (partiel – voir gaps)            │
 └─────────────────────────────────────────────────────────────┘
                               ↓ signup/login
 ┌─────────────────────────────────────────────────────────────┐
@@ -64,7 +64,7 @@ Tu es un lead produit + tech lead front-end. À partir du contexte fourni :
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 1.3 Travaux récents (contexte — ne pas casser)
+### 1.3 Travaux récents (contexte – ne pas casser)
 
 | Zone | État | Fichiers |
 |------|------|----------|
@@ -87,7 +87,7 @@ Tu es un lead produit + tech lead front-end. À partir du contexte fourni :
 
 ---
 
-## 2. Règle absolue — conservation identité (NON NÉGOCIABLE)
+## 2. Règle absolue – conservation identité (NON NÉGOCIABLE)
 
 Source : `.cursor/rules/preserve-brand-identity.mdc`
 
@@ -99,9 +99,9 @@ Source : `.cursor/rules/preserve-brand-identity.mdc`
 | Palette & tokens globaux | `src/index.css` (`:root`, `.dark`, utilities globales), `tailwind.config.js` |
 | Navbar / header public marketing | `src/components/NavbarDropdown.jsx` |
 | Footer public de marque | `src/components/layout/GreffioUltraFooter.jsx` (design) |
-| Typographie de marque | Inter + Plus Jakarta Sans — pas de changement de fonts globales |
+| Typographie de marque | Inter + Plus Jakarta Sans – pas de changement de fonts globales |
 | Refonte design system transversale | Pas de changement global `button.jsx` variants, `card.jsx`, espacements globaux pour « harmoniser » |
-| Harmonisation cosmétique large | Login, signup, paiement, pages légales — pas de refonte layout globale |
+| Harmonisation cosmétique large | Login, signup, paiement, pages légales – pas de refonte layout globale |
 
 ### 2.2 AUTORISÉ pour Cursor
 
@@ -110,13 +110,13 @@ Source : `.cursor/rules/preserve-brand-identity.mdc`
 | Bug UI ponctuel dans un composant | Badge notif fictif dans `Header.jsx` |
 | Composants patterns **nouveaux** (sans remplacer tokens globaux) | `PageLoadingState.jsx`, `EmptyState.jsx` dans `src/components/patterns/` |
 | Amélioration UX locale à une feature | Loading `DocumentsPage`, erreurs inline `LoginPage` |
-| Tokenisation **locale** questionnaire/wizard | Remplacer `#d4e2f5` par classes utilisant **tokens existants** (`border-border`, `bg-muted`, `hsl(var(--greffio-blue))`) — **sans ajouter de nouvelles vars `:root`** |
+| Tokenisation **locale** questionnaire/wizard | Remplacer `#d4e2f5` par classes utilisant **tokens existants** (`border-border`, `bg-muted`, `hsl(var(--greffio-blue))`) – **sans ajouter de nouvelles vars `:root`** |
 | Fonctionnalités métier | Dossiers, statuts, paiement, mobile, ops |
 | Nettoyage code mort | Supprimer fichiers non importés |
 | Layout wrapper **composition** | `PublicPageLayout` qui **réutilise** `GreffioUltraFooter` tel quel |
 | Ops | Améliorer empty/loading ops, redirect legacy |
 
-### 2.3 Zone grise — à traiter avec prudence
+### 2.3 Zone grise – à traiter avec prudence
 
 | Sujet | Règle pour le plan |
 |-------|-------------------|
@@ -162,7 +162,7 @@ Source : `.cursor/rules/preserve-brand-identity.mdc`
 
 | Composant | Fichier | État |
 |-----------|---------|------|
-| Button | `src/components/ui/button.jsx` | `rounded-full`, hex dans variants — **ne pas refactorer globalement** |
+| Button | `src/components/ui/button.jsx` | `rounded-full`, hex dans variants – **ne pas refactorer globalement** |
 | Input | `src/components/ui/input.jsx` | Standard shadcn |
 | Card | `src/components/ui/card.jsx` | Standard shadcn |
 | Progress | `src/components/ui/progress.jsx` | Sous-utilisé |
@@ -172,11 +172,11 @@ Source : `.cursor/rules/preserve-brand-identity.mdc`
 
 ---
 
-## 4. Problèmes priorisés — backlog pour le plan ChatGPT
+## 4. Problèmes priorisés – backlog pour le plan ChatGPT
 
 Chaque item ci-dessous doit devenir une ou plusieurs actions ACTION-XXX dans le plan ChatGPT.
 
-### 4.1 P0 — Urgent (crédibilité / bug UX visible)
+### 4.1 P0 – Urgent (crédibilité / bug UX visible)
 
 | ID | Problème | Fichier(s) | Amélioration | Interdit |
 |----|----------|------------|--------------|----------|
@@ -185,40 +185,40 @@ Chaque item ci-dessous doit devenir une ou plusieurs actions ACTION-XXX dans le 
 | P0-03 | Erreurs login toast-only | `LoginPage.jsx` | Messages inline sous email/password + aria | Redesign page login |
 | P0-04 | Hex questionnaire non maintenables | `QuestionnairePage.jsx`, `StepLayout.jsx`, `QuestionSelect.jsx`, `FormalityWizardPage.jsx` | Remplacer hex par tokens **existants** (`border-border`, `bg-background`, etc.) | Nouvelles vars `:root`, changer layout wizard |
 | P0-05 | CSS safe-area calc invalide | `src/index.css` (~L1045) | Corriger syntaxe `calc(... + env(...))` | Refonte variables nav |
-| P0-06 | Code mort bruyant | `ProjectsPage.jsx`, `ProjectDetailPage.jsx`, `LoadingSpinner.jsx`, `NotificationToast.jsx`, `WalletPaymentTerminal.jsx`, `MobileAuthShell.jsx` | Supprimer ou archiver | — |
+| P0-06 | Code mort bruyant | `ProjectsPage.jsx`, `ProjectDetailPage.jsx`, `LoadingSpinner.jsx`, `NotificationToast.jsx`, `WalletPaymentTerminal.jsx`, `MobileAuthShell.jsx` | Supprimer ou archiver | – |
 
-### 4.2 P1 — Important (cohérence espace client)
+### 4.2 P1 – Important (cohérence espace client)
 
 | ID | Problème | Fichier(s) | Amélioration | Interdit |
 |----|----------|------------|--------------|----------|
 | P1-01 | Empty states fragmentés | Dashboard OK ; Analytics sans CTA ; Ops minimal | Créer `src/components/patterns/EmptyState.jsx` wrapping `ui/empty` | Changer empty dashboard existant |
-| P1-02 | Loading fragmenté | Multiples pages | Créer `src/components/patterns/PageLoadingState.jsx` | — |
-| P1-03 | Progress inline dupliqué | `DashboardPage`, `DossiersPage`, `DossierDetailPage`, `FormalityWizardPage`, `QuestionnairePage`, `AnalyticsPage`, `MobileDossierDetailPage` | Utiliser `ui/progress.jsx` | — |
-| P1-04 | Erreurs `text-red-600` vs `text-destructive` | Questionnaire, Documents, CredentialsUnlock | Standardiser `text-destructive` | — |
+| P1-02 | Loading fragmenté | Multiples pages | Créer `src/components/patterns/PageLoadingState.jsx` | – |
+| P1-03 | Progress inline dupliqué | `DashboardPage`, `DossiersPage`, `DossierDetailPage`, `FormalityWizardPage`, `QuestionnairePage`, `AnalyticsPage`, `MobileDossierDetailPage` | Utiliser `ui/progress.jsx` | – |
+| P1-04 | Erreurs `text-red-600` vs `text-destructive` | Questionnaire, Documents, CredentialsUnlock | Standardiser `text-destructive` | – |
 | P1-05 | Footer absent pages publiques | `ContactPage`, `PricingPage`, `LegalMentionsPage`, etc. | `PublicPageLayout` compose Navbar + children + `GreffioUltraFooter` **sans modifier footer** | Redesign footer |
 | P1-06 | `/ops-legacy` vs `/ops` | `App.jsx`, `OpsDashboardPage.jsx` | Redirect 301 ou Navigate vers `/ops/cockpit` | Refonte ops |
-| P1-07 | Select natif Dossiers | `DossiersPage.jsx` | Remplacer par `ui/select.jsx` | — |
+| P1-07 | Select natif Dossiers | `DossiersPage.jsx` | Remplacer par `ui/select.jsx` | – |
 | P1-08 | Login mobile h-12, Signup non aligné | `LoginPage.jsx`, `SignupPage.jsx` | Hook partagé `useAuthInputClass()` | Redesign signup |
-| P1-09 | Double feedback toast+inline | `NonConvictionDeclarationPage.jsx` | Garder un seul canal (inline prioritaire) | — |
+| P1-09 | Double feedback toast+inline | `NonConvictionDeclarationPage.jsx` | Garder un seul canal (inline prioritaire) | – |
 | P1-10 | FormalityWizard monolithique | `FormalityWizardPage.jsx` (1771 lignes) | Extraire steps dans `src/components/formality-wizard/` | Changer UI visible |
 | P1-11 | Mobile : features hors tab bar | `Sidebar` vs bottom nav | Drawer « Plus » ou enrichir drawer existant | Changer tab bar design |
 | P1-12 | Bandeau Google Pay TEST | `PaymentPage.jsx`, `GreffioPaymentTerminal.jsx` | Alert info si config.mode=test | Refonte terminal |
-| P1-13 | `outline` + `bg-white` répété 25× | Multiples pages | Option : prop `className` documentée OU variant local dans patterns — **pas** refactor global `button.jsx` sans accord | Modifier variants button globaux |
+| P1-13 | `outline` + `bg-white` répété 25× | Multiples pages | Option : prop `className` documentée OU variant local dans patterns – **pas** refactor global `button.jsx` sans accord | Modifier variants button globaux |
 
-### 4.3 P2 — Finition premium (long terme)
+### 4.3 P2 – Finition premium (long terme)
 
 | ID | Problème | Fichier(s) | Amélioration | Interdit |
 |----|----------|------------|--------------|----------|
-| P2-01 | Pas de PageHeader commun | Pages client | `PageHeader.jsx` + migration progressive | — |
+| P2-01 | Pas de PageHeader commun | Pages client | `PageHeader.jsx` + migration progressive | – |
 | P2-02 | AuthenticatedLayout absent | Pages avec Sidebar répétée | Layout wrapper | Changer Sidebar design |
-| P2-03 | Framer motion inégal | Dashboard vs login | Motion légère listes dossiers | — |
+| P2-03 | Framer motion inégal | Dashboard vs login | Motion légère listes dossiers | – |
 | P2-04 | Fusion mobile/desktop | Paires Mobile* / Desktop* | Composants partagés (liste dossiers, etc.) | Big-bang rewrite |
-| P2-05 | Bundle ~2 Mo index.js | `vite.config` | Code split wizard, ops, payment | — |
-| P2-06 | WCAG audit | Formulaires | aria-invalid, focus | — |
-| P2-07 | Storybook | — | Catalogue patterns | — |
-| P2-08 | NotFound sans shell public | `NotFoundPage.jsx` | Wrap PublicPageLayout | — |
-| P2-09 | SignWellCallback bouton raw `<a>` | `SignWellCallbackPage.jsx` | `Button asChild` | — |
-| P2-10 | Tablet sidebar gap 768-1024 | `Sidebar.jsx` | Drawer à `lg:` breakpoint | — |
+| P2-05 | Bundle ~2 Mo index.js | `vite.config` | Code split wizard, ops, payment | – |
+| P2-06 | WCAG audit | Formulaires | aria-invalid, focus | – |
+| P2-07 | Storybook | – | Catalogue patterns | – |
+| P2-08 | NotFound sans shell public | `NotFoundPage.jsx` | Wrap PublicPageLayout | – |
+| P2-09 | SignWellCallback bouton raw `<a>` | `SignWellCallbackPage.jsx` | `Button asChild` | – |
+| P2-10 | Tablet sidebar gap 768-1024 | `Sidebar.jsx` | Drawer à `lg:` breakpoint | – |
 
 ---
 
@@ -276,7 +276,7 @@ ChatGPT peut structurer le plan ainsi :
 | **Lot 7** | Ops & payment | P1-06, P1-12 | `fix(ops): deprecate legacy dashboard; payment test banner` |
 | **Lot 8** | Wizard refactor | P1-10 | `refactor(wizard): split FormalityWizardPage modules` |
 | **Lot 9** | Mobile nav | P1-11 | `feat(mobile): secondary nav in drawer` |
-| **Lot 10+** | P2 items | Par priorité produit | — |
+| **Lot 10+** | P2 items | Par priorité produit | – |
 
 ---
 
@@ -285,7 +285,7 @@ ChatGPT peut structurer le plan ainsi :
 ChatGPT **doit** produire chaque tâche Cursor dans ce format :
 
 ```markdown
-### ACTION-XXX — [Titre court]
+### ACTION-XXX – [Titre court]
 
 - **Priorité** : P0 | P1 | P2
 - **Lot** : Lot N
@@ -310,7 +310,7 @@ ChatGPT **doit** produire chaque tâche Cursor dans ce format :
 ### Exemple rempli (ChatGPT doit en produire ~25-40)
 
 ```markdown
-### ACTION-002 — Loading visible page Documents
+### ACTION-002 – Loading visible page Documents
 
 - **Priorité** : P0
 - **Lot** : Lot 2
@@ -367,14 +367,14 @@ ChatGPT doit terminer son plan avec cette checklist :
 
 Quand ChatGPT rédige le plan pour Cursor, il doit inclure :
 
-1. **Principe diff minimal** — smallest change that fixes the issue
-2. **Lire avant d’écrire** — match conventions fichier voisin
+1. **Principe diff minimal** – smallest change that fixes the issue
+2. **Lire avant d’écrire** – match conventions fichier voisin
 3. **Pas de commit/push/deploy** sauf demande utilisateur explicite
 4. **Pas de markdown docs** supplémentaires sauf demande
-5. **Français UI** — tous libellés utilisateur en français
-6. **Tests** — lancer `npm run build` après chaque lot
-7. **Mobile** — vérifier `*Entry.jsx` si page a variante mobile
-8. **Paiement** — ne pas casser `GreffioPaymentTerminal`, Amazon Pay, Google Pay TEST
+5. **Français UI** – tous libellés utilisateur en français
+6. **Tests** – lancer `npm run build` après chaque lot
+7. **Mobile** – vérifier `*Entry.jsx` si page a variante mobile
+8. **Paiement** – ne pas casser `GreffioPaymentTerminal`, Amazon Pay, Google Pay TEST
 
 ---
 
@@ -414,7 +414,7 @@ Quand ChatGPT rédige le plan pour Cursor, il doit inclure :
 | Texte erreur `#red` classes | `text-destructive` |
 | Bleu accent | `text-primary`, `bg-primary`, `hsl(var(--greffio-blue))` |
 
-Payment terminal hex (`GreffioPaymentTerminal`) : **hors scope Lot 3** — traiter en P2 local si needed.
+Payment terminal hex (`GreffioPaymentTerminal`) : **hors scope Lot 3** – traiter en P2 local si needed.
 
 ---
 
@@ -424,4 +424,4 @@ Payment terminal hex (`GreffioPaymentTerminal`) : **hors scope Lot 3** — trait
 
 ---
 
-*Document généré le 13 juin 2026 — branche `main`, repo Greffio SaaS — destiné à ChatGPT → plan d’actions Cursor.*
+*Document généré le 13 juin 2026 – branche `main`, repo Greffio SaaS – destiné à ChatGPT → plan d’actions Cursor.*

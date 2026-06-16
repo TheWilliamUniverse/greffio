@@ -100,7 +100,7 @@ export const registerEditableDocumentSignatureRoutes = (app, {
               signatureRequestId: signatureRequest.id,
               fields: { ...validation.normalized, signerEmail, signatureFullName: signerFullName },
               appUrl,
-              emailSubject: `Signature — ${config.publicDocumentTitle}`,
+              emailSubject: `Signature – ${config.publicDocumentTitle}`,
             });
             const signingLink = signwellResult.signingLink || `${appUrl}/signature/${raw}`;
             void sendTransactionalEmail({
@@ -220,7 +220,7 @@ export const registerEditableDocumentSignatureRoutes = (app, {
               signatureRequestId: signatureRequest.id,
               fields: { ...normalizedFields, signerEmail, signatureFullName: signerFullName },
               appUrl,
-              emailSubject: `Signature — ${config.publicDocumentTitle}`,
+              emailSubject: `Signature – ${config.publicDocumentTitle}`,
             });
             return res.json({
               ok: true,

@@ -615,7 +615,7 @@ export const getProcessingLabel = (item) => {
   return 'Commande guidée';
 };
 
-/** Paiement en ligne — confirmé aussi via GET /api/resources/config */
+/** Paiement en ligne – confirmé aussi via GET /api/resources/config */
 export const RESOURCE_PAYMENT_ENABLED = true;
 
 export const isResourceOrderable = (item) => (

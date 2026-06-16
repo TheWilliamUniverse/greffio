@@ -1,10 +1,10 @@
-# Greffio — Contexte audit application mobile native (Capacitor Android)
+# Greffio – Contexte audit application mobile native (Capacitor Android)
 
 > **Usage** : joindre ce fichier à ChatGPT avec le **prompt §8** pour obtenir un audit UX/UI/QA de l’**app Android Greffio** (pas la landing desktop, pas le mobile web seul).
 >
-> **Repo** : `TheWilliamUniverse/greffio` — branche `main`, commit récent `4b9ab18` (audit mobile + signature sticky + offline + haptics).
+> **Repo** : `TheWilliamUniverse/greffio` – branche `main`, commit récent `4b9ab18` (audit mobile + signature sticky + offline + haptics).
 >
-> **Identité figée** : palette bleu marine, landing desktop, header public — ne pas proposer de refonte globale (`.cursor/rules/preserve-brand-identity.mdc`).
+> **Identité figée** : palette bleu marine, landing desktop, header public – ne pas proposer de refonte globale (`.cursor/rules/preserve-brand-identity.mdc`).
 
 ---
 
@@ -15,7 +15,7 @@
 | App **Capacitor Android** (`com.greffio.app`) | Landing **desktop** |
 | Shell `MobileAppShell`, top bar, bottom tabs, drawer | Ops `/ops` (desktop only) |
 | Pages cockpit rendues dans l’app (entries mobile) | Refonte charte / tokens CSS globaux |
-| Permissions Android (caméra, push, biométrie) | iOS (non publié — préparer recommandations seulement) |
+| Permissions Android (caméra, push, biométrie) | iOS (non publié – préparer recommandations seulement) |
 | Back button, safe-area, clavier, offline, deep links | Parité pixel-perfect avec desktop |
 | Build AAB / version embarquée vs API `/api/app-version` | |
 
@@ -67,7 +67,7 @@ Source : `src/config/mobileNavigation.js` (`MOBILE_AUTH_TABS_NATIVE`).
 
 Fichier : `src/components/MobileSidebarDrawer.jsx` + `MOBILE_DRAWER_NAV_GROUPS`.
 
-### 2.3 Back button Android — ordre overlay
+### 2.3 Back button Android – ordre overlay
 
 Priorité implémentée dans `MobileShellOverlayContext.closeTopOverlay()` :
 
@@ -123,7 +123,7 @@ Fichier : `src/mobile/MobileAppShell.jsx`.
 
 | Feature | Fichier | Comportement |
 |---------|---------|--------------|
-| Bannière offline | `MobileNativeOfflineBanner.jsx` | App native only — « Connexion indisponible… » |
+| Bannière offline | `MobileNativeOfflineBanner.jsx` | App native only – « Connexion indisponible… » |
 | Pre-permission push | `MobilePushRegistration.jsx` | Écran Greffio avant prompt Android 13+ |
 | Pre-permission caméra | `MobileDocumentScanner.jsx` | Écran Greffio avant `@capacitor/camera` |
 | Données cache | `OfflineDataBanner` + `mobileOffline.js` | Snapshot dossiers si API en échec |
@@ -136,7 +136,7 @@ Fichier : `src/mobile/MobileAppShell.jsx`.
 
 ### 4.5 Sécurité session
 
-- Bouton **veille ⏻** (Power) — dialog « session sécurisée »
+- Bouton **veille ⏻** (Power) – dialog « session sécurisée »
 - **Biométrie** : `BiometricSessionContext` + `BiometricUnlockScreen` (`@capgo/capacitor-native-biometric`)
 - Verrouillage au retour app (`appStateChange`)
 
@@ -152,7 +152,7 @@ Fichier : `src/mobile/MobileAppShell.jsx`.
 
 - `INTERNET`, `CAMERA`, `POST_NOTIFICATIONS`
 - `READ_MEDIA_*` retirées volontairement (Photo Picker / Capacitor Camera)
-- `configChanges` inclut `keyboard` — vérifier comportement clavier vs `MobileStickyFormActions`
+- `configChanges` inclut `keyboard` – vérifier comportement clavier vs `MobileStickyFormActions`
 
 ---
 
@@ -169,8 +169,8 @@ Fichier : `src/mobile/MobileAppShell.jsx`.
 ### Routes **sans** shell (risque layout desktop dans l’app)
 
 - Pages publiques longues si ouvertes in-app
-- Éditeurs documents avec **Sidebar desktop** (`NonConvictionDeclarationPage`, etc.) — sticky CTA mobile ajouté mais layout global encore desktop
-- `/ops` — exclu mobile web ; comportement app à confirmer
+- Éditeurs documents avec **Sidebar desktop** (`NonConvictionDeclarationPage`, etc.) – sticky CTA mobile ajouté mais layout global encore desktop
+- `/ops` – exclu mobile web ; comportement app à confirmer
 
 **Question produit pour l’audit** : faut-il un shell mobile minimal sur les éditeurs de documents signables ?
 
@@ -180,47 +180,47 @@ Fichier : `src/mobile/MobileAppShell.jsx`.
 
 ### Viewports & safe-area
 
-- [ ] 320 / 390 / 430 px — texte et CTA non tronqués
-- [ ] Notch + barre gestuelle — header et bottom nav respectent `safe-area-inset`
+- [ ] 320 / 390 / 430 px – texte et CTA non tronqués
+- [ ] Notch + barre gestuelle – header et bottom nav respectent `safe-area-inset`
 - [ ] Dernier contenu jamais masqué sous bottom nav + FAB
-- [ ] Orientation paysage — header + bottom nav utilisables
+- [ ] Orientation paysage – header + bottom nav utilisables
 
 ### Navigation
 
 - [ ] Back ferme overlays dans l’ordre §2.3
 - [ ] Drawer se ferme à la navigation
-- [ ] 5e onglet Compte vs Messages web — utilisateur trouve Messages via drawer
+- [ ] 5e onglet Compte vs Messages web – utilisateur trouve Messages via drawer
 - [ ] Deep link `greffio.willentreprises.com/...` ouvre la bonne route
 
 ### Formulaires & signature
 
 - [ ] Clavier ne masque pas champs ni CTA sticky (éditeurs + `SignatureAdoptPanel`)
 - [ ] Canvas signature tactile utilisable
-- [ ] SignWell / signature interne — retour app après redirect
+- [ ] SignWell / signature interne – retour app après redirect
 
 ### Permissions
 
 - [ ] Pre-écran caméra puis permission OS
 - [ ] Pre-écran push puis permission Android 13+
-- [ ] Refus permission — fallback gracieux (galerie, pas de crash)
+- [ ] Refus permission – fallback gracieux (galerie, pas de crash)
 
 ### Réseau & offline
 
 - [ ] Bannière offline visible en mode avion
-- [ ] Retour réseau — rechargement données cockpit
+- [ ] Retour réseau – rechargement données cockpit
 - [ ] Snapshot offline dossiers (`OfflineDataBanner`) lisible
 
 ### Sécurité & cycle de vie
 
 - [ ] Biométrie cold start
 - [ ] Veille ⏻ → reconnexion
-- [ ] AppUpdateGate — MAJ optionnelle et forcée
+- [ ] AppUpdateGate – MAJ optionnelle et forcée
 - [ ] Version embarquée AAB vs changelog API cohérents
 
 ### Polish
 
 - [ ] Haptic sur FAB et signature (appareil compatible)
-- [ ] Onboarding première connexion — pas de répétition gênante
+- [ ] Onboarding première connexion – pas de répétition gênante
 - [ ] Contraste badges statuts (WCAG AA)
 
 ---
@@ -232,7 +232,7 @@ Tu es un expert UX/UI mobile natif (Android Material, Capacitor, accessibilité 
 
 Contexte : Greffio est une application Android (Capacitor) de formalités d’entreprise (statuts, greffe, documents signables). Je t’attache le fichier « contexte-audit-app-mobile-chatgpt.md » du repo Greffio (commit main ~4b9ab18).
 
-Mission — audit **application mobile native Android uniquement** :
+Mission – audit **application mobile native Android uniquement** :
 1. Auditer l’expérience in-app : shell, bottom tabs, drawer, accueil, dossiers, documents, signature, compte, permissions, offline, back button, clavier, biométrie, MAJ Play Store.
 2. Ignorer la refonte de la charte couleur Greffio (bleu marine validé) et la landing desktop.
 3. Distinguer clairement : problèmes **natifs Android** vs problèmes **web embarqué** (layout desktop sur éditeurs documents).
@@ -301,7 +301,7 @@ docs/contexte-audit-mobile-greffio-chatgpt.md   (référence technique web + app
 
 ---
 
-## 11. État post-audit (juin 2026) — déjà livré, à valider en QA app
+## 11. État post-audit (juin 2026) – déjà livré, à valider en QA app
 
 - [x] Audit mobile landing + cockpit (commit `4b9ab18`)
 - [x] `MobilePageContainer` padding bottom nav
@@ -316,4 +316,4 @@ docs/contexte-audit-mobile-greffio-chatgpt.md   (référence technique web + app
 
 ---
 
-*Dernière mise à jour : juin 2026 — post audit mobile complet + signature sticky + offline + haptics (commit 4b9ab18).*
+*Dernière mise à jour : juin 2026 – post audit mobile complet + signature sticky + offline + haptics (commit 4b9ab18).*

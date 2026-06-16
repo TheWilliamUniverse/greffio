@@ -1,4 +1,4 @@
-# Contexte Greffio — Sécurité, résilience & protection contre les attaques (référence ChatGPT)
+# Contexte Greffio – Sécurité, résilience & protection contre les attaques (référence ChatGPT)
 
 > **Usage** : coller ce fichier (ou des sections) dans une conversation ChatGPT pour qu’il **élabore des fonctionnalités et améliorations de sécurité** : anti-DDoS, anti-abus, durcissement applicatif, surveillance, conformité, runbooks incident.
 >
@@ -48,16 +48,16 @@ Greffio est une plateforme SaaS française de **formalités d’entreprise** (cr
 **Déploiement backend** : tarball SCP local → `/opt/greffio` (pas de `git pull` sur le VPS). Script : `scripts/deploy-backend-vps.ps1`. Variables sensibles : `/opt/greffio/.env` uniquement.
 
 **Fichiers clés sécurité applicative** :
-- `server/index.js` — middleware global, rate limits, routes auth
-- `server/authMiddleware.js` — JWT Bearer, rôles, blocage tokens MFA pending
-- `server/tokens.js` — JWT access (15m) / refresh (7j), secret min 64 car. en prod
-- `src/api/client.js` — intercepteur 401 → refresh → retry, résilience réseau
-- `src/api/networkResilience.js` — retries transitoires, pas de logout sur coupure deploy
-- `public/sw.js` — service worker shell minimal (pas de cache API/JS dynamique)
+- `server/index.js` – middleware global, rate limits, routes auth
+- `server/authMiddleware.js` – JWT Bearer, rôles, blocage tokens MFA pending
+- `server/tokens.js` – JWT access (15m) / refresh (7j), secret min 64 car. en prod
+- `src/api/client.js` – intercepteur 401 → refresh → retry, résilience réseau
+- `src/api/networkResilience.js` – retries transitoires, pas de logout sur coupure deploy
+- `public/sw.js` – service worker shell minimal (pas de cache API/JS dynamique)
 
 ---
 
-## 3. État actuel — mesures déjà en place
+## 3. État actuel – mesures déjà en place
 
 ### 3.1 Transport & en-têtes HTTP
 
@@ -71,7 +71,7 @@ Greffio est une plateforme SaaS française de **formalités d’entreprise** (cr
 
 ### 3.2 Rate limiting (express-rate-limit)
 
-Limitation **par IP** (fenêtre glissante) — **pas de WAF edge ni rate limit global Nginx documenté** :
+Limitation **par IP** (fenêtre glissante) – **pas de WAF edge ni rate limit global Nginx documenté** :
 
 | Limiteur | Fenêtre | Max | Routes |
 |----------|---------|-----|--------|
@@ -95,12 +95,12 @@ Limitation **par IP** (fenêtre glissante) — **pas de WAF edge ni rate limit g
 | JWT | Access 15 min, refresh 7 j (`ACCESS_TOKEN_EXPIRES_IN`, `REFRESH_TOKEN_EXPIRES_IN`) |
 | Refresh | Rotation côté client ; endpoint dédié avec limite 120/15min |
 | MFA | TOTP, code email, recovery codes, appareils de confiance (`server/mfaStore.js`, routes `/api/auth/mfa/*`) |
-| Rôles | `CLIENT`, `FORMALISTE`, `OPS`, `ADMIN` — middleware `requireRole` |
+| Rôles | `CLIENT`, `FORMALISTE`, `OPS`, `ADMIN` – middleware `requireRole` |
 | Signup | Rôle forcé `CLIENT` côté serveur (ignore payload client) |
 | Brute-force login | Compteur mémoire in-process : 3 échecs / 15 min → email `suspicious_login_attempt` |
 | Idle web | `IdleSessionGuard` : verrouillage UI après 30 min inactivité (logout manuel) |
 | Biométrie mobile | Refresh token dans coffre natif Capacitor (pas de mot de passe en clair) |
-| Auth résiliente | Retries + pas de déconnexion sur erreurs transitoires (deploy) — `networkResilience.js` |
+| Auth résiliente | Retries + pas de déconnexion sur erreurs transitoires (deploy) – `networkResilience.js` |
 
 **Limite connue** : compteur login failures **en mémoire process** → perdu au restart PM2, non partagé multi-instances.
 
@@ -126,7 +126,7 @@ Limitation **par IP** (fenêtre glissante) — **pas de WAF edge ni rate limit g
 | CAWL | HMAC-SHA256 (`CawlPaymentAdapter.verifyWebhookSignature`) |
 | Google Pay / CAWL | Clés backend + webhook CAWL |
 
-**Limite connue** : certains webhooks génériques mentionnent « vérification HMAC à venir » dans `server/index.js` — à auditer.
+**Limite connue** : certains webhooks génériques mentionnent « vérification HMAC à venir » dans `server/index.js` – à auditer.
 
 ### 3.6 Frontend & résilience
 
@@ -134,15 +134,15 @@ Limitation **par IP** (fenêtre glissante) — **pas de WAF edge ni rate limit g
 |--------|--------|
 | Error boundaries | Global + par route (`GlobalErrorBoundary`, `RouteErrorBoundary`) |
 | Anti page blanche | Boot splash, recovery ChunkLoadError |
-| Service worker | Cache **uniquement** manifest + icônes (`public/sw.js` v2) — pas d’API ni assets hashés |
-| React Query | `staleTime: 0`, invalidation focus — pas de vérité UI depuis localStorage pour dossiers |
-| Smoke prod | `npm run smoke:prod` — health, ready, app-version |
+| Service worker | Cache **uniquement** manifest + icônes (`public/sw.js` v2) – pas d’API ni assets hashés |
+| React Query | `staleTime: 0`, invalidation focus – pas de vérité UI depuis localStorage pour dossiers |
+| Smoke prod | `npm run smoke:prod` – health, ready, app-version |
 
 ### 3.7 Emails & abus métier
 
 | Mesure | Détail |
 |--------|--------|
-| Relances dossier | Policy `shouldSendReminderForUser` — respect préférences profil |
+| Relances dossier | Policy `shouldSendReminderForUser` – respect préférences profil |
 | Délai relance | `DOSSIER_REMINDER_MIN_DAYS=2` (VPS `.env` + défaut code) |
 | Anti-doublon email | `hasRecentSuccessfulEmail` (72h relances, 168h digest) |
 | Purge brouillons fantômes | Auto au login + KPI Ops cockpit |
@@ -155,7 +155,7 @@ Demander à ChatGPT de **prioriser** des réponses pour chaque scénario :
 
 ### 4.1 DDoS & saturation
 
-- **Volumétrique L3/L4** : VPS unique API — pas de CDN/WAF devant `api.greffio.*` documenté
+- **Volumétrique L3/L4** : VPS unique API – pas de CDN/WAF devant `api.greffio.*` documenté
 - **Application layer** : endpoints publics (`/api/health`, `/api/company-search`, `/api/public/*`, landing) sans global throttle
 - **Slowloris / connexions** : pas de `limit_req` Nginx documenté
 - **Upload bombing** : limité 30/10min mais fichiers 10 Mo × 30 = charge disque/CPU analyse PDF
@@ -164,17 +164,17 @@ Demander à ChatGPT de **prioriser** des réponses pour chaque scénario :
 
 ### 4.2 Brute-force & credential stuffing
 
-- Login rate limit 30/15min/IP — contournable multi-IP
+- Login rate limit 30/15min/IP – contournable multi-IP
 - Pas de CAPTCHA, pas de lockout compte persistant en DB
-- Email alerte après 3 échecs — bon signal mais réactif
+- Email alerte après 3 échecs – bon signal mais réactif
 
 **Pistes** : fail2ban, Redis rate limit distribué, Have I Been Pwned, MFA obligatoire ops/admin, device fingerprinting.
 
 ### 4.3 Injection & XSS
 
-- Express `json()` body parser — pas de sanitization HTML globale
-- React échappe par défaut — risque sur `dangerouslySetInnerHTML` (à inventorier)
-- Upload PDF — parsing `pdf2json` (surface parser)
+- Express `json()` body parser – pas de sanitization HTML globale
+- React échappe par défaut – risque sur `dangerouslySetInnerHTML` (à inventorier)
+- Upload PDF – parsing `pdf2json` (surface parser)
 
 **Pistes** : audit SAST, CSP strict via Helmet custom, validation Zod sur toutes les entrées, sandbox analyse PDF.
 
@@ -188,7 +188,7 @@ Demander à ChatGPT de **prioriser** des réponses pour chaque scénario :
 
 ### 4.5 Fuite de données & secrets
 
-- `.env` VPS — jamais dans Git
+- `.env` VPS – jamais dans Git
 - `VITE_*` uniquement variables publiques dans le build front
 - Risque : logs PM2, stack traces en prod, buckets S3 ACL
 
@@ -212,7 +212,7 @@ Demander à ChatGPT de **prioriser** des réponses pour chaque scénario :
 ### 4.8 Disponibilité & incident
 
 - Un seul VPS API (SPOF)
-- PM2 restart auto — pas de cluster Node documenté
+- PM2 restart auto – pas de cluster Node documenté
 - Backups `/opt/greffio-backup-*` avant deploy
 
 **Pistes** : second VPS, health checks externes (UptimeRobot), runbook DDoS, communication incident clients.
@@ -229,7 +229,7 @@ Demander à ChatGPT de **prioriser** des réponses pour chaque scénario :
 | Proxy | Nginx → `127.0.0.1:8787` |
 | Deploy | `scripts/deploy-backend-vps.ps1` (tarball) |
 | Health | `GET /api/health`, `GET /api/ready` |
-| Cron | Relances dossier (`ops:send-dossier-reminders`) — configurable |
+| Cron | Relances dossier (`ops:send-dossier-reminders`) – configurable |
 
 **Variables `.env` pertinentes sécurité** (noms uniquement) :
 `NODE_ENV`, `JWT_SECRET`, `MFA_ENCRYPTION_KEY`, `DATABASE_URL`, `AWS_*`, `SIGNWELL_*`, `DIDIT_*`, `OPENAI_API_KEY`, `DOSSIER_REMINDER_MIN_DAYS`, webhooks PSP.
@@ -280,7 +280,7 @@ Consignes :
 3. Priorise anti-DDoS et anti-abus (brute force, scraping, upload bombing) sans casser l’UX client.
 4. Distingue ce qui se fait sur VPS/Nginx/Cloudflare vs ce qui se fait dans le code Express/React.
 5. Ne propose pas de modifier l’identité visuelle globale ni la landing.
-6. Ne demande jamais de secrets — seulement des noms de variables d’environnement.
+6. Ne demande jamais de secrets – seulement des noms de variables d’environnement.
 7. Inclure des critères d’acceptation testables et un runbook incident « attaque en cours ».
 8. Estimer coût mensuel indicatif des solutions edge (WAF/CDN) pour un trafic PME.
 
@@ -318,4 +318,4 @@ Format de sortie :
 
 ---
 
-*Fin du contexte — prêt pour audit sécurité ChatGPT.*
+*Fin du contexte – prêt pour audit sécurité ChatGPT.*

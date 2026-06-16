@@ -1,4 +1,4 @@
-# Runbook incidents sécurité — Greffio
+# Runbook incidents sécurité – Greffio
 
 Document opérationnel pour WILLIAM ESTABLISHMENTS / équipe ops. Pas de secrets dans ce fichier.
 
@@ -20,7 +20,7 @@ Document opérationnel pour WILLIAM ESTABLISHMENTS / équipe ops. Pas de secrets
 **Symptômes** : latence élevée, `502/503`, PM2 restart, health lent.
 
 1. Confirmer : `curl https://api.greffio.willentreprises.com/api/health`
-2. Consulter logs : `pm2 logs greffio-api --lines 200` — chercher `GLOBAL_RATE_LIMIT_HIT`
+2. Consulter logs : `pm2 logs greffio-api --lines 200` – chercher `GLOBAL_RATE_LIMIT_HIT`
 3. Si attaque évidente : activer/réduire `GLOBAL_RATE_LIMIT_MAX` (ex. 150) dans `/opt/greffio/.env`, `pm2 restart greffio-api`
 4. Couche edge : activer mode « Under Attack » ou règles WAF Cloudflare si disponible
 5. Nginx : appliquer snippets `docs/security/NGINX_HARDENING_GREFFIO.md` si pas encore fait

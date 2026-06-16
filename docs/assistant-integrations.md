@@ -1,8 +1,8 @@
-# Assistant Greffio — intégrations API recommandées
+# Assistant Greffio – intégrations API recommandées
 
 Ce document indique **ce que vous pouvez fournir en priorité** pour un assistant rapide, fiable et contextualisé.
 
-## Priorité 1 — indispensable pour la qualité
+## Priorité 1 – indispensable pour la qualité
 
 | Variable / service | Rôle | Où l’obtenir |
 |--------------------|------|--------------|
@@ -11,16 +11,16 @@ Ce document indique **ce que vous pouvez fournir en priorité** pour un assistan
 
 Sans clé OpenAI, l’assistant retombe sur Ollama local (plus lent) ou règles/RAG uniquement.
 
-## Priorité 2 — données entreprise France
+## Priorité 2 – données entreprise France
 
 | Variable | Rôle | Déjà câblé |
 |----------|------|------------|
-| **`PAPPERS_API_TOKEN`** | SIREN/SIRET, dénomination, siège, dirigeants — enrichit vérifications et pourra alimenter l’assistant. | Oui (`companyLookup`, vérification dossier) |
+| **`PAPPERS_API_TOKEN`** | SIREN/SIRET, dénomination, siège, dirigeants – enrichit vérifications et pourra alimenter l’assistant. | Oui (`companyLookup`, vérification dossier) |
 | **`COMPANY_LOOKUP_ENABLE_PAPPERS=true`** | Active Pappers dans la recherche entreprise. | Oui |
 
 Obtenir une clé : [pappers.fr/api](https://www.pappers.fr/api)
 
-## Priorité 3 — fallback local (VPS)
+## Priorité 3 – fallback local (VPS)
 
 | Variable | Rôle |
 |----------|------|
@@ -30,14 +30,14 @@ Obtenir une clé : [pappers.fr/api](https://www.pappers.fr/api)
 
 Installer sur le VPS : `scripts/install-ollama-vps.sh` (si présent) ou `curl -fsSL https://ollama.com/install.sh | sh`.
 
-## Priorité 4 — emails & ops (hors assistant direct)
+## Priorité 4 – emails & ops (hors assistant direct)
 
 | Variable | Rôle |
 |----------|------|
 | **`RESEND_API_KEY`** | Emails transactionnels, relances cron |
 | **`APP_URL`** | Liens dans emails et assistant |
 
-## Optionnel — pas requis aujourd’hui
+## Optionnel – pas requis aujourd’hui
 
 | API | Intérêt | Statut Greffio |
 |-----|---------|----------------|
@@ -48,7 +48,7 @@ Installer sur le VPS : `scripts/install-ollama-vps.sh` (si présent) ou `curl -f
 ## Configuration VPS recommandée (`.env`)
 
 ```env
-# Assistant — prod
+# Assistant – prod
 OPENAI_API_KEY=sk-...
 AI_PRIMARY_PROVIDER=openai
 AI_PRIMARY_MODEL=gpt-4o-mini
@@ -108,13 +108,13 @@ AI_ENABLE_RAG=true
 AI_ENABLE_PROVIDER_FALLBACK=true
 OLLAMA_BASE_URL=http://127.0.0.1:11434
 AI_OLLAMA_MODEL=llama3.2:3b
-# Ne pas définir OPENAI_API_KEY — l’assistant reste sur règles + RAG + Ollama
+# Ne pas définir OPENAI_API_KEY – l’assistant reste sur règles + RAG + Ollama
 ```
 
 ### Modèles Ollama recommandés (VPS 8 Go RAM)
 
-- `llama3.2:3b` — le plus rapide, suffisant avec le RAG Greffio
-- `qwen3:8b` — meilleure qualité rédactionnelle, plus lent
+- `llama3.2:3b` – le plus rapide, suffisant avec le RAG Greffio
+- `qwen3:8b` – meilleure qualité rédactionnelle, plus lent
 
 ### Ce qui ne remplace pas OpenAI gratuitement
 

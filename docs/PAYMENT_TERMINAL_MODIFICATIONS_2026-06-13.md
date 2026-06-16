@@ -1,4 +1,4 @@
-# Modifications paiement Greffio — terminal unifié, Amazon Pay, Google Pay
+# Modifications paiement Greffio – terminal unifié, Amazon Pay, Google Pay
 
 **Date :** 12–13 juin 2026  
 **Périmètre :** intégration Amazon Pay production, terminal de paiement accordéon, correction Google Pay `OR_BIBED_06`, déploiements frontend/backend  
@@ -11,12 +11,12 @@
 1. [Contexte et objectifs](#1-contexte-et-objectifs)
 2. [Chronologie Git (commits poussés)](#2-chronologie-git-commits-poussés)
 3. [Architecture avant / après](#3-architecture-avant--après)
-4. [Backend — Amazon Pay](#4-backend--amazon-pay)
-5. [Backend — Google Pay](#5-backend--google-pay)
-6. [Frontend — nouveau terminal accordéon](#6-frontend--nouveau-terminal-accordéon)
-7. [Frontend — panneaux Amazon Pay et Google Pay](#7-frontend--panneaux-amazon-pay-et-google-pay)
-8. [Frontend — pages de paiement](#8-frontend--pages-de-paiement)
-9. [Frontend — retour Amazon Pay / vérification](#9-frontend--retour-amazon-pay--vérification)
+4. [Backend – Amazon Pay](#4-backend--amazon-pay)
+5. [Backend – Google Pay](#5-backend--google-pay)
+6. [Frontend – nouveau terminal accordéon](#6-frontend--nouveau-terminal-accordéon)
+7. [Frontend – panneaux Amazon Pay et Google Pay](#7-frontend--panneaux-amazon-pay-et-google-pay)
+8. [Frontend – pages de paiement](#8-frontend--pages-de-paiement)
+9. [Frontend – retour Amazon Pay / vérification](#9-frontend--retour-amazon-pay--vérification)
 10. [API client (`src/api/payments.js`)](#10-api-client-srcapipaymentsjs)
 11. [Corrections de bugs rencontrés](#11-corrections-de-bugs-rencontrés)
 12. [Déploiements effectués](#12-déploiements-effectués)
@@ -59,7 +59,7 @@
 
 | Fichier | Nature |
 |---------|--------|
-| `src/components/payments/GreffioPaymentTerminal.jsx` | **Nouveau** — terminal accordéon |
+| `src/components/payments/GreffioPaymentTerminal.jsx` | **Nouveau** – terminal accordéon |
 | `src/components/payments/WalletPaymentTerminal.jsx` | Réduit à un réexport |
 | `src/components/payments/AmazonPayCheckoutPanel.jsx` | Mode `embedded` / `active` |
 | `src/components/payments/GooglePayCheckoutPanel.jsx` | Mode `embedded` / `active`, fix bouton |
@@ -112,7 +112,7 @@ export { GreffioPaymentTerminal as WalletPaymentTerminal } from '@/components/pa
 
 ---
 
-## 4. Backend — Amazon Pay
+## 4. Backend – Amazon Pay
 
 ### Fichiers
 
@@ -181,7 +181,7 @@ Retourne côté frontend (sans secrets) :
 - Sur notification `CHARGE`, relit le statut via API Amazon Pay.
 - Idempotence via `hasPaymentEventProviderId`.
 
-### Signature bouton — correction `50dfe6a`
+### Signature bouton – correction `50dfe6a`
 
 **Avant (incorrect) :** signature RSA du JSON brut.
 
@@ -219,7 +219,7 @@ const signAmazonPayString = (stringToSign, saltLength = 32) => {
 
 ---
 
-## 5. Backend — Google Pay
+## 5. Backend – Google Pay
 
 ### Fichiers
 
@@ -235,7 +235,7 @@ const signAmazonPayString = (stringToSign, saltLength = 32) => {
 | `GET` | `/api/payments/google-pay/config` | Non | Config environnement / gateway |
 | `POST` | `/api/payments/google-pay` | Oui | Traite le token Google Pay |
 
-### `getGooglePayPublicConfig()` — modifications
+### `getGooglePayPublicConfig()` – modifications
 
 **Avant :**
 
@@ -288,7 +288,7 @@ return {
 }
 ```
 
-### `processGooglePayCharge()` — modification `markPaid`
+### `processGooglePayCharge()` – modification `markPaid`
 
 **Avant :**
 
@@ -311,7 +311,7 @@ Le token Google Pay est stocké dans `providerPayload` en attendant le brancheme
 
 ---
 
-## 6. Frontend — nouveau terminal accordéon
+## 6. Frontend – nouveau terminal accordéon
 
 ### Fichier : `src/components/payments/GreffioPaymentTerminal.jsx` (NOUVEAU, 230 lignes)
 
@@ -320,15 +320,15 @@ Le token Google Pay est stocké dans `providerPayload` en attendant le brancheme
 | Prop | Type | Défaut | Usage |
 |------|------|--------|-------|
 | `amountCents` | number | `0` | Montant en centimes |
-| `amountLabel` | string | — | Affichage « 4,90 € TTC » |
+| `amountLabel` | string | – | Affichage « 4,90 € TTC » |
 | `offerLabel` | string | `'Greffio'` | Titre offre / ressource |
-| `dossierId` | string | — | Cible dossier |
-| `resourceOrderId` | string | — | Cible commande ressource |
-| `offerCode` | string | — | Code offre tarifaire |
-| `onPayByCard` | function | — | Handler checkout carte |
+| `dossierId` | string | – | Cible dossier |
+| `resourceOrderId` | string | – | Cible commande ressource |
+| `offerCode` | string | – | Code offre tarifaire |
+| `onPayByCard` | function | – | Handler checkout carte |
 | `isCreatingPayment` | boolean | `false` | État loading bouton carte |
 | `cardButtonLabel` | string | `'Payer par carte bancaire'` | Libellé bouton carte |
-| `className` | string | — | Classes CSS additionnelles |
+| `className` | string | – | Classes CSS additionnelles |
 
 #### État interne
 
@@ -344,7 +344,7 @@ Amazon Pay ouvert par défaut.
 |----|-------|-------|------------|
 | `amazon-pay` | Amazon Pay | Recommandé (vert) | Paiement express avec votre compte Amazon |
 | `google-pay` | Google Pay | Express (bleu ciel) | Cartes enregistrées dans Google Wallet |
-| `card` | Carte bancaire | Sécurisé (bleu Greffio) | Visa, Mastercard — confirmation serveur Greffio |
+| `card` | Carte bancaire | Sécurisé (bleu Greffio) | Visa, Mastercard – confirmation serveur Greffio |
 
 #### Marques inline (remplace les SVG custom des panneaux)
 
@@ -381,11 +381,11 @@ Les panneaux inactifs ne sont pas rendus → pas de double initialisation Google
 
 - Bloc informatif Visa / Mastercard / 3-D Secure
 - Bouton Greffio standard (`Button`) avec `onPayByCard`, disabled si `isCreatingPayment || !amountCents`
-- Libellé dynamique : `{cardButtonLabel} — {amountLabel}`
+- Libellé dynamique : `{cardButtonLabel} – {amountLabel}`
 
 ---
 
-## 7. Frontend — panneaux Amazon Pay et Google Pay
+## 7. Frontend – panneaux Amazon Pay et Google Pay
 
 ### `AmazonPayCheckoutPanel.jsx`
 
@@ -429,7 +429,7 @@ await new Promise((resolve) => {
 
 | Mode | Affichage montant | Badge environnement |
 |------|-------------------|---------------------|
-| Standalone (`embedded=false`) | Bloc montant + offerLabel | — |
+| Standalone (`embedded=false`) | Bloc montant + offerLabel | – |
 | Embedded (`embedded=true`) | Pas de montant (déjà dans le terminal) | Sandbox / Live + texte « Session signée Greffio » |
 
 #### Suppressions UI (commit local)
@@ -490,7 +490,7 @@ if (code.includes('OR_BIBED')) {
 
 ---
 
-### `useGooglePay.js` — modifications détaillées
+### `useGooglePay.js` – modifications détaillées
 
 #### Nouvelle prop `active`
 
@@ -543,7 +543,7 @@ if (!merged.readyForPayment && !merged.enabled) {
 
 ---
 
-## 8. Frontend — pages de paiement
+## 8. Frontend – pages de paiement
 
 ### `src/pages/PaymentPage.jsx`
 
@@ -619,7 +619,7 @@ Mêmes changements :
 
 ---
 
-## 9. Frontend — retour Amazon Pay / vérification
+## 9. Frontend – retour Amazon Pay / vérification
 
 ### Route (`src/App.jsx`)
 
@@ -669,7 +669,7 @@ export const processGooglePayPayment = ({ dossierId, resourceOrderId, offerCode,
 | Erreur | Symptôme | Cause racine | Correctif | Fichier |
 |--------|----------|--------------|-----------|---------|
 | API 404 Amazon Pay | Bouton ne charge pas | Backend non déployé VPS | Deploy tarball + restart PM2 | VPS |
-| `API_ERROR` frontend | Message générique | Idem | Idem | — |
+| `API_ERROR` frontend | Message générique | Idem | Idem | – |
 | `querySelector [object HTMLDivElement]` | Bouton Amazon invisible | `renderButton(DOMNode)` au lieu de sélecteur CSS | `#${buttonContainerId}` via `useId()` | `AmazonPayCheckoutPanel.jsx` |
 | `InvalidSignatureError` | Widget Amazon refuse la session | Signature du JSON brut | `AMZN-PAY-RSASSA-PSS-V2\n{sha256(payload)}` + RSA-PSS | `amazonPayService.js` |
 | Double bouton G Pay | Petit « G Pay » + bouton officiel | Marque SVG + `createButton()` | Suppression marque, mode embedded | `GooglePayCheckoutPanel.jsx` |
@@ -681,7 +681,7 @@ export const processGooglePayPayment = ({ dossierId, resourceOrderId, offerCode,
 
 ## 12. Déploiements effectués
 
-### Frontend — Hostinger (statique)
+### Frontend – Hostinger (statique)
 
 | Étape | Détail |
 |-------|--------|
@@ -692,7 +692,7 @@ export const processGooglePayPayment = ({ dossierId, resourceOrderId, offerCode,
 | Compte | `u379817729` |
 | Résultat | Upload + deploy `Request accepted` |
 
-### Backend — VPS Ubuntu
+### Backend – VPS Ubuntu
 
 | Étape | Détail |
 |-------|--------|
@@ -717,11 +717,11 @@ export const processGooglePayPayment = ({ dossierId, resourceOrderId, offerCode,
 
 Documenté dans `docs/AMAZON_PAY_SETUP.md`.
 
-### Variables `.env` VPS — Amazon Pay
+### Variables `.env` VPS – Amazon Pay
 
 Voir `PRODUCTION_SECRETS_TEMPLATE.env` lignes 70–83.
 
-### Variables `.env` VPS — Google Pay (état actuel)
+### Variables `.env` VPS – Google Pay (état actuel)
 
 ```env
 GOOGLE_PAY_ENVIRONMENT=TEST
@@ -763,7 +763,7 @@ La config runtime est **primée par l’API** `/api/payments/google-pay/config`.
 
 Plus fichier **non tracké** : `src/components/payments/GreffioPaymentTerminal.jsx` (230 lignes).
 
-### `WalletPaymentTerminal.jsx` — contenu final
+### `WalletPaymentTerminal.jsx` – contenu final
 
 ```js
 export { GreffioPaymentTerminal as WalletPaymentTerminal } from '@/components/payments/GreffioPaymentTerminal.jsx';
@@ -794,7 +794,7 @@ Pour encaisser réellement :
 
 ### Mobile release
 
-- `releases/MOBILE_RELEASE_1.2.8.md` modifié localement (+15 lignes) — à synchroniser si release mobile prévue.
+- `releases/MOBILE_RELEASE_1.2.8.md` modifié localement (+15 lignes) – à synchroniser si release mobile prévue.
 
 ---
 
@@ -802,7 +802,7 @@ Pour encaisser réellement :
 
 ### Terminal accordéon
 
-- [ ] Page `/paiement` — terminal visible, montant TTC correct
+- [ ] Page `/paiement` – terminal visible, montant TTC correct
 - [ ] Amazon Pay ouvert par défaut, chevron animé
 - [ ] Clic Google Pay → déroulement, Amazon se referme visuellement
 - [ ] Clic Carte → bouton unique, pas de doublon sidebar
@@ -837,7 +837,7 @@ curl -sS https://api.greffio.willentreprises.com/api/payments/google-pay/config
 
 ---
 
-## Annexe — autres fichiers touchés dans les commits antérieurs (hors lot local)
+## Annexe – autres fichiers touchés dans les commits antérieurs (hors lot local)
 
 | Fichier | Modification (commit `168024b`) |
 |---------|--------------------------------|
@@ -848,4 +848,4 @@ curl -sS https://api.greffio.willentreprises.com/api/payments/google-pay/config
 
 ---
 
-*Document généré le 13 juin 2026 — reflète l’ensemble des modifications apportées lors de l’intégration paiement Greffio (Amazon Pay production + terminal accordéon + correction Google Pay).*
+*Document généré le 13 juin 2026 – reflète l’ensemble des modifications apportées lors de l’intégration paiement Greffio (Amazon Pay production + terminal accordéon + correction Google Pay).*

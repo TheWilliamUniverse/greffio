@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { createHash } from 'node:crypto';
 import { getDeclarationErrorMessage, normalizeDeclarationFields } from '../documents/declarationNonCondamnation/formatters.js';
-import { validateNonConvictionFields } from '../pdf/nonConvictionPdf.js';
+import { generateNonConvictionPdf, validateNonConvictionFields } from '../pdf/nonConvictionPdf.js';
 import { stampSignatureOnPdf } from '../pdf/stampSignatureOnPdf.js';
 import {
   persistNonConvictionPdfForDossier,
@@ -121,7 +121,7 @@ export const registerNonConvictionSignatureRoutes = (app, {
             signatureRequestId: signatureRequest.id,
             fields: { ...validation.normalized, signerEmail, signatureFullName: signerFullName },
             appUrl,
-            emailSubject: `Signature — Déclaration de non-condamnation (${dossier.companyName || dossier.denomination || 'Greffio'})`,
+            emailSubject: `Signature – Déclaration de non-condamnation (${dossier.companyName || dossier.denomination || 'Greffio'})`,
           });
           const signingLink = signwellResult.signingLink || `${appUrl}/signature/${raw}`;
           void sendTransactionalEmail({
@@ -246,7 +246,7 @@ export const registerNonConvictionSignatureRoutes = (app, {
             signatureRequestId: signatureRequest.id,
             fields: { ...normalizedFields, signerEmail, signatureFullName: signerFullName },
             appUrl,
-            emailSubject: `Signature — Déclaration de non-condamnation (${dossier.companyName || dossier.denomination || 'Greffio'})`,
+            emailSubject: `Signature – Déclaration de non-condamnation (${dossier.companyName || dossier.denomination || 'Greffio'})`,
           });
           return res.json({
             ok: true,
@@ -269,15 +269,20 @@ export const registerNonConvictionSignatureRoutes = (app, {
         }
       }
 
+      const cleanPdfPath = await generateNonConvictionPdf({
+        filename: `Declaration_non_condamnation_clean_${dossier.reference || dossier.id}_${Date.now()}.pdf`,
+        fields: { ...normalizedFields, signerEmail, signatureFullName: signerFullName },
+        isDraft: false,
+      });
       const signedFilename = pdfPath.replace(/\.pdf$/i, '_signed.pdf');
       await stampSignatureOnPdf({
-        inputPath: pdfPath,
+        inputPath: cleanPdfPath,
         outputPath: signedFilename,
         signerFullName,
         signedAtIso: new Date().toISOString(),
         documentId: dossier.reference || dossier.id,
         signatureImagePngBase64,
-        proofLines: [`Empreinte brouillon : ${sha256Draft.slice(0, 16)}…`],
+        proofLines: [],
         layout: 'non_conviction_official',
       });
       const sha256Signed = createHash('sha256').update(fs.readFileSync(signedFilename)).digest('hex');

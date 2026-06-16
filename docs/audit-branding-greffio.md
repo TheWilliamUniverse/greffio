@@ -1,9 +1,9 @@
-# Audit branding & design system — Greffio SaaS
+# Audit branding & design system – Greffio SaaS
 
 > **Date** : 7 juin 2026  
 > **Périmètre** : frontend React (`src/`), tokens globaux (`src/index.css`), pages marketing et application connectée  
 > **Source de vérité** : tokens CSS réels du dépôt, composants en production  
-> **Contrainte produit** : identité globale **figée** (landing hero, palette, header/footer public, typographie de marque) — voir `.cursor/rules/preserve-brand-identity.mdc`
+> **Contrainte produit** : identité globale **figée** (landing hero, palette, header/footer public, typographie de marque) – voir `.cursor/rules/preserve-brand-identity.mdc`
 
 ---
 
@@ -16,7 +16,7 @@ Greffio dispose d'une identité visuelle **mature et reconnaissable** : bleu ins
 - Tokens centralisés dans `:root` avec double notation HSL (shadcn) et hex (`--we-*`) pour le marketing.
 - Couleurs sémantiques de marque distinctes : mint (succès/validation), citron (mise en avant douce), coral (alerte chaleureuse).
 - Composants marketing `.we-card` / `.we-panel` cohérents avec la landing.
-- Sidebar application : état actif navy (`--greffio-blue`) sur fond blanc — navigation claire.
+- Sidebar application : état actif navy (`--greffio-blue`) sur fond blanc – navigation claire.
 - Page tarifs récemment **alignée** sur `LandingPricingSection` (grille 3 colonnes, sans icônes décoratives).
 - `StatusBadge` avec glossaire client intégré (`title` + `sr-only`).
 
@@ -27,7 +27,7 @@ Greffio dispose d'une identité visuelle **mature et reconnaissable** : bleu ins
 - Couleurs accent secondaires (mint, coral, citron) sous-utilisées dans l'app connectée.
 - Duplication notation couleur : HSL + hex pour le même bleu primaire.
 
-**Verdict global** : **7,8 / 10** — identité solide, consolidation du design system recommandée sans toucher au hero landing.
+**Verdict global** : **7,8 / 10** – identité solide, consolidation du design system recommandée sans toucher au hero landing.
 
 | Dimension | Score |
 |-----------|-------|
@@ -70,7 +70,7 @@ Greffio dispose d'une identité visuelle **mature et reconnaissable** : bleu ins
 ### Éléments récemment stabilisés (juin 2026)
 
 - **Landing hero** : gelé, référence visuelle validée.
-- **Page `/tarifs`** : refactorée pour réutiliser `LandingPricingSection` — cohérence tarifaire landing ↔ page dédiée.
+- **Page `/tarifs`** : refactorée pour réutiliser `LandingPricingSection` – cohérence tarifaire landing ↔ page dédiée.
 
 ---
 
@@ -90,7 +90,7 @@ Le ton copy est professionnel, direct, sans jargon technique excessif côté cli
 ### Recommandation
 
 - Documenter dans le mini brand book (§14) trois adjectifs verrouillés : **Institutionnel · Guidé · Rassurant**.
-- Réserver mint et coral à des usages sémantiques stricts (validation, alerte douce) — éviter la dérive décorative.
+- Réserver mint et coral à des usages sémantiques stricts (validation, alerte douce) – éviter la dérive décorative.
 
 ---
 
@@ -135,7 +135,7 @@ Source : `src/index.css` (`:root` + utilities).
 | `--we-border` | `#c5d2e6` | `.we-card`, `.we-panel` |
 | `--we-muted` | `#243247` | Texte muted marketing |
 
-### 4.4 Observation — duplication
+### 4.4 Observation – duplication
 
 `--primary`, `--greffio-blue` et `--we-blue` représentent le **même bleu** en trois notations. `--background` (`#f8fafc`) et `--we-bg` (`#f6f8fc`) diffèrent légèrement (~2 % luminosité).
 
@@ -162,7 +162,7 @@ Proposition d'échelles **Primary / Neutral / Success / Warning / Error** dériv
 | **500** | **`214 72% 32%`** | **`#1e4d8c`** | **CTA, primary, sidebar active** |
 | 600 | `214 72% 26%` | `#183d70` | CTA hover |
 | 700 | `214 72% 20%` | `#122e54` | Texte sur fond clair accentué |
-| 800 | `218 62% 15%` | `#0e1a2e` | — |
+| 800 | `218 62% 15%` | `#0e1a2e` | – |
 | **900** | **`218 62% 9%`** | **`#0a1220`** | **Titres, foreground** |
 
 ### 5.2 Neutral
@@ -175,9 +175,9 @@ Proposition d'échelles **Primary / Neutral / Success / Warning / Error** dériv
 | 300 | `218 28% 65%` | `#94a3b8` | Placeholders |
 | 400 | `218 32% 45%` | `#5a6d85` | Labels tertiaires |
 | **500** | **`218 32% 22%`** | **`#243247`** | **= `--muted-foreground`** |
-| 600 | `218 40% 16%` | `#182536` | — |
-| 700 | `218 50% 12%` | `#101c2a` | — |
-| 800 | `218 55% 10%` | `#0c1520` | — |
+| 600 | `218 40% 16%` | `#182536` | – |
+| 700 | `218 50% 12%` | `#101c2a` | – |
+| 800 | `218 55% 10%` | `#0c1520` | – |
 | 900 | `218 62% 9%` | `#0a1220` | = foreground |
 
 ### 5.3 Success (basé sur mint)
@@ -185,12 +185,12 @@ Proposition d'échelles **Primary / Neutral / Success / Warning / Error** dériv
 | Niveau | HSL | Hex | Rôle |
 |--------|-----|-----|------|
 | 50 | `163 60% 95%` | `#e8f8f2` | Fond badge validé |
-| 100 | `163 55% 85%` | `#b8ead8` | — |
-| 200 | `163 58% 70%` | `#6dd4b0` | — |
-| 300 | `163 60% 58%` | `#45c89a` | — |
+| 100 | `163 55% 85%` | `#b8ead8` | – |
+| 200 | `163 58% 70%` | `#6dd4b0` | – |
+| 300 | `163 60% 58%` | `#45c89a` | – |
 | **500** | **`163 62% 47%`** | **`#2db88a`** | **= `--greffio-mint`** |
 | 700 | `163 65% 32%` | `#1a8f66` | Texte success foncé |
-| 900 | `163 70% 18%` | `#0d4d36` | — |
+| 900 | `163 70% 18%` | `#0d4d36` | – |
 
 ### 5.4 Warning
 
@@ -198,7 +198,7 @@ Proposition d'échelles **Primary / Neutral / Success / Warning / Error** dériv
 |--------|-----|-----|------|
 | 50 | `45 100% 91%` | `#fff4d1` | = `--greffio-citron` (fond) |
 | 100 | `45 95% 85%` | `#ffecb8` | Bandeau info |
-| 300 | `35 90% 65%` | `#f0b84d` | — |
+| 300 | `35 90% 65%` | `#f0b84d` | – |
 | **500** | **`10 85% 66%`** | **`#f06b52`** | **= `--greffio-coral`** |
 | 700 | `10 80% 48%` | `#d44a32` | Texte warning |
 
@@ -207,8 +207,8 @@ Proposition d'échelles **Primary / Neutral / Success / Warning / Error** dériv
 | Niveau | HSL | Hex | Rôle |
 |--------|-----|-----|------|
 | 50 | `354 80% 96%` | `#fef0f2` | Fond erreur léger |
-| 100 | `354 75% 90%` | `#fcd5da` | — |
-| 300 | `354 75% 70%` | `#f07a8a` | — |
+| 100 | `354 75% 90%` | `#fcd5da` | – |
+| 300 | `354 75% 70%` | `#f07a8a` | – |
 | **500** | **`354 75% 55%`** | **`#e53e56`** | **= `--destructive`** |
 | 700 | `354 78% 42%` | `#c41e3a` | Texte erreur |
 
@@ -226,13 +226,13 @@ Migrer progressivement `StatusBadge` et indicateurs ops vers ces échelles nomm�
 |------|--------|----------------|-------------|
 | Corps | **Inter** | 400–800 | `body`, UI, formulaires |
 | Titres | **Plus Jakarta Sans** | 600–800 | `h1`–`h6`, titres marketing |
-| Titres fluides | — | — | `.fluid-h1`, `.fluid-h2` (`clamp()`) |
+| Titres fluides | – | – | `.fluid-h1`, `.fluid-h2` (`clamp()`) |
 
 Règles CSS :
 
 - `text-wrap: balance` sur les headings.
 - Mobile : `font-size: 16px` forcé sur inputs (anti-zoom iOS).
-- Marketing : eyebrow `.we-hero-eyebrow` — 10 px, uppercase, letter-spacing 0.28 em.
+- Marketing : eyebrow `.we-hero-eyebrow` – 10 px, uppercase, letter-spacing 0.28 em.
 
 Hiérarchie observée :
 
@@ -284,7 +284,7 @@ Hiérarchie observée :
 | `.surface-grid` | Grille 32×32 px, bleu 10 % opacité | Fonds sections landing |
 | `.interactive-hover` | Ring primary 14 % + ombre | Focus/hover générique |
 
-Les ombres utilisent systématiquement la teinte navy `rgba(10, 18, 32, …)` — **cohérent** avec `--greffio-blue-900`.
+Les ombres utilisent systématiquement la teinte navy `rgba(10, 18, 32, …)` – **cohérent** avec `--greffio-blue-900`.
 
 ### Recommandation
 
@@ -307,7 +307,7 @@ Les ombres utilisent systématiquement la teinte navy `rgba(10, 18, 32, …)` �
 
 ### 9.2 Composants shadcn / app
 
-- `Button` : variants default / outline / ghost — ghost hover sur `--muted` (gris-bleu, plus citron depuis juin 2026).
+- `Button` : variants default / outline / ghost – ghost hover sur `--muted` (gris-bleu, plus citron depuis juin 2026).
 - `Card` : fond blanc, bordure `--border`, radius shadcn.
 - `StatusBadge` : pill `rounded-full`, couleurs Tailwind génériques, glossaire via `getStatusGlossary()`.
 
@@ -329,13 +329,13 @@ Les ombres utilisent systématiquement la teinte navy `rgba(10, 18, 32, …)` �
 
 ## 10. Zone marketing (landing, tarifs, simulateur)
 
-### 10.1 Landing hero — **FIGÉ**
+### 10.1 Landing hero – **FIGÉ**
 
-**Observation** : `LandingPage.jsx` — hero animé Framer Motion, highlights, checklist, CTA « Générer mes statuts », recherche SIREN (`CompanyLookupCard`), sections processus / FAQ / tarifs via `LandingPricingSection`. Classe `.we-hero-eyebrow`, fond `.surface-grid`, cartes `.we-card`.
+**Observation** : `LandingPage.jsx` – hero animé Framer Motion, highlights, checklist, CTA « Générer mes statuts », recherche SIREN (`CompanyLookupCard`), sections processus / FAQ / tarifs via `LandingPricingSection`. Classe `.we-hero-eyebrow`, fond `.surface-grid`, cartes `.we-card`.
 
 **Recommandation** : **Aucune modification structurelle ou visuelle** sans demande explicite ciblant le hero.
 
-### 10.2 Tarifs — **ALIGNÉ (juin 2026)**
+### 10.2 Tarifs – **ALIGNÉ (juin 2026)**
 
 **Observation** :
 
@@ -350,7 +350,7 @@ Les ombres utilisent systématiquement la teinte navy `rgba(10, 18, 32, …)` �
 
 **Observation** : simulateur et guide réutilisent tokens primary / greffio-blue-900 ; App Install utilise `--greffio-citron` en fond section.
 
-**Recommandation** : Limiter le citron aux pages acquisition (tarifs badge, guide, install app) — pas dans l'app connectée.
+**Recommandation** : Limiter le citron aux pages acquisition (tarifs badge, guide, install app) – pas dans l'app connectée.
 
 ---
 
@@ -390,7 +390,7 @@ Mapping sémantique :
 
 **Observation** : `OpsSidebar.jsx` et pages ops partagent la même logique primary ; `TeamPage` suit le layout app standard.
 
-**Recommandation** : Différencier visuellement ops (badge « Interne » discret) sans nouvelle palette — teinte neutral-100 suffit.
+**Recommandation** : Différencier visuellement ops (badge « Interne » discret) sans nouvelle palette – teinte neutral-100 suffit.
 
 ---
 
@@ -433,7 +433,7 @@ Mapping sémantique :
 
 ### Recommandations
 
-- Ne jamais utiliser mint/coral seuls pour du texte body sur blanc — toujours avec fond tint (50/100) ou texte navy.
+- Ne jamais utiliser mint/coral seuls pour du texte body sur blanc – toujours avec fond tint (50/100) ou texte navy.
 - Audit contraste `StatusBadge` green-800 sur green-100 ( généralement OK ).
 - Ajouter test automatisé contrastes sur primary/secondary/destructive.
 
@@ -446,7 +446,7 @@ Mapping sémantique :
 - Logo Greffio bleu sur fond clair (header public, sidebar icône Building2 en fallback).
 - Animation `.logo-sheen` autorisée landing uniquement.
 
-### Palette — règles d'usage
+### Palette – règles d'usage
 
 | Couleur | Usage autorisé | Usage interdit |
 |---------|------------------|------------------|
@@ -508,7 +508,7 @@ Mapping sémantique :
 
 Légende : **Observation** = constat · **Recommandation** = action proposée · **P0** = urgent · **P1** = important · **P2** = amélioration
 
-### P0 — Ne pas faire (contraintes)
+### P0 – Ne pas faire (contraintes)
 
 | # | Item | Type |
 |---|------|------|
@@ -516,7 +516,7 @@ Légende : **Observation** = constat · **Recommandation** = action proposée ·
 | 2 | Modifier tokens globaux `index.css` pour « harmoniser » | Interdit |
 | 3 | Changer header/footer public | Interdit |
 
-### P1 — Consolidation (30 jours)
+### P1 – Consolidation (30 jours)
 
 | # | Action | Type | Effort |
 |---|--------|------|--------|
@@ -526,7 +526,7 @@ Légende : **Observation** = constat · **Recommandation** = action proposée ·
 | 4 | Classe utilitaire `.sidebar-nav-active` extraite de `Sidebar.jsx` | Recommandation | S |
 | 5 | Tooltip Radix sur StatusBadge (glossaire visible) | Recommandation | S |
 
-### P2 — Amélioration (90 jours)
+### P2 – Amélioration (90 jours)
 
 | # | Action | Type | Effort |
 |---|--------|------|--------|
@@ -536,7 +536,7 @@ Légende : **Observation** = constat · **Recommandation** = action proposée ·
 | 9 | Harmoniser `--background` vs `--we-bg` (documenter ou unifier) | Recommandation | S |
 | 10 | Emails transactionnels : vérifier wordmark + primary `#1e4d8c` | Observation | M |
 
-### P3 — Long terme (6 mois)
+### P3 – Long terme (6 mois)
 
 | # | Action | Type |
 |---|--------|------|
@@ -546,7 +546,7 @@ Légende : **Observation** = constat · **Recommandation** = action proposée ·
 
 ---
 
-## Annexe A — Bloc CSS design tokens consolidé
+## Annexe A – Bloc CSS design tokens consolidé
 
 Proposition de consolidation **documentaire** (ne pas déployer sans validation produit) :
 
@@ -594,7 +594,7 @@ Proposition de consolidation **documentaire** (ne pas déployer sans validation 
 
 ---
 
-## Annexe B — Matrice observation vs recommandation (récap.)
+## Annexe B – Matrice observation vs recommandation (récap.)
 
 | Sujet | Observation (juin 2026) | Recommandation |
 |-------|-------------------------|----------------|

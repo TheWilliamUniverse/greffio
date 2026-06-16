@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { PDFDocument, rgb } from 'pdf-lib';
+import { PDFDocument } from 'pdf-lib';
 import { formatFrenchDate } from './nonConvictionPdf.js';
 import { buildDocumentVerifyUrl } from '../services/documentIntegrityService.js';
 import {
@@ -65,7 +65,13 @@ export const generateFormalityPowersPdf = async ({
   const city = pdfSafe(fields.statementCity || '______________________');
   const dateFr = formatFrenchDate(fields.statementDate) || '____ / ____ / ______';
   const signatoryName = pdfSafe(fields.signatoryName || fields.signatureFullName || 'Le signataire');
-  const signatoryTitle = pdfSafe(fields.signatoryTitle || 'Le Président');
+  const signatoryTitle = pdfSafe(fields.signatoryTitle || fields.signatoryCapacity || 'Personne habilitée');
+  const clientFullName = pdfSafe(fields.clientFullName || signatoryName);
+  const clientBirthDate = pdfSafe(formatFrenchDate(fields.clientBirthDate) || fields.clientBirthDate || '____ / ____ / ______');
+  const clientBirthPlace = pdfSafe(fields.clientBirthPlace || '______________________');
+  const clientAddress = pdfSafe(fields.clientAddress || 'Adresse complète à compléter');
+  const registeredOffice = pdfSafe(fields.companyRegisteredOffice || fields.registeredOffice || 'siège social à compléter');
+  const companyIdentifier = pdfSafe(fields.companySirenOrSiret || fields.companySiren || 'non renseigné');
   const verifyUrl = buildDocumentVerifyUrl({ appUrl, documentId, verifyToken });
   const qrImage = await embedQrCode(pdfDoc, verifyUrl);
 
@@ -83,8 +89,17 @@ export const generateFormalityPowersPdf = async ({
   let y = mmFromTopToY(38);
   y = drawLabelValue({
     page,
+    label: 'Mandant : ',
+    value: `${clientFullName}, né(e) le ${clientBirthDate} à ${clientBirthPlace}, demeurant ${clientAddress}`,
+    y,
+    font,
+    fontBold,
+  });
+  y -= 4;
+  y = drawLabelValue({
+    page,
     label: 'Société concernée : ',
-    value: companyName,
+    value: `${companyName}, ${legalFormLabel}, siège social : ${registeredOffice}, SIREN/SIRET : ${companyIdentifier}`,
     y,
     font,
     fontBold,
@@ -129,7 +144,6 @@ export const generateFormalityPowersPdf = async ({
     : [
       'procéder à la signature électronique des pièces lorsque la loi l\'autorise ;',
       'effectuer le dépôt au greffe compétent et les formalités au guichet unique ;',
-      'publier l\'annonce légale et accomplir toute publicité requise ;',
       'demander l\'immatriculation et répondre aux demandes de compléments du greffe ;',
       'corriger, compléter ou régulariser le dossier dans l\'intérêt de la Société.',
     ];
@@ -150,45 +164,101 @@ export const generateFormalityPowersPdf = async ({
     y -= Math.max(lines.length * LINE_BODY, LINE_BODY) + 3;
   });
 
-  y = Math.min(y, mmFromTopToY(188));
-  page.drawText(`Fait à ${city}, le ${pdfSafe(dateFr)}.`, {
+  drawPageFooter({
+    page,
+    font,
+    pageNumber: 1,
+    pageTotal: 2,
+    leftText: 'Greffio · Pouvoirs pour formalités et procuration',
+  });
+
+  const signaturePage = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  drawHeaderBand({
+    page: signaturePage,
+    font,
+    fontBold,
+    title,
+    subtitle: 'Pouvoirs pour formalités et procuration du client',
+    reference: fields.dossierReference ? pdfSafe(fields.dossierReference) : null,
+  });
+  let y2 = mmFromTopToY(40);
+  const drawSection = (heading, paragraphs) => {
+    signaturePage.drawText(pdfSafe(heading.toUpperCase()), {
+      x: MARGIN_PT,
+      y: y2,
+      size: SIZE_BODY,
+      font: fontBold,
+      color: COLOR_TEXT,
+    });
+    y2 -= LINE_BODY + 4;
+    paragraphs.forEach((paragraph) => {
+      const lines = wrapTextByWidth(paragraph, font, SIZE_BODY, CONTENT_WIDTH);
+      lines.forEach((line) => {
+        signaturePage.drawText(pdfSafe(line), {
+          x: MARGIN_PT,
+          y: y2,
+          size: SIZE_BODY,
+          font,
+          color: COLOR_TEXT,
+          maxWidth: CONTENT_WIDTH,
+        });
+        y2 -= LINE_BODY;
+      });
+      y2 -= 8;
+    });
+    y2 -= 6;
+  };
+
+  drawSection('Exclusion des annonces légales', [
+    `La présente procuration n'autorise pas ${mandataire} à publier, commander, valider, modifier, renouveler, payer ou faire publier une annonce légale au nom et pour le compte du Mandant.`,
+    'Toute intervention relative à une annonce légale devra faire l’objet d’un mandat écrit distinct, exprès et spécifique, ou être accomplie directement par le Mandant ou par le professionnel qu’il aura choisi.',
+    'Aucune mention du présent document ne doit être interprétée comme conférant au Mandataire un pouvoir général de publicité légale.',
+  ]);
+  drawSection('Déclarations, limites et responsabilité du mandant', [
+    'Le Mandant déclare que les informations, documents, justificatifs, décisions, autorisations et pièces transmis au Mandataire sont exacts, complets, sincères et à jour.',
+    'La présente procuration est limitée aux actes strictement nécessaires ou utiles à l’accomplissement des formalités confiées. Elle ne permet pas au Mandataire d’ouvrir un compte bancaire, de contracter un emprunt, de céder des titres sociaux, de prendre une décision sociale relevant des associés ou dirigeants, ni d’engager la société dans une opération étrangère au dossier de formalités.',
+    'La présente procuration prend effet à compter de sa signature et demeure valable jusqu’à l’accomplissement complet de la formalité confiée, sauf révocation écrite.',
+  ]);
+
+  y2 = Math.min(y2, mmFromTopToY(200));
+  signaturePage.drawText(`Fait à ${city}, le ${pdfSafe(dateFr)}.`, {
     x: MARGIN_PT,
-    y,
+    y: y2,
     size: SIZE_BODY,
     font,
     color: COLOR_TEXT,
     maxWidth: CONTENT_WIDTH,
   });
 
-  y -= LINE_BODY + 6;
+  y2 -= LINE_BODY + 6;
   const signNameLines = wrapTextByWidth(`${signatoryName},`, font, SIZE_BODY, CONTENT_WIDTH);
-  y = drawWrappedBlock({
-    page,
+  y2 = drawWrappedBlock({
+    page: signaturePage,
     lines: signNameLines,
     x: MARGIN_PT,
-    yStart: y,
+    yStart: y2,
     font,
   });
-  y -= 2;
-  page.drawText(signatoryTitle, {
+  y2 -= 2;
+  signaturePage.drawText(signatoryTitle, {
     x: MARGIN_PT,
-    y,
+    y: y2,
     size: SIZE_BODY,
     font: fontBold,
     color: COLOR_TEXT,
     maxWidth: CONTENT_WIDTH,
   });
 
-  y -= LINE_BODY + 8;
-  page.drawText('Signature :', {
+  y2 -= LINE_BODY + 8;
+  signaturePage.drawText('Signature du Mandant :', {
     x: MARGIN_PT,
-    y,
+    y: y2,
     size: SIZE_BODY,
     font,
     color: COLOR_TEXT,
   });
-  const lineY = y - 18;
-  page.drawLine({
+  const lineY = y2 - 18;
+  signaturePage.drawLine({
     start: { x: MARGIN_PT + 58, y: lineY },
     end: { x: MARGIN_PT + 58 + 200, y: lineY },
     thickness: 0.6,
@@ -197,7 +267,7 @@ export const generateFormalityPowersPdf = async ({
 
   if (documentId || verifyUrl) {
     drawVerificationBlock({
-      page,
+      page: signaturePage,
       pdfDoc,
       qrImage,
       verifyUrl,
@@ -209,11 +279,11 @@ export const generateFormalityPowersPdf = async ({
   }
 
   drawPageFooter({
-    page,
+    page: signaturePage,
     font,
-    pageNumber: 1,
-    pageTotal: 1,
-    leftText: 'Greffio · Pouvoirs pour formalités · Annexe 3',
+    pageNumber: 2,
+    pageTotal: 2,
+    leftText: 'Greffio · Pouvoirs pour formalités et procuration',
   });
 
   if (isDraft) {

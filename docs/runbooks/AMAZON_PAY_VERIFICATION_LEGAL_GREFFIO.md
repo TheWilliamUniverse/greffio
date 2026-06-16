@@ -1,6 +1,6 @@
-# Runbook — Débloquer la vérification Amazon Pay Greffio
+# Runbook – Débloquer la vérification Amazon Pay Greffio
 
-> **Contexte** : mail Amazon Pay (juin 2026) indiquant que `http://greffio.willentreprises.com/` ne contient pas les informations correctes sur l’entité légale propriétaire du site — **notamment l’adresse**.
+> **Contexte** : mail Amazon Pay (juin 2026) indiquant que `http://greffio.willentreprises.com/` ne contient pas les informations correctes sur l’entité légale propriétaire du site – **notamment l’adresse**.
 >
 > **Objectif** : mettre le site et Seller Central en conformité, puis relancer la review via **Appeal**.
 >
@@ -16,13 +16,13 @@
 1. [Ce que demande Amazon (en clair)](#1-ce-que-demande-amazon-en-clair)
 2. [Pourquoi Greffio a été refusé](#2-pourquoi-greffio-a-été-refusé)
 3. [Les 3 chantiers à faire](#3-les-3-chantiers-à-faire)
-4. [Chantier A — Seller Central : infos entreprise](#4-chantier-a--seller-central--infos-entreprise)
-5. [Chantier B — Seller Central : URL du site](#5-chantier-b--seller-central--url-du-site)
-6. [Chantier C — Site Greffio : 4 pages légales](#6-chantier-c--site-greffio--4-pages-légales)
+4. [Chantier A – Seller Central : infos entreprise](#4-chantier-a--seller-central--infos-entreprise)
+5. [Chantier B – Seller Central : URL du site](#5-chantier-b--seller-central--url-du-site)
+6. [Chantier C – Site Greffio : 4 pages légales](#6-chantier-c--site-greffio--4-pages-légales)
 7. [Bloc légal à afficher (texte canonique)](#7-bloc-légal-à-afficher-texte-canonique)
 8. [Modifications code Greffio (Cursor)](#8-modifications-code-greffio-cursor)
 9. [Déploiement et vérification publique](#9-déploiement-et-vérification-publique)
-10. [Chantier D — Appeal Amazon Pay](#10-chantier-d--appeal-amazon-pay)
+10. [Chantier D – Appeal Amazon Pay](#10-chantier-d--appeal-amazon-pay)
 11. [Checklist finale](#11-checklist-finale)
 12. [FAQ / erreurs fréquentes](#12-faq--erreurs-fréquentes)
 
@@ -47,9 +47,9 @@ Sur **4 types de pages** :
 | Terms and conditions | Mentions légales + CGU/CGV | `https://greffio.willentreprises.com/mentions-legales` |
 | Privacy policy | Politique de confidentialité | `https://greffio.willentreprises.com/confidentialite` |
 | Contact us | Contact | `https://greffio.willentreprises.com/contact` |
-| About us | **À créer** — page À propos | `https://greffio.willentreprises.com/a-propos` *(proposé)* |
+| About us | **À créer** – page À propos | `https://greffio.willentreprises.com/a-propos` *(proposé)* |
 
-Tant que ces pages ne montrent pas **nom + adresse + immatriculation** de façon visible et cohérente, la vérification reste bloquée — **même si l’intégration technique Amazon Pay fonctionne**.
+Tant que ces pages ne montrent pas **nom + adresse + immatriculation** de façon visible et cohérente, la vérification reste bloquée – **même si l’intégration technique Amazon Pay fonctionne**.
 
 Le mail mentionne aussi la mise à jour de l’**URL dans Seller Central** : en pratique, s’assurer que l’origin JavaScript est bien `https://` (pas `http://`) et correspond au domaine live.
 
@@ -64,7 +64,7 @@ Audit du site au 13 juin 2026 :
 | `/mentions-legales` | ✅ WILLIAM ESTABLISHMENTS | ✅ | ❌ **absente** |
 | `/confidentialite` | ❌ pas de bloc éditeur | ❌ | ❌ |
 | `/contact` | ❌ | ❌ | ❌ (email/tél. seulement) |
-| About us | ❌ **page inexistante** | — | — |
+| About us | ❌ **page inexistante** | – | – |
 
 **Cause probable du refus** : Amazon cite explicitement « **address** ». Greffio affiche le nom et les numéros sur les mentions légales, mais **nulle part l’adresse du siège social**.
 
@@ -84,11 +84,11 @@ Ordre recommandé :
 4. Appeal avec les URLs des pages corrigées
 ```
 
-Ne pas faire l’appeal **avant** que les pages publiques soient à jour — Amazon reverra le site et re-refusera si l’adresse manque encore.
+Ne pas faire l’appeal **avant** que les pages publiques soient à jour – Amazon reverra le site et re-refusera si l’adresse manque encore.
 
 ---
 
-## 4. Chantier A — Seller Central : infos entreprise
+## 4. Chantier A – Seller Central : infos entreprise
 
 **Lien** : [Business and contact info](https://sellercentral-europe.amazon.com/external-payments/business-and-contact-info)
 
@@ -107,7 +107,7 @@ Ne pas faire l’appeal **avant** que les pages publiques soient à jour — Ama
 
 ---
 
-## 5. Chantier B — Seller Central : URL du site
+## 5. Chantier B – Seller Central : URL du site
 
 **Lien** : [Manage Client/Store ID configurations](https://sellercentral-europe.amazon.com/external-payments/amazon-pay/integration-central/lwa)
 
@@ -136,17 +136,17 @@ https://greffio.willentreprises.com/
 
 Voir `docs/AMAZON_PAY_SETUP.md` pour le détail technique.
 
-> Le mail cite `http://` — Greffio est en production **HTTPS**. L’origin doit être en `https://` avec le slash final `/`.
+> Le mail cite `http://` – Greffio est en production **HTTPS**. L’origin doit être en `https://` avec le slash final `/`.
 
 ---
 
-## 6. Chantier C — Site Greffio : 4 pages légales
+## 6. Chantier C – Site Greffio : 4 pages légales
 
 Chaque page doit afficher le **même bloc identité** (section 7). Pas de contradictions entre pages.
 
 ### 6.1 Terms and conditions → `/mentions-legales`
 
-**État actuel** : nom, RCS, SIRET, TVA — **sans adresse**.
+**État actuel** : nom, RCS, SIRET, TVA – **sans adresse**.
 
 **À faire** : dans la section « Éditeur du service », ajouter après le SIRET :
 
@@ -166,7 +166,7 @@ Email : contact@willentreprises.com
 
 ### 6.3 Contact us → `/contact`
 
-**État actuel** : formulaire + email + téléphone — pas d’identité société.
+**État actuel** : formulaire + email + téléphone – pas d’identité société.
 
 **À faire** : ajouter un encart « Éditeur du site » dans la colonne de droite (aside) avec le bloc légal (raison sociale, adresse, RCS, SIRET, contacts).
 
@@ -212,7 +212,7 @@ Ce bloc doit être **lisible sans être caché** (pas uniquement en meta, pas en
 
 Pour appliquer proprement dans le repo :
 
-### 8.1 Source unique — `src/config/publisher.js`
+### 8.1 Source unique – `src/config/publisher.js`
 
 Ajouter les constantes manquantes :
 
@@ -226,7 +226,7 @@ export const PUBLISHER_PHONE = '04 11 81 86 70';
 
 ### 8.2 Composant réutilisable (recommandé)
 
-Créer `src/components/legal/PublisherLegalBlock.jsx` — affiche le bloc section 7 — importé par :
+Créer `src/components/legal/PublisherLegalBlock.jsx` – affiche le bloc section 7 – importé par :
 
 - `LegalMentionsPage.jsx`
 - `PrivacyPolicyPage.jsx`
@@ -234,13 +234,13 @@ Créer `src/components/legal/PublisherLegalBlock.jsx` — affiche le bloc sectio
 - `AboutPage.jsx` (nouveau)
 - optionnel : `GreffioUltraFooter.jsx`
 
-### 8.3 Routing — `src/App.jsx`
+### 8.3 Routing – `src/App.jsx`
 
 ```jsx
 <Route path="/a-propos" element={<AboutPage />} />
 ```
 
-### 8.4 Footer — `src/config/siteFooter.js`
+### 8.4 Footer – `src/config/siteFooter.js`
 
 Ajouter dans la colonne « Conformité » ou « Utilitaire » :
 
@@ -275,17 +275,17 @@ Ouvrir chaque URL et confirmer visuellement **nom + adresse + RCS/SIRET** :
 
 ### Captures d’écran
 
-Prendre 4 captures (une par page) montrant le bloc légal — utiles pour l’appeal ou un échange support Amazon.
+Prendre 4 captures (une par page) montrant le bloc légal – utiles pour l’appeal ou un échange support Amazon.
 
 ---
 
-## 10. Chantier D — Appeal Amazon Pay
+## 10. Chantier D – Appeal Amazon Pay
 
 **Quand** : uniquement **après** déploiement site + vérif Seller Central.
 
 **Où** : [Integration Central / LWA](https://sellercentral-europe.amazon.com/external-payments/amazon-pay/integration-central/lwa) → option **Appeal**.
 
-### Modèle de message (EN — Amazon préfère souvent l’anglais)
+### Modèle de message (EN – Amazon préfère souvent l’anglais)
 
 ```text
 Hello Amazon Pay team,
@@ -384,7 +384,7 @@ Non pour Amazon Pay Greffio : l’origin enregistrée est le sous-domaine Greffi
 
 ### « Erreur reçue par erreur ? »
 
-Vérifier [Business and contact info](https://sellercentral-europe.amazon.com/external-payments/business-and-contact-info). Si tout est correct côté Seller Central mais le site manque l’adresse, ce n’est **pas** une erreur — corriger le site.
+Vérifier [Business and contact info](https://sellercentral-europe.amazon.com/external-payments/business-and-contact-info). Si tout est correct côté Seller Central mais le site manque l’adresse, ce n’est **pas** une erreur – corriger le site.
 
 ### « Support Amazon »
 

@@ -1,4 +1,4 @@
-# Checklist tests — Lot P0 sécurité Greffio
+# Checklist tests – Lot P0 sécurité Greffio
 
 ## Prérequis local
 

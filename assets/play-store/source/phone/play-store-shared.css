@@ -924,7 +924,7 @@ h3 {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   PHONE PLAY STORE — iPhone 17 Pro mockup (canvas marketing)
+   PHONE PLAY STORE – iPhone 17 Pro mockup (canvas marketing)
    Canvas 1080×1920 · outer 816×1760 · inner 804×1748 · 6px bezel
    ══════════════════════════════════════════════════════════════ */
 body.capture-phone {
@@ -1174,7 +1174,7 @@ body.capture-phone .screen::after {
   pointer-events: none;
 }
 
-/* ── Phone inner Greffio UI (native 804×1748 — no scale transform) ── */
+/* ── Phone inner Greffio UI (native 804×1748 – no scale transform) ── */
 body.capture-phone .header {
   padding: 0 var(--pad-inline);
 }

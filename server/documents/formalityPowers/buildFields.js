@@ -14,6 +14,20 @@ export const buildFormalityPowersFields = ({ dossier, questionnaire = {}, user =
       || [questionnaire.firstName, questionnaire.lastName].filter(Boolean).join(' ').trim(),
     fallbackTitle: signatureTitle,
   });
+  const clientFullName = [questionnaire.firstName, questionnaire.lastName].filter(Boolean).join(' ').trim()
+    || signature.signatoryName
+    || user?.name
+    || '';
+  const clientAddress = [
+    questionnaire.adressePersonnelle,
+    questionnaire.addressLine1,
+    questionnaire.addressLine2,
+    [questionnaire.postalCode, questionnaire.city].filter(Boolean).join(' '),
+  ].filter(Boolean).join(', ').trim();
+  const companyRegisteredOffice = [
+    questionnaire.adresseSiege,
+    [questionnaire.codePostal, questionnaire.villeSiege].filter(Boolean).join(' '),
+  ].filter(Boolean).join(', ').trim();
 
   const initial = {
     title: 'POUVOIRS POUR FORMALITÉS',
@@ -22,6 +36,12 @@ export const buildFormalityPowersFields = ({ dossier, questionnaire = {}, user =
     legalForm: String(data.legalForm || dossier?.legalForm || 'SAS').toUpperCase(),
     mandataire: String(data.mandataire || 'WILLIAM ESTABLISHMENTS').trim(),
     greffe: String(data.greffe || 'greffe compétent').trim(),
+    clientFullName,
+    clientBirthDate: String(questionnaire.birthDate || questionnaire.dateNaissance || '').trim(),
+    clientBirthPlace: String(questionnaire.birthPlace || questionnaire.lieuNaissance || '').trim(),
+    clientAddress,
+    companyRegisteredOffice,
+    companySirenOrSiret: String(questionnaire.existingBusinessSiren || questionnaire.companySiren || dossier?.siren || '').trim(),
     paragraphs: annex.paragraphs || [],
     statementCity: String(questionnaire.registeredOfficeCity || questionnaire.villeSiege || data.seat?.city || 'Ville').trim(),
     statementDate: new Date().toISOString().slice(0, 10),

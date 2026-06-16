@@ -20,13 +20,13 @@ const ADMIN_USERS = [
     email: 'william@willentreprises.com',
     firstName: 'William',
     lastName: 'Abdou',
-    jobTitle: 'Président — Co-fondateur',
+    jobTitle: 'Président – Co-fondateur',
   },
   {
     email: 'nobatene@willentreprises.com',
     firstName: 'Nobatène',
     lastName: 'Abdou',
-    jobTitle: 'Directeur Général — Co-fondateur',
+    jobTitle: 'Directeur Général – Co-fondateur',
   },
   {
     email: 'ibtissam@willentreprises.com',

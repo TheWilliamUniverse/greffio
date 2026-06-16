@@ -1,9 +1,9 @@
-# Audit UI/UX complet — Greffio SaaS
+# Audit UI/UX complet – Greffio SaaS
 
 **Date :** 13 juin 2026  
 **Périmètre :** frontend React (`src/`), ~80 routes, 3 paradigmes de layout (marketing, client desktop, mobile), back-office Ops  
 **Méthode :** revue code statique, inventaire routes/composants, analyse design tokens, patterns UX, responsive, maintenabilité  
-**Contrainte projet :** l’identité globale validée (landing hero, palette globale, navbar publique, footer public, design system transversal) est **figée** sauf demande explicite — cet audit distingue les corrections **sans risque identité** des refontes **nécessitant validation produit**.
+**Contrainte projet :** l’identité globale validée (landing hero, palette globale, navbar publique, footer public, design system transversal) est **figée** sauf demande explicite – cet audit distingue les corrections **sans risque identité** des refontes **nécessitant validation produit**.
 
 ---
 
@@ -19,7 +19,7 @@ Greffio possède une base produit solide (shadcn/Radix, tokens CSS, mobile natif
 | **Formulaires sans couche `Form` unifiée** | Validation, erreurs et champs incohérents |
 | **Ops vs client : palettes différentes** | Acceptable en interne, mais legacy `/ops-legacy` brouille l’expérience |
 
-**Score qualité perçue estimé :** 6,5/10 global — **7,5/10** sur le marketing figé, **5,5/10** sur l’espace client authentifié, **6/10** mobile web, **7/10** ops cockpit récent.
+**Score qualité perçue estimé :** 6,5/10 global – **7,5/10** sur le marketing figé, **5,5/10** sur l’espace client authentifié, **6/10** mobile web, **7/10** ops cockpit récent.
 
 ---
 
@@ -49,7 +49,7 @@ Greffio possède une base produit solide (shadcn/Radix, tokens CSS, mobile natif
 
 | Page | Problème | Priorité |
 |------|----------|----------|
-| `DashboardPage.jsx` | Bonne hiérarchie (stats, CTA, empty state riche) | — |
+| `DashboardPage.jsx` | Bonne hiérarchie (stats, CTA, empty state riche) | – |
 | `DocumentsPage.jsx` | Bloc dense, chargement invisible, hiérarchie plate | important |
 | `AnalyticsPage.jsx` | Empty state sans CTA vs dashboard | secondaire |
 | `DossierDetailPage.jsx` | Beaucoup d’infos, progress inline non standardisé | important |
@@ -61,7 +61,7 @@ Greffio possède une base produit solide (shadcn/Radix, tokens CSS, mobile natif
 
 ### 1.3 Navigation : complexité et doublons
 
-**Problème :** `Sidebar.jsx` liste 12+ entrées dont ops pour utilisateurs internes ; mobile utilise bottom tabs (5 items) — parcours différent.
+**Problème :** `Sidebar.jsx` liste 12+ entrées dont ops pour utilisateurs internes ; mobile utilise bottom tabs (5 items) – parcours différent.
 
 **Fichiers :** `Sidebar.jsx`, `MobileAuthenticatedNav.jsx`, `WebMobileBottomNav.jsx`
 
@@ -90,8 +90,8 @@ Greffio possède une base produit solide (shadcn/Radix, tokens CSS, mobile natif
 
 | Fichier | Problème |
 |---------|----------|
-| `ProjectsPage.jsx`, `ProjectDetailPage.jsx` | Aucune route — code mort |
-| `/ops-legacy` | Coexiste avec `/ops/*` — double back-office |
+| `ProjectsPage.jsx`, `ProjectDetailPage.jsx` | Aucune route – code mort |
+| `/ops-legacy` | Coexiste avec `/ops/*` – double back-office |
 | `WalletPaymentTerminal.jsx` | Supersédé par `GreffioPaymentTerminal` |
 | `MobileAuthShell.jsx` | Jamais importé |
 
@@ -126,9 +126,9 @@ Greffio possède une base produit solide (shadcn/Radix, tokens CSS, mobile natif
 - William Enterprise : `--we-blue`, `--we-bg`, `--we-border` (hex bruts)
 
 **Palette parallèle non tokenisée (47 fichiers JSX) :**
-- `#d4e2f5`, `#fafcff`, `#e2ebf8` — questionnaire / wizard
-- `#0f1f3d`, `#0a1220` — navbar CTA
-- `#f6f8fc` — mobile splash / shell
+- `#d4e2f5`, `#fafcff`, `#e2ebf8` – questionnaire / wizard
+- `#0f1f3d`, `#0a1220` – navbar CTA
+- `#f6f8fc` – mobile splash / shell
 
 **Problème :** maintenance impossible ; contrastes non audités WCAG sur les hex locaux.
 
@@ -139,7 +139,7 @@ Greffio possède une base produit solide (shadcn/Radix, tokens CSS, mobile natif
 **Correction concrète :**
 
 ```css
-/* index.css — exemple, sans toucher --primary global */
+/* index.css – exemple, sans toucher --primary global */
 --greffio-field-border: 214 40% 88%;
 --greffio-surface-soft: 214 60% 98%;
 ```
@@ -189,7 +189,7 @@ Puis remplacer `#d4e2f5` dans `QuestionnairePage.jsx`, `StepLayout.jsx`, `Formal
 
 ### 2.5 Inputs et champs
 
-**Baseline :** `ui/input.jsx` — `h-9`, `rounded-md`
+**Baseline :** `ui/input.jsx` – `h-9`, `rounded-md`
 
 **Divergences :**
 
@@ -198,7 +198,7 @@ Puis remplacer `#d4e2f5` dans `QuestionnairePage.jsx`, `StepLayout.jsx`, `Formal
 | `h-14 rounded-2xl border-2 border-[#d4e2f5]` | `QuestionnairePage.jsx`, `QuestionSelect.jsx` | UX mobile OK, style isolé |
 | `h-12` login mobile only | `LoginPage.jsx` | Incohérent avec Signup |
 | Raw `<select>` | `DossiersPage.jsx` | Ne match pas `Select` shadcn |
-| `form.jsx`, `field.jsx` | `ui/` | **0 usage** — primitives mortes |
+| `form.jsx`, `field.jsx` | `ui/` | **0 usage** – primitives mortes |
 
 **Priorité :** critique pour questionnaire (volume traffic) ; important pour auth.
 
@@ -212,7 +212,7 @@ Puis remplacer `#d4e2f5` dans `QuestionnairePage.jsx`, `StepLayout.jsx`, `Formal
 
 **Faiblesses :**
 - Focus ring incohérent sur champs custom questionnaire (border color change seulement)
-- `Header.jsx` : cloche notification avec point rouge **sans notification réelle** — crédibilité
+- `Header.jsx` : cloche notification avec point rouge **sans notification réelle** – crédibilité
 - Disabled states parfois seulement `opacity-50` sans message
 
 **Priorité :** important (cloche) / secondaire (focus questionnaire)
@@ -221,7 +221,7 @@ Puis remplacer `#d4e2f5` dans `QuestionnairePage.jsx`, `StepLayout.jsx`, `Formal
 
 ### 2.7 Icônes
 
-**Librairie :** Lucide — cohérent.
+**Librairie :** Lucide – cohérent.
 
 **Problème :** tailles alternent `h-4 w-4`, `h-5 w-5`, `h-6 w-6` sans règle ; ops et client OK mais emojis/absence d’icônes sur empty states ops.
 
@@ -255,7 +255,7 @@ flowchart LR
 
 ---
 
-### 3.2 CTA — cohérence
+### 3.2 CTA – cohérence
 
 | CTA | Comportement | Problème |
 |-----|--------------|----------|
@@ -273,7 +273,7 @@ flowchart LR
 |------|-----------------|----------|----------|
 | `LoginPage.jsx` | Toast uniquement | Pas d’erreur sous email/password | important |
 | `SignupPage.jsx` | Mix toast + inline checkbox | OK partiel | secondaire |
-| `ProfilePage.jsx` | Inline `text-destructive` + toast | Bon modèle à généraliser | — |
+| `ProfilePage.jsx` | Inline `text-destructive` + toast | Bon modèle à généraliser | – |
 | `QuestionnairePage.jsx` | `text-red-600`, bordures rouges | Palette erreur non token | important |
 | `ContactPage.jsx` | Toast success/error | Pas de validation inline champs vides | secondaire |
 
@@ -286,7 +286,7 @@ flowchart LR
 | Pattern | Exemples | Problème |
 |---------|----------|----------|
 | Texte « Chargement… » | Dashboard, Ops, Payment | Amateur vs skeleton |
-| `MobilePageSkeleton` | Mobile dossiers/documents | Bien — non réutilisé web |
+| `MobilePageSkeleton` | Mobile dossiers/documents | Bien – non réutilisé web |
 | `animate-pulse` custom | Dashboard stat cards | Dupliqué |
 | `AppBootSplash` | Auth boot | Bien |
 | Rien | `DocumentsPage.jsx` loading dossiers | **Critique UX** |
@@ -305,7 +305,7 @@ flowchart LR
 |---------|-----|
 | ⭐⭐⭐ Rich (icône + titre + CTA) | `DashboardPage`, `DossiersPage`, `MobileEmptyState` |
 | ⭐⭐ Moyen | `AnalyticsPage` (sans CTA) |
-| ⭐ Minimal | Ops (`OpsFilteredDossiersPage` — texte slate) |
+| ⭐ Minimal | Ops (`OpsFilteredDossiersPage` – texte slate) |
 | Mort | `ui/empty.jsx` jamais importé |
 
 **Priorité :** important (unifier via `EmptyState` wrapper autour de `ui/empty.jsx`)
@@ -314,7 +314,7 @@ flowchart LR
 
 ### 3.6 Messages d’erreur et toasts
 
-**Système actif :** Sonner (`App.jsx` — `richColors`, `top-right`)
+**Système actif :** Sonner (`App.jsx` – `richColors`, `top-right`)
 
 **Problèmes :**
 - Double feedback toast + inline (`NonConvictionDeclarationPage.jsx`)
@@ -325,14 +325,14 @@ flowchart LR
 
 ---
 
-### 3.7 Feedback utilisateur — cas particuliers
+### 3.7 Feedback utilisateur – cas particuliers
 
 | Cas | Problème | Priorité |
 |-----|----------|----------|
 | Header cloche | Badge rouge permanent fictif | **critique** (crédibilité) |
-| Upload documents | Texte bouton « Upload… » OK | — |
+| Upload documents | Texte bouton « Upload… » OK | – |
 | Signature publique | Fond `#0f172a` isolé du reste | secondaire (contexte signing) |
-| MFA login | Bon flow OTP | — |
+| MFA login | Bon flow OTP | – |
 
 ---
 
@@ -346,7 +346,7 @@ flowchart LR
 
 **Problème structurel :** double maintenance (ex. `DocumentsPage.jsx` 649 lignes + `MobileDocumentsPage.jsx` 409 lignes).
 
-**Priorité :** important (stratégie long terme) — pas urgent de tout fusionner, mais **design tokens communs** obligatoires.
+**Priorité :** important (stratégie long terme) – pas urgent de tout fusionner, mais **design tokens communs** obligatoires.
 
 ---
 
@@ -363,7 +363,7 @@ flowchart LR
 
 ### 4.3 Tablette (768–1024px)
 
-**Problème :** Sidebar `hidden md:flex` → header seul entre 768–1024 ; contenu parfois trop large (`max-w-7xl`) sans colonne latérale — pages « flottantes ».
+**Problème :** Sidebar `hidden md:flex` → header seul entre 768–1024 ; contenu parfois trop large (`max-w-7xl`) sans colonne latérale – pages « flottantes ».
 
 **Recommandation :** breakpoint `lg` pour sidebar ou drawer tablet.
 
@@ -409,7 +409,7 @@ Peu de problèmes ; `GreffioPaymentTerminal` bien centré `max-w-2xl`. Dashboard
 ### 5.4 Ce qui fonctionne déjà (à préserver)
 
 - Landing / identité marketing (figée, qualité perçue bonne)
-- `GreffioPaymentTerminal` — direction premium correcte
+- `GreffioPaymentTerminal` – direction premium correcte
 - Dashboard empty state + pulse stats
 - Ops cockpit récent (slate pro)
 - Auth MFA + captcha progressive
@@ -458,7 +458,7 @@ src/styles/
 | `progress.jsx` | Sous-utilisé vs inline widths |
 | `sidebar.jsx` (shadcn) | Projet utilise `Sidebar.jsx` custom |
 
-**Priorité :** important — either adopt or delete unused primitives.
+**Priorité :** important – either adopt or delete unused primitives.
 
 ---
 
@@ -559,8 +559,8 @@ Légende priorité : 🔴 critique · 🟠 important · 🟡 secondaire
 | Problème | Où | Prio |
 |----------|-----|------|
 | Erreurs non liées aux champs (`aria-describedby`) | Login, Contact | 🟠 |
-| Focus trap modales — OK Radix | Dialogs | — |
-| Contraste hex `#d4e2f5` borders | Questionnaire | 🟡 — vérifier WCAG |
+| Focus trap modales – OK Radix | Dialogs | – |
+| Contraste hex `#d4e2f5` borders | Questionnaire | 🟡 – vérifier WCAG |
 | `aria-expanded` accordéon payment | GreffioPaymentTerminal | ✅ présent |
 | Font size 16px inputs mobile | `index.css` media query | ✅ bon |
 
@@ -570,8 +570,8 @@ Légende priorité : 🔴 critique · 🟠 important · 🟡 secondaire
 
 | Item | Impact | Prio |
 |------|--------|------|
-| Lazy routes ops — OK | Bon | — |
-| Bundle `index-*.js` ~1,9 Mo | LCP | 🟠 — code split payment/wizard |
+| Lazy routes ops – OK | Bon | – |
+| Bundle `index-*.js` ~1,9 Mo | LCP | 🟠 – code split payment/wizard |
 | Framer Motion multiple pages | OK | 🟡 |
 | Images formalités PNG non WebP partout | Bandwidth | 🟡 |
 
@@ -579,7 +579,7 @@ Légende priorité : 🔴 critique · 🟠 important · 🟡 secondaire
 
 ## 10. Roadmap de correction
 
-### Niveau 1 — Corrections urgentes (1–2 semaines)
+### Niveau 1 – Corrections urgentes (1–2 semaines)
 
 Objectif : crédibilité immédiate, bugs UX visibles.
 
@@ -598,7 +598,7 @@ Objectif : crédibilité immédiate, bugs UX visibles.
 
 ---
 
-### Niveau 2 — Améliorations importantes (3–6 semaines)
+### Niveau 2 – Améliorations importantes (3–6 semaines)
 
 Objectif : cohérence design system espace client + mobile.
 
@@ -606,7 +606,7 @@ Objectif : cohérence design system espace client + mobile.
 |---|--------|
 | 1 | Créer `EmptyState`, `PageLoadingState`, `GreffioField`, `PageHeader` |
 | 2 | Migrer Dashboard, Dossiers, Documents, Analytics vers patterns |
-| 3 | Unifier boutons (variant outline, size mobile) — `button.jsx` |
+| 3 | Unifier boutons (variant outline, size mobile) – `button.jsx` |
 | 4 | Remplacer progress inline par `Progress` component |
 | 5 | `PublicPageLayout` + footer sur contact/tarifs/légal |
 | 6 | Auth mobile harmonisé Login/Signup |
@@ -620,13 +620,13 @@ Objectif : cohérence design system espace client + mobile.
 
 ---
 
-### Niveau 3 — Finitions premium (6–12 semaines)
+### Niveau 3 – Finitions premium (6–12 semaines)
 
 Objectif : polish, réduction dette, performance.
 
 | # | Action |
 |---|--------|
-| 1 | `AuthenticatedLayout` unique — réduire duplication mobile/desktop progressivement |
+| 1 | `AuthenticatedLayout` unique – réduire duplication mobile/desktop progressivement |
 | 2 | Motion design system (transitions page, stagger lists dossiers) |
 | 3 | Skeletons branded Greffio |
 | 4 | Consolidation mobile pages (documents, dossier detail) composants partagés |
@@ -667,7 +667,7 @@ Impact moyen, effort élevé
 
 ## 12. Conclusion
 
-Greffio n’a pas un problème de « mauvais design » sur le marketing — il a un problème de **continuité** entre surfaces. L’utilisateur voit un produit soigné sur la landing et le wizard, puis un back-office client plus utilitaire, avec des états de chargement et des erreurs hétérogènes.
+Greffio n’a pas un problème de « mauvais design » sur le marketing – il a un problème de **continuité** entre surfaces. L’utilisateur voit un produit soigné sur la landing et le wizard, puis un back-office client plus utilitaire, avec des états de chargement et des erreurs hétérogènes.
 
 La voie recommandée **sans toucher l’identité figée** :
 
@@ -678,4 +678,4 @@ La voie recommandée **sans toucher l’identité figée** :
 
 ---
 
-*Audit réalisé par analyse statique du dépôt Greffio SaaS — juin 2026. Aucune modification de code effectuée dans le cadre de cet audit.*
+*Audit réalisé par analyse statique du dépôt Greffio SaaS – juin 2026. Aucune modification de code effectuée dans le cadre de cet audit.*
