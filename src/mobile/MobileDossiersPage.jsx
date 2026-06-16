@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 import { mapDossierStatusForBadge } from '@/utils/dossierClientStatus.js';
+import { dossierContinuePrefetchHandlers } from '@/utils/dossierPrefetch.js';
 
 const toVisualStatus = (status) => mapDossierStatusForBadge(status);
 
@@ -126,6 +127,7 @@ export const MobileDossiersPage = () => {
           <motion.div key={dossier.id} {...staggerItem(index)}>
             <Link
               to={`/dossier/${dossier.id}`}
+              {...dossierContinuePrefetchHandlers(dossier)}
               className="block rounded-3xl border border-border/70 bg-white p-4 shadow-sm transition active:scale-[0.99]"
             >
               <div className="flex items-start justify-between gap-3">

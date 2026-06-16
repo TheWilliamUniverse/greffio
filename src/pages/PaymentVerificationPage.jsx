@@ -5,9 +5,11 @@ import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { fetchPaymentVerificationStatus } from '@/api/payments.js';
 import { isCapacitorNative } from '@/utils/platform.js';
+import { isPageVisible } from '@/utils/pageVisibility.js';
 
 const PAID_STATUSES = new Set(['paid', 'authorized', 'PAID', 'AUTHORIZED']);
 const FAILED_STATUSES = new Set(['failed', 'cancelled', 'expired', 'FAILED', 'CANCELLED', 'EXPIRED']);
+const PAYMENT_POLL_BACKOFF_MS = [2000, 3000, 5000, 8000, 12000];
 
 const normalizeStatus = (value) => String(value || '').trim().toLowerCase();
 
@@ -31,15 +33,26 @@ export const PaymentVerificationPage = () => {
 
     let cancelled = false;
     let attempts = 0;
-    let intervalId = null;
+    let timerId = null;
+    let backoffIndex = 0;
     const maxAttempts = 15;
 
     const finishPolling = () => {
       if (!cancelled) setPolling(false);
-      if (intervalId) window.clearInterval(intervalId);
+      if (timerId) window.clearTimeout(timerId);
+    };
+
+    const schedule = (delay) => {
+      timerId = window.setTimeout(() => { void tick(); }, delay);
     };
 
     const tick = async () => {
+      if (cancelled) return;
+      if (!isPageVisible()) {
+        schedule(PAYMENT_POLL_BACKOFF_MS[0]);
+        return;
+      }
+
       attempts += 1;
       try {
         const payload = await fetchPaymentVerificationStatus({
@@ -56,22 +69,35 @@ export const PaymentVerificationPage = () => {
         }
         if (payload?.resolved && nextStatus) {
           finishPolling();
+          return;
         }
       } catch (_error) {
         if (!cancelled && attempts >= maxAttempts) {
           setPollError('La vérification prend plus de temps que prévu. Actualisez votre dashboard dans quelques instants.');
           finishPolling();
+          return;
         }
       }
-      if (attempts >= maxAttempts) finishPolling();
+      if (attempts >= maxAttempts) {
+        finishPolling();
+        return;
+      }
+      const delay = PAYMENT_POLL_BACKOFF_MS[Math.min(backoffIndex, PAYMENT_POLL_BACKOFF_MS.length - 1)];
+      backoffIndex = Math.min(backoffIndex + 1, PAYMENT_POLL_BACKOFF_MS.length - 1);
+      schedule(delay);
     };
 
     void tick();
-    intervalId = window.setInterval(() => { void tick(); }, 2000);
+
+    const onVisible = () => {
+      if (isPageVisible() && !cancelled) void tick();
+    };
+    document.addEventListener('visibilitychange', onVisible);
 
     return () => {
       cancelled = true;
-      if (intervalId) window.clearInterval(intervalId);
+      if (timerId) window.clearTimeout(timerId);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, [dossierId, initialStatus, molliePaymentId]);
 

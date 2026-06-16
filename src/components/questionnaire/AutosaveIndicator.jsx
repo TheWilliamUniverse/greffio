@@ -1,21 +1,31 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { Check, CloudOff, Loader2 } from 'lucide-react';
+import { greffioAutosavePulse } from '@/motion/greffioMotion.js';
 
 export const AutosaveIndicator = ({ status }) => {
   if (status === 'saving') {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+      <motion.span
+        {...greffioAutosavePulse}
+        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
+      >
         <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" aria-hidden />
         Sauvegarde…
-      </span>
+      </motion.span>
     );
   }
   if (status === 'saved') {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700">
+      <motion.span
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.22 }}
+        className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700"
+      >
         <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
         Enregistré
-      </span>
+      </motion.span>
     );
   }
   if (status === 'error') {

@@ -7,4 +7,6 @@ export const useDossierQuery = (dossierId, options = {}) => useQuery({
   meta: { live: true },
   queryFn: () => fetchDossierDetail(dossierId, options),
   enabled: Boolean(dossierId),
+  staleTime: 30_000,
+  ...options,
 });

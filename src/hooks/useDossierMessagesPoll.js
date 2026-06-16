@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { isPageVisible } from '@/utils/pageVisibility.js';
 
 export const sameDossierMessageList = (left = [], right = []) => {
   if (left.length !== right.length) return false;
@@ -9,6 +10,8 @@ export const sameDossierMessageList = (left = [], right = []) => {
   }
   return true;
 };
+
+const MESSAGE_POLL_BACKOFF_MS = [4000, 6000, 10000, 15000];
 
 export const useDossierMessagesPoll = (
   dossierId,
@@ -28,9 +31,6 @@ export const useDossierMessagesPoll = (
       setMessages((current) => (sameDossierMessageList(current, items) ? current : items));
       return items;
     } catch (_error) {
-      if (!silent) {
-        // Conserver l'historique affiché en cas d'échec réseau ou session expirée.
-      }
       return [];
     } finally {
       if (!silent) setLoading(false);
@@ -44,25 +44,41 @@ export const useDossierMessagesPoll = (
     }
 
     let cancelled = false;
-    const tick = async (silent) => {
+    let timerId = null;
+    let backoffIndex = 0;
+
+    const schedule = (delay) => {
       if (cancelled) return;
-      await refresh(silent);
+      timerId = window.setTimeout(async () => {
+        if (cancelled) {
+          schedule(delay);
+          return;
+        }
+        if (!isPageVisible()) {
+          schedule(intervalMs);
+          return;
+        }
+        await refresh(true);
+        const nextDelay = MESSAGE_POLL_BACKOFF_MS[Math.min(backoffIndex, MESSAGE_POLL_BACKOFF_MS.length - 1)] || intervalMs;
+        backoffIndex = Math.min(backoffIndex + 1, MESSAGE_POLL_BACKOFF_MS.length - 1);
+        schedule(nextDelay);
+      }, delay);
     };
 
-    void tick(false);
-    const timer = window.setInterval(() => {
-      void tick(true);
-    }, intervalMs);
+    void refresh(false);
+    schedule(intervalMs);
 
     const onFocus = () => {
-      void tick(true);
+      if (isPageVisible()) void refresh(true);
     };
     window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
 
     return () => {
       cancelled = true;
-      window.clearInterval(timer);
+      if (timerId) window.clearTimeout(timerId);
       window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
     };
   }, [dossierId, enabled, intervalMs, refresh]);
 

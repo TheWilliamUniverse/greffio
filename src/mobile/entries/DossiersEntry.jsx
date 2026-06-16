@@ -1,9 +1,12 @@
-import { DossiersPage } from '@/pages/DossiersPage.jsx';
-import { MobileDossiersPage } from '@/mobile/MobileDossiersPage.jsx';
+import {
+  LazyDossiersPage,
+  LazyMobileDossiersPage,
+  withSuspense,
+} from '@/routes/lazyPages.jsx';
 import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 
 export const DossiersEntry = () => (
   isCapacitorNative() || isMobileBrowserViewport()
-    ? <MobileDossiersPage />
-    : <DossiersPage />
+    ? withSuspense(LazyMobileDossiersPage, 'Chargement des dossiers…')
+    : withSuspense(LazyDossiersPage, 'Chargement des dossiers…')
 );

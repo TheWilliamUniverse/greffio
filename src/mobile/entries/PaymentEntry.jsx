@@ -1,9 +1,12 @@
-import { PaymentPage } from '@/pages/PaymentPage.jsx';
-import { MobilePaymentPage } from '@/mobile/MobilePaymentPage.jsx';
+import {
+  LazyMobilePaymentPage,
+  LazyPaymentPage,
+  withSuspense,
+} from '@/routes/lazyPages.jsx';
 import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 
 export const PaymentEntry = () => (
   isCapacitorNative() || isMobileBrowserViewport()
-    ? <MobilePaymentPage />
-    : <PaymentPage />
+    ? withSuspense(LazyMobilePaymentPage, 'Chargement du paiement…')
+    : withSuspense(LazyPaymentPage, 'Chargement du paiement…')
 );

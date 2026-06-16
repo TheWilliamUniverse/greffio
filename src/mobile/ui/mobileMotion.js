@@ -1,6 +1,7 @@
 import { useReducedMotion } from 'framer-motion';
+import { GREFFIO_EASE, GREFFIO_DURATION } from '@/motion/greffioMotion.js';
 
-export const MOBILE_EASE = [0.22, 1, 0.36, 1];
+export const MOBILE_EASE = GREFFIO_EASE;
 
 export const mobileViewport = { once: true, amount: 0.12 };
 
@@ -13,7 +14,7 @@ export function useMobileMotion() {
       initial: { opacity: 0, y: 24 },
       whileInView: { opacity: 1, y: 0 },
       viewport: mobileViewport,
-      transition: { duration: 0.52, delay, ease: MOBILE_EASE },
+      transition: { duration: GREFFIO_DURATION.slow, delay, ease: MOBILE_EASE },
     });
 
   const revealMount = (delay = 0) => (reduceMotion

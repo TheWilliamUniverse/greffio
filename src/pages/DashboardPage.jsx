@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   ArrowRight,
   Bell,
@@ -37,7 +38,10 @@ import { useDossierActionStateQuery } from '@/hooks/queries/useDossierActionStat
 import { useNotificationsSummary } from '@/hooks/useNotificationsSummary.js';
 import { DossierActiveBanner } from '@/components/dossiers/DossierActiveBanner.jsx';
 import { DossierVaultPickerOverlay } from '@/components/dossiers/DossierVaultPickerOverlay.jsx';
+import { RouteSuspenseFallback } from '@/components/system/RouteSuspenseFallback.jsx';
 import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
+import { greffioCardLift, greffioSlideIn } from '@/motion/greffioMotion.js';
+import { dossierContinuePrefetchHandlers } from '@/utils/dossierPrefetch.js';
 
 export const DashboardPage = () => {
   const { currentUser, updateProfile } = useAuth();
@@ -197,6 +201,18 @@ export const DashboardPage = () => {
   const activeDossierRecord = activeDossierPayload?.dossier
     || dossiersRaw.find((item) => item.id === activeDossierId);
 
+  if (loadingApi) {
+    return (
+      <div className="flex min-h-[calc(100dvh-4rem)] bg-background">
+        <Sidebar />
+        <MobileSidebarDrawer open={isMobileNavOpen} onClose={() => setIsMobileNavOpen(false)} />
+        <main className="min-h-0 flex-1 overflow-y-auto p-5 pb-8 md:p-8">
+          <RouteSuspenseFallback label="Chargement de votre cockpit…" />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-[calc(100dvh-4rem)] bg-background">
       <Sidebar />
@@ -268,16 +284,18 @@ export const DashboardPage = () => {
                 </CardContent>
               </Card>
             )) : stats.map((stat) => (
-              <Card key={stat.label} className="border-border bg-white shadow-elevation-sm">
-                <CardContent className="p-5">
-                  <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-md bg-secondary text-primary">
-                    <stat.icon className="h-5 w-5" />
-                  </div>
-                  <p className="text-sm font-semibold text-muted-foreground">{stat.label}</p>
-                  <p className="mt-1 text-3xl font-extrabold text-foreground">{stat.value}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{stat.text}</p>
-                </CardContent>
-              </Card>
+              <motion.div key={stat.label} {...greffioCardLift}>
+                <Card className="border-border bg-white shadow-elevation-sm">
+                  <CardContent className="p-5">
+                    <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-md bg-secondary text-primary">
+                      <stat.icon className="h-5 w-5" />
+                    </div>
+                    <p className="text-sm font-semibold text-muted-foreground">{stat.label}</p>
+                    <p className="mt-1 text-3xl font-extrabold text-foreground">{stat.value}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{stat.text}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
           </section>
 
@@ -340,12 +358,18 @@ export const DashboardPage = () => {
                     <span>Échéance</span>
                     <span>Avancement</span>
                   </div>
-                  {dossiers.slice(0, 4).map((dossier) => (
-                    <Link
+                  {dossiers.slice(0, 4).map((dossier, index) => (
+                    <motion.div
                       key={dossier.id}
-                      to={`/dossier/${dossier.id}`}
-                      className="block border-b border-border px-5 py-4 transition hover:bg-muted/60 last:border-b-0 xl:grid xl:grid-cols-[minmax(0,1fr)_130px_120px_110px] xl:items-center xl:gap-4"
+                      initial={greffioSlideIn.initial}
+                      animate={greffioSlideIn.animate}
+                      transition={{ ...greffioSlideIn.transition, delay: index * 0.04 }}
                     >
+                      <Link
+                        to={`/dossier/${dossier.id}`}
+                        {...dossierContinuePrefetchHandlers(dossiersRaw.find((item) => item.id === dossier.id) || { id: dossier.id })}
+                        className="block border-b border-border px-5 py-4 transition hover:bg-muted/60 last:border-b-0 xl:grid xl:grid-cols-[minmax(0,1fr)_130px_120px_110px] xl:items-center xl:gap-4"
+                      >
                       <div>
                         <p className="font-bold text-foreground">{dossier.name}</p>
                         <p className="mt-1 text-sm text-muted-foreground">{dossier.nextAction} · Responsable : {dossier.expert}</p>
@@ -362,7 +386,8 @@ export const DashboardPage = () => {
                         <Progress value={dossier.progress || 0} className="h-2" />
                         <p className="mt-1 text-xs font-bold text-muted-foreground">{dossier.progress || 0}%</p>
                       </div>
-                    </Link>
+                      </Link>
+                    </motion.div>
                   ))}
                 </div>
               </section>
@@ -385,15 +410,21 @@ export const DashboardPage = () => {
                   </div>
                   {notifications.length ? (
                     <div className="space-y-3">
-                      {notifications.slice(0, 4).map((notification) => (
-                        <Link
+                      {notifications.slice(0, 4).map((notification, index) => (
+                        <motion.div
                           key={notification.id}
-                          to={notification.path || '/dashboard'}
-                          className="block rounded-md bg-muted p-3 transition hover:bg-muted/80"
+                          initial={greffioSlideIn.initial}
+                          animate={greffioSlideIn.animate}
+                          transition={{ ...greffioSlideIn.transition, delay: index * 0.05 }}
                         >
-                          <p className="text-sm font-medium leading-5 text-foreground">{notification.title}</p>
-                          <p className="mt-1 text-xs leading-5 text-muted-foreground">{notification.body}</p>
-                        </Link>
+                          <Link
+                            to={notification.path || '/dashboard'}
+                            className="block rounded-md bg-muted p-3 transition hover:bg-muted/80"
+                          >
+                            <p className="text-sm font-medium leading-5 text-foreground">{notification.title}</p>
+                            <p className="mt-1 text-xs leading-5 text-muted-foreground">{notification.body}</p>
+                          </Link>
+                        </motion.div>
                       ))}
                     </div>
                   ) : (

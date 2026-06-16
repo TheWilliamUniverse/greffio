@@ -9,9 +9,18 @@ import { MollieCardForm } from '@/components/payments/MollieCardForm.jsx';
 import { fetchMollieMethods, fetchPaymentTerminalConfig } from '@/api/mollie.js';
 import { MOLLIE_PROFILE_ID } from '@/config/mollie.js';
 import { cn } from '@/lib/utils.js';
-import { isCapacitorNative } from '@/utils/platform.js';
+import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 import paymentBackground from '../../../assets/payments/greffio-payment-background.png';
 import paymentLogo from '../../../assets/payments/greffio-payment-logo.png';
+
+const PAYMENT_GRADIENT_ONLY = 'linear-gradient(180deg, rgba(248,251,255,0.98) 0%, rgba(255,255,255,1) 55%, rgba(238,244,255,0.96) 100%)';
+
+const resolvePaymentCardBackground = () => {
+  if (isCapacitorNative() || isMobileBrowserViewport()) {
+    return PAYMENT_GRADIENT_ONLY;
+  }
+  return `linear-gradient(180deg, rgba(248,251,255,0.94) 0%, rgba(255,255,255,0.97) 55%, rgba(238,244,255,0.94) 100%), url(${paymentBackground})`;
+};
 
 const METHOD_ICONS = {
   creditcard: CreditCard,
@@ -277,7 +286,7 @@ export const GreffioPaymentTerminal = ({
         className,
       )}
       style={{
-        backgroundImage: `linear-gradient(180deg, rgba(248,251,255,0.94) 0%, rgba(255,255,255,0.97) 55%, rgba(238,244,255,0.94) 100%), url(${paymentBackground})`,
+        backgroundImage: resolvePaymentCardBackground(),
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
       }}

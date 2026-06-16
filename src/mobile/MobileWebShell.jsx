@@ -7,6 +7,7 @@ import { MobileSidebarDrawer } from '@/components/MobileSidebarDrawer.jsx';
 import { MobileStickyHeaderGroup } from '@/mobile/ui/MobileStickyHeaderGroup.jsx';
 import { MobileShellScrollProvider } from '@/mobile/context/MobileShellScrollContext.jsx';
 import { MobileShellOverlayProvider, useMobileShellOverlay } from '@/mobile/context/MobileShellOverlayContext.jsx';
+import { MobileShellPageTransition } from '@/mobile/ui/MobileShellPageTransition.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 import { shouldUseMobileWebShell } from '@/utils/platform.js';
 
@@ -115,7 +116,11 @@ const MobileWebShellInner = ({
             : 'overflow-y-auto pb-[calc(var(--bottom-nav-height-web)+env(safe-area-inset-bottom)+var(--mobile-page-bottom-extra))]'
         }`}
       >
-        {children}
+        {showAuthenticatedNav ? (
+          <MobileShellPageTransition>{children}</MobileShellPageTransition>
+        ) : (
+          children
+        )}
       </main>
       {showAuthenticatedNav ? <WebMobileBottomNav /> : <MobilePublicBottomNav />}
     </div>

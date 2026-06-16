@@ -1,9 +1,12 @@
-import { DashboardPage } from '@/pages/DashboardPage.jsx';
-import { MobileHomePage } from '@/mobile/MobileHomePage.jsx';
+import {
+  LazyDashboardPage,
+  LazyMobileHomePage,
+  withSuspense,
+} from '@/routes/lazyPages.jsx';
 import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 
 export const DashboardEntry = () => (
   isCapacitorNative() || isMobileBrowserViewport()
-    ? <MobileHomePage />
-    : <DashboardPage />
+    ? withSuspense(LazyMobileHomePage, 'Chargement de l’accueil…')
+    : withSuspense(LazyDashboardPage, 'Chargement du cockpit…')
 );

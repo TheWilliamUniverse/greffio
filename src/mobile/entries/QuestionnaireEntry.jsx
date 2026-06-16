@@ -1,4 +1,9 @@
-import { QuestionnairePage } from '@/pages/QuestionnairePage.jsx';
+import {
+  LazyMobilePaymentPage,
+  LazyPaymentPage,
+  LazyQuestionnairePage,
+  withSuspense,
+} from '@/routes/lazyPages.jsx';
 import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 import { useMobileSafeBottomPadding } from '@/hooks/useMobileSafeBottomPadding.js';
 
@@ -11,9 +16,9 @@ export const QuestionnaireEntry = () => {
   if (isCapacitorNative() || isMobileBrowserViewport()) {
     return (
       <MobileQuestionnaireShell>
-        <QuestionnairePage />
+        {withSuspense(LazyQuestionnairePage, 'Chargement du questionnaire…')}
       </MobileQuestionnaireShell>
     );
   }
-  return <QuestionnairePage />;
+  return withSuspense(LazyQuestionnairePage, 'Chargement du questionnaire…');
 };

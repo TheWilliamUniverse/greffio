@@ -4,6 +4,8 @@ import { MessageCircle, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth.js';
 import { GreffioAssistantPanel } from '@/components/assistant/GreffioAssistantPanel.jsx';
 import { Button } from '@/components/ui/button.jsx';
+import { greffioOrbBreathe } from '@/motion/greffioMotion.js';
+import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 
 const GreffioRobotIcon = ({ className = '' }) => (
   <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
@@ -32,9 +34,11 @@ export const GreffioAssistantOrb = () => {
 
   if (!isAuthenticated) return null;
 
+  const isMobile = isCapacitorNative() || isMobileBrowserViewport();
+
   return (
     <>
-      <div className="pointer-events-none fixed bottom-5 right-5 z-[70]">
+      <div className={`pointer-events-none fixed z-[70] ${isMobile ? 'bottom-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom)+1rem)] right-4' : 'bottom-5 right-5'}`}>
         <AnimatePresence>
           {hovered && !open ? (
             <motion.div
@@ -55,10 +59,7 @@ export const GreffioAssistantOrb = () => {
           onClick={() => setOpen(true)}
           className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border border-primary/20 bg-white text-primary shadow-[0_12px_32px_rgba(30,77,140,0.18)] transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >
-          <motion.div
-            animate={{ y: [0, -2, 0] }}
-            transition={{ repeat: Infinity, duration: 2.8, ease: 'easeInOut' }}
-          >
+          <motion.div {...greffioOrbBreathe}>
             <GreffioRobotIcon className="h-8 w-8" />
           </motion.div>
         </button>
@@ -82,7 +83,11 @@ export const GreffioAssistantOrb = () => {
               initial={{ opacity: 0, y: 24, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 16, scale: 0.98 }}
-              className="relative flex h-[min(720px,88dvh)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-elevation-lg"
+              className={`relative flex flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-elevation-lg ${
+              isMobile
+                ? 'h-[min(560px,72dvh)] w-full max-w-none'
+                : 'h-[min(720px,88dvh)] w-full max-w-lg'
+            }`}
             >
               <div className="flex items-center justify-between border-b border-border px-4 py-3">
                 <div className="flex items-center gap-2">

@@ -20,6 +20,8 @@ import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 import { resolveDossierDisplayName } from '@/utils/dossierBootstrap.js';
 import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 import { resolveDossierContinueUrl } from '@/utils/dossierContinueUrl.js';
+import { dossierContinuePrefetchHandlers } from '@/utils/dossierPrefetch.js';
+import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
 
 const STATUS_LABELS = {
   draft: 'BROUILLON',
@@ -194,6 +196,7 @@ export const DossiersPage = () => {
   const showTrash = searchParams.get('trash') === '1';
   const internalView = isInternalUser(currentUser);
   const [dossiers, setDossiers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [status, setStatus] = useState('Tous');
 
@@ -201,6 +204,7 @@ export const DossiersPage = () => {
     let mounted = true;
 
     const loadDossiers = async () => {
+      setLoading(true);
       try {
         const payload = showTrash ? await listTrashedDossiers() : await listDossiers();
         if (!mounted || !Array.isArray(payload.dossiers)) return;
@@ -209,6 +213,8 @@ export const DossiersPage = () => {
       } catch (_error) {
         if (!mounted) return;
         setDossiers([]);
+      } finally {
+        if (mounted) setLoading(false);
       }
     };
 
@@ -251,6 +257,9 @@ export const DossiersPage = () => {
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background">
       <Sidebar />
       <main className="flex-1 overflow-y-auto p-5 md:p-8">
+        {loading ? (
+          <PageLoadingState variant="skeleton" label="Chargement de vos dossiers…" className="min-h-[50vh]" />
+        ) : (
         <div className="mx-auto max-w-7xl space-y-6">
           <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
             <div>
@@ -334,6 +343,11 @@ export const DossiersPage = () => {
                     status: dossier.rawStatus,
                     progressPercent: dossier.progress,
                   })}
+                  {...dossierContinuePrefetchHandlers({
+                    id: dossier.id,
+                    status: dossier.rawStatus,
+                    progressPercent: dossier.progress,
+                  })}
                   className="rounded-md border border-border bg-white p-5 shadow-elevation-sm transition hover:-translate-y-1 hover:border-primary/40 hover:shadow-elevation-md"
                 >
                   <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -381,6 +395,7 @@ export const DossiersPage = () => {
             </section>
           )}
         </div>
+        )}
       </main>
     </div>
   );

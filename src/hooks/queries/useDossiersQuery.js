@@ -10,4 +10,5 @@ export const useDossiersQuery = (userId) => useQuery({
     return Array.isArray(payload?.dossiers) ? payload.dossiers : [];
   },
   enabled: Boolean(userId),
+  staleTime: 30_000,
 });

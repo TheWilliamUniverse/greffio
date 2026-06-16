@@ -18,6 +18,19 @@ export const LazyOpsDashboardPage = lazy(() => import('@/pages/OpsDashboardPage.
 export const LazyOpsLookupObservabilityPage = lazy(() => import('@/pages/OpsLookupObservabilityPage.jsx').then((m) => ({ default: m.OpsLookupObservabilityPage })));
 export const LazyChatIAPage = lazy(() => import('@/pages/ChatIAPage.jsx').then((m) => ({ default: m.ChatIAPage })));
 export const LazyNonConvictionDeclarationPage = lazy(() => import('@/pages/NonConvictionDeclarationPage.jsx').then((m) => ({ default: m.NonConvictionDeclarationPage })));
+export const LazyDashboardPage = lazy(() => import('@/pages/DashboardPage.jsx').then((m) => ({ default: m.DashboardPage })));
+export const LazyQuestionnairePage = lazy(() => import('@/pages/QuestionnairePage.jsx').then((m) => ({ default: m.QuestionnairePage })));
+export const LazyPaymentPage = lazy(() => import('@/pages/PaymentPage.jsx').then((m) => ({ default: m.PaymentPage })));
+export const LazyDocumentsPage = lazy(() => import('@/pages/DocumentsPage.jsx').then((m) => ({ default: m.DocumentsPage })));
+export const LazyDossiersPage = lazy(() => import('@/pages/DossiersPage.jsx').then((m) => ({ default: m.DossiersPage })));
+export const LazyFormalityPowersPage = lazy(() => import('@/pages/FormalityPowersPage.jsx').then((m) => ({ default: m.FormalityPowersPage })));
+export const LazySubscribersListPage = lazy(() => import('@/pages/SubscribersListPage.jsx').then((m) => ({ default: m.SubscribersListPage })));
+export const LazyMobileHomePage = lazy(() => import('@/mobile/MobileHomePage.jsx').then((m) => ({ default: m.MobileHomePage })));
+export const LazyMobileDossiersPage = lazy(() => import('@/mobile/MobileDossiersPage.jsx').then((m) => ({ default: m.MobileDossiersPage })));
+export const LazyMobileDocumentsPage = lazy(() => import('@/mobile/MobileDocumentsPage.jsx').then((m) => ({ default: m.MobileDocumentsPage })));
+export const LazyMobilePaymentPage = lazy(() => import('@/mobile/MobilePaymentPage.jsx').then((m) => ({ default: m.MobilePaymentPage })));
+export const LazyDossierDetailPage = lazy(() => import('@/pages/DossierDetailPage.jsx').then((m) => ({ default: m.DossierDetailPage })));
+export const LazyMobileDossierDetailPage = lazy(() => import('@/mobile/MobileDossierDetailPage.jsx').then((m) => ({ default: m.MobileDossierDetailPage })));
 
 export const withSuspense = (Component, label) => (
   <React.Suspense fallback={<RouteSuspenseFallback label={label} />}>

@@ -1,6 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils.js';
+import { greffioTileTap } from '@/motion/greffioMotion.js';
+import { lightQuestionnaireHaptic, successQuestionnaireHaptic } from '@/utils/questionnaireHaptics.js';
 
 export const MobileChoiceTile = ({
   title,
@@ -14,15 +16,23 @@ export const MobileChoiceTile = ({
   disabled = false,
   compact = false,
   className,
-}) => (
+}) => {
+  const handleSelect = () => {
+    if (disabled) return;
+    void lightQuestionnaireHaptic();
+    onSelect?.();
+    if (!selected) void successQuestionnaireHaptic();
+  };
+
+  return (
   <motion.button
     type="button"
     role="radio"
     aria-checked={selected}
     disabled={disabled}
-    onClick={onSelect}
+    onClick={handleSelect}
     whileHover={disabled ? undefined : { y: -2 }}
-    whileTap={disabled ? undefined : { scale: 0.98 }}
+    {...(disabled ? {} : greffioTileTap)}
     className={cn(
       'mobile-choice-tile group relative flex w-full flex-col text-left transition-all duration-200 ease-out',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2',
@@ -82,7 +92,8 @@ export const MobileChoiceTile = ({
       </span>
     ) : null}
   </motion.button>
-);
+  );
+};
 
 export const MobileChoiceStep = ({
   kicker,

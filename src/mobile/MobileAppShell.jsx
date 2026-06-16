@@ -12,6 +12,7 @@ import { MobileNativeOfflineBanner } from '@/mobile/MobileNativeOfflineBanner.js
 import { MobileNavCoachmarks } from '@/mobile/ui/MobileNavCoachmarks.jsx';
 import { NativePermissionOrchestrator } from '@/mobile/ui/NativePermissionOrchestrator.jsx';
 import { MobileSidebarDrawer } from '@/components/MobileSidebarDrawer.jsx';
+import { MobileShellPageTransition } from '@/mobile/ui/MobileShellPageTransition.jsx';
 import { triggerMobileHaptic } from '@/utils/mobileHaptics.js';
 import { MobileStickyHeaderGroup } from '@/mobile/ui/MobileStickyHeaderGroup.jsx';
 import { MobileShellScrollProvider } from '@/mobile/context/MobileShellScrollContext.jsx';
@@ -179,7 +180,11 @@ const MobileAppShellInner = ({ children }) => {
           ref={scrollRef}
           className={`flex-1 overflow-y-auto ${mainPaddingClass}`}
         >
-          {children}
+          {showAuthenticatedNav ? (
+            <MobileShellPageTransition>{children}</MobileShellPageTransition>
+          ) : (
+            children
+          )}
         </main>
         {showBottomNav ? (
           showAuthenticatedNav ? (

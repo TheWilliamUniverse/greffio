@@ -10,5 +10,6 @@ export const useDossierActionStateQuery = (dossierId, options = {}) => useQuery(
     return payload?.actionState || null;
   },
   enabled: Boolean(dossierId),
+  staleTime: 20_000,
   ...options,
 });

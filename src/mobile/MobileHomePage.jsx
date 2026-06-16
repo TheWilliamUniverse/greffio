@@ -5,7 +5,11 @@ import { ArrowRight, FileText, FolderKanban, MessageSquareText, Plus } from 'luc
 import { Button } from '@/components/ui/button.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
 import { useDossiersQuery } from '@/hooks/queries/useDossiersQuery.js';
+import { useDossierActionStateQuery } from '@/hooks/queries/useDossierActionStateQuery.js';
 import { loadDossiersSnapshot, cacheDossiersSnapshot } from '@/utils/mobileOffline.js';
+import { AnimatedProgressRing } from '@/components/ui/AnimatedProgressRing.jsx';
+import { dossierContinuePrefetchHandlers } from '@/utils/dossierPrefetch.js';
+import { greffioTileTap } from '@/motion/greffioMotion.js';
 import { MobileDocumentScanner } from '@/mobile/MobileDocumentScanner.jsx';
 import { MobilePageSkeleton } from '@/mobile/ui/MobilePageSkeleton.jsx';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
@@ -36,11 +40,18 @@ export const MobileHomePage = () => {
 
   const dossiers = isError ? (offlineSnapshot?.dossiers || []) : (data || []);
   const primaryDossier = dossiers[0];
+  const { data: actionState } = useDossierActionStateQuery(primaryDossier?.id);
   const actionLabel = useMemo(() => {
+    if (actionState?.description) return actionState.description;
     if (!primaryDossier) return 'Votre espace est prêt. Lancez votre première démarche : Greffio prépare les documents, les pièces et le suivi avec vous.';
     return mapDossierClientAction(primaryDossier.status, primaryDossier.progressPercent);
-  }, [primaryDossier]);
+  }, [actionState?.description, primaryDossier]);
 
+  const continueUrl = primaryDossier
+    ? (actionState?.url || resolveDossierContinueUrl(primaryDossier))
+    : '/simulateur?type=creation';
+  const continueLabel = actionState?.label || (primaryDossier ? 'Reprendre mon dossier' : 'Créer mon premier dossier');
+  const prefetchHandlers = primaryDossier ? dossierContinuePrefetchHandlers(primaryDossier) : {};
   const actionCardTitle = primaryDossier
     ? (['under_administration_review', 'filed_to_guichet_unique'].includes(String(primaryDossier.status || '').toLowerCase())
       ? 'En vérification'
@@ -69,18 +80,27 @@ export const MobileHomePage = () => {
 
         <MobileAnimatedSection delay={0.05}>
           <motion.section
-            whileTap={{ scale: 0.995 }}
+            {...greffioTileTap}
             className="rounded-3xl border border-primary/20 bg-gradient-to-br from-white via-secondary/30 to-white p-5 shadow-[0_8px_30px_rgba(15,39,80,0.08)]"
           >
-            <p className="text-xs font-bold uppercase tracking-wide text-primary/80">{actionCardTitle}</p>
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-primary/80">{actionCardTitle}</p>
+              {primaryDossier ? (
+                <AnimatedProgressRing
+                  value={primaryDossier.progressPercent || 0}
+                  size={44}
+                  strokeWidth={3}
+                />
+              ) : null}
+            </div>
             <h2 className="mt-1 text-lg font-extrabold text-foreground">
               {primaryDossier?.companyName || 'Créez votre premier dossier'}
             </h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">{actionLabel}</p>
             <div className="mt-4 flex flex-col gap-2">
               <Button asChild className="h-11 w-full rounded-2xl text-base">
-                <Link to={primaryDossier ? resolveDossierContinueUrl(primaryDossier) : '/simulateur?type=creation'}>
-                  {primaryDossier ? 'Reprendre mon dossier' : 'Créer mon premier dossier'}
+                <Link to={continueUrl} {...prefetchHandlers}>
+                  {continueLabel}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>

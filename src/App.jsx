@@ -26,6 +26,8 @@ import {
   LazyOpsSettingsPage,
   LazyOpsLookupObservabilityPage,
   LazyOpsShell,
+  LazyFormalityPowersPage,
+  LazySubscribersListPage,
   withSuspense,
 } from '@/routes/lazyPages.jsx';
 import { SignupPage } from '@/pages/SignupPage.jsx';
@@ -60,8 +62,6 @@ import { AboutPage } from '@/pages/AboutPage.jsx';
 import { GuidePage } from '@/pages/GuidePage.jsx';
 import { MandatePage } from '@/pages/MandatePage.jsx';
 import { PaymentVerificationPage } from '@/pages/PaymentVerificationPage.jsx';
-import { SubscribersListPage } from '@/pages/SubscribersListPage.jsx';
-import { FormalityPowersPage } from '@/pages/FormalityPowersPage.jsx';
 import { DocumentCompletionEntry } from '@/mobile/entries/DocumentCompletionEntry.jsx';
 import { SignaturePublicPage } from '@/pages/SignaturePublicPage.jsx';
 import { DocumentSignPage } from '@/pages/DocumentSignPage.jsx';
@@ -234,8 +234,8 @@ function AppRoutes() {
             <Route path="/boutique/checkout" element={<ProtectedRoute><ShopCheckoutPage /></ProtectedRoute>} />
             <Route path="/boutique/commandes" element={<ProtectedRoute><ClientOrdersPage /></ProtectedRoute>} />
             <Route path="/dossier/:dossierId/declaration-non-condamnation" element={<ProtectedRoute>{withSuspense(LazyNonConvictionDeclarationPage, 'Chargement déclaration…')}</ProtectedRoute>} />
-            <Route path="/dossier/:dossierId/liste-souscripteurs" element={<ProtectedRoute><SubscribersListPage /></ProtectedRoute>} />
-            <Route path="/dossier/:dossierId/pouvoirs-formalites" element={<ProtectedRoute><FormalityPowersPage /></ProtectedRoute>} />
+            <Route path="/dossier/:dossierId/liste-souscripteurs" element={<ProtectedRoute>{withSuspense(LazySubscribersListPage, 'Chargement liste souscripteurs…')}</ProtectedRoute>} />
+            <Route path="/dossier/:dossierId/pouvoirs-formalites" element={<ProtectedRoute>{withSuspense(LazyFormalityPowersPage, 'Chargement pouvoirs…')}</ProtectedRoute>} />
             <Route path="/statuts" element={<ProtectedRoute><StatutsEntry /></ProtectedRoute>} />
             <Route path="/documents/:id/sign" element={<ProtectedRoute><DocumentSignPage /></ProtectedRoute>} />
             <Route path="/signature/:token" element={<SignaturePublicPage />} />
@@ -254,7 +254,18 @@ function AppRoutes() {
       <CookieConsentBanner />
       <AppUpdateGate />
       <ConnectedAssistantOrb />
-      <Toaster richColors position="top-right" />
+      <Toaster
+        richColors
+        position="top-right"
+        toastOptions={{
+          classNames: {
+            toast: 'border border-primary/15 font-[\'Inter\'] shadow-elevation-md',
+            title: 'font-semibold text-foreground',
+            description: 'text-muted-foreground',
+          },
+          duration: 4200,
+        }}
+      />
     </>
   );
 }

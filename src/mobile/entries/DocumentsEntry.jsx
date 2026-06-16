@@ -1,9 +1,12 @@
 import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
-import { DocumentsPage } from '@/pages/DocumentsPage.jsx';
-import { MobileDocumentsPage } from '@/mobile/MobileDocumentsPage.jsx';
+import {
+  LazyDocumentsPage,
+  LazyMobileDocumentsPage,
+  withSuspense,
+} from '@/routes/lazyPages.jsx';
 
 export const DocumentsEntry = () => (
   isCapacitorNative() || isMobileBrowserViewport()
-    ? <MobileDocumentsPage />
-    : <DocumentsPage />
+    ? withSuspense(LazyMobileDocumentsPage, 'Chargement des documents…')
+    : withSuspense(LazyDocumentsPage, 'Chargement des documents…')
 );

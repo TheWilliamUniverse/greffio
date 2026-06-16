@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { buildDossierTimelineSteps } from '@/utils/dossierClientStatus.js';
 import { cn } from '@/lib/utils.js';
+import { greffioTimelinePulse } from '@/motion/greffioMotion.js';
 
 const stateLabels = {
   done: 'Validé',
@@ -47,8 +48,8 @@ export const MobileDossierTimeline = ({ dossier, className }) => {
                   isActive && 'border-primary bg-white text-primary',
                   step.state === 'upcoming' && 'border-border bg-muted text-muted-foreground',
                 )}
-                animate={isActive && !reduceMotion ? { scale: [1, 1.12, 1] } : undefined}
-                transition={{ duration: 0.6, ease: 'easeOut' }}
+                animate={isActive && !reduceMotion ? greffioTimelinePulse.animate : undefined}
+                transition={greffioTimelinePulse.transition}
                 aria-hidden="true"
               >
                 {isDone ? '●' : isActive ? '◐' : '○'}
