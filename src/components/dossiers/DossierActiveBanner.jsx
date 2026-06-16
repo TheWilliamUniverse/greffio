@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { AnimatedProgressRing } from '@/components/ui/AnimatedProgressRing.jsx';
 import { mapDossierStatusForBadge } from '@/utils/dossierClientStatus.js';
+import { resolveDossierDashboardCta } from '@/utils/dossierDashboardCta.js';
 import { resolveFormalityPublicLabel } from '@/config/formalityLabels.js';
 import { greffioCardLift } from '@/motion/greffioMotion.js';
 import { dossierContinuePrefetchHandlers } from '@/utils/dossierPrefetch.js';
@@ -19,8 +20,7 @@ export const DossierActiveBanner = ({
   if (!dossier?.id) return null;
 
   const progress = Number(dossier.progressPercent || 0);
-  const continueUrl = actionState?.url || `/dossier/${dossier.id}`;
-  const continueLabel = actionState?.label || 'Continuer le dossier';
+  const { url: continueUrl, label: continueLabel } = resolveDossierDashboardCta(dossier, actionState);
   const phase = resolveFormalityPublicLabel({
     service: dossier.service,
     typeFormalite: dossier.typeFormalite,

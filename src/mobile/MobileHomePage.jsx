@@ -18,7 +18,7 @@ import { MobileDossierTimeline } from '@/mobile/ui/MobileDossierTimeline.jsx';
 import { MobileCockpitOnboarding } from '@/mobile/ui/MobileCockpitOnboarding.jsx';
 import { useMobileMotion } from '@/mobile/ui/mobileMotion.js';
 import { mapDossierClientAction } from '@/utils/dossierClientStatus.js';
-import { resolveDossierContinueUrl } from '@/utils/dossierContinueUrl.js';
+import { resolveDossierDashboardCta } from '@/utils/dossierDashboardCta.js';
 import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 
 export const MobileHomePage = () => {
@@ -47,10 +47,9 @@ export const MobileHomePage = () => {
     return mapDossierClientAction(primaryDossier.status, primaryDossier.progressPercent);
   }, [actionState?.description, primaryDossier]);
 
-  const continueUrl = primaryDossier
-    ? (actionState?.url || resolveDossierContinueUrl(primaryDossier))
-    : '/simulateur?type=creation';
-  const continueLabel = actionState?.label || (primaryDossier ? 'Reprendre mon dossier' : 'Créer mon premier dossier');
+  const { url: continueUrl, label: continueLabel } = primaryDossier
+    ? resolveDossierDashboardCta(primaryDossier, actionState)
+    : { url: '/simulateur?type=creation', label: 'Créer mon premier dossier' };
   const prefetchHandlers = primaryDossier ? dossierContinuePrefetchHandlers(primaryDossier) : {};
   const actionCardTitle = primaryDossier
     ? (['under_administration_review', 'filed_to_guichet_unique'].includes(String(primaryDossier.status || '').toLowerCase())

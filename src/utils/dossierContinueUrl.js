@@ -7,6 +7,9 @@ export const resolveDossierContinueUrl = (dossier = {}) => {
   const progress = Number(dossier?.progressPercent || 0);
 
   if (['draft', 'contact_started', 'contact_completed', 'legal_form_selected', 'questionnaire_in_progress'].includes(status)) {
+    if (progress > 90) {
+      return `/documents?dossierId=${encodeURIComponent(id)}`;
+    }
     return `/questionnaire?dossierId=${encodeURIComponent(id)}`;
   }
   if (['questionnaire_completed', 'payment_pending', 'payment_confirmed', 'dossier_preparation'].includes(status)) {

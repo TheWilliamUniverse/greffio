@@ -85,6 +85,11 @@ export const resolveDossierActionState = ({
       || (['formality_powers', 'proxy_mandate'].includes(doc.docKey) && docStatus === 'REQUESTED' && documentHasFile(doc));
   });
 
+  const statutsGenerated = visibleDocuments.some((doc) => (
+    doc.docKey === 'signed_statutes' && documentHasFile(doc)
+  ));
+  const pastQuestionnairePhase = progress > 90 || statutsGenerated;
+
   const base = {
     dossierId,
     status,
@@ -92,6 +97,20 @@ export const resolveDossierActionState = ({
     pendingDocumentCount: pendingDocuments.length,
     pendingSignatureCount: pendingSignatures.length,
   };
+
+  if (QUESTIONNAIRE_STATUSES.has(status) && pastQuestionnairePhase) {
+    return {
+      ...base,
+      kind: 'documents',
+      label: 'Compléter le dossier',
+      description: pendingDocuments.length
+        ? `${pendingDocuments.length} pièce${pendingDocuments.length > 1 ? 's' : ''} à compléter ou corriger.`
+        : 'Consultez et complétez votre coffre documentaire.',
+      url: buildUrl(dossierId, '/documents'),
+      priority: 'high',
+      blocking: pendingDocuments.length ? `${pendingDocuments.length} document(s) en attente` : null,
+    };
+  }
 
   if (QUESTIONNAIRE_STATUSES.has(status) || (status === 'questionnaire_completed' && progress < 40)) {
     return {
