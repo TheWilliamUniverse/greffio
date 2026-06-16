@@ -9,6 +9,12 @@ import {
 } from '../services/dossierAuditExportService.js';
 import { issueQontoInvoiceWithMolliePayment } from '../services/qonto/qontoInvoiceService.js';
 import { notifyInvoiceAvailable } from '../services/invoicePaymentNotifications.js';
+import {
+  approveAndSendInvoiceToClient,
+  isInvoiceOpsReviewRequired,
+  listPendingInvoiceReviews,
+} from '../services/qonto/invoiceOpsReviewService.js';
+import { upsertInvoice } from '../invoiceStore.js';
 
 const OPS_TEAM_DIRECTORY = Object.freeze([
   { id: 'william', email: 'william@willentreprises.com', name: 'William ABDOU', role: 'ADMIN', initials: 'WA', title: 'Direction & pilotage ops' },
@@ -280,16 +286,36 @@ export const registerOpsRoutes = (app, deps) => {
         mollieMethod,
       });
 
-      await notifyInvoiceAvailable({
-        payment: result.payment,
-        invoice: result.invoice,
+      await upsertInvoice({
+        id: result.invoice.id,
+        dossierId,
+        paymentId: result.payment?.id || null,
+        userId,
+        invoiceKind: 'manual_issue',
+        invoiceNumber: result.invoice.number,
+        qontoInvoiceId: result.invoice.qontoInvoiceId,
+        qontoStatus: result.invoice.qontoStatus,
+        amountTotalCents: Number(amountTotalCents),
+        currency,
+        customerEmail,
+        customerName,
+        clientDeliveryStatus: isInvoiceOpsReviewRequired() ? 'pending_ops_review' : 'sent',
+        metadata: { flow: 'manual_issue', checkoutUrl: result.checkoutUrl },
       });
+
+      if (!isInvoiceOpsReviewRequired()) {
+        await notifyInvoiceAvailable({
+          payment: result.payment,
+          invoice: result.invoice,
+        });
+      }
 
       return res.status(201).json({
         ok: true,
         invoice: result.invoice,
         payment: result.payment,
         checkoutUrl: result.checkoutUrl,
+        pendingOpsReview: isInvoiceOpsReviewRequired(),
       });
     } catch (error) {
       console.error('[ops/invoices/issue]', error);
@@ -298,6 +324,32 @@ export const registerOpsRoutes = (app, deps) => {
         error: 'INVOICE_ISSUE_FAILED',
         message: error?.message || 'Échec émission facture',
       });
+    }
+  });
+
+  app.get('/api/ops/invoices/pending-review', requireAuth, requireRole(['ADMIN', 'OPS']), async (_req, res) => {
+    try {
+      const invoices = await listPendingInvoiceReviews({ limit: 100 });
+      return res.json({ ok: true, invoices });
+    } catch (error) {
+      console.error('[ops/invoices/pending-review]', error);
+      return res.status(500).json({ ok: false, error: 'INVOICE_REVIEW_LIST_FAILED' });
+    }
+  });
+
+  app.post('/api/ops/invoices/:invoiceId/approve-send', requireAuth, requireRole(['ADMIN', 'OPS']), async (req, res) => {
+    try {
+      const result = await approveAndSendInvoiceToClient({
+        invoiceId: req.params.invoiceId,
+        opsUserId: req.auth.sub,
+      });
+      if (!result.ok) {
+        return res.status(result.error === 'INVOICE_NOT_FOUND' ? 404 : 409).json(result);
+      }
+      return res.json(result);
+    } catch (error) {
+      console.error('[ops/invoices/approve-send]', error);
+      return res.status(500).json({ ok: false, error: 'INVOICE_APPROVE_SEND_FAILED' });
     }
   });
 

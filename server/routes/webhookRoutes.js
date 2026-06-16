@@ -2,6 +2,7 @@ import express from 'express';
 import { rejectIfWebhookSecretMissing } from '../utils/webhookSecurity.js';
 import { retrieveMolliePayment, isMolliePaidStatus, isMollieFailedStatus } from '../mollie.js';
 import { notifyInvoicePaymentOutcome } from '../services/invoicePaymentNotifications.js';
+import { queueInvoiceAfterPaymentSuccess } from '../services/qonto/invoiceOpsReviewService.js';
 
 export const registerWebhookRoutes = (app, deps) => {
   const {
@@ -20,6 +21,8 @@ export const registerWebhookRoutes = (app, deps) => {
     parseGoCardlessWebhookEvents,
     retrieveGoCardlessBillingRequest,
     isGoCardlessPaidStatus,
+    getDossier,
+    getUserById,
   } = deps;
 
   app.post('/api/webhooks/resend', express.text({ type: 'application/json' }), async (req, res) => {
@@ -156,6 +159,17 @@ export const registerWebhookRoutes = (app, deps) => {
           actorRole: ROLE.WEBHOOK,
           reason: 'mollie_paid',
           metadata: { providerPaymentId, paymentConfirmed: true },
+        });
+      }
+
+      if (getDossier) {
+        const dossier = updated.dossierId ? await getDossier(updated.dossierId) : null;
+        void queueInvoiceAfterPaymentSuccess({
+          payment: updated,
+          dossier,
+          getUserById,
+        }).catch((invoiceError) => {
+          console.error('[mollie-webhook] invoice queue failed', invoiceError?.message || invoiceError);
         });
       }
     } else if (

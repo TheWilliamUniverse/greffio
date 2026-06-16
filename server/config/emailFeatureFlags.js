@@ -58,6 +58,7 @@ export const EMAIL_TEMPLATE_FLAG_MAP = Object.freeze({
   ops_risk_alert: 'opsEmails',
   ops_system_error: 'opsEmails',
   ops_message: 'opsEmails',
+  ops_invoice_pending_review: 'opsEmails',
   editable_document_signature_request: 'signatureEmails',
   non_conviction_signature_request: 'signatureEmails',
   subscribers_list_signature_request: 'signatureEmails',

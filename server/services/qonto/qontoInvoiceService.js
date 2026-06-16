@@ -20,24 +20,19 @@ const pickIbanBankAccount = async () => {
 };
 
 /**
- * Crée une facture client Qonto puis un lien de paiement Mollie (factures uniquement).
+ * Crée une facture client dans Qonto (sans lien de paiement Mollie).
  */
-export const issueQontoInvoiceWithMolliePayment = async ({
+export const createQontoClientInvoice = async ({
   customerName,
   customerEmail,
   amountTotalCents,
   currency = 'EUR',
   description,
-  dossierId = null,
-  userId = null,
+  invoiceNumber = null,
   dueDays = 14,
-  mollieMethod = null,
 }) => {
   if (!isQontoConfigured()) {
     throw new Error('QONTO_NOT_CONFIGURED');
-  }
-  if (!isMollieConfigured()) {
-    throw new Error('MOLLIE_NOT_CONFIGURED');
   }
   if (!Number.isInteger(amountTotalCents) || amountTotalCents <= 0) {
     throw new Error('INVALID_INVOICE_AMOUNT');
@@ -47,18 +42,16 @@ export const issueQontoInvoiceWithMolliePayment = async ({
   }
 
   const bankAccount = await pickIbanBankAccount();
-  const organization = await getQontoOrganization();
   const issueDate = todayIsoDate();
   const dueDate = new Date(Date.now() + dueDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const invoiceNumber = `GF-${Date.now().toString(36).toUpperCase()}`;
-  const internalInvoiceId = randomUUID();
+  const resolvedNumber = invoiceNumber || `GF-${Date.now().toString(36).toUpperCase()}`;
 
   const invoicePayload = {
     client_invoice: {
       issue_date: issueDate,
       due_date: dueDate,
       status: 'unpaid',
-      number: invoiceNumber,
+      number: resolvedNumber,
       currency,
       iban: bankAccount.iban,
       client: {
@@ -86,7 +79,59 @@ export const issueQontoInvoiceWithMolliePayment = async ({
     body: invoicePayload,
   });
   const qontoInvoice = qontoResult.client_invoice || qontoResult;
-  const qontoInvoiceId = qontoInvoice.id || qontoInvoice.slug || invoiceNumber;
+
+  return {
+    number: resolvedNumber,
+    qontoInvoiceId: qontoInvoice.id || qontoInvoice.slug || resolvedNumber,
+    qontoStatus: qontoInvoice.status || 'unpaid',
+    issueDate,
+    dueDate,
+    raw: qontoInvoice,
+  };
+};
+
+/**
+ * Crée une facture client Qonto puis un lien de paiement Mollie (factures uniquement).
+ */
+export const issueQontoInvoiceWithMolliePayment = async ({
+  customerName,
+  customerEmail,
+  amountTotalCents,
+  currency = 'EUR',
+  description,
+  dossierId = null,
+  userId = null,
+  dueDays = 14,
+  mollieMethod = null,
+}) => {
+  if (!isQontoConfigured()) {
+    throw new Error('QONTO_NOT_CONFIGURED');
+  }
+  if (!isMollieConfigured()) {
+    throw new Error('MOLLIE_NOT_CONFIGURED');
+  }
+  if (!Number.isInteger(amountTotalCents) || amountTotalCents <= 0) {
+    throw new Error('INVALID_INVOICE_AMOUNT');
+  }
+  if (!customerEmail) {
+    throw new Error('CUSTOMER_EMAIL_REQUIRED');
+  }
+
+  const organization = await getQontoOrganization();
+  const internalInvoiceId = randomUUID();
+  const invoiceNumber = `GF-${Date.now().toString(36).toUpperCase()}`;
+
+  const qontoCreated = await createQontoClientInvoice({
+    customerName,
+    customerEmail,
+    amountTotalCents,
+    currency,
+    description,
+    invoiceNumber,
+    dueDays,
+  });
+  const qontoInvoice = qontoCreated.raw;
+  const qontoInvoiceId = qontoCreated.qontoInvoiceId;
 
   const mollieCreated = await createMolliePayment({
     amountTotalCents,
@@ -140,8 +185,8 @@ export const issueQontoInvoiceWithMolliePayment = async ({
       id: internalInvoiceId,
       number: invoiceNumber,
       qontoInvoiceId,
-      issueDate,
-      dueDate,
+      issueDate: qontoCreated.issueDate,
+      dueDate: qontoCreated.dueDate,
       amountTotalCents,
       currency,
       customerEmail,

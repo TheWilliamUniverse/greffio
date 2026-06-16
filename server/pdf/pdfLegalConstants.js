@@ -7,7 +7,7 @@ export const FORMALITY_POWERS_SIGNATURE_FAIT_ABOVE_LINE = 86;
 export const FORMALITY_POWERS_SIGNATURE_LABEL_ABOVE_LINE = 66;
 
 /** Image stamp sits this many pt above the trait noir (formality powers). */
-export const FORMALITY_POWERS_STAMP_ABOVE_LINE = 4;
+export const FORMALITY_POWERS_STAMP_ABOVE_LINE = -4;
 
 /** Reserved stamp image height above the trait noir. */
 export const FORMALITY_POWERS_STAMP_MAX_HEIGHT = 48;

@@ -860,6 +860,31 @@ const transactionalTemplates = Object.freeze({
     `,
   }),
 
+  ops_invoice_pending_review: defineTemplate({
+    subject: 'Facture à valider – {{invoiceNumber}} ({{dossierReference}})',
+    tags: ['ops', 'invoice', 'pending_review'],
+    requiredVariables: ['invoiceNumber', 'amountLabel', 'dossierReference', 'reviewUrl'],
+    preheader: 'Une facture auto-générée attend votre validation avant envoi client.',
+    textLines: [
+      'Une facture a été générée automatiquement après paiement client.',
+      '',
+      'Facture : {{invoiceNumber}}',
+      'Montant : {{amountLabel}}',
+      'Dossier : {{dossierReference}}',
+      '',
+      'Valider avant envoi client : {{reviewUrl}}',
+    ],
+    bodyHtml: `
+      <p style="margin:0 0 16px;">Une facture a été générée automatiquement après paiement client et <strong>attend votre validation</strong> avant envoi.</p>
+      <ul style="margin:0 0 16px;padding-left:20px;font-size:14px;line-height:1.6;">
+        <li>Facture : <strong>{{invoiceNumber}}</strong></li>
+        <li>Montant : <strong>{{amountLabel}}</strong></li>
+        <li>Dossier : <strong>{{dossierReference}}</strong></li>
+      </ul>
+      ${ctaButton('Ouvrir la file de validation', '{{reviewUrl}}')}
+    `,
+  }),
+
   resource_order_internal: defineTemplate({
     subject: 'Nouvelle commande ressource – {{service_title}}',
     tags: ['ops', 'resource_order'],

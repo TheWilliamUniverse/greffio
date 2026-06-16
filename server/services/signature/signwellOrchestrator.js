@@ -7,6 +7,7 @@ import { NON_CONVICTION_DOC_KEY, persistSignedNonConvictionPdf } from '../nonCon
 import { persistSignedEditableDocumentPdf } from '../editableDocumentService.js';
 import { markSignatureRequestSigned } from '../../signatureRequestStore.js';
 import { sendTransactionalEmail } from '../emailService.js';
+import { resolveSignatureCompletedEmail } from './signatureCompletedEmail.js';
 import {
   createSignwellDocumentRecord,
   getSignwellDocumentBySignwellId,
@@ -213,16 +214,16 @@ export const completeSignwellDocument = async ({
       },
     });
 
+    const completedEmail = resolveSignatureCompletedEmail({
+      docKey: record.docKey,
+      dossier,
+      signerFullName: record.signerFullName,
+      appUrl,
+    });
     void sendTransactionalEmail({
       to: { email: record.signerEmail, name: record.signerFullName },
-      templateKey: record.docKey === NON_CONVICTION_DOC_KEY
-        ? 'non_conviction_signature_completed'
-        : 'non_conviction_signature_completed',
-      variables: {
-        companyName: dossier.companyName || dossier.denomination || 'Votre société',
-        signedDownloadLink: `${appUrl}/documents`,
-        firstName: record.signerFullName.split(' ')[0] || 'Client',
-      },
+      templateKey: completedEmail.templateKey,
+      variables: completedEmail.variables,
       dossierId: record.dossierId,
       tags: ['signature', 'signwell', record.docKey],
     });

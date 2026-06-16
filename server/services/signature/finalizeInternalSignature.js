@@ -10,6 +10,7 @@ import {
 } from '../../signatureRequestStore.js';
 import { createSignatureRecord } from '../../signatureStore.js';
 import { sendTransactionalEmail } from '../emailService.js';
+import { resolveSignatureCompletedEmail } from './signatureCompletedEmail.js';
 import { generateSignatureProofCertificatePdf } from './generateProofCertificatePdf.js';
 import { recordSignatureAuditEvent, listSignatureAuditEvents } from './signatureAuditService.js';
 import { getSignatureConsentText, isSignatureOtpRequired } from './signatureConsent.js';
@@ -323,14 +324,16 @@ export const finalizeInternalSignature = async ({
     },
   }).catch(() => {});
 
+  const completedEmail = resolveSignatureCompletedEmail({
+    docKey: request.docKey,
+    dossier,
+    signerFullName,
+    appUrl,
+  });
   void sendTransactionalEmail({
     to: { email: signerEmail, name: signerFullName },
-    templateKey: 'non_conviction_signature_completed',
-    variables: {
-      companyName: dossier?.companyName || 'Votre société',
-      signedDownloadLink: `${appUrl}/documents`,
-      firstName: signerFullName.split(' ')[0] || 'Client',
-    },
+    templateKey: completedEmail.templateKey,
+    variables: completedEmail.variables,
     dossierId: request.dossierId,
     tags: ['signature', request.docKey],
   });

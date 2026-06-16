@@ -191,6 +191,7 @@ import {
 import { persistEditableDocumentPdf } from './services/editableDocumentService.js';
 import { registerPaymentsRoutes } from './routes/paymentsRoutes.js';
 import { registerMollieRoutes } from './routes/mollieRoutes.js';
+import { registerMollieConnectRoutes } from './routes/mollieConnectRoutes.js';
 import { registerAppVersionRoutes } from './routes/appVersionRoutes.js';
 import { registerAppContextRoutes } from './routes/appContextRoutes.js';
 import { registerDocumentCompletionRoutes } from './routes/documentCompletionRoutes.js';
@@ -3023,6 +3024,7 @@ app.post('/api/payments/create', paymentLimiter, requireAuth, async (req, res) =
 });
 
 registerMollieRoutes(app, { appUrl });
+registerMollieConnectRoutes(app, { requireAuth, requireRole });
 
 registerWebhookRoutes(app, {
   parseResendWebhook,
@@ -3040,6 +3042,8 @@ registerWebhookRoutes(app, {
   parseGoCardlessWebhookEvents,
   retrieveGoCardlessBillingRequest,
   isGoCardlessPaidStatus,
+  getDossier,
+  getUserById,
 });
 
 registerGooglePayRoutes(app, { requireAuth, appUrl });
