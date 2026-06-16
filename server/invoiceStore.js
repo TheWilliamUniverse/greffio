@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { hasPostgres, query, sqlite } from '../dbClient.js';
+import { hasPostgres, query, sqlite } from './dbClient.js';
 
 const nowIso = () => new Date().toISOString();
 

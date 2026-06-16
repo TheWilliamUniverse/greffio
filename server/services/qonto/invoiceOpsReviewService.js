@@ -6,11 +6,11 @@ import {
   getInvoiceByPaymentId,
   listInvoicesPendingOpsReview,
   upsertInvoice,
-} from '../invoiceStore.js';
-import { upsertPayment } from '../store.js';
-import { notifyInvoiceAvailable } from './invoicePaymentNotifications.js';
-import { sendTransactionalEmail } from './emailService.js';
-import { isEmailFeatureEnabled } from '../config/emailFeatureFlags.js';
+} from '../../invoiceStore.js';
+import { upsertPayment } from '../../store.js';
+import { notifyInvoiceAvailable } from '../invoicePaymentNotifications.js';
+import { sendTransactionalEmail } from '../emailService.js';
+import { isEmailFeatureEnabled } from '../../config/emailFeatureFlags.js';
 
 const truthy = (value, fallback = false) => {
   if (value === undefined || value === null || value === '') return fallback;
