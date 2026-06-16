@@ -4,7 +4,15 @@ import { PRIMARY_FORMALITY_CATEGORIES } from '@/lib/questionnaireFlow.js';
 import { getCategoryVisual } from '@/config/demarcheVisuals.js';
 import { MobileChoiceStep, MobileChoiceTile } from '@/components/questionnaire/MobileChoiceStep.jsx';
 
-export const FormalityCategoryPicker = ({ value, onChange, onContinue, mobilePresentation = false }) => {
+export const FormalityCategoryPicker = ({
+  value,
+  onChange,
+  onContinue,
+  mobilePresentation = false,
+  progressPercent,
+  stepCurrent,
+  stepTotal,
+}) => {
   if (mobilePresentation) {
     return (
       <MobileChoiceStep
@@ -12,6 +20,9 @@ export const FormalityCategoryPicker = ({ value, onChange, onContinue, mobilePre
         title="Choisissez une famille de formalité"
         subtitle="Greffio adapte ensuite le questionnaire, les pièces et les documents à votre situation."
         hint="Touchez une famille pour continuer."
+        progressPercent={progressPercent}
+        stepCurrent={stepCurrent}
+        stepTotal={stepTotal}
         gridClassName="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3"
       >
         {PRIMARY_FORMALITY_CATEGORIES.map((category) => {

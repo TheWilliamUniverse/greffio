@@ -32,6 +32,9 @@ export const DemarchePicker = ({
   mobilePresentation = false,
   onAdvance,
   onSkipCreationTiles,
+  progressPercent,
+  stepCurrent,
+  stepTotal,
 }) => {
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
@@ -106,6 +109,9 @@ export const DemarchePicker = ({
           if (categoryId) setCategoryConfirmed(true);
         }}
         mobilePresentation={mobilePresentation}
+        progressPercent={progressPercent}
+        stepCurrent={stepCurrent}
+        stepTotal={stepTotal}
       />
     );
   }
@@ -164,6 +170,9 @@ export const DemarchePicker = ({
           title="Quelle démarche ?"
           subtitle="Greffio adapte le questionnaire et les documents à votre situation."
           hint="Touchez une démarche pour continuer."
+          progressPercent={progressPercent}
+          stepCurrent={stepCurrent}
+          stepTotal={stepTotal}
           gridClassName="grid grid-cols-1 gap-2.5"
         >
           {filteredItems.map((item) => (

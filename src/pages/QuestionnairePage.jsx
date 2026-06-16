@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { ProgressCircle } from '@/components/questionnaire/ProgressCircle.jsx';
 import { StepLayout } from '@/components/questionnaire/StepLayout.jsx';
+import { QuestionBackButton } from '@/components/questionnaire/QuestionBackButton.jsx';
 import { ChoiceCard } from '@/components/questionnaire/ChoiceCard.jsx';
 import { DemarchePicker } from '@/components/questionnaire/DemarchePicker.jsx';
 import { SegmentedChoice } from '@/components/questionnaire/SegmentedChoice.jsx';
@@ -139,7 +140,7 @@ const getFormAvailabilityLabel = (formKey) => {
 };
 const PROGRESSIVE_STEP_LABELS = Object.freeze({
   contact: 'Type de déclarant',
-  demarche: 'Formalité',
+  demarche: 'Entreprise concernée',
   forme: 'Structure',
   entreprise: 'Informations',
   gouvernance: 'Associés',
@@ -243,6 +244,9 @@ export const QuestionnairePage = () => {
   });
   const hideContinueOnMobile = presentation.shouldHideStickyContinue;
   const isCompactMobileStep = isMobileChoicePresentation && hideContinueOnMobile && activeGroup.length === 1;
+  const isMobileFormalitePickerStep = isMobileChoicePresentation
+    && activeField?.key === 'typeFormalite'
+    && activeGroup.length === 1;
   const continueLabel = isLastGroupInStep && stepIndex >= QUESTIONNAIRE_FLOW.length - 1
     ? 'Terminer le questionnaire'
     : isLastGroupInStep
@@ -602,8 +606,13 @@ export const QuestionnairePage = () => {
             );
             return { stepIndex: 0, fieldIndex: isMobileQuestionnaireViewport() ? groupIdx : firstInvalid };
           }
-          const demarcheIndex = QUESTIONNAIRE_FLOW.findIndex((entry) => entry.id === 'demarche');
-          return { stepIndex: Math.max(demarcheIndex, 0), fieldIndex: 0 };
+          const applicable = getApplicableFlowSteps(data);
+          const contactPos = applicable.findIndex((entry) => entry.id === 'contact');
+          const nextStep = contactPos >= 0 ? applicable[contactPos + 1] : null;
+          const nextStepIndex = nextStep
+            ? QUESTIONNAIRE_FLOW.findIndex((entry) => entry.id === nextStep.id)
+            : 0;
+          return { stepIndex: Math.max(nextStepIndex, 0), fieldIndex: 0 };
         };
 
         const resume = mergedData._resume || {};
@@ -1167,6 +1176,9 @@ export const QuestionnairePage = () => {
                 onCategoryConfirmedChange={setDemarcheCategoryConfirmed}
                 mobilePresentation={isMobileChoicePresentation}
                 onAdvance={() => requestMobileTapAdvance('typeFormalite')}
+                progressPercent={progress}
+                stepCurrent={fieldGroups.length > 1 ? safeGroupIndex + 1 : undefined}
+                stepTotal={fieldGroups.length > 1 ? fieldGroups.length : undefined}
               />
             </div>
           </div>
@@ -1536,6 +1548,41 @@ export const QuestionnairePage = () => {
       </div>
     );
   };
+
+  if (isMobileFormalitePickerStep) {
+    return (
+      <div
+        ref={wizardTopRef}
+        className="mx-auto max-w-4xl min-h-[100dvh] px-3 py-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
+      >
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <QuestionBackButton
+            type="button"
+            onClick={goBack}
+            disabled={stepIndex <= 0 && safeGroupIndex <= 0}
+            className="h-10 px-4 text-xs"
+          />
+          <AutosaveIndicator status={autosaveState} />
+        </div>
+        {stepError ? (
+          <QuestionnaireNotice variant="error" title="Enregistrement" className="mb-3">
+            {stepError}
+          </QuestionnaireNotice>
+        ) : null}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key="typeFormalite-mobile"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+          >
+            {renderQuestionField(activeField)}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    );
+  }
 
   return (
     <div

@@ -611,11 +611,24 @@ export const inferDemarcheCategory = (typeFormalite = '') => {
   return primary?.id || '';
 };
 
+/** Anciens dossiers : typeFormalite vivait sur l’étape demarche — ramener au flux contact unifié. */
+const normalizeResumeMeta = (formData = {}, resume = {}) => {
+  const next = { ...resume };
+  if (next.stepId === 'demarche' && next.fieldKey === 'typeFormalite') {
+    return { ...next, stepId: 'contact', fieldKey: 'typeFormalite' };
+  }
+  if (next.stepId === 'demarche' && !String(formData.typeFormalite || '').trim()) {
+    return { ...next, stepId: 'contact', fieldKey: 'typeFormalite' };
+  }
+  return next;
+};
+
 export const resolveResumePosition = (formData = {}, resume = {}) => {
+  const normalizedResume = normalizeResumeMeta(formData, resume);
   const applicable = getApplicableFlowSteps(formData);
   const sharedMeta = {
-    demarcheCategory: resume?.demarcheCategory || inferDemarcheCategory(formData.typeFormalite),
-    categoryConfirmed: resume?.categoryConfirmed ?? Boolean(formData.typeFormalite),
+    demarcheCategory: normalizedResume?.demarcheCategory || inferDemarcheCategory(formData.typeFormalite),
+    categoryConfirmed: normalizedResume?.categoryConfirmed ?? Boolean(formData.typeFormalite),
   };
 
   if (formData.validationConfirmed === true) {
@@ -628,14 +641,14 @@ export const resolveResumePosition = (formData = {}, resume = {}) => {
     };
   }
 
-  if (resume?.stepId) {
-    const savedApplicableIndex = applicable.findIndex((entry) => entry.id === resume.stepId);
+  if (normalizedResume?.stepId) {
+    const savedApplicableIndex = applicable.findIndex((entry) => entry.id === normalizedResume.stepId);
     if (savedApplicableIndex >= 0) {
       const savedStep = applicable[savedApplicableIndex];
       const savedFlowIndex = getFlowStepIndexById(savedStep.id);
       const fields = getVisibleFieldsForStep(savedStep, formData);
-      if (resume?.fieldKey && fields.length) {
-        const savedFieldIndex = fields.findIndex((field) => field.key === resume.fieldKey);
+      if (normalizedResume?.fieldKey && fields.length) {
+        const savedFieldIndex = fields.findIndex((field) => field.key === normalizedResume.fieldKey);
         if (savedFieldIndex >= 0) {
           return {
             stepIndex: savedFlowIndex,
