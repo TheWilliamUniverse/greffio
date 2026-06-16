@@ -3,6 +3,7 @@ import path from 'node:path';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { resolveFormalityPublicLabel } from '../domain/formalityLabels.js';
 import { buildDocumentVerifyUrl } from '../services/documentIntegrityService.js';
+import { MANDATE_SIGNATURE_LINE_Y } from './pdfLegalConstants.js';
 import {
   CONTENT_WIDTH,
   COLOR_MUTED,
@@ -234,7 +235,15 @@ const generateMandatePdf = async ({
     y -= LINE_BODY;
   }
 
+  page.drawLine({
+    start: { x: MARGIN_PT, y: MANDATE_SIGNATURE_LINE_Y },
+    end: { x: MARGIN_PT + 220, y: MANDATE_SIGNATURE_LINE_Y },
+    thickness: 0.7,
+    color: COLOR_TEXT,
+  });
+
   if (evidence?.documentHash || signedAtFr) {
+    y = Math.min(y, MANDATE_SIGNATURE_LINE_Y - 24);
     y -= 6;
     page.drawText('Preuve de signature', {
       x: MARGIN_PT,

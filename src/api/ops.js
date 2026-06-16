@@ -86,6 +86,14 @@ export const updateOpsDocumentStatus = async ({
   { status, rejectedReason },
 );
 
+export const deleteOpsDocument = async ({ dossierId, docKey }) => apiDelete(
+  `/api/ops/dossiers/${encodeURIComponent(dossierId)}/documents/${encodeURIComponent(docKey)}`,
+);
+
+export const deleteOpsDossier = async (dossierId) => apiDelete(
+  `/api/ops/dossiers/${encodeURIComponent(dossierId)}`,
+);
+
 export const getOpsEmailEvents = async ({
   limit = 100,
   templateId,

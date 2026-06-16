@@ -2,7 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { formatFrenchDate } from './nonConvictionPdf.js';
-import { FORMALITY_POWERS_SIGNATURE_LINE_Y } from './pdfLegalConstants.js';
+import {
+  FORMALITY_POWERS_SIGNATURE_LINE_Y,
+  LEGAL_RAPPEL_BOTTOM_Y,
+} from './pdfLegalConstants.js';
 
 const outputDir = path.resolve(process.cwd(), 'server', 'data', 'generated', 'formality-powers');
 if (!fs.existsSync(outputDir)) {
@@ -153,6 +156,25 @@ const estimateBulletsHeight = (items) => items.reduce(
   0,
 );
 
+const drawPinnedRappel = (targetPage, font, fontBold, text) => {
+  const lines = wrapText(text);
+  const headingHeight = SIZE_BODY + GAP_AFTER_H2;
+  const bodyHeight = lines.length * LINE_BODY;
+  let blockY = LEGAL_RAPPEL_BOTTOM_Y + bodyHeight + headingHeight;
+  blockY = drawSectionHeading(targetPage, fontBold, blockY, 'Rappel');
+  lines.forEach((line) => {
+    targetPage.drawText(line, {
+      x: MARGIN_H,
+      y: blockY,
+      size: SIZE_BODY,
+      font,
+      color: COLOR_TEXT,
+      maxWidth: CONTENT_WIDTH,
+    });
+    blockY -= LINE_BODY;
+  });
+};
+
 export const generateFormalityPowersPdf = async ({
   filename,
   fields = {},
@@ -286,37 +308,65 @@ export const generateFormalityPowersPdf = async ({
     'Le Mandataire agit sur la base des informations et documents communiqués par le Mandant. Il ne se substitue ni aux administrations, ni aux greffes, ni aux autorités compétentes, ni aux professionnels réglementés lorsque leur intervention est légalement requise.',
   ]);
 
+  const lineY = FORMALITY_POWERS_SIGNATURE_LINE_Y;
+  const signatureBlockTopY = lineY + 108;
+  const dureeHeightEstimate = (
+    GAP_AFTER_H2
+    + wrapText('La présente procuration prend effet à compter de sa signature par le Mandant. Elle demeure valable jusqu\'à l\'accomplissement complet de la formalité confiée, incluant, le cas échéant, les corrections, compléments, échanges avec les organismes compétents et réception des justificatifs définitifs.').length * LINE_BODY
+    + wrapText('Elle pourra être révoquée à tout moment par notification écrite adressée au Mandataire, sans remettre en cause les actes régulièrement accomplis avant la réception effective de cette révocation.').length * LINE_BODY
+    + wrapText('Le Mandant reconnaît avoir été informé que toute indication inexacte, incomplète ou trompeuse transmise dans le cadre d\'une formalité d\'entreprise peut entraîner le rejet du dossier, une demande de régularisation, un retard de traitement ou, le cas échéant, l\'engagement de sa responsabilité.').length * LINE_BODY
+    + GAP_PARAGRAPH * 3
+    + GAP_SECTION
+  );
+  if (y - dureeHeightEstimate < signatureBlockTopY) {
+    startNewPage();
+  }
+
   drawSection('Durée et révocation', [
     'La présente procuration prend effet à compter de sa signature par le Mandant. Elle demeure valable jusqu\'à l\'accomplissement complet de la formalité confiée, incluant, le cas échéant, les corrections, compléments, échanges avec les organismes compétents et réception des justificatifs définitifs.',
     'Elle pourra être révoquée à tout moment par notification écrite adressée au Mandataire, sans remettre en cause les actes régulièrement accomplis avant la réception effective de cette révocation.',
-  ]);
-
-  drawSection('Information légale', [
     'Le Mandant reconnaît avoir été informé que toute indication inexacte, incomplète ou trompeuse transmise dans le cadre d\'une formalité d\'entreprise peut entraîner le rejet du dossier, une demande de régularisation, un retard de traitement ou, le cas échéant, l\'engagement de sa responsabilité.',
   ]);
 
-  startNewPage();
-  let sigY = PAGE_HEIGHT - MARGIN_TOP - 24;
-  sigY = drawSectionHeading(page, fontBold, sigY, 'Signature du mandant');
-  sigY -= 8;
-  sigY = drawLeftLines(page, font, sigY, `Fait à ${city}, le ${dateFr}.`);
-  sigY -= GAP_PARAGRAPH + 8;
-  sigY = drawLeftLines(page, font, sigY, 'Signature du Mandant :');
+  const lineX = MARGIN_H + 52;
+  page.drawText(pdfSafe('Signature du mandant').toUpperCase(), {
+    x: MARGIN_H,
+    y: lineY + 88,
+    size: SIZE_BODY,
+    font: fontBold,
+    color: COLOR_TEXT,
+  });
+  page.drawText(pdfSafe(`Fait à ${city}, le ${dateFr}.`), {
+    x: MARGIN_H,
+    y: lineY + 62,
+    size: SIZE_BODY,
+    font,
+    color: COLOR_TEXT,
+  });
+  page.drawText(pdfSafe('Signature du Mandant :'), {
+    x: MARGIN_H,
+    y: lineY + 36,
+    size: SIZE_BODY,
+    font,
+    color: COLOR_TEXT,
+  });
   page.drawLine({
-    start: { x: MARGIN_H + 52, y: FORMALITY_POWERS_SIGNATURE_LINE_Y },
-    end: { x: MARGIN_H + 52 + 220, y: FORMALITY_POWERS_SIGNATURE_LINE_Y },
+    start: { x: lineX, y: lineY },
+    end: { x: lineX + 220, y: lineY },
     thickness: 0.7,
     color: COLOR_TEXT,
   });
-  let belowLineY = FORMALITY_POWERS_SIGNATURE_LINE_Y - LINE_BODY - 6;
+  let belowLineY = lineY - LINE_BODY - 4;
   belowLineY = drawLeftLines(page, font, belowLineY, signatoryName);
   belowLineY = drawLeftLines(page, font, belowLineY, `Qualité : ${signatoryCapacity}`);
   belowLineY = drawLeftLines(page, font, belowLineY, 'Mention recommandée : Bon pour pouvoir');
 
-  y = belowLineY - GAP_SECTION;
-  drawSection('Rappel', [
+  drawPinnedRappel(
+    page,
+    font,
+    fontBold,
     `La présente procuration autorise ${mandataire} à accomplir les formalités administratives, déclaratives, documentaires et électroniques expressément nécessaires ou utiles au dossier confié, à l'exclusion des annonces légales, sauf mandat écrit distinct. Le Mandant demeure responsable de l'exactitude, de la sincérité et de l'exhaustivité des informations et documents transmis.`,
-  ]);
+  );
 
   const pages = pdfDoc.getPages();
   totalPages = pages.length;

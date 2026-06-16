@@ -38,7 +38,7 @@ import { useDossierActionStateQuery } from '@/hooks/queries/useDossierActionStat
 import { useNotificationsSummary } from '@/hooks/useNotificationsSummary.js';
 import { DossierActiveBanner } from '@/components/dossiers/DossierActiveBanner.jsx';
 import { DossierVaultPickerOverlay } from '@/components/dossiers/DossierVaultPickerOverlay.jsx';
-import { RouteSuspenseFallback } from '@/components/system/RouteSuspenseFallback.jsx';
+import { GreffioAppLoader } from '@/components/system/GreffioAppLoader.jsx';
 import { QUESTIONNAIRE_NEW_PATH } from '@/utils/questionnaireNavigation.js';
 import { greffioCardLift } from '@/motion/greffioMotion.js';
 import { dossierContinuePrefetchHandlers } from '@/utils/dossierPrefetch.js';
@@ -202,15 +202,7 @@ export const DashboardPage = () => {
     || dossiersRaw.find((item) => item.id === activeDossierId);
 
   if (loadingApi) {
-    return (
-      <div className="flex min-h-[calc(100dvh-4rem)] bg-background">
-        <Sidebar />
-        <MobileSidebarDrawer open={isMobileNavOpen} onClose={() => setIsMobileNavOpen(false)} />
-        <main className="min-h-0 flex-1 overflow-y-auto p-5 pb-8 md:p-8">
-          <RouteSuspenseFallback label="Chargement de votre cockpit…" />
-        </main>
-      </div>
-    );
+    return <GreffioAppLoader label="Chargement de votre cockpit…" fullScreen />;
   }
 
   return (

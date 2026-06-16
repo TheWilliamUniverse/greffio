@@ -3079,6 +3079,9 @@ registerOpsRoutes(app, {
   updateDossierOpsFields,
   addOpsNote,
   updateDossierDocument,
+  clearDossierDocumentAttachment,
+  scheduleDossierDeletion,
+  deleteDocumentFromConfiguredStorage,
   DOCUMENT_STATUSES,
 });
 

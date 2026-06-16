@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { formatFrenchDate } from '../pdf/nonConvictionPdf.js';
+import { SUBSCRIBERS_LIST_SIGNATURE_LINE_Y } from './pdfLegalConstants.js';
 
 const outputDir = path.resolve(process.cwd(), 'server', 'data', 'generated', 'subscribers-list');
 if (!fs.existsSync(outputDir)) {
@@ -103,11 +104,6 @@ export const generateSubscribersListPdf = async ({ filename, fields = {} }) => {
     y -= index < subscribers.length - 1 ? 14 : 8;
   });
 
-  if (y < MARGIN_BOTTOM + 160) {
-    page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-    y = PAGE_HEIGHT - MARGIN_TOP;
-  }
-
   const wrapParagraph = (text) => {
     const words = String(text || '').split(/\s+/).filter(Boolean);
     const lines = [];
@@ -125,22 +121,35 @@ export const generateSubscribersListPdf = async ({ filename, fields = {} }) => {
     return lines;
   };
 
+  const signatureBlockTopY = SUBSCRIBERS_LIST_SIGNATURE_LINE_Y + 90;
+  if (y < signatureBlockTopY + 40) {
+    page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+    y = PAGE_HEIGHT - MARGIN_TOP;
+  }
+
   wrapParagraph(fields.depositParagraph).forEach((line) => {
+    if (y < signatureBlockTopY) {
+      page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+      y = PAGE_HEIGHT - MARGIN_TOP;
+    }
     page.drawText(line, { x: MARGIN_H, y, size: 10.5, font, color: COLOR_TEXT, maxWidth: CONTENT_WIDTH });
     y -= 14;
   });
   y -= 10;
 
   wrapParagraph(fields.certificationParagraph).forEach((line) => {
+    if (y < signatureBlockTopY) {
+      page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+      y = PAGE_HEIGHT - MARGIN_TOP;
+    }
     page.drawText(line, { x: MARGIN_H, y, size: 10.5, font, color: COLOR_TEXT, maxWidth: CONTENT_WIDTH });
     y -= 14;
   });
-  y -= 18;
 
+  const lineY = SUBSCRIBERS_LIST_SIGNATURE_LINE_Y;
   const city = String(fields.statementCity || '______________________');
   const dateFr = formatFrenchDate(fields.statementDate) || '____ / ____ / ______';
-  page.drawText(`Fait à ${city}, le ${dateFr}.`, { x: MARGIN_H, y, size: 10.5, font, color: COLOR_TEXT });
-  y -= 36;
+  page.drawText(`Fait à ${city}, le ${dateFr}.`, { x: MARGIN_H, y: lineY + 66, size: 10.5, font, color: COLOR_TEXT });
 
   if (fields.signatureIsLegalEntity) {
     const signatureLines = Array.isArray(fields.signatureLines) && fields.signatureLines.length
@@ -150,31 +159,30 @@ export const generateSubscribersListPdf = async ({ filename, fields = {} }) => {
         fields.signatureRepresentativeName ? `Représentée par ${fields.signatureRepresentativeName}` : 'Représentée par [représentant légal]',
         `Qualité : ${fields.signatureRepresentativeQuality || 'à compléter'}`,
       ];
+    let entityY = lineY + 48;
     signatureLines.forEach((line) => {
-      page.drawText(String(line), { x: MARGIN_H, y, size: 10.5, font, color: COLOR_TEXT });
-      y -= 14;
+      page.drawText(String(line), { x: MARGIN_H, y: entityY, size: 10.5, font, color: COLOR_TEXT });
+      entityY -= 14;
     });
   } else {
     page.drawText(`${fields.presidentName || fields.signatureFullName || 'Le Président'},`, {
       x: MARGIN_H,
-      y,
+      y: lineY + 42,
       size: 10.5,
       font,
       color: COLOR_TEXT,
     });
-    y -= 14;
   }
   page.drawText(String(fields.presidentSignatureLabel || 'Le Président'), {
     x: MARGIN_H,
-    y,
+    y: lineY + 28,
     size: 10.5,
     font: fontBold,
     color: COLOR_TEXT,
   });
-  y -= 28;
   page.drawLine({
-    start: { x: MARGIN_H, y },
-    end: { x: MARGIN_H + 220, y },
+    start: { x: MARGIN_H, y: lineY },
+    end: { x: MARGIN_H + 220, y: lineY },
     thickness: 0.6,
     color: COLOR_TEXT,
   });

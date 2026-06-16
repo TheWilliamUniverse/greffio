@@ -33,6 +33,9 @@ export const registerOpsRoutes = (app, deps) => {
     updateDossierOpsFields,
     addOpsNote,
     updateDossierDocument,
+    clearDossierDocumentAttachment,
+    scheduleDossierDeletion,
+    deleteDocumentFromConfiguredStorage,
     DOCUMENT_STATUSES,
   } = deps;
 
@@ -296,6 +299,65 @@ export const registerOpsRoutes = (app, deps) => {
         message: error?.message || 'Échec émission facture',
       });
     }
+  });
+
+  app.delete('/api/ops/dossiers/:dossierId/documents/:docKey', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
+    const dossier = await getDossier(req.params.dossierId);
+    if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+
+    const docKey = decodeURIComponent(req.params.docKey || '').trim();
+    if (!docKey) return res.status(400).json({ ok: false, error: 'DOC_KEY_REQUIRED' });
+
+    const documents = await listDossierDocuments(dossier.id);
+    const existing = documents.find((item) => item.docKey === docKey);
+    if (!existing) return res.status(404).json({ ok: false, error: 'DOCUMENT_SLOT_NOT_FOUND' });
+
+    const hasFile = Boolean(existing.filename || existing.storageUrl || existing.fileUrl);
+    if (!hasFile) {
+      return res.status(409).json({ ok: false, error: 'DOCUMENT_NOT_UPLOADED' });
+    }
+
+    const cleared = await clearDossierDocumentAttachment({
+      dossierId: dossier.id,
+      docKey,
+      actorId: req.auth.sub,
+      actorType: 'ops',
+    });
+    if (!cleared?.removed) {
+      return res.status(409).json({ ok: false, error: 'DOCUMENT_NOT_UPLOADED' });
+    }
+
+    if (cleared.previousStorageUrl) {
+      try {
+        await deleteDocumentFromConfiguredStorage(cleared.previousStorageUrl);
+      } catch (storageError) {
+        console.error('OPS_DOCUMENT_STORAGE_DELETE_FAILED', storageError);
+      }
+    }
+
+    return res.json({
+      ok: true,
+      documents: await listDossierDocuments(dossier.id),
+    });
+  });
+
+  app.delete('/api/ops/dossiers/:dossierId', requireAuth, requireRole(['ADMIN']), async (req, res) => {
+    const dossier = await getDossier(req.params.dossierId);
+    if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
+
+    const scheduled = await scheduleDossierDeletion({
+      dossierId: dossier.id,
+      userId: req.auth.sub,
+    });
+    if (!scheduled) {
+      return res.status(409).json({ ok: false, error: 'DOSSIER_ALREADY_TRASHED' });
+    }
+
+    return res.json({
+      ok: true,
+      message: 'Dossier placé en corbeille. Suppression définitive sous 72 h sauf restauration par le client.',
+      purgeAfter: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
+    });
   });
 
   app.get('/api/ops/dossiers/:dossierId/proofs-export', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {

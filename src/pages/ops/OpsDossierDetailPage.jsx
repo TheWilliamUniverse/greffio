@@ -10,6 +10,7 @@ import {
   Eye,
   FileText,
   Loader2,
+  Trash2,
   XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
@@ -17,8 +18,11 @@ import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Textarea } from '@/components/ui/textarea.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
+import { ConfirmActionDialog } from '@/components/ConfirmActionDialog.jsx';
 import {
   createOpsNote,
+  deleteOpsDocument,
+  deleteOpsDossier,
   downloadOpsDocument,
   downloadOpsProofsExport,
   getOpsDossierDetail,
@@ -36,6 +40,7 @@ import { OpsCompletionBadge, OpsPriorityBadge, OpsQueueBadge, OpsRiskBadge, OpsS
 import { formatDateTime } from '@/components/ops/opsLabels.js';
 import { GREFFIO_OPS_TEAM, OPS_PRIORITY_LABELS, OPS_QUEUE_LABELS } from '@/config/opsTeam.js';
 import { getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
+import { useAuth } from '@/hooks/useAuth.js';
 
 const opsDocumentHasFile = (doc) => Boolean(doc?.storageUrl || (doc?.filename && doc.filename !== 'non uploadé'));
 
@@ -50,6 +55,8 @@ export const OpsDossierDetailPage = () => {
   const { dossierId } = useParams();
   const navigate = useNavigate();
   const { refreshCockpit } = useOutletContext();
+  const { currentUser } = useAuth();
+  const isAdmin = String(currentUser?.role || '').toUpperCase() === 'ADMIN';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [payload, setPayload] = useState(null);
@@ -57,6 +64,10 @@ export const OpsDossierDetailPage = () => {
   const [saving, setSaving] = useState(false);
   const [docUpdating, setDocUpdating] = useState('');
   const [docPreviewing, setDocPreviewing] = useState('');
+  const [docDeleting, setDocDeleting] = useState('');
+  const [docToDelete, setDocToDelete] = useState(null);
+  const [dossierDeleteOpen, setDossierDeleteOpen] = useState(false);
+  const [dossierDeleting, setDossierDeleting] = useState(false);
   const [proofsExporting, setProofsExporting] = useState(false);
   const [rejectingDocKey, setRejectingDocKey] = useState('');
   const [rejectReason, setRejectReason] = useState('');
@@ -185,6 +196,44 @@ export const OpsDossierDetailPage = () => {
     }
   };
 
+  const confirmDeleteDocument = async () => {
+    if (!docToDelete) return;
+    const { docKey, label } = docToDelete;
+    setDocToDelete(null);
+    setDocDeleting(docKey);
+    setError('');
+    try {
+      const result = await deleteOpsDocument({ dossierId, docKey });
+      setPayload((current) => ({ ...current, documents: result.documents || [] }));
+      await loadDetail();
+      refreshCockpit?.();
+      toast.success(`Pièce « ${label} » supprimée.`);
+    } catch (_err) {
+      setError('Impossible de supprimer cette pièce pour le moment.');
+      toast.error('Suppression impossible pour le moment.');
+    } finally {
+      setDocDeleting('');
+    }
+  };
+
+  const confirmDeleteDossier = async () => {
+    if (!dossier) return;
+    setDossierDeleteOpen(false);
+    setDossierDeleting(true);
+    setError('');
+    try {
+      await deleteOpsDossier(dossier.id);
+      refreshCockpit?.();
+      toast.success('Dossier placé en corbeille.');
+      navigate('/ops/dossiers');
+    } catch (_err) {
+      setError('Impossible de supprimer ce dossier pour le moment.');
+      toast.error('Suppression du dossier impossible.');
+    } finally {
+      setDossierDeleting(false);
+    }
+  };
+
   if (loading) {
     return <PageLoadingState label="Chargement de la fiche dossier…" />;
   }
@@ -282,20 +331,40 @@ export const OpsDossierDetailPage = () => {
                   <div className="flex flex-wrap items-center gap-2">
                     <StatusBadge status={String(doc.status || '').toUpperCase()} />
                     {opsDocumentHasFile(doc) ? (
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="outline"
-                        className="h-8 w-8 bg-white"
-                        aria-label="Voir le document"
-                        title="Voir le document"
-                        disabled={docPreviewing === doc.docKey}
-                        onClick={() => void openOpsDocumentPreview(doc.docKey)}
-                      >
-                        {docPreviewing === doc.docKey
-                          ? <Loader2 className="h-4 w-4 animate-spin" />
-                          : <Eye className="h-4 w-4" />}
-                      </Button>
+                      <>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="outline"
+                          className="h-8 w-8 bg-white"
+                          aria-label="Voir le document"
+                          title="Voir le document"
+                          disabled={docPreviewing === doc.docKey}
+                          onClick={() => void openOpsDocumentPreview(doc.docKey)}
+                        >
+                          {docPreviewing === doc.docKey
+                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                            : <Eye className="h-4 w-4" />}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="outline"
+                          className="h-8 w-8 border-red-200 bg-white text-red-700 hover:bg-red-50"
+                          aria-label="Supprimer la pièce jointe"
+                          title="Supprimer la pièce jointe"
+                          disabled={docDeleting === doc.docKey || docUpdating === doc.docKey}
+                          onClick={() => setDocToDelete({
+                            docKey: doc.docKey,
+                            label: getDocumentTypeLabel(doc.docKey, doc.label),
+                            status: docStatus,
+                          })}
+                        >
+                          {docDeleting === doc.docKey
+                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                            : <Trash2 className="h-4 w-4" />}
+                        </Button>
+                      </>
                     ) : null}
                     {showReviewActions && !isRejecting ? (
                       <>
@@ -470,6 +539,31 @@ export const OpsDossierDetailPage = () => {
             </div>
           </section>
 
+          {isAdmin ? (
+            <section className="rounded-xl border border-red-200 bg-red-50/40 p-5 shadow-sm">
+              <div className="flex items-start gap-3">
+                <Trash2 className="mt-0.5 h-5 w-5 text-red-700" />
+                <div className="flex-1">
+                  <h3 className="text-lg font-extrabold text-red-900">Suppression du dossier</h3>
+                  <p className="mt-1 text-sm leading-6 text-red-900/80">
+                    Action réservée à l’administration. Le dossier sera placé en corbeille puis
+                    supprimé définitivement sous 72 h, sauf restauration par le client.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-4 border-red-300 bg-white text-red-700 hover:bg-red-50"
+                    disabled={dossierDeleting}
+                    onClick={() => setDossierDeleteOpen(true)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {dossierDeleting ? 'Suppression…' : 'Supprimer le dossier'}
+                  </Button>
+                </div>
+              </div>
+            </section>
+          ) : null}
+
           <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-200 px-5 py-4">
               <h3 className="text-lg font-extrabold text-slate-900">Messages client</h3>
@@ -518,6 +612,30 @@ export const OpsDossierDetailPage = () => {
           </section>
         </div>
       </div>
+
+      <ConfirmActionDialog
+        open={Boolean(docToDelete)}
+        onOpenChange={(open) => { if (!open) setDocToDelete(null); }}
+        destructive
+        loading={Boolean(docDeleting)}
+        title="Supprimer cette pièce jointe ?"
+        description={docToDelete?.status === 'valid'
+          ? `« ${docToDelete?.label || 'Document'} » est validé. La pièce sera retirée du dossier et le client devra en déposer une nouvelle si nécessaire.`
+          : `« ${docToDelete?.label || 'Document'} » sera retiré du dossier. Le client pourra en déposer une nouvelle.`}
+        confirmLabel="Supprimer la pièce"
+        onConfirm={() => { void confirmDeleteDocument(); }}
+      />
+
+      <ConfirmActionDialog
+        open={dossierDeleteOpen}
+        onOpenChange={setDossierDeleteOpen}
+        destructive
+        loading={dossierDeleting}
+        title="Supprimer ce dossier ?"
+        description={`Le dossier ${dossier.reference || dossier.id} (${dossier.companyName || 'sans dénomination'}) sera placé en corbeille puis supprimé définitivement sous 72 h, sauf restauration par le client.`}
+        confirmLabel="Supprimer le dossier"
+        onConfirm={() => { void confirmDeleteDossier(); }}
+      />
     </div>
   );
 };

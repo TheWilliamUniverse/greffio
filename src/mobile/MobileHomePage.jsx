@@ -11,7 +11,7 @@ import { AnimatedProgressRing } from '@/components/ui/AnimatedProgressRing.jsx';
 import { dossierContinuePrefetchHandlers } from '@/utils/dossierPrefetch.js';
 import { greffioTileTap } from '@/motion/greffioMotion.js';
 import { MobileDocumentScanner } from '@/mobile/MobileDocumentScanner.jsx';
-import { MobilePageSkeleton } from '@/mobile/ui/MobilePageSkeleton.jsx';
+import { GreffioAppLoader } from '@/components/system/GreffioAppLoader.jsx';
 import { MobileAnimatedSection } from '@/mobile/ui/MobileAnimatedSection.jsx';
 import { MobilePageContainer } from '@/mobile/ui/MobilePageContainer.jsx';
 import { MobileDossierTimeline } from '@/mobile/ui/MobileDossierTimeline.jsx';
@@ -65,7 +65,9 @@ export const MobileHomePage = () => {
     { to: '/mobile/account', icon: ArrowRight, label: 'Compte', hint: 'Profil & réglages' },
   ];
 
-  if (isLoading && !offlineSnapshot?.dossiers?.length) return <MobilePageSkeleton />;
+  if (isLoading && !offlineSnapshot?.dossiers?.length) {
+    return <GreffioAppLoader label="Chargement de l'accueil…" fullScreen />;
+  }
 
   return (
     <>

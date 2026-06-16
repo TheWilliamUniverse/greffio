@@ -7,6 +7,11 @@ import {
   formatFiliationClause,
   normalizeDeclarationFields,
 } from '../documents/declarationNonCondamnation/formatters.js';
+import {
+  LEGAL_RAPPEL_BOTTOM_Y,
+  NON_CONVICTION_SIGNATURE_LABEL_OFFSET,
+  NON_CONVICTION_SIGNATURE_LINE_Y,
+} from './pdfLegalConstants.js';
 
 const outputDir = path.resolve(process.cwd(), 'server', 'data', 'generated', 'declarations');
 if (!fs.existsSync(outputDir)) {
@@ -248,30 +253,43 @@ export const generateNonConvictionPdf = async ({ filename, fields: rawFields = {
   y -= 40;
 
   const signatureColX = PAGE_WIDTH - MARGIN_H - SIGNATURE_COL_WIDTH;
+  const lineY = NON_CONVICTION_SIGNATURE_LINE_Y;
+  const faitY = lineY + NON_CONVICTION_SIGNATURE_LABEL_OFFSET;
   page.drawText(`Fait à ${statementCity}, le ${signatureDateFr}`, {
     x: MARGIN_H,
-    y,
+    y: faitY,
     size: SIZE_BODY,
     font,
     color: COLOR_TEXT,
   });
   page.drawText('Signature du déclarant :', {
     x: signatureColX,
-    y,
+    y: faitY,
     size: SIZE_BODY,
     font,
     color: COLOR_TEXT,
   });
-  y -= 22;
   page.drawLine({
-    start: { x: signatureColX, y },
-    end: { x: signatureColX + SIGNATURE_COL_WIDTH, y },
+    start: { x: signatureColX, y: lineY },
+    end: { x: signatureColX + SIGNATURE_COL_WIDTH, y: lineY },
     thickness: 0.7,
     color: COLOR_TEXT,
   });
-  y -= 52;
 
-  y = drawLeftLines(page, font, y, LEGAL_REMINDER, { size: SIZE_LEGAL, lineHeight: SIZE_LEGAL * 1.35 });
+  const rappelLines = wrapText(LEGAL_REMINDER);
+  const rappelLineHeight = SIZE_LEGAL * 1.35;
+  let rappelY = LEGAL_RAPPEL_BOTTOM_Y + (rappelLines.length - 1) * rappelLineHeight;
+  rappelLines.forEach((line) => {
+    page.drawText(line, {
+      x: MARGIN_H,
+      y: rappelY,
+      size: SIZE_LEGAL,
+      font,
+      color: COLOR_TEXT,
+      maxWidth: CONTENT_WIDTH,
+    });
+    rappelY += rappelLineHeight;
+  });
 
   page.drawText('Déclaration de non-condamnation et de filiation', {
     x: MARGIN_H,

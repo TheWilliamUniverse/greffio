@@ -2,7 +2,15 @@ import fs from 'node:fs';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { loadPdfFonts } from './pdfFonts.js';
 import { replaceDraftWatermarkWithSignedBadge } from './pdfLayoutPremium.js';
-import { FORMALITY_POWERS_SIGNATURE_LINE_Y } from './pdfLegalConstants.js';
+import {
+  FORMALITY_POWERS_SIGNATURE_LINE_Y,
+  MANDATE_SIGNATURE_LINE_Y,
+  NON_CONVICTION_SIGNATURE_LINE_Y,
+  SUBSCRIBERS_LIST_SIGNATURE_LINE_Y,
+  nonConvictionElectronicStampY,
+  nonConvictionSignatureStampY,
+  signatureStampY,
+} from './pdfLegalConstants.js';
 
 const stampColor = rgb(0.35, 0.4, 0.48);
 
@@ -54,8 +62,15 @@ export const stampSignatureOnPdf = async ({
     ? marginH + 52
     : (signatureOnRight ? width - marginH - signatureColWidth : marginH);
   const yBase = isFormalityPowersLayout
-    ? FORMALITY_POWERS_SIGNATURE_LINE_Y + 8
-    : (isSubscribersLayout ? 118 : (isOfficialLayout ? 228 : 168));
+    ? signatureStampY(FORMALITY_POWERS_SIGNATURE_LINE_Y)
+    : (isSubscribersLayout
+      ? signatureStampY(SUBSCRIBERS_LIST_SIGNATURE_LINE_Y)
+      : (isOfficialLayout
+        ? nonConvictionSignatureStampY(NON_CONVICTION_SIGNATURE_LINE_Y)
+        : signatureStampY(MANDATE_SIGNATURE_LINE_Y)));
+  const electronicStampY = isOfficialLayout
+    ? nonConvictionElectronicStampY(NON_CONVICTION_SIGNATURE_LINE_Y)
+    : Math.max(34, yBase - 18);
 
   const safeSignerName = pdfSafeText(signerFullName, 'Signataire');
 
@@ -102,7 +117,7 @@ export const stampSignatureOnPdf = async ({
   } else {
     page.drawText(safeSignerName, {
       x: signatureX,
-      y: yBase + 20,
+      y: isOfficialLayout ? yBase + 14 : yBase + 20,
       size: isOfficialLayout ? 16 : 18,
       font: fontBold,
       color: rgb(0.08, 0.12, 0.2),
@@ -111,7 +126,7 @@ export const stampSignatureOnPdf = async ({
 
   page.drawText(pdfSafeText(`Signé électroniquement le ${signedLabel}`), {
     x: signatureX,
-    y: Math.max(34, yBase - 18),
+    y: electronicStampY,
     size: 7,
     font,
     color: stampColor,
