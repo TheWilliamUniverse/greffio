@@ -15,18 +15,18 @@
 | VPS env OAuth | ✅ `MOLLIE_OAUTH_CLIENT_ID`, `MOLLIE_OAUTH_CLIENT_SECRET`, `MOLLIE_CONNECT_REDIRECT_URI` |
 | UI ops onboarding | ❌ Page `/ops/integrations` à brancher |
 
-### Application OAuth existante
+### Deux applications OAuth Mollie (Dashboard)
 
-L'app OAuth **n'a pas été créée via API** (Mollie ne propose pas d'endpoint public). Elle existe déjà dans le Dashboard Mollie :
+Mollie ne permet pas de créer les apps via API publique. Greffio utilise **deux apps distinctes** :
 
-| Champ | Valeur |
-|-------|--------|
-| Nom app | Greffio (renommer « Greffio Connect » si souhaité) |
-| Client ID | `app_cG7HLTRXYAX5To9UPoBxnFnJ` (présent VPS + fichier Desktop) |
-| Redirect URI **à enregistrer** | `https://api.greffio.willentreprises.com/api/mollie/connect/callback` |
-| Redirect legacy paiement | `https://greffio.willentreprises.com/api/mollie/callback` (conserver) |
+| App Dashboard | Usage Greffio | Client ID | Redirect URI |
+|---------------|---------------|-----------|--------------|
+| **Greffio** | Paiements B2C / factures ops (legacy callback) | `app_cG7HLTRXYAX5To9UPoBxnFnJ` | `https://greffio.willentreprises.com/api/mollie/callback` |
+| **Greffio Connect for Partners** | OAuth Connect plateforme (`MOLLIE_OAUTH_*`) | `app_jDVb6uj8sBsYjkf8HJuzZmRS` | `https://api.greffio.willentreprises.com/api/mollie/connect/callback` |
 
-> **Action manuelle Dashboard** : Developers → Your apps → Greffio → ajouter la Redirect URI Connect ci-dessus (l'app n'avait que le callback paiement `/api/mollie/callback`).
+Variables VPS `MOLLIE_OAUTH_CLIENT_ID` / `MOLLIE_OAUTH_CLIENT_SECRET` → app **Greffio Connect for Partners** uniquement.
+
+Source credentials locale : `Documents/GREFFIO MOLLIE API KEY.md` (prioritaire) ou `Desktop/GREFFIO MOLLIE API KEY.txt`. Script : `scripts/configure-mollie-connect-vps.ps1` (parse le bloc Connect).
 
 ## Variables VPS (`.env` – ne jamais committer)
 
@@ -49,18 +49,24 @@ pwsh -File scripts/configure-mollie-connect-vps.ps1
 pwsh -File scripts/vps-sync-from-local.ps1
 ```
 
-## Dashboard Mollie (manuel si nouvelle app)
+## Dashboard Mollie (vérifications manuelles)
 
-1. **More → Developers → Your apps → Create Application**
-2. **App name** : `Greffio Connect`
-3. **Redirect URI** : `https://api.greffio.willentreprises.com/api/mollie/connect/callback`
-4. **Scopes** (permissions) :
+### App « Greffio Connect for Partners » (Connect OAuth)
+
+1. **More → Developers → Your apps → Greffio Connect for Partners**
+2. **Redirect URI** : `https://api.greffio.willentreprises.com/api/mollie/connect/callback` (doit correspondre exactement à `MOLLIE_CONNECT_REDIRECT_URI`)
+3. **Scopes** (permissions) :
    - `payments.read`, `payments.write`
    - `profiles.read`, `profiles.write`
    - `onboarding.read`
    - `organizations.read`
-5. **Webhooks paiement** (compte plateforme) : `https://api.greffio.willentreprises.com/api/webhooks/mollie`
-6. Copier Client ID + Secret → VPS `.env` (script ci-dessus)
+4. Copier Client ID + Secret → sync VPS via `scripts/configure-mollie-connect-vps.ps1`
+
+### App « Greffio » (paiements B2C)
+
+1. Conserver la Redirect URI : `https://greffio.willentreprises.com/api/mollie/callback`
+2. **Webhooks paiement** (compte plateforme) : `https://api.greffio.willentreprises.com/api/webhooks/mollie`
+3. `MOLLIE_API_KEY` et `MOLLIE_PROFILE_ID` restent sur le compte plateforme (pas les vars OAuth Connect)
 
 ## Endpoints Greffio
 

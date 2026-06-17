@@ -18,25 +18,54 @@ if (-not $VpsPassword) {
     }
 }
 
-$keyFile = Join-Path $env:USERPROFILE 'Desktop\GREFFIO MOLLIE API KEY.txt'
-if (-not (Test-Path $keyFile)) {
-    throw "Fichier credentials introuvable: $keyFile"
+$credentialCandidates = @(
+    (Join-Path $env:USERPROFILE 'Documents\GREFFIO MOLLIE API KEY.md'),
+    (Join-Path $env:USERPROFILE 'Desktop\GREFFIO MOLLIE API KEY.txt')
+)
+$keyFile = $credentialCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $keyFile) {
+    throw "Fichier credentials introuvable (Documents ou Desktop GREFFIO MOLLIE API KEY)"
 }
 
-$keyContent = Get-Content $keyFile -Raw
-if ($keyContent -match 'ID client\s*\r?\n\s*(app_\S+)') {
+$keyContent = (Get-Content $keyFile -Raw) -replace '\\_', '_'
+$connectRedirect = 'https://api.greffio.willentreprises.com/api/mollie/connect/callback'
+
+function Get-MollieOAuthBlock {
+    param([string]$Content, [string]$AfterMarker)
+    $idx = $Content.IndexOf($AfterMarker)
+    if ($idx -lt 0) { return $null }
+    $slice = $Content.Substring($idx)
+    if ($slice -match 'ID client\s*\r?\n\s*(app_\S+)') {
+        $id = $Matches[1].Trim()
+        if ($slice -match 'Clé secrète client\s*\r?\n\s*(\S+)') {
+            return @{ ClientId = $id; ClientSecret = $Matches[1].Trim() }
+        }
+    }
+    return $null
+}
+
+$connectBlock = Get-MollieOAuthBlock -Content $keyContent -AfterMarker $connectRedirect
+if (-not $connectBlock) {
+    $connectBlock = Get-MollieOAuthBlock -Content $keyContent -AfterMarker 'Greffio Connect for Partners'
+}
+
+if ($connectBlock) {
+    $ClientId = $connectBlock.ClientId
+    $ClientSecret = $connectBlock.ClientSecret
+} elseif ($keyContent -match 'ID client\s*\r?\n\s*(app_\S+)') {
     $ClientId = $Matches[1].Trim()
-} elseif ($keyContent -match '(app_[A-Za-z0-9]+)') {
-    $ClientId = $Matches[1].Trim()
+    if ($keyContent -match 'Clé secrète client\s*\r?\n\s*(\S+)') {
+        $ClientSecret = $Matches[1].Trim()
+    } else {
+        throw 'MOLLIE_OAUTH_CLIENT_SECRET introuvable dans le fichier credentials'
+    }
 } else {
     throw 'MOLLIE_OAUTH_CLIENT_ID introuvable dans le fichier credentials'
 }
 
-if ($keyContent -match 'Clé secrète client\s*\r?\n\s*(\S+)') {
-    $ClientSecret = $Matches[1].Trim()
-} else {
-    throw 'MOLLIE_OAUTH_CLIENT_SECRET introuvable dans le fichier credentials'
-}
+Write-Host "Credentials source: $keyFile" -ForegroundColor DarkGray
+Write-Host "OAuth client ID: $ClientId" -ForegroundColor DarkGray
+Write-Host "Connect redirect: $connectRedirect" -ForegroundColor DarkGray
 
 $plink = 'C:\Program Files\PuTTY\plink.exe'
 $usePutty = (Test-Path $plink) -and $VpsPassword
@@ -88,6 +117,8 @@ curl -fsS http://127.0.0.1:8787/api/health && echo
 
 $RemoteScript = $RemoteScript.Replace('__CLIENT_ID__', $ClientId)
 $RemoteScript = $RemoteScript.Replace('__CLIENT_SECRET__', $ClientSecret)
+# plink/bash rejects CRLF in inline scripts
+$RemoteScript = $RemoteScript -replace "`r`n", "`n" -replace "`r", "`n"
 
 Invoke-RemoteShell $RemoteScript
 Write-Host 'Mollie Connect VPS configuration terminée.' -ForegroundColor Green
