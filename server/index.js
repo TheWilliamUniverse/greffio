@@ -2241,9 +2241,10 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async 
     : await getUserById(req.auth?.sub);
   let savedFields = {};
   let workspace = { enabled: false };
+  let documents = [];
   try {
     await ensureDossierDocuments(dossier.id);
-    const documents = await listDossierDocuments(dossier.id);
+    documents = await listDossierDocuments(dossier.id);
     const existing = documents.find((item) => item.docKey === docKey);
     savedFields = existing?.metadata?.fields && typeof existing.metadata.fields === 'object'
       ? existing.metadata.fields
