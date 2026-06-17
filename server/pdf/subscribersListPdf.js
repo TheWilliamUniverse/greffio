@@ -1,8 +1,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
-import { formatFrenchDate } from '../pdf/nonConvictionPdf.js';
-import { SUBSCRIBERS_LIST_SIGNATURE_LINE_Y } from './pdfLegalConstants.js';
+import { formatFrenchDate } from './nonConvictionPdf.js';
+import {
+  LEGAL_RAPPEL_BOTTOM_Y,
+  SUBSCRIBERS_LIST_CONTENT_BOTTOM_Y,
+  SUBSCRIBERS_LIST_SIGNATURE_HEADING_ABOVE_LINE,
+  SUBSCRIBERS_LIST_SIGNATURE_CAPACITY_ABOVE_LINE,
+  SUBSCRIBERS_LIST_SIGNATURE_FAIT_ABOVE_LINE,
+  SUBSCRIBERS_LIST_SIGNATURE_LABEL_ABOVE_LINE,
+  SUBSCRIBERS_LIST_SIGNATURE_LINE_Y,
+  SUBSCRIBERS_LIST_SIGNATURE_NAME_ABOVE_LINE,
+} from './pdfLegalConstants.js';
 
 const outputDir = path.resolve(process.cwd(), 'server', 'data', 'generated', 'subscribers-list');
 if (!fs.existsSync(outputDir)) {
@@ -11,21 +20,38 @@ if (!fs.existsSync(outputDir)) {
 
 const PAGE_WIDTH = 595.28;
 const PAGE_HEIGHT = 841.89;
-const MARGIN_H = 56;
-const MARGIN_TOP = 52;
-const COLOR_TEXT = rgb(0, 0, 0);
-const COLOR_MUTED = rgb(0.25, 0.25, 0.25);
+const MARGIN_TOP = 71;
+const MARGIN_BOTTOM = 57;
+const MARGIN_H = 71;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_H * 2;
-const LABEL_COL_X = MARGIN_H + 168;
+const FOOTER_Y = 28;
+const LABEL_COL_X = MARGIN_H + 188;
 
-const HEADER_HEIGHT = 78;
-const CONTENT_TOP_Y = PAGE_HEIGHT - MARGIN_TOP - HEADER_HEIGHT;
-const LINE_Y = SUBSCRIBERS_LIST_SIGNATURE_LINE_Y;
-const PARA_LINE_HEIGHT = 12;
-const PARA_GAP = 8;
+const COLOR_TEXT = rgb(0, 0, 0);
+const COLOR_MUTED = rgb(0.2, 0.2, 0.2);
 
-const wrapParagraph = (text, maxChars = 92) => {
-  const words = String(text || '').split(/\s+/).filter(Boolean);
+const SIZE_OVERLINE = 11;
+const SIZE_TITLE = 14;
+const SIZE_BODY = 11;
+const SIZE_SMALL = 9.5;
+const LINE_BODY = SIZE_BODY * 1.5;
+const GAP_SECTION = 24;
+const GAP_AFTER_H2 = 12;
+const GAP_PARAGRAPH = 10;
+const GAP_ROW = 13;
+
+export { SUBSCRIBERS_LIST_SIGNATURE_LINE_Y } from './pdfLegalConstants.js';
+
+const pdfSafe = (value) => String(value ?? '')
+  .normalize('NFC')
+  .replace(/\u202f/g, ' ')
+  .replace(/[^\u0020-\u007E\u00A0-\u00FF]/g, (char) => {
+    const ascii = char.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return ascii || '?';
+  });
+
+const wrapText = (text, maxChars = 84) => {
+  const words = pdfSafe(text).split(/\s+/).filter(Boolean);
   const lines = [];
   let current = '';
   words.forEach((word) => {
@@ -41,172 +67,138 @@ const wrapParagraph = (text, maxChars = 92) => {
   return lines.length ? lines : [''];
 };
 
+const drawCentered = (page, font, y, text, size) => {
+  const safe = pdfSafe(text);
+  const textWidth = font.widthOfTextAtSize(safe, size);
+  page.drawText(safe, {
+    x: (PAGE_WIDTH - textWidth) / 2,
+    y,
+    size,
+    font,
+    color: COLOR_TEXT,
+  });
+  return y;
+};
+
+const drawSectionHeading = (page, fontBold, y, heading) => {
+  page.drawText(pdfSafe(heading).toUpperCase(), {
+    x: MARGIN_H,
+    y,
+    size: SIZE_BODY,
+    font: fontBold,
+    color: COLOR_TEXT,
+  });
+  return y - GAP_AFTER_H2;
+};
+
+const drawLeftLines = (page, font, y, text, { size = SIZE_BODY, lineHeight = LINE_BODY } = {}) => {
+  wrapText(text).forEach((line) => {
+    page.drawText(line, {
+      x: MARGIN_H,
+      y,
+      size,
+      font,
+      color: COLOR_TEXT,
+      maxWidth: CONTENT_WIDTH,
+    });
+    y -= lineHeight;
+  });
+  return y;
+};
+
+const drawLabelValue = (page, font, fontBold, y, label, value) => {
+  page.drawText(pdfSafe(label), {
+    x: MARGIN_H,
+    y,
+    size: SIZE_BODY,
+    font: fontBold,
+    color: COLOR_TEXT,
+  });
+  page.drawText(pdfSafe(value || '–'), {
+    x: LABEL_COL_X,
+    y,
+    size: SIZE_BODY,
+    font,
+    color: COLOR_TEXT,
+    maxWidth: CONTENT_WIDTH - (LABEL_COL_X - MARGIN_H),
+  });
+  return y - GAP_ROW;
+};
+
 const getSubscriberRows = (subscriber, securitiesUnit) => (
   subscriber.isLegalEntity
     ? [
-      ['Type', 'Personne morale'],
+      ['Qualité', subscriber.qualityLabel || subscriber.roleTitle || 'Associé (personne morale)'],
       ['Dénomination sociale', subscriber.fullName || '–'],
       ['Forme juridique', subscriber.legalFormLabel || '–'],
       ['SIREN', subscriber.siren || '–'],
       ['Siège social', subscriber.address || '–'],
       ['Représentant légal', subscriber.legalRepresentativeName || '–'],
       ['Qualité du représentant', subscriber.legalRepresentativeQuality || '–'],
-      [`${securitiesUnit} souscrites`, subscriber.titlesCount || '–'],
-      ['% du capital', subscriber.sharePercent || '–'],
+      [`Nombre de ${securitiesUnit.toLowerCase()} souscrites`, subscriber.titlesCount || '–'],
+      ['Pourcentage du capital', subscriber.sharePercent || '–'],
       ['Apport en numéraire', subscriber.contributionCash || '0 €'],
-      ['Apport en nature', subscriber.contributionInKind || '0 €'],
+      ['Apport en nature', subscriber.contributionInKind || 'Néant'],
       ['Montant libéré à la constitution', subscriber.liberationAmount || '0 €'],
       ['Observations', subscriber.observations || '–'],
     ]
     : [
-      ['Titre', subscriber.roleTitle || 'Associé'],
-      ['Nom et Prénom', subscriber.fullName || '–'],
+      ['Qualité', subscriber.qualityLabel || subscriber.roleTitle || 'Associé'],
+      ['Nom et prénom', subscriber.fullName || '–'],
       ['Date et lieu de naissance', subscriber.birthDatePlace || '–'],
       ['Nationalité', subscriber.nationality || 'Française'],
       ['Adresse', subscriber.address || '–'],
-      [`${securitiesUnit} souscrites`, subscriber.titlesCount || '–'],
-      ['% du capital', subscriber.sharePercent || '–'],
+      [`Nombre de ${securitiesUnit.toLowerCase()} souscrites`, subscriber.titlesCount || '–'],
+      ['Pourcentage du capital', subscriber.sharePercent || '–'],
       ['Apport en numéraire', subscriber.contributionCash || '0 €'],
-      ['Apport en nature', subscriber.contributionInKind || '0 €'],
+      ['Apport en nature', subscriber.contributionInKind || 'Néant'],
       ['Montant libéré à la constitution', subscriber.liberationAmount || '0 €'],
       ['Observations', subscriber.observations || '–'],
     ]
 );
 
-const estimateSubscribersHeight = (subscribers, securitiesUnit, metrics) => subscribers.reduce((total, subscriber, index) => {
-  const rows = getSubscriberRows(subscriber, securitiesUnit).length;
-  const sectionGap = index < subscribers.length - 1 ? metrics.sectionGap : 0;
-  return total + metrics.headingGap + rows * metrics.rowStep + sectionGap;
-}, 0);
+const estimateSubscriberBlockHeight = (subscriber, securitiesUnit) => (
+  GAP_AFTER_H2 + getSubscriberRows(subscriber, securitiesUnit).length * GAP_ROW + 8
+);
 
-const resolveLayoutMetrics = (subscribers, securitiesUnit, depositLines, certLines) => {
-  const faitY = LINE_Y + 66;
-  const certStartY = faitY + 14 + Math.max(0, certLines.length - 1) * PARA_LINE_HEIGHT;
-  const depositStartY = certStartY + certLines.length * PARA_LINE_HEIGHT + PARA_GAP;
-  const contentBottomY = depositStartY + depositLines.length * PARA_LINE_HEIGHT + 6;
-  const availableHeight = CONTENT_TOP_Y - contentBottomY;
-
-  const base = {
-    rowStep: 13,
-    headingGap: 14,
-    sectionGap: 7,
-    fontSize: 10,
-    headingSize: 10.5,
-  };
-
-  const required = estimateSubscribersHeight(subscribers, securitiesUnit, base);
-  if (required <= availableHeight) {
-    return base;
-  }
-
-  const scale = Math.max(0.62, availableHeight / required);
-  return {
-    rowStep: Math.max(9, base.rowStep * scale),
-    headingGap: Math.max(10, base.headingGap * scale),
-    sectionGap: Math.max(4, base.sectionGap * scale),
-    fontSize: Math.max(8.5, base.fontSize * Math.sqrt(scale)),
-    headingSize: Math.max(9, base.headingSize * Math.sqrt(scale)),
-  };
+const drawPinnedRappel = (targetPage, font, fontBold, text) => {
+  const lines = wrapText(text);
+  const headingHeight = SIZE_BODY + GAP_AFTER_H2;
+  const bodyHeight = lines.length * LINE_BODY;
+  let blockY = LEGAL_RAPPEL_BOTTOM_Y + bodyHeight + headingHeight;
+  blockY = drawSectionHeading(targetPage, fontBold, blockY, 'Rappel');
+  lines.forEach((line) => {
+    targetPage.drawText(line, {
+      x: MARGIN_H,
+      y: blockY,
+      size: SIZE_SMALL,
+      font,
+      color: COLOR_MUTED,
+      maxWidth: CONTENT_WIDTH,
+    });
+    blockY -= LINE_BODY;
+  });
 };
 
-const drawCentered = (page, font, y, text, size) => {
-  const textWidth = font.widthOfTextAtSize(text, size);
-  page.drawText(text, { x: (PAGE_WIDTH - textWidth) / 2, y, size, font, color: COLOR_TEXT });
-  return y - size * 1.45;
-};
+const drawSignatureBlock = (page, font, fontBold, fields, dateFr) => {
+  const lineY = SUBSCRIBERS_LIST_SIGNATURE_LINE_Y;
+  const lineX = MARGIN_H;
+  const city = pdfSafe(fields.statementCity || '______________________');
+  const signatoryName = pdfSafe(fields.signatureFullName || fields.presidentName || 'Le signataire');
+  const signatoryCapacity = pdfSafe(fields.presidentSignatureLabel || fields.signatoryTitle || 'Président désigné');
+  const blockHeading = pdfSafe(fields.signatureBlockHeading || 'SIGNATURE DU PRÉSIDENT DÉSIGNÉ');
 
-const drawLabelValue = (page, font, fontBold, y, label, value, metrics) => {
-  page.drawText(label, {
+  page.drawText(blockHeading, {
     x: MARGIN_H,
-    y,
-    size: metrics.fontSize,
+    y: lineY + SUBSCRIBERS_LIST_SIGNATURE_HEADING_ABOVE_LINE,
+    size: SIZE_BODY,
     font: fontBold,
     color: COLOR_TEXT,
   });
-  page.drawText(String(value || '–'), {
-    x: LABEL_COL_X,
-    y,
-    size: metrics.fontSize,
-    font,
-    color: COLOR_TEXT,
-    maxWidth: CONTENT_WIDTH - (LABEL_COL_X - MARGIN_H),
-  });
-  return y - metrics.rowStep;
-};
-
-export const generateSubscribersListPdf = async ({ filename, fields = {} }) => {
-  const targetPath = path.join(outputDir, filename);
-  const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-  const font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
-  const fontBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
-
-  const securitiesUnit = String(fields.securitiesUnit || 'Actions');
-  const subscribers = Array.isArray(fields.subscribers) ? fields.subscribers : [];
-  const depositLines = wrapParagraph(fields.depositParagraph);
-  const certLines = wrapParagraph(fields.certificationParagraph);
-  const metrics = resolveLayoutMetrics(subscribers, securitiesUnit, depositLines, certLines);
-
-  let y = PAGE_HEIGHT - MARGIN_TOP;
-  y = drawCentered(page, fontBold, y, 'LISTE DES SOUSCRIPTEURS', 13.5);
-  y -= 4;
-  y = drawCentered(page, fontBold, y, String(fields.legalFormHeader || 'SOCIÉTÉ'), 10.5);
-  y -= 3;
-  y = drawCentered(page, fontBold, y, String(fields.companyName || 'Dénomination').toUpperCase(), 11.5);
-  y = CONTENT_TOP_Y;
-
-  subscribers.forEach((subscriber, index) => {
-    const heading = subscriber.sectionHeading || `${subscriber.roleTitle || 'Associé'} – ${subscriber.fullName || ''}`;
-    page.drawText(heading, {
-      x: MARGIN_H,
-      y,
-      size: metrics.headingSize,
-      font: fontBold,
-      color: COLOR_TEXT,
-    });
-    y -= metrics.headingGap;
-
-    getSubscriberRows(subscriber, securitiesUnit).forEach(([label, value]) => {
-      y = drawLabelValue(page, font, fontBold, y, label, value, metrics);
-    });
-
-    if (index < subscribers.length - 1) {
-      y -= metrics.sectionGap;
-    }
-  });
-
-  const faitY = LINE_Y + 66;
-  let paraY = faitY + 14 + Math.max(0, certLines.length - 1) * PARA_LINE_HEIGHT;
-  certLines.forEach((line) => {
-    page.drawText(line, {
-      x: MARGIN_H,
-      y: paraY,
-      size: metrics.fontSize,
-      font,
-      color: COLOR_TEXT,
-      maxWidth: CONTENT_WIDTH,
-    });
-    paraY -= PARA_LINE_HEIGHT;
-  });
-  paraY -= PARA_GAP;
-  depositLines.forEach((line) => {
-    page.drawText(line, {
-      x: MARGIN_H,
-      y: paraY,
-      size: metrics.fontSize,
-      font,
-      color: COLOR_TEXT,
-      maxWidth: CONTENT_WIDTH,
-    });
-    paraY -= PARA_LINE_HEIGHT;
-  });
-
-  const city = String(fields.statementCity || '______________________');
-  const dateFr = formatFrenchDate(fields.statementDate) || '____ / ____ / ______';
-  page.drawText(`Fait à ${city}, le ${dateFr}.`, {
+  page.drawText(pdfSafe(`Fait à ${city}, le ${dateFr}.`), {
     x: MARGIN_H,
-    y: faitY,
-    size: metrics.fontSize,
+    y: lineY + SUBSCRIBERS_LIST_SIGNATURE_FAIT_ABOVE_LINE,
+    size: SIZE_BODY,
     font,
     color: COLOR_TEXT,
   });
@@ -219,38 +211,178 @@ export const generateSubscribersListPdf = async ({ filename, fields = {} }) => {
         fields.signatureRepresentativeName ? `Représentée par ${fields.signatureRepresentativeName}` : 'Représentée par [représentant légal]',
         `Qualité : ${fields.signatureRepresentativeQuality || 'à compléter'}`,
       ];
-    let entityY = LINE_Y + 48;
+    let entityY = lineY + SUBSCRIBERS_LIST_SIGNATURE_NAME_ABOVE_LINE;
     signatureLines.forEach((line) => {
-      page.drawText(String(line), { x: MARGIN_H, y: entityY, size: metrics.fontSize, font, color: COLOR_TEXT });
-      entityY -= PARA_LINE_HEIGHT;
+      page.drawText(pdfSafe(line), { x: MARGIN_H, y: entityY, size: SIZE_BODY, font, color: COLOR_TEXT });
+      entityY -= LINE_BODY;
     });
   } else {
-    page.drawText(`${fields.presidentName || fields.signatureFullName || 'Le Président'},`, {
+    page.drawText(signatoryName, {
       x: MARGIN_H,
-      y: LINE_Y + 42,
-      size: metrics.fontSize,
+      y: lineY + SUBSCRIBERS_LIST_SIGNATURE_NAME_ABOVE_LINE,
+      size: SIZE_BODY,
+      font: fontBold,
+      color: COLOR_TEXT,
+    });
+    page.drawText(signatoryCapacity, {
+      x: MARGIN_H,
+      y: lineY + SUBSCRIBERS_LIST_SIGNATURE_CAPACITY_ABOVE_LINE,
+      size: SIZE_BODY,
       font,
       color: COLOR_TEXT,
     });
   }
-  page.drawText(String(fields.presidentSignatureLabel || 'Le Président'), {
+
+  page.drawText('Signature :', {
     x: MARGIN_H,
-    y: LINE_Y + 28,
-    size: metrics.fontSize,
-    font: fontBold,
+    y: lineY + SUBSCRIBERS_LIST_SIGNATURE_LABEL_ABOVE_LINE,
+    size: SIZE_BODY,
+    font,
     color: COLOR_TEXT,
   });
   page.drawLine({
-    start: { x: MARGIN_H, y: LINE_Y },
-    end: { x: MARGIN_H + 220, y: LINE_Y },
-    thickness: 0.6,
+    start: { x: lineX, y: lineY },
+    end: { x: lineX + 220, y: lineY },
+    thickness: 0.7,
     color: COLOR_TEXT,
   });
+};
 
-  page.drawText('Liste des souscripteurs', { x: MARGIN_H, y: 28, size: 8.5, font, color: COLOR_MUTED });
+export const generateSubscribersListPdf = async ({ filename, fields = {} }) => {
+  const targetPath = path.join(outputDir, filename);
+  const pdfDoc = await PDFDocument.create();
+  const font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+
+  const securitiesUnit = String(fields.securitiesUnit || 'Actions');
+  const subscribers = Array.isArray(fields.subscribers) ? fields.subscribers : [];
+  const singleSubscriber = Boolean(fields.singleSubscriber) || subscribers.length <= 1;
+  const recap = fields.recap || {};
+  const dateFr = formatFrenchDate(fields.statementDate) || '____ / ____ / ______';
+  const signatureReservedTop = SUBSCRIBERS_LIST_SIGNATURE_LINE_Y
+    + SUBSCRIBERS_LIST_SIGNATURE_HEADING_ABOVE_LINE
+    + 16;
+
+  let page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  let pageNumber = 1;
+  let totalPages = 1;
+  let y = PAGE_HEIGHT - MARGIN_TOP;
+
+  const drawFooter = (targetPage, num, total) => {
+    const label = `Liste des souscripteurs — Page ${num} sur ${total}`;
+    targetPage.drawText(label, {
+      x: MARGIN_H,
+      y: FOOTER_Y,
+      size: 8.5,
+      font,
+      color: COLOR_MUTED,
+    });
+  };
+
+  const startNewPage = () => {
+    drawFooter(page, pageNumber, totalPages);
+    pageNumber += 1;
+    totalPages += 1;
+    page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+    y = PAGE_HEIGHT - MARGIN_TOP;
+  };
+
+  const ensureSpace = (needed, { signatureZone = false } = {}) => {
+    const floorY = signatureZone ? signatureReservedTop : SUBSCRIBERS_LIST_CONTENT_BOTTOM_Y;
+    if (y - needed < floorY) startNewPage();
+  };
+
+  y = drawCentered(page, fontBold, y, 'LISTE DES SOUSCRIPTEURS', SIZE_TITLE);
+  y -= SIZE_TITLE * 0.9;
+  y = drawCentered(page, font, y, String(fields.legalFormHeader || 'Société en formation'), SIZE_OVERLINE);
+  y -= GAP_SECTION;
+
+  ensureSpace(120);
+  y = drawSectionHeading(page, fontBold, y, 'Société concernée');
+  [
+    ['Dénomination sociale', fields.companyName],
+    ['Forme juridique', fields.companyLegalFormLabel || fields.legalFormHeader],
+    ['Capital social', fields.companyCapital],
+    ['Siège social', fields.companyRegisteredOffice],
+    ['Statut', fields.companyFormationStatus || 'Société en cours de constitution'],
+    [fields.officerDesignationLabel || 'Président désigné', fields.presidentDesignated || fields.signatureFullName],
+  ].forEach(([label, value]) => {
+    ensureSpace(GAP_ROW + 4);
+    y = drawLabelValue(page, font, fontBold, y, label, value);
+  });
+  y -= 6;
+
+  ensureSpace(estimateBlockHeight(fields.introParagraph));
+  y = drawLeftLines(page, font, y, fields.introParagraph || 'Le présent état récapitule les souscriptions effectuées dans le cadre de la constitution de la société désignée ci-dessus.');
+  y -= GAP_PARAGRAPH;
+
+  subscribers.forEach((subscriber, index) => {
+    const heading = singleSubscriber
+      ? 'Souscripteur unique'
+      : `Souscripteur ${index + 1}`;
+    ensureSpace(estimateSubscriberBlockHeight(subscriber, securitiesUnit) + 10);
+    y = drawSectionHeading(page, fontBold, y, heading);
+    getSubscriberRows(subscriber, securitiesUnit).forEach(([label, value]) => {
+      ensureSpace(GAP_ROW + 4);
+      y = drawLabelValue(page, font, fontBold, y, label, value);
+    });
+    y -= 8;
+  });
+
+  ensureSpace(90);
+  y = drawSectionHeading(page, fontBold, y, 'Récapitulatif des souscriptions');
+  [
+    [`Nombre total de ${securitiesUnit.toLowerCase()} souscrites`, recap.totalShares || '0'],
+    ['Montant total des apports en numéraire', recap.totalCash || '0 €'],
+    ['Montant total des apports en nature', recap.totalInKind || 'Néant'],
+    ['Montant total libéré à la constitution', recap.totalLiberated || '0 €'],
+    ['Pourcentage du capital souscrit', recap.totalPercent || '100 %'],
+  ].forEach(([label, value]) => {
+    ensureSpace(GAP_ROW + 4);
+    y = drawLabelValue(page, font, fontBold, y, label, value);
+  });
+  y -= 6;
+
+  ensureSpace(60, { signatureZone: true });
+  y = drawSectionHeading(page, fontBold, y, 'Certification');
+  wrapText(fields.certificationParagraph || '').forEach((line) => {
+    ensureSpace(LINE_BODY, { signatureZone: true });
+    page.drawText(line, { x: MARGIN_H, y, size: SIZE_BODY, font, color: COLOR_TEXT, maxWidth: CONTENT_WIDTH });
+    y -= LINE_BODY;
+  });
+  y -= GAP_PARAGRAPH;
+
+  ensureSpace(40, { signatureZone: true });
+  y = drawSectionHeading(page, fontBold, y, 'Dépôt des fonds');
+  wrapText(fields.depositParagraph || '').forEach((line) => {
+    ensureSpace(LINE_BODY, { signatureZone: true });
+    page.drawText(line, { x: MARGIN_H, y, size: SIZE_BODY, font, color: COLOR_TEXT, maxWidth: CONTENT_WIDTH });
+    y -= LINE_BODY;
+  });
+
+  const signatureBlockHeight = SUBSCRIBERS_LIST_SIGNATURE_HEADING_ABOVE_LINE + 24;
+  if (y < signatureReservedTop + signatureBlockHeight) {
+    startNewPage();
+  }
+
+  drawSignatureBlock(page, font, fontBold, fields, dateFr);
+  drawPinnedRappel(
+    page,
+    font,
+    fontBold,
+    fields.signatureReminder || "Rappel : le président désigné certifie l'exactitude, la sincérité et la complétude des informations relatives aux souscriptions et aux apports indiqués dans le présent état.",
+  );
+
+  const pages = pdfDoc.getPages();
+  totalPages = pages.length;
+  pages.forEach((targetPage, index) => {
+    drawFooter(targetPage, index + 1, totalPages);
+  });
 
   fs.writeFileSync(targetPath, await pdfDoc.save());
   return targetPath;
 };
+
+const estimateBlockHeight = (text) => wrapText(text).length * LINE_BODY + GAP_PARAGRAPH;
 
 export { validateSubscribersListFields } from '../documents/subscribersList/buildFields.js';

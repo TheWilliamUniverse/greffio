@@ -15,6 +15,7 @@ import {
   nonConvictionSignatureStampY,
   signatureStampY,
   subscribersListSignatureStampY,
+  subscribersListElectronicStampY,
 } from './pdfLegalConstants.js';
 
 const stampColor = rgb(0.35, 0.4, 0.48);
@@ -67,9 +68,11 @@ export const stampSignatureOnPdf = async ({
         : signatureStampY(MANDATE_SIGNATURE_LINE_Y)));
   const electronicStampY = isFormalityPowersLayout
     ? formalityPowersElectronicStampY(FORMALITY_POWERS_SIGNATURE_LINE_Y)
-    : (isOfficialLayout
-      ? nonConvictionElectronicStampY(NON_CONVICTION_SIGNATURE_LINE_Y)
-      : Math.max(34, yBase - 18));
+    : (isSubscribersLayout
+      ? subscribersListElectronicStampY(SUBSCRIBERS_LIST_SIGNATURE_LINE_Y)
+      : (isOfficialLayout
+        ? nonConvictionElectronicStampY(NON_CONVICTION_SIGNATURE_LINE_Y)
+        : Math.max(34, yBase - 18)));
 
   const safeSignerName = pdfSafeText(signerFullName, 'Signataire');
 

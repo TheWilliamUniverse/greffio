@@ -2265,6 +2265,7 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async 
         questionnaire,
         user: dossierUser,
         savedFields,
+        documents,
       });
       return res.json({
         ok: true,

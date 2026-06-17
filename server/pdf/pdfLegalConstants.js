@@ -41,6 +41,19 @@ export const NON_CONVICTION_ELECTRONIC_STAMP_BELOW_LINE = 14;
 /** Left-column signature line for liste des souscripteurs (last page). */
 export const SUBSCRIBERS_LIST_SIGNATURE_LINE_Y = 278;
 
+/** Vertical offsets above the trait noir for the subscribers-list signature block. */
+export const SUBSCRIBERS_LIST_SIGNATURE_HEADING_ABOVE_LINE = 108;
+export const SUBSCRIBERS_LIST_SIGNATURE_FAIT_ABOVE_LINE = 86;
+export const SUBSCRIBERS_LIST_SIGNATURE_NAME_ABOVE_LINE = 66;
+export const SUBSCRIBERS_LIST_SIGNATURE_CAPACITY_ABOVE_LINE = 48;
+export const SUBSCRIBERS_LIST_SIGNATURE_LABEL_ABOVE_LINE = 32;
+
+/** Electronic timestamp sits this many pt below the trait noir (subscribers list). */
+export const SUBSCRIBERS_LIST_ELECTRONIC_STAMP_BELOW_LINE = 14;
+
+/** Flowing content must stay above this Y (pdf-lib, from page bottom). */
+export const SUBSCRIBERS_LIST_CONTENT_BOTTOM_Y = 450;
+
 /** Name/image stamp sits this many pt above the trait noir (subscribers list only). */
 export const SUBSCRIBERS_LIST_STAMP_ABOVE_LINE = -8;
 
@@ -67,6 +80,11 @@ export const nonConvictionSignatureStampY = (
 export const nonConvictionElectronicStampY = (
   lineY = NON_CONVICTION_SIGNATURE_LINE_Y,
 ) => lineY - NON_CONVICTION_ELECTRONIC_STAMP_BELOW_LINE;
+
+/** Subscribers list electronic timestamp baseline (below trait noir). */
+export const subscribersListElectronicStampY = (
+  lineY = SUBSCRIBERS_LIST_SIGNATURE_LINE_Y,
+) => lineY - SUBSCRIBERS_LIST_ELECTRONIC_STAMP_BELOW_LINE;
 
 /** Baseline Y for legal rappel text pinned above the footer band (page bottom). */
 export const LEGAL_RAPPEL_BOTTOM_Y = 38;
