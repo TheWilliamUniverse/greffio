@@ -24,6 +24,7 @@ import {
   LazyOpsQualitePage,
   LazyOpsAuditPage,
   LazyOpsInvoicesPage,
+  LazyOpsIntegrationsPage,
   LazyOpsSettingsPage,
   LazyOpsLookupObservabilityPage,
   LazyOpsShell,
@@ -216,6 +217,7 @@ function AppRoutes() {
               <Route path="documents" element={withSuspense(LazyOpsDocumentsPage, 'Chargement documents ops…')} />
               <Route path="relances" element={withSuspense(LazyOpsRelancesPage, 'Chargement relances…')} />
               <Route path="invoices" element={withSuspense(LazyOpsInvoicesPage, 'Chargement factures…')} />
+              <Route path="integrations" element={withSuspense(LazyOpsIntegrationsPage, 'Chargement intégrations…')} />
               <Route path="depot" element={withSuspense(LazyOpsDepotPage, 'Chargement dépôt…')} />
               <Route path="qualite" element={withSuspense(LazyOpsQualitePage, 'Chargement qualité…')} />
               <Route path="equipe" element={withSuspense(LazyOpsEquipePage, 'Chargement équipe…')} />

@@ -14,6 +14,7 @@ export const LazyOpsDepotPage = lazy(() => import('@/pages/ops/OpsDepotPage.jsx'
 export const LazyOpsQualitePage = lazy(() => import('@/pages/ops/OpsQualitePage.jsx').then((m) => ({ default: m.OpsQualitePage })));
 export const LazyOpsAuditPage = lazy(() => import('@/pages/ops/OpsAuditPage.jsx').then((m) => ({ default: m.OpsAuditPage })));
 export const LazyOpsInvoicesPage = lazy(() => import('@/pages/ops/OpsInvoicesPage.jsx').then((m) => ({ default: m.OpsInvoicesPage })));
+export const LazyOpsIntegrationsPage = lazy(() => import('@/pages/ops/OpsIntegrationsPage.jsx').then((m) => ({ default: m.OpsIntegrationsPage })));
 export const LazyOpsSettingsPage = lazy(() => import('@/pages/ops/OpsSettingsPage.jsx').then((m) => ({ default: m.OpsSettingsPage })));
 export const LazyOpsDashboardPage = lazy(() => import('@/pages/OpsDashboardPage.jsx').then((m) => ({ default: m.OpsDashboardPage })));
 export const LazyOpsLookupObservabilityPage = lazy(() => import('@/pages/OpsLookupObservabilityPage.jsx').then((m) => ({ default: m.OpsLookupObservabilityPage })));

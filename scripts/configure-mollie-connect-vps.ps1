@@ -67,6 +67,24 @@ Write-Host "Credentials source: $keyFile" -ForegroundColor DarkGray
 Write-Host "OAuth client ID: $ClientId" -ForegroundColor DarkGray
 Write-Host "Connect redirect: $connectRedirect" -ForegroundColor DarkGray
 
+function Get-MollieOptionalEnv {
+    param([string]$Content)
+    $result = @{}
+    if ($Content -match '(?m)^(?:Clé API|MOLLIE_API_KEY|API key)\s*\r?\n\s*(live_[A-Za-z0-9]+|test_[A-Za-z0-9]+)') {
+        $result.ApiKey = $Matches[1].Trim()
+    } elseif ($Content -match '(live_[A-Za-z0-9]{20,}|test_[A-Za-z0-9]{20,})') {
+        $result.ApiKey = $Matches[1].Trim()
+    }
+    if ($Content -match '(?m)^(?:Profile ID|MOLLIE_PROFILE_ID|ID profil)\s*\r?\n\s*(pfl_[A-Za-z0-9]+)') {
+        $result.ProfileId = $Matches[1].Trim()
+    } elseif ($Content -match '(pfl_[A-Za-z0-9]+)') {
+        $result.ProfileId = $Matches[1].Trim()
+    }
+    return $result
+}
+
+$optionalEnv = Get-MollieOptionalEnv -Content $keyContent
+
 $plink = 'C:\Program Files\PuTTY\plink.exe'
 $usePutty = (Test-Path $plink) -and $VpsPassword
 
@@ -99,6 +117,7 @@ upsert_env() {
 upsert_env MOLLIE_OAUTH_CLIENT_ID __CLIENT_ID__
 upsert_env MOLLIE_OAUTH_CLIENT_SECRET __CLIENT_SECRET__
 upsert_env MOLLIE_CONNECT_REDIRECT_URI https://api.greffio.willentreprises.com/api/mollie/connect/callback
+__OPTIONAL_ENV__
 upsert_env MOLLIE_WEBHOOK_URL https://api.greffio.willentreprises.com/api/webhooks/mollie
 upsert_env API_PUBLIC_URL https://api.greffio.willentreprises.com
 
@@ -109,7 +128,7 @@ pm2 restart greffio-api --update-env
 sleep 8
 
 echo "=== Mollie Connect env (masked) ==="
-grep -E '^MOLLIE_(OAUTH|CONNECT|WEBHOOK)' "$ENV_FILE" | sed 's/=.*/=***/'
+grep -E '^MOLLIE_(OAUTH|CONNECT|WEBHOOK|API_KEY|PROFILE_ID)' "$ENV_FILE" | sed 's/=.*/=***/'
 
 echo "=== GET /api/health (local) ==="
 curl -fsS http://127.0.0.1:8787/api/health && echo
@@ -117,6 +136,18 @@ curl -fsS http://127.0.0.1:8787/api/health && echo
 
 $RemoteScript = $RemoteScript.Replace('__CLIENT_ID__', $ClientId)
 $RemoteScript = $RemoteScript.Replace('__CLIENT_SECRET__', $ClientSecret)
+
+$optionalLines = @()
+if ($optionalEnv.ApiKey) {
+    Write-Host 'Optional: MOLLIE_API_KEY found in credentials file' -ForegroundColor DarkGray
+    $optionalLines += "upsert_env MOLLIE_API_KEY $($optionalEnv.ApiKey)"
+}
+if ($optionalEnv.ProfileId) {
+    Write-Host 'Optional: MOLLIE_PROFILE_ID found in credentials file' -ForegroundColor DarkGray
+    $optionalLines += "upsert_env MOLLIE_PROFILE_ID $($optionalEnv.ProfileId)"
+}
+$RemoteScript = $RemoteScript.Replace('__OPTIONAL_ENV__', ($optionalLines -join "`n"))
+
 # plink/bash rejects CRLF in inline scripts
 $RemoteScript = $RemoteScript -replace "`r`n", "`n" -replace "`r", "`n"
 
