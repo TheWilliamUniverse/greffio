@@ -261,6 +261,12 @@ export const AuthProvider = ({ children }) => {
       if (code === 'RATE_LIMITED') {
         return { success: false, error: mapSecurityApiError(error) || 'Trop de tentatives. Réessayez dans quelques minutes.' };
       }
+      if (code === 'MFA_TOTP_UNAVAILABLE') {
+        return {
+          success: false,
+          error: error?.payload?.message || 'Authenticator illisible. Utilisez un code email ou réactivez la MFA.',
+        };
+      }
       if (code === 'MFA_VERIFY_FAILED') {
         return { success: false, error: 'Vérification MFA indisponible. Réessayez ou contactez le support.' };
       }

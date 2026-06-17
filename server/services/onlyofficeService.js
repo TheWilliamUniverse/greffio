@@ -81,6 +81,46 @@ export const isOnlyOfficeDocumentServerUrl = (value = '') => {
   }
 };
 
+export const probeOnlyOfficeDocumentServer = async (serverUrl = getOnlyOfficeServerUrl()) => {
+  const base = normalizeBaseUrl(serverUrl);
+  if (!base) {
+    const error = new Error('ONLYOFFICE_URL_MISSING');
+    error.code = 'ONLYOFFICE_URL_MISSING';
+    throw error;
+  }
+  if (!isOnlyOfficeDocumentServerUrl(base)) {
+    const error = new Error('ONLYOFFICE_URL_INVALID');
+    error.code = 'ONLYOFFICE_URL_INVALID';
+    throw error;
+  }
+
+  const timeoutSignal = AbortSignal.timeout(10000);
+  try {
+    const healthResponse = await fetch(`${base}/healthcheck`, {
+      method: 'GET',
+      signal: timeoutSignal,
+    });
+    if (healthResponse.ok) {
+      const body = String(await healthResponse.text()).trim().toLowerCase();
+      if (body === 'true' || body.includes('true')) return { ok: true, endpoint: 'healthcheck' };
+    }
+  } catch (_error) {
+    // fall through to api.js probe
+  }
+
+  const apiResponse = await fetch(`${base}/web-apps/apps/api/documents/api.js`, {
+    method: 'GET',
+    headers: { Range: 'bytes=0-0' },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!apiResponse.ok) {
+    const error = new Error(`ONLYOFFICE_SERVER_PROBE_${apiResponse.status}`);
+    error.code = 'ONLYOFFICE_SERVER_UNREACHABLE';
+    throw error;
+  }
+  return { ok: true, endpoint: 'api.js' };
+};
+
 export const probeOnlyOfficeFileDownloadUrl = async (downloadUrl) => {
   const response = await fetch(downloadUrl, {
     method: 'GET',

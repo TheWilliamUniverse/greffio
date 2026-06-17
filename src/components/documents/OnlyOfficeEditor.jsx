@@ -3,7 +3,8 @@ import { AlertTriangle, Loader2, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 
-const LOADING_TIMEOUT_MS = 45000;
+const LOADING_TIMEOUT_MS = 25000;
+const SCRIPT_LOAD_TIMEOUT_MS = 12000;
 const EDITOR_HEIGHT_DESKTOP_PX = 720;
 const EDITOR_HEIGHT_MOBILE_PX = 560;
 const INVALID_DOCUMENT_SERVER_HOSTS = ['greffio.willentreprises.com', 'www.greffio.willentreprises.com', 'api.greffio.willentreprises.com'];
@@ -49,11 +50,20 @@ const loadOnlyOfficeScript = (documentServerUrl) => new Promise((resolve, reject
   script.src = `${base}/web-apps/apps/api/documents/api.js`;
   script.async = true;
   script.dataset.onlyofficeApi = '1';
+  const scriptTimeout = window.setTimeout(() => {
+    script.onerror = null;
+    script.onload = null;
+    reject(new Error('ONLYOFFICE_SCRIPT_LOAD_FAILED'));
+  }, SCRIPT_LOAD_TIMEOUT_MS);
   script.onload = () => {
+    window.clearTimeout(scriptTimeout);
     if (window.DocsAPI) resolve(window.DocsAPI);
     else reject(new Error('ONLYOFFICE_API_UNAVAILABLE'));
   };
-  script.onerror = () => reject(new Error('ONLYOFFICE_SCRIPT_LOAD_FAILED'));
+  script.onerror = () => {
+    window.clearTimeout(scriptTimeout);
+    reject(new Error('ONLYOFFICE_SCRIPT_LOAD_FAILED'));
+  };
   document.body.appendChild(script);
 });
 
@@ -105,6 +115,7 @@ export const OnlyOfficeEditor = ({
   onReady,
   onDocumentSaved,
   onRetry,
+  onUnavailable,
   className = '',
   fullViewport = false,
 }) => {
@@ -127,7 +138,8 @@ export const OnlyOfficeEditor = ({
     setErrorMessage(message);
     setLoading(false);
     if (error) onError?.(error);
-  }, [onError]);
+    onUnavailable?.(message);
+  }, [onError, onUnavailable]);
 
   const handleRetry = useCallback(() => {
     setErrorMessage('');

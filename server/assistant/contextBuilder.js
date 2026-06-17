@@ -3,6 +3,11 @@ import { getDossier, listDossierDocuments } from '../store.js';
 import { filterClientVisibleDocuments } from '../domain/clientDocuments.js';
 import { searchKnowledgeEntries } from './knowledgeSearch.js';
 import { ASSISTANT_POLICY, SELECT_DOSSIER_PROMPT } from './assistantPolicy.js';
+import {
+  isInternalRecommendedAction,
+  polishFrenchClientText,
+  resolveClientFacingActionLabel,
+} from './textPolish.js';
 
 const DOSSIER_KEYWORDS = [
   'dossier',
@@ -98,25 +103,38 @@ const buildKnowledgeContext = (matches = []) => matches.slice(0, MAX_KNOWLEDGE_S
 
 const buildAllowedActions = (actionState, knowledgeMatches = []) => {
   const actions = [];
+  const seenLabels = new Set();
+
+  const pushAction = (action) => {
+    const label = String(action?.label || '').trim();
+    if (!label) return;
+    const key = label.toLowerCase();
+    if (seenLabels.has(key)) return;
+    seenLabels.add(key);
+    actions.push(action);
+  };
+
   if (actionState?.label && actionState?.url) {
-    actions.push({
+    pushAction({
       type: 'dossier_action',
-      label: actionState.label,
+      label: polishFrenchClientText(actionState.label),
       url: actionState.url,
       priority: actionState.priority || 'medium',
     });
   }
-  for (const match of knowledgeMatches.slice(0, 2)) {
-    if (match.recommendedAction) {
-      actions.push({
-        type: 'knowledge_action',
-        label: truncateSnippet(match.recommendedAction, 120),
-        intent: match.intent,
-        sourceId: match.id,
-      });
-    }
+
+  for (const match of knowledgeMatches.slice(0, 3)) {
+    const label = resolveClientFacingActionLabel(match.recommendedAction, actionState);
+    if (!label || isInternalRecommendedAction(label)) continue;
+    pushAction({
+      type: 'knowledge_action',
+      label,
+      intent: match.intent,
+      sourceId: match.id,
+    });
   }
-  return actions.slice(0, 4);
+
+  return actions.slice(0, 3);
 };
 
 /**

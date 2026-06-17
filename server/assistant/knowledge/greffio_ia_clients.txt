@@ -252,7 +252,7 @@ INTENT: dashboard_dossier
 VISIBILITE: CLIENT
 QUESTION_CLIENT: Pourquoi mon dossier est en brouillon ?
 REPONSE_CANONIQUE: Un dossier en brouillon signifie generalement que les informations initiales ne sont pas encore completes ou que le parcours n'a pas encore atteint l'etape de validation. Le bon reflexe est de reprendre le questionnaire ou de consulter les pieces demandees.
-ACTION_RECOMMANDEE: Afficher le bouton Continuer le questionnaire si le backend le retourne.
+ACTION_RECOMMANDEE: Continuer le questionnaire ou consulter les pièces demandées.
 REPONSE_A_EVITER: Parce que Greffio ne l'a pas traite.
 
 [GREF-QA-004-06]
@@ -1446,7 +1446,7 @@ INTENT: dashboard_dossier
 VISIBILITE: CLIENT
 QUESTION_CLIENT: Pourquoi mon dossier est en brouillon ?
 REPONSE_CANONIQUE: Un dossier en brouillon signifie generalement que les informations initiales ne sont pas encore completes ou que le parcours n'a pas encore atteint l'etape de validation. Le bon reflexe est de reprendre le questionnaire ou de consulter les pieces demandees.
-ACTION_RECOMMANDEE: Afficher le bouton Continuer le questionnaire si le backend le retourne.
+ACTION_RECOMMANDEE: Continuer le questionnaire ou consulter les pièces demandées.
 REPONSE_A_EVITER: Parce que Greffio ne l'a pas traite.
 
 [GREF-QA-025-03]
@@ -2630,7 +2630,7 @@ INTENT: dashboard_dossier
 VISIBILITE: CLIENT
 QUESTION_CLIENT: Pourquoi mon dossier est en brouillon ?
 REPONSE_CANONIQUE: Un dossier en brouillon signifie generalement que les informations initiales ne sont pas encore completes ou que le parcours n'a pas encore atteint l'etape de validation. Le bon reflexe est de reprendre le questionnaire ou de consulter les pieces demandees.
-ACTION_RECOMMANDEE: Afficher le bouton Continuer le questionnaire si le backend le retourne.
+ACTION_RECOMMANDEE: Continuer le questionnaire ou consulter les pièces demandées.
 REPONSE_A_EVITER: Parce que Greffio ne l'a pas traite.
 
 [GREF-QA-045-06]
@@ -3824,7 +3824,7 @@ INTENT: dashboard_dossier
 VISIBILITE: CLIENT
 QUESTION_CLIENT: Pourquoi mon dossier est en brouillon ?
 REPONSE_CANONIQUE: Un dossier en brouillon signifie generalement que les informations initiales ne sont pas encore completes ou que le parcours n'a pas encore atteint l'etape de validation. Le bon reflexe est de reprendre le questionnaire ou de consulter les pieces demandees.
-ACTION_RECOMMANDEE: Afficher le bouton Continuer le questionnaire si le backend le retourne.
+ACTION_RECOMMANDEE: Continuer le questionnaire ou consulter les pièces demandées.
 REPONSE_A_EVITER: Parce que Greffio ne l'a pas traite.
 
 [GREF-QA-066-03]
@@ -5008,7 +5008,7 @@ INTENT: dashboard_dossier
 VISIBILITE: CLIENT
 QUESTION_CLIENT: Pourquoi mon dossier est en brouillon ?
 REPONSE_CANONIQUE: Un dossier en brouillon signifie generalement que les informations initiales ne sont pas encore completes ou que le parcours n'a pas encore atteint l'etape de validation. Le bon reflexe est de reprendre le questionnaire ou de consulter les pieces demandees.
-ACTION_RECOMMANDEE: Afficher le bouton Continuer le questionnaire si le backend le retourne.
+ACTION_RECOMMANDEE: Continuer le questionnaire ou consulter les pièces demandées.
 REPONSE_A_EVITER: Parce que Greffio ne l'a pas traite.
 
 [GREF-QA-086-06]

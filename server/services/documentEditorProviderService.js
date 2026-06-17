@@ -8,6 +8,7 @@ import {
   getOnlyOfficeServerUrl,
   isOnlyOfficeConfigured,
   isOnlyOfficeDocumentServerUrl,
+  probeOnlyOfficeDocumentServer,
   probeOnlyOfficeFileDownloadUrl,
   resolveOnlyOfficeFileType,
 } from './onlyofficeService.js';
@@ -103,6 +104,26 @@ export class OnlyOfficeProvider {
         fallbackProvider: GuidedFormProvider.id,
       };
     }
+    try {
+      await probeOnlyOfficeDocumentServer(documentServerUrl);
+    } catch (serverProbeError) {
+      console.error('ONLYOFFICE_SERVER_PROBE_FAILED', {
+        sessionId: session.id,
+        dossierId,
+        docKey,
+        documentServerUrl,
+        message: serverProbeError?.message,
+        code: serverProbeError?.code,
+      });
+      return {
+        ok: false,
+        error: serverProbeError.code || 'ONLYOFFICE_SERVER_UNREACHABLE',
+        message: 'Le serveur ONLYOFFICE est injoignable. Téléchargez le fichier Word ci-dessous ou réessayez plus tard.',
+        fallbackProvider: GuidedFormProvider.id,
+        fallbackMode: 'docx_download',
+      };
+    }
+
     const fileType = resolveOnlyOfficeFileType(
       session?.fileFormat === 'docx'
         ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'

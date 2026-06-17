@@ -45,11 +45,7 @@ export const GreffioLogo = ({ variant = 'full', className = '', to }) => {
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -1 }}
       transition={{ duration: 0.25 }}
-      className={cn(
-        'notranslate inline-flex items-center select-none',
-        isOnBlue &&
-          'rounded-lg bg-white/10 px-3.5 py-2 ring-1 ring-inset ring-white/15 shadow-[0_2px_14px_rgba(10,18,32,0.2)] backdrop-blur-[1px]',
-      )}
+      className="notranslate inline-flex items-center select-none"
       translate="no"
       lang="fr"
       aria-hidden={Boolean(to)}
@@ -74,8 +70,7 @@ export const GreffioLogo = ({ variant = 'full', className = '', to }) => {
         to={to}
         className={cn(
           'inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
-          isOnBlue &&
-            'rounded-lg focus-visible:ring-offset-[hsl(var(--greffio-blue))]',
+          isOnBlue && 'focus-visible:ring-offset-[hsl(var(--greffio-blue))]',
         )}
         aria-label="Greffio – Retour à l’accueil"
         translate="no"

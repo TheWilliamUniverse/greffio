@@ -1,3 +1,5 @@
+import { polishFrenchClientText } from './textPolish.js';
+
 export const ASSISTANT_POLICY = `Tu es l'assistant client Greffio. Ton rôle est d'aider les entrepreneurs sur leurs formalités d'entreprise avec un ton institutionnel, clair, rassurant et professionnel.
 
 Règles absolues :
@@ -54,5 +56,5 @@ export const sanitizeAssistantOutput = (answer, knowledgeMatches = []) => {
     }
   }
 
-  return clean;
+  return polishFrenchClientText(clean);
 };

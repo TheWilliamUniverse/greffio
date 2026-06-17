@@ -57,9 +57,13 @@ export const GreffioAssistantOrb = () => {
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
           onClick={() => setOpen(true)}
-          className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border border-primary/20 bg-white text-primary shadow-[0_12px_32px_rgba(30,77,140,0.18)] transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border border-primary/20 bg-white text-primary shadow-[0_12px_32px_rgba(30,77,140,0.18)] transition-shadow hover:shadow-[0_14px_36px_rgba(30,77,140,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >
-          <motion.div {...greffioOrbBreathe}>
+          <motion.div
+            animate={hovered ? { scale: 1, opacity: 1 } : greffioOrbBreathe.animate}
+            transition={hovered ? { duration: 0.2 } : greffioOrbBreathe.transition}
+            className="flex items-center justify-center"
+          >
             <GreffioRobotIcon className="h-8 w-8" />
           </motion.div>
         </button>

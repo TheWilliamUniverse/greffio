@@ -15,6 +15,7 @@ import { StatutesWorkflowBadge } from '@/components/documents/StatutesWorkflowBa
 import { downloadDossierDocument } from '@/api/documents.js';
 import {
   createFreeEditSession,
+  downloadDocumentSourceFile,
   getDocumentWorkspace,
   getFreeEditSessionStatus,
   submitStatutesWorkflowAction,
@@ -40,6 +41,8 @@ export const DocumentViewerTab = () => {
   const [preview, setPreview] = useState(null);
   const [editorPayload, setEditorPayload] = useState(null);
   const [editorLoading, setEditorLoading] = useState(false);
+  const [editorUnavailable, setEditorUnavailable] = useState('');
+  const [docxDownloadBusy, setDocxDownloadBusy] = useState(false);
   const [previewRefreshing, setPreviewRefreshing] = useState(false);
   const [workflowBusy, setWorkflowBusy] = useState(false);
   const [workflowMessage, setWorkflowMessage] = useState('');
@@ -113,6 +116,7 @@ export const DocumentViewerTab = () => {
     setWorkflowMessage('');
     setWorkflowMessageTone('neutral');
     setEditorPayload(null);
+    setEditorUnavailable('');
     try {
       const session = await createFreeEditSession(dossierId, docKey, {
         provider: 'onlyoffice',
@@ -120,6 +124,7 @@ export const DocumentViewerTab = () => {
         presentation: isMobileLayout ? 'mobile' : 'desktop',
       });
       if (!session?.ok) {
+        setEditorUnavailable(session?.message || 'L’éditeur ONLYOFFICE n’est pas configuré. L’aperçu reste disponible.');
         setWorkflowMessageTone('warning');
         setWorkflowMessage(session?.message || 'L’éditeur ONLYOFFICE n’est pas configuré. L’aperçu reste disponible.');
         return;
@@ -127,15 +132,48 @@ export const DocumentViewerTab = () => {
       setEditorPayload(session);
     } catch (sessionError) {
       const payload = sessionError?.payload;
+      const message = payload?.message
+        || 'L’éditeur ONLYOFFICE n’est pas disponible. Consultez l’aperçu PDF ci-dessous.';
+      setEditorUnavailable(message);
       setWorkflowMessageTone('warning');
-      setWorkflowMessage(
-        payload?.message
-        || 'L’éditeur ONLYOFFICE n’est pas disponible. Consultez l’aperçu PDF ci-dessous.',
-      );
+      setWorkflowMessage(message);
     } finally {
       setEditorLoading(false);
     }
-  }, [dossierId, docKey]);
+  }, [dossierId, docKey, isMobileLayout]);
+
+  const handleDownloadDocxSource = useCallback(async () => {
+    if (!dossierId || !docKey || docxDownloadBusy) return;
+    setDocxDownloadBusy(true);
+    try {
+      const { filename, blob } = await downloadDocumentSourceFile({ dossierId, docKey, format: 'docx' });
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.rel = 'noopener noreferrer';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.URL.revokeObjectURL(url);
+      setWorkflowMessageTone('success');
+      setWorkflowMessage('Fichier Word téléchargé. Ouvrez-le dans Word ou LibreOffice pour modifier le document.');
+    } catch (_error) {
+      setWorkflowMessageTone('warning');
+      setWorkflowMessage('Impossible de télécharger la version Word pour le moment.');
+    } finally {
+      setDocxDownloadBusy(false);
+    }
+  }, [dossierId, docKey, docxDownloadBusy]);
+
+  const handleEditorUnavailable = useCallback((message) => {
+    const clean = String(message || '').trim();
+    if (!clean) return;
+    setEditorUnavailable(clean);
+    setWorkflowMessageTone('warning');
+    setWorkflowMessage(clean);
+    setEditorPayload(null);
+  }, []);
 
   const waitForSessionPdfUpdate = useCallback(async (sessionId, previousPdfUpdatedAt = null) => {
     if (!sessionId) return false;
@@ -280,6 +318,8 @@ export const DocumentViewerTab = () => {
   const showOpsValidateCta = docKey === 'signed_statutes'
     && statutesWorkflow?.status === 'pending_ops_review';
   const showEditor = Boolean(editorPayload?.ok && editorPayload?.config);
+  const showEditorFallback = Boolean(editorUnavailable && !showEditor && !editorLoading);
+  const canDownloadDocxSource = Boolean(workspace?.currentVersion?.fileFormat === 'docx' || docKey === 'signed_statutes');
   const editorUnavailableOnMobile = isMobileLayout && isEditMode && !showEditor && !editorLoading && Boolean(workflowMessage);
   const showMobileTabs = isMobileLayout && canEdit && (showEditor || editorLoading);
 
@@ -447,6 +487,25 @@ export const DocumentViewerTab = () => {
         </p>
       ) : null}
 
+      {showEditorFallback ? (
+        <section className={`rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950 ${isMobileLayout ? 'mx-4' : ''}`}>
+          <p className="font-semibold">Éditeur en ligne indisponible</p>
+          <p className="mt-2 leading-6">{editorUnavailable}</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {canDownloadDocxSource ? (
+              <Button type="button" size="sm" onClick={() => void handleDownloadDocxSource()} disabled={docxDownloadBusy}>
+                {docxDownloadBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                Télécharger le Word (.docx)
+              </Button>
+            ) : null}
+            <Button type="button" size="sm" variant="outline" className="bg-white" onClick={() => void openEditor()}>
+              <RefreshCw className="h-4 w-4" />
+              Réessayer l’éditeur
+            </Button>
+          </div>
+        </section>
+      ) : null}
+
       <div
         className={
           isMobileLayout
@@ -478,6 +537,7 @@ export const DocumentViewerTab = () => {
                 fullViewport
                 onRetry={() => void openEditor()}
                 onDocumentSaved={() => void handleEditorSaved()}
+                onUnavailable={handleEditorUnavailable}
               />
             </div>
           </section>

@@ -25,6 +25,7 @@ import {
   getCurrentVersion,
   listVersions,
 } from '../services/documentVersionService.js';
+import { downloadDocumentBufferFromConfiguredStorage } from '../services/objectStorage.js';
 import {
   bootstrapDocumentVersionFromRecord,
   ensureStatutesDocxEditVersion,
@@ -276,6 +277,57 @@ export const registerDocumentWorkspaceRoutes = (app, {
   getDossier,
   getUserById,
 }) => {
+  app.get('/api/dossiers/:dossierId/documents/:docKey/download-source', requireAuth, async (req, res) => {
+    const access = await resolveDossierAccess(req, req.params.dossierId, { allowClaim: true });
+    if (!access.ok) return res.status(access.status).json({ ok: false, error: access.error });
+
+    const docKey = String(req.params.docKey || '');
+    if (!isWorkspaceDocKeyAllowed(docKey)) {
+      return res.status(400).json({ ok: false, error: 'DOCUMENT_WORKSPACE_UNSUPPORTED' });
+    }
+
+    const requestedFormat = String(req.query.format || 'docx').toLowerCase();
+    const document = await resolveDocumentRecord(listDossierDocuments, access.dossier.id, docKey);
+    const currentVersion = await getCurrentVersion(access.dossier.id, docKey);
+    const sourceStorageUrl = currentVersion?.storageUrl
+      || document?.metadata?.lastDocxStorageUrl
+      || null;
+    const fileFormat = currentVersion?.fileFormat || requestedFormat;
+
+    if (!sourceStorageUrl || fileFormat !== requestedFormat) {
+      return res.status(404).json({
+        ok: false,
+        error: 'SOURCE_FILE_NOT_FOUND',
+        message: `Aucune version ${requestedFormat.toUpperCase()} disponible pour ce document.`,
+      });
+    }
+
+    try {
+      const buffer = await downloadDocumentBufferFromConfiguredStorage(sourceStorageUrl);
+      const mime = requestedFormat === 'docx'
+        ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        : requestedFormat === 'odt'
+          ? 'application/vnd.oasis.opendocument.text'
+          : 'application/pdf';
+      const downloadName = `${docKey}.${requestedFormat}`;
+      res.setHeader('Content-Type', mime);
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${downloadName}"; filename*=UTF-8''${encodeURIComponent(downloadName)}`,
+      );
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('Content-Length', String(buffer.length));
+      return res.send(buffer);
+    } catch (error) {
+      console.error('[document-workspace] source download failed', {
+        dossierId: access.dossier.id,
+        docKey,
+        message: error?.message,
+      });
+      return res.status(404).json({ ok: false, error: 'SOURCE_FILE_NOT_FOUND' });
+    }
+  });
+
   app.get('/api/dossiers/:dossierId/documents/:docKey/workspace', requireAuth, async (req, res) => {
     try {
       const access = await resolveDossierAccess(req, req.params.dossierId, { allowClaim: true });

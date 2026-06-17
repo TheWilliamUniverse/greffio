@@ -67,7 +67,18 @@ export const useGreffioAssistant = () => {
           content: payload?.answer || 'Je n’ai pas pu générer de réponse pour le moment. Réessayez ou contactez l’équipe Greffio.',
         },
       ]);
-      setSuggestedActions(Array.isArray(payload?.suggestedActions) ? payload.suggestedActions : []);
+      setSuggestedActions(
+        Array.isArray(payload?.suggestedActions)
+          ? payload.suggestedActions.filter((action, index, list) => {
+            const label = String(action?.label || '').trim().toLowerCase();
+            if (!label) return false;
+            if (label.includes('backend') || label.includes('/api/') || label.includes('afficher le bouton')) {
+              return false;
+            }
+            return list.findIndex((item) => String(item?.label || '').trim().toLowerCase() === label) === index;
+          })
+          : [],
+      );
     } catch (_error) {
       setMessages((current) => [
         ...current.filter((item) => !item.pending),

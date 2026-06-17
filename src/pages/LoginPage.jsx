@@ -179,7 +179,7 @@ export const LoginPage = () => {
     const result = await completeMfaLogin({
       mfaToken,
       method: mfaMode,
-      code: mfaMode === MFA_MODES.recovery ? undefined : otpCode,
+      code: mfaMode === MFA_MODES.recovery ? undefined : otpCode.replace(/\s+/g, ''),
       recoveryCode: mfaMode === MFA_MODES.recovery ? recoveryCode : undefined,
     });
     setIsLoading(false);
@@ -253,7 +253,7 @@ export const LoginPage = () => {
         )
       ) : (
       <section className="hidden bg-[hsl(var(--greffio-blue))] p-10 text-white lg:flex lg:flex-col lg:justify-between">
-        <GreffioLogo variant="inverse" to="/" />
+        <GreffioLogo variant="wordmark-on-blue" to="/" />
         <div className="max-w-xl">
           <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-bold">
             <ShieldCheck className="h-4 w-4" />

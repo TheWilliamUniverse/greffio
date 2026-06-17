@@ -1463,7 +1463,16 @@ app.post('/api/auth/mfa/verify-login', authLimiter, async (req, res) => {
       verified = verifyMfaEmailCode({ userId: user.id, code });
     } else {
       const secret = await getTotpSecret(user.id);
-      verified = Boolean(secret && verifyTotpCode({ secret, token: code }));
+      const normalizedCode = String(code || '').replace(/\s+/g, '');
+      if (!secret) {
+        logStructured.warn('MFA_TOTP_SECRET_UNREADABLE', { userId: user.id });
+        return res.status(401).json({
+          ok: false,
+          error: 'MFA_TOTP_UNAVAILABLE',
+          message: 'Authenticator illisible. Utilisez un code email ou réactivez la MFA dans vos paramètres.',
+        });
+      }
+      verified = verifyTotpCode({ secret, token: normalizedCode });
     }
     if (!verified) {
       return res.status(401).json({ ok: false, error: 'MFA_CODE_INVALID' });

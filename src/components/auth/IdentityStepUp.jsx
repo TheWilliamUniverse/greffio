@@ -23,7 +23,7 @@ const resolveDeviceLabel = () => {
   return 'Navigateur web';
 };
 
-export const IdentityStepUp = ({ user, onCancel, onSuccess }) => {
+export const IdentityStepUp = ({ user, onCancel, onSuccess, layout = 'overlay' }) => {
   const {
     phase,
     setPhase,
@@ -56,13 +56,24 @@ export const IdentityStepUp = ({ user, onCancel, onSuccess }) => {
     || user?.email
     || 'Utilisateur Greffio';
 
+  const isInline = layout === 'inline';
+
   return (
-    <div className={`${SESAME_PAGE_CLASS} fixed inset-0 z-[120] flex items-center justify-center p-4`}>
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(96,165,250,0.18),transparent_55%)]" />
+    <div
+      className={
+        isInline
+          ? 'relative w-full px-4 pb-16 pt-8 sm:px-8'
+          : `${SESAME_PAGE_CLASS} fixed inset-0 z-[120] flex items-center justify-center p-4`
+      }
+    >
+      {!isInline ? (
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(96,165,250,0.18),transparent_55%)]" />
+      ) : null}
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        initial={isInline ? { opacity: 0, y: 48 } : { opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative w-full max-w-lg rounded-[32px] border border-white/10 bg-white/[0.08] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:p-8"
+        transition={isInline ? { duration: 0.55, ease: [0.22, 1, 0.36, 1] } : undefined}
+        className={`relative w-full rounded-[32px] border border-white/10 bg-white/[0.08] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:p-8 ${isInline ? 'mx-auto max-w-lg' : 'max-w-lg'}`}
       >
         <AnimatePresence mode="wait">
           {phase === 'success' ? (

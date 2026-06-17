@@ -1,3 +1,5 @@
+import { polishFrenchClientText } from '../../assistant/textPolish.js';
+
 const TECHNICAL_PATTERNS = [
   /insufficient_quota/gi,
   /rate limit/gi,
@@ -8,6 +10,9 @@ const TECHNICAL_PATTERNS = [
   /provider unavailable/gi,
   /quota exceeded/gi,
   /ECONNREFUSED/gi,
+  /\bbackend\b/gi,
+  /\/api\//gi,
+  /action-state/gi,
 ];
 
 export const sanitizeAssistantAnswer = (answer = '') => {
@@ -19,7 +24,7 @@ export const sanitizeAssistantAnswer = (answer = '') => {
   });
 
   text = text.replace(/\n{3,}/g, '\n\n').trim();
-  return text;
+  return polishFrenchClientText(text);
 };
 
 export const professionalFallbackAnswer = ({ legalStructure = '' } = {}) => (
