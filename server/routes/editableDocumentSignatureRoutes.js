@@ -14,8 +14,12 @@ import {
 import { sendTransactionalEmail } from '../services/emailService.js';
 import { getClientIp } from '../utils/loginContext.js';
 import { resolveDossierAccess } from '../utils/dossierAccess.js';
-import { isSignwellConfigured, sendDocumentForSignature, isSignwellStrictMode, formatSignwellApiError } from '../services/signature/signwellOrchestrator.js';
-import { shouldUseSignwellForSignature } from '../services/signature/signatureProvider.js';
+import {
+  sendDocumentForSignature,
+  isTrustedSignatureStrictMode,
+  formatTrustedSignatureApiError,
+} from '../services/signature/trustedSignatureOrchestrator.js';
+import { shouldUseTrustedProviderForSignature } from '../services/signature/signatureProvider.js';
 import { finalizeInternalSignature } from '../services/signature/finalizeInternalSignature.js';
 import { getSignatureConsentText } from '../services/signature/signatureConsent.js';
 import { getDeclarationErrorMessage } from '../documents/declarationNonCondamnation/formatters.js';
@@ -87,7 +91,7 @@ export const registerEditableDocumentSignatureRoutes = (app, {
           initialEvidence: verifyToken ? { verifyToken, documentId: updated?.id || null } : {},
         });
 
-        if (shouldUseSignwellForSignature()) {
+        if (shouldUseTrustedProviderForSignature()) {
           try {
             const signwellResult = await sendDocumentForSignature({
               dossier,
@@ -125,8 +129,8 @@ export const registerEditableDocumentSignatureRoutes = (app, {
             });
           } catch (signwellError) {
             console.error('SIGNWELL_SEND_FAILED', signwellError);
-            if (isSignwellStrictMode()) {
-              const formatted = formatSignwellApiError(signwellError);
+            if (isTrustedSignatureStrictMode()) {
+              const formatted = formatTrustedSignatureApiError(signwellError);
               return res.status(502).json({
                 ok: false,
                 error: formatted.code,
@@ -192,7 +196,7 @@ export const registerEditableDocumentSignatureRoutes = (app, {
           throw new Error('PDF_GENERATION_FAILED');
         }
 
-        if (shouldUseSignwellForSignature()) {
+        if (shouldUseTrustedProviderForSignature()) {
           const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
           const { hash } = createSigningToken();
           const signatureRequest = await createSignatureRequest({
@@ -231,8 +235,8 @@ export const registerEditableDocumentSignatureRoutes = (app, {
             });
           } catch (signwellError) {
             console.error('SIGNWELL_SIGN_NOW_FAILED', signwellError);
-            if (isSignwellStrictMode()) {
-              const formatted = formatSignwellApiError(signwellError);
+            if (isTrustedSignatureStrictMode()) {
+              const formatted = formatTrustedSignatureApiError(signwellError);
               return res.status(502).json({
                 ok: false,
                 error: formatted.code,

@@ -1,6 +1,6 @@
 import {
-  completeSignwellDocument,
-} from './signwellOrchestrator.js';
+  completeTrustedSignatureDocument,
+} from './trustedSignatureOrchestrator.js';
 import {
   createSignwellWebhook,
   isSignwellConfigured,
@@ -44,7 +44,7 @@ export const createSignwellWebhookHandler = (deps) => async (req, res) => {
   }
 
   try {
-    const result = await completeSignwellDocument({
+    const result = await completeTrustedSignatureDocument({
       signwellDocumentId,
       ...deps,
     });

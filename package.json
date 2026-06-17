@@ -34,6 +34,8 @@
     "test:statutes": "node --test server/statuts/tests/williamStatutes.test.js server/domain/tests/statutesWorkflow.test.js server/utils/tests/fileFormatDetection.test.js",
     "verify:build": "node scripts/verify-build-assets.js",
     "smoke:prod": "powershell -ExecutionPolicy Bypass -File scripts/smoke-prod-greffio.ps1",
+    "ops:hostinger:health": "node scripts/hostinger-health-check.mjs",
+    "ops:hostinger:deploy": "node scripts/hostinger-deploy-static.mjs",
     "test:e2e": "playwright test",
     "test:e2e:mobile": "playwright test --project=mobile-chrome --project=mobile-safari",
     "test:e2e:matrix": "playwright test e2e/mobile-cockpit.spec.js --project=iphone-se --project=ipad-tablet --project=galaxy-fold --project=mobile-chrome --project=mobile-safari",
