@@ -1,5 +1,5 @@
+import './loadEnv.js';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import express from 'express';
 import helmet from 'helmet';
 import http from 'node:http';
@@ -247,11 +247,6 @@ import {
   verifyMfaEmailCode,
 } from './mfaEmailCodeStore.js';
 import { buildTotpSetup, encryptSecret, verifyTotpCode } from './services/mfaService.js';
-
-dotenv.config({
-  path: path.join(path.dirname(fileURLToPath(import.meta.url)), '../.env'),
-  override: process.env.NODE_ENV === 'production',
-});
 
 const app = express();
 if (process.env.NODE_ENV === 'production') {

@@ -34,7 +34,7 @@ const mapError = (error) => {
     PDF_EMPTY: 422,
     EXPORT_FAILED: 500,
     UPLOAD_FAILED: 500,
-    STORAGE_FAILED: 500,
+    STORAGE_FAILED: 503,
   };
   return {
     status: statusMap[code] || 500,

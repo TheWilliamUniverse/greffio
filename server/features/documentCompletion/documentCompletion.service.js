@@ -101,12 +101,24 @@ export const uploadDocumentCompletion = async ({ userId, file }) => {
     throw Object.assign(new Error('FILE_TOO_LARGE'), { code: 'FILE_TOO_LARGE' });
   }
 
-  const stored = await uploadOriginalDocument({
-    userId,
-    buffer: file.buffer,
-    originalFilename: file.originalname,
-    mimeType: file.mimetype,
-  });
+  let stored;
+  try {
+    stored = await uploadOriginalDocument({
+      userId,
+      buffer: file.buffer,
+      originalFilename: file.originalname,
+      mimeType: file.mimetype,
+    });
+  } catch (error) {
+    const raw = String(error?.message || '');
+    if (raw.includes('SUPABASE_UPLOAD_FAILED') || raw.includes('S3_UPLOAD_FAILED') || raw.includes('STORAGE')) {
+      throw Object.assign(
+        new Error('Le document n’a pas pu être enregistré. Réessayez dans quelques instants.'),
+        { code: 'STORAGE_FAILED' },
+      );
+    }
+    throw error;
+  }
 
   const record = await createDocumentCompletionRecord({
     userId,

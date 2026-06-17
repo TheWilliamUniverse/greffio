@@ -14,6 +14,8 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 8787,
+        // Aligné avec .env prod (S3) — lu avant dotenv par objectStorage au boot
+        DOCUMENT_STORAGE_DRIVER: 's3',
       },
       error_file: '/var/log/greffio/greffio-api-error.log',
       out_file: '/var/log/greffio/greffio-api-out.log',
