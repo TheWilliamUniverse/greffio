@@ -75,7 +75,7 @@ const TIMELINE_LABELS = {
   info: 'Informations société',
   statuts: 'Statuts',
   documents: 'Documents',
-  depot: 'Dépôt greffe',
+  depot: 'Dépôt du dossier',
   kbis: 'Kbis / retour',
 };
 
@@ -153,7 +153,7 @@ export const resolveDossierStatusSummary = (dossier = {}, documents = []) => {
   }
 
   const estimatedDelay = ['under_administration_review', 'filed_to_guichet_unique'].includes(status)
-    ? 'Délai variable selon le greffe'
+    ? 'Délai variable selon l’organisme'
     : progress >= 80
       ? 'Prochaine étape sous 48 h ouvrées'
       : 'Selon complétude de votre dossier';
@@ -161,7 +161,7 @@ export const resolveDossierStatusSummary = (dossier = {}, documents = []) => {
   return {
     currentStep: activeStep?.label || 'Informations société',
     actionRequired,
-    nextStep: nextStep?.label || 'Dépôt greffe',
+    nextStep: nextStep?.label || 'Dépôt du dossier',
     blocking,
     estimatedDelay,
     lastUpdate: dossier.updatedAt || dossier.createdAt,

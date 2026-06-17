@@ -4,7 +4,7 @@ export const SEO_DISCLAIMER =
 export const SEO_HOME = {
   title: 'Greffio – Formalités d\'entreprise en ligne',
   description:
-    'Créez, modifiez et suivez vos formalités d\'entreprise en ligne avec Greffio : SAS, entreprise individuelle, statuts, dépôt au greffe et accompagnement administratif.',
+    'Créez, modifiez et suivez vos formalités d\'entreprise en ligne avec Greffio : SAS, entreprise individuelle, statuts, dépôt du dossier et accompagnement administratif.',
 };
 
 export const SEO_PAGE_META = {

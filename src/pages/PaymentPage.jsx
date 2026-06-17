@@ -229,7 +229,7 @@ export const PaymentPage = () => {
             <section className="grid gap-3 md:grid-cols-3">
               {[
                 { title: '1. Paiement', text: 'Carte bancaire via Mollie – montant TTC affiché.' },
-                { title: '2. Traitement', text: 'L’équipe Greffio lance la demande auprès du greffe ou organisme concerné.' },
+                { title: '2. Traitement', text: 'L’équipe Greffio lance la demande auprès de l’organisme concerné.' },
                 { title: '3. Livraison', text: 'Document disponible dans votre espace, avec notification par email.' },
               ].map((step) => (
                 <div key={step.title} className="rounded-md border border-border bg-white p-4 shadow-elevation-sm">

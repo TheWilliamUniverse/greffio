@@ -88,9 +88,9 @@ const MobileAppShellInner = ({ children }) => {
       if (isNativeAppAuthCallbackUrl(raw)) {
         const session = parseNativeAuthCallbackUrl(raw);
         if (session) {
-          void applyNativeAuthHandoff(session).then(async () => {
-            const target = await resolveNativePostLoginPath();
-            navigate(target || '/dashboard', { replace: true });
+          void applyNativeAuthHandoff(session).then(async (result) => {
+            const target = await resolveNativePostLoginPath(result?.user);
+            navigate(target, { replace: true });
           });
         }
         return;

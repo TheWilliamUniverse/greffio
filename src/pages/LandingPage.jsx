@@ -169,7 +169,7 @@ export const LandingPage = () => {
               {...revealMount(0.2)}
               className="mt-7 max-w-xl text-xl font-medium leading-8 text-[hsl(var(--greffio-blue-900))]"
             >
-              Création, modifications, documents, signature, échanges avec l’équipe Greffio et suivi greffe dans un espace client complet.
+              Création, modifications, documents, signature, échanges avec l’équipe Greffio et suivi de votre dossier : tout est centralisé dans un espace client complet.
             </motion.p>
             <motion.div {...revealMount(0.28)} className="mt-9 flex flex-col gap-3 sm:flex-row">
               <Button asChild size="lg" className="relative h-12 w-full justify-center px-12 text-center text-base sm:w-auto sm:justify-between sm:px-6">

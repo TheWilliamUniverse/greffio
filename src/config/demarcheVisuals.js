@@ -33,7 +33,7 @@ const defaultsByCategory = {
     icon: ICONS.modification,
     badge: 'Courant',
     groupLabel: 'VIE SOCIALE',
-    footerLabel: 'Suivi greffe',
+    footerLabel: 'Suivi dossier',
     eta: '72h',
   },
   gestion: {
@@ -192,7 +192,7 @@ export const DEMARCHE_VISUALS = {
     description: 'Dépôt annuel des comptes au greffe du tribunal de commerce.',
     icon: ICONS.modification,
     badge: 'Obligation',
-    footerLabel: 'Suivi greffe',
+    footerLabel: 'Suivi dossier',
     eta: '5j',
   },
   mise_en_sommeil: {

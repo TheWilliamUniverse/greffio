@@ -18,7 +18,7 @@ export const LEGAL_SERVICES = [
     id: 'creation-sas',
     title: 'SAS/SASU',
     category: 'Création',
-    description: 'Statuts, annonce légale, dépôt au greffe et Kbis suivi depuis votre espace.',
+    description: 'Statuts, annonce légale, dépôt du dossier et Kbis suivi depuis votre espace.',
     price: '149€',
     time: '48h',
     badge: 'Populaire',

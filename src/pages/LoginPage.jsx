@@ -17,6 +17,7 @@ import { PUBLISHER_LEGAL_NAME } from '@/config/publisher.js';
 import { isMobileBrowserViewport, isCapacitorNative } from '@/utils/platform.js';
 import { NativeWebLoginPage } from '@/pages/NativeWebLoginPage.jsx';
 import { resolveNativePostLoginPath } from '@/utils/nativeColdStart.js';
+import { resolvePostLoginPath } from '@/lib/auth/postLoginRedirect.js';
 import { PublicMinimalLegalFooter } from '@/components/layout/PublicMinimalLegalFooter.jsx';
 import { MobileFooter } from '@/mobile/MobileFooter.jsx';
 import { SecurityChallengeWidget } from '@/components/security/SecurityChallengeWidget.jsx';
@@ -53,7 +54,7 @@ export const LoginPage = () => {
   const nativeApp = isCapacitorNative();
   const nativeAppHandoff = searchParams.get('nativeApp') === '1';
   const nativeAppReturnPath = searchParams.get('return') || '/auth/app-bridge';
-  const redirectTarget = location.state?.from?.pathname || '/gateway';
+  const fromPath = location.state?.from?.pathname;
   const { login, completeMfaLogin } = useAuth();
   const security = useSecurityConfig();
   const hasCaptchaToken = Boolean(captcha.turnstileToken || captcha.recaptchaToken);
@@ -114,10 +115,10 @@ export const LoginPage = () => {
         return;
       }
       if (nativeApp) {
-        const target = await resolveNativePostLoginPath();
-        navigate(target || '/gateway', { replace: true });
+        const target = await resolveNativePostLoginPath(result.user);
+        navigate(target, { replace: true });
       } else {
-        navigate(redirectTarget, { replace: true });
+        navigate(resolvePostLoginPath({ role: result.user?.role, fromPath }), { replace: true });
       }
     } else if (result.error === 'TEMP_ACCOUNT_EXPIRED') {
       toast.error('Ce compte temporaire a expiré (validité jusqu’à 10 h ce matin).');
@@ -188,10 +189,10 @@ export const LoginPage = () => {
         return;
       }
       if (nativeApp) {
-        const target = await resolveNativePostLoginPath();
-        navigate(target || '/gateway', { replace: true });
+        const target = await resolveNativePostLoginPath(result.user);
+        navigate(target, { replace: true });
       } else {
-        navigate(redirectTarget, { replace: true });
+        navigate(resolvePostLoginPath({ role: result.user?.role, fromPath }), { replace: true });
       }
     } else {
       toast.error(result.error || 'Code invalide');
@@ -261,7 +262,7 @@ export const LoginPage = () => {
           <div className="mt-8 grid grid-cols-3 gap-3 text-sm font-semibold">
             <div className="rounded-md bg-white/10 p-4">Documents</div>
             <div className="rounded-md bg-white/10 p-4">Équipe</div>
-            <div className="rounded-md bg-white/10 p-4">Dépôt au greffe</div>
+            <div className="rounded-md bg-white/10 p-4">Dépôt du dossier</div>
           </div>
         </div>
         <p className="text-sm text-white/60"><BrandName /> est une marque déposée de {PUBLISHER_LEGAL_NAME}.</p>

@@ -82,7 +82,7 @@ export const GreffioUltraFooter = ({
             <div>
               <GreffioLogo variant="inverse" />
               <p className="mt-4 max-w-md text-sm leading-7 text-white/70">
-                Application SaaS de gestion de formalités administratives, greffe et vie juridique des entreprises.
+                Application SaaS de gestion de formalités administratives et vie juridique des entreprises.
               </p>
               <p className="mt-3 max-w-lg text-xs leading-6 text-white/55">
                 Greffio est un service privé indépendant d&apos;assistance aux démarches administratives des entreprises.

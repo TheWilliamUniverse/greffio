@@ -10,7 +10,7 @@ const SLIDES = [
   {
     icon: FolderKanban,
     title: 'Votre dossier, toujours avec vous',
-    text: 'Questionnaire, pièces, signatures et dépôt au greffe – comme sur le site Greffio.',
+    text: 'Questionnaire, pièces, signatures et dépôt du dossier – comme sur le site Greffio.',
   },
   {
     icon: PenLine,

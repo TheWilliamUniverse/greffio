@@ -1,3 +1,5 @@
+import { getUser } from '@/utils/localStorage.js';
+import { resolvePostLoginPath } from '@/lib/auth/postLoginRedirect.js';
 import { apiGet } from '@/api/client.js';
 import { resolveDossierContinueUrl } from '@/utils/dossierContinueUrl.js';
 
@@ -13,8 +15,9 @@ const pickPrimaryDossier = (dossiers = []) => {
   return sorted.find((entry) => !TERMINAL_STATUSES.has(String(entry?.status || '').toLowerCase())) || sorted[0];
 };
 
-/** Après connexion ou cold start natif : toujours l’accueil cockpit. */
-export const resolveNativePostLoginPath = async () => '/dashboard';
+/** Après connexion ou cold start natif : dashboard client ou Sésame ops. */
+export const resolveNativePostLoginPath = async (user = getUser()) =>
+  resolvePostLoginPath({ role: user?.role });
 
 /** Reprise dossier depuis l’accueil (carte action) – distinct du post-login. */
 export const resolveNativeDossierContinuePath = async () => {

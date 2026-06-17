@@ -14,7 +14,7 @@ export const LANDING_PRICING_PLANS = [
     price: '70€',
     compareAt: '149€',
     badge: 'Offre Jeune',
-    text: 'Dossier complet, relecture et dépôt au greffe. Tarif jeune (-26 ans) en ce moment.',
+    text: 'Dossier complet, relecture et dépôt du dossier. Tarif jeune (-26 ans) en ce moment.',
     cta: 'Créer mon dossier',
     ctaLink: '/simulateur?offer=jeune-entrepreneur',
     highlight: true,

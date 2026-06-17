@@ -4,9 +4,8 @@ import { getDemarcheVisual } from '@/config/demarcheVisuals.js';
 
 const footerIcons = {
   'Dossier guidé': BookOpen,
-  'Suivi greffe': Landmark,
-  'Parcours cadré': Route,
   'Suivi dossier': Landmark,
+  'Parcours cadré': Route,
   'Pièces guidées': BookOpen,
   'Accompagnement dédié': BookOpen,
   'Reprise dossier': BookOpen,

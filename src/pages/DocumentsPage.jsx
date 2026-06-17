@@ -682,7 +682,7 @@ export const DocumentsPage = () => {
               <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
                 {eiLike
                   ? "Aucun document n’est encore enregistré sur le dossier actif. Les pièces EI/micro (identité, domicile, déclaration d'activité, justificatifs) apparaîtront ici après génération ou dépôt."
-                  : 'Aucun document n’est encore enregistré sur le dossier actif. Les statuts, attestations, justificatifs, annonces et pièces greffe apparaîtront ici après génération ou dépôt.'}
+                  : 'Aucun document n’est encore enregistré sur le dossier actif. Les statuts, attestations, justificatifs, annonces et pièces administratives apparaîtront ici après génération ou dépôt.'}
               </p>
               <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
                 <Button>

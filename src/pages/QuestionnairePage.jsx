@@ -879,7 +879,7 @@ export const QuestionnairePage = () => {
       } else if (apiError === 'QUESTIONNAIRE_SOFT_MISSING') {
         setStepError('Certains champs facultatifs restent à compléter – vous pouvez continuer et les finaliser plus tard.');
       } else if (apiError === 'QUESTIONNAIRE_BLOCKING_FIELDS') {
-        setStepError('Des informations essentielles manquent pour constituer le dossier greffe.');
+        setStepError('Des informations essentielles manquent pour constituer le dossier.');
       } else if (apiError === 'IDENTITY_VERIFICATION_REQUIRED') {
         setStepError("La vérification d'identité sera demandée avant le dépôt officiel, pas à cette étape.");
       } else if (apiError === 'QUESTIONNAIRE_SAVE_FAILED') {

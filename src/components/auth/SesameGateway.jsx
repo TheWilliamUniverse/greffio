@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Building2, LayoutDashboard, Sparkles } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth.js';
 import { IdentityStepUp } from '@/components/auth/IdentityStepUp.jsx';
 import { SESAME_PAGE_CLASS, SesamePortalCard } from '@/components/auth/SesamePortalCard.jsx';
 import { isOpsStepUpValid } from '@/lib/auth/opsStepUp.js';
-
-const OPS_PORTAL_ROLES = new Set(['ADMIN', 'OPS']);
+import { canAccessSesameGateway } from '@/lib/auth/postLoginRedirect.js';
 
 export const SesameGateway = () => {
   const navigate = useNavigate();
@@ -14,7 +13,7 @@ export const SesameGateway = () => {
   const { currentUser } = useAuth();
   const [showStepUp, setShowStepUp] = useState(false);
 
-  const canAccessOpsPortal = OPS_PORTAL_ROLES.has(String(currentUser?.role || '').toUpperCase());
+  const canAccessOpsPortal = canAccessSesameGateway(currentUser?.role);
   const stepUpRequired = searchParams.get('stepUp') === 'required';
   const resumePath = searchParams.get('from') || '/ops';
 
@@ -41,6 +40,10 @@ export const SesameGateway = () => {
     setShowStepUp(false);
     navigate(resumePath.startsWith('/ops') ? resumePath : '/ops', { replace: true });
   };
+
+  if (currentUser && !canAccessOpsPortal) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div className={SESAME_PAGE_CLASS}>

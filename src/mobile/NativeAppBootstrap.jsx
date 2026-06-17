@@ -20,7 +20,7 @@ const isNativeEntryPath = (pathname) => pathname === '/'
  * Routage natif : welcome 1er lancement, accueil app visiteur, cold start connecté.
  */
 export const NativeAppBootstrap = () => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, currentUser } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -33,8 +33,8 @@ export const NativeAppBootstrap = () => {
       if (pathname === NATIVE_WELCOME || pathname === PUBLIC_NATIVE_HOME || pathname === '/') {
         if (hasNativeColdStartRouted()) return;
         markNativeColdStartRouted();
-        void resolveNativePostLoginPath().then((target) => {
-          navigate(target || '/dashboard', { replace: true });
+        void resolveNativePostLoginPath(currentUser).then((target) => {
+          navigate(target, { replace: true });
         });
       }
       return;
