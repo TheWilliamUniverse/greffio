@@ -1,25 +1,45 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Building2, LayoutDashboard, Sparkles } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth.js';
 import { IdentityStepUp } from '@/components/auth/IdentityStepUp.jsx';
 import { SESAME_PAGE_CLASS, SesamePortalCard } from '@/components/auth/SesamePortalCard.jsx';
-import { isOpsStepUpValid } from '@/lib/auth/opsStepUp.js';
+import { clearOpsStepUp, isOpsStepUpValid } from '@/lib/auth/opsStepUp.js';
 import { canAccessSesameGateway } from '@/lib/auth/postLoginRedirect.js';
+
+const decodeResumePath = (raw) => {
+  if (!raw) return '/ops';
+  try {
+    const decoded = decodeURIComponent(raw);
+    return decoded.startsWith('/') ? decoded : '/ops';
+  } catch (_error) {
+    return '/ops';
+  }
+};
 
 export const SesameGateway = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { currentUser } = useAuth();
   const [showStepUp, setShowStepUp] = useState(false);
+  const [stepUpKey, setStepUpKey] = useState(0);
 
-  const canAccessOpsPortal = canAccessSesameGateway(currentUser?.role);
+  const canAccessOpsPortal = canAccessSesameGateway(currentUser);
   const stepUpRequired = searchParams.get('stepUp') === 'required';
-  const resumePath = searchParams.get('from') || '/ops';
+  const resumePath = decodeResumePath(searchParams.get('from'));
+
+  const revealStepUp = () => {
+    setStepUpKey((key) => key + 1);
+    setShowStepUp(true);
+  };
 
   useEffect(() => {
     if (stepUpRequired && canAccessOpsPortal) {
-      setShowStepUp(true);
+      if (isOpsStepUpValid()) {
+        clearOpsStepUp();
+      }
+      revealStepUp();
     }
   }, [stepUpRequired, canAccessOpsPortal]);
 
@@ -33,7 +53,7 @@ export const SesameGateway = () => {
       navigate('/ops', { replace: true });
       return;
     }
-    setShowStepUp(true);
+    revealStepUp();
   };
 
   const handleStepUpSuccess = () => {
@@ -48,7 +68,7 @@ export const SesameGateway = () => {
   return (
     <div className={SESAME_PAGE_CLASS}>
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(147,197,253,0.16),transparent_40%),radial-gradient(circle_at_center,rgba(59,130,246,0.18),transparent_45%)]" />
-      <div className="relative mx-auto flex min-h-[100dvh] max-w-6xl flex-col justify-center px-4 py-10 sm:px-8">
+      <div className="relative z-10 mx-auto flex min-h-[100dvh] max-w-6xl flex-col justify-center px-4 py-10 sm:px-8">
         <div className="mx-auto mb-10 max-w-2xl text-center">
           <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15">
             <Sparkles className="h-7 w-7" />
@@ -78,13 +98,17 @@ export const SesameGateway = () => {
         </div>
       </div>
 
-      {showStepUp ? (
-        <IdentityStepUp
-          user={currentUser}
-          onCancel={() => setShowStepUp(false)}
-          onSuccess={handleStepUpSuccess}
-        />
-      ) : null}
+      {showStepUp && typeof document !== 'undefined'
+        ? createPortal(
+            <IdentityStepUp
+              key={stepUpKey}
+              user={currentUser}
+              onCancel={() => setShowStepUp(false)}
+              onSuccess={handleStepUpSuccess}
+            />,
+            document.body,
+          )
+        : null}
     </div>
   );
 };

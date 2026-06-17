@@ -1438,51 +1438,59 @@ app.post('/api/auth/mfa/email/send', authLimiter, async (req, res) => {
 });
 
 app.post('/api/auth/mfa/verify-login', authLimiter, async (req, res) => {
-  const { mfaToken, code, recoveryCode, method = 'totp' } = req.body || {};
-  if (!mfaToken || (!code && !recoveryCode)) {
-    return res.status(400).json({ ok: false, error: 'MFA_VERIFY_PAYLOAD_INVALID' });
-  }
-  let user;
   try {
-    user = await resolveMfaPendingUser(mfaToken);
+    const { mfaToken, code, recoveryCode, method = 'totp' } = req.body || {};
+    if (!mfaToken || (!code && !recoveryCode)) {
+      return res.status(400).json({ ok: false, error: 'MFA_VERIFY_PAYLOAD_INVALID' });
+    }
+    let user;
+    try {
+      user = await resolveMfaPendingUser(mfaToken);
+    } catch (error) {
+      if (error?.message === 'MFA_TOKEN_INVALID') {
+        return res.status(401).json({ ok: false, error: 'MFA_TOKEN_INVALID' });
+      }
+      if (error?.message === 'MFA_NOT_ENABLED') {
+        return res.status(401).json({ ok: false, error: 'MFA_NOT_ENABLED' });
+      }
+      throw error;
+    }
+
+    let verified = false;
+    if (recoveryCode || method === 'recovery') {
+      verified = await consumeRecoveryCode({ userId: user.id, code: recoveryCode });
+    } else if (method === 'email') {
+      verified = verifyMfaEmailCode({ userId: user.id, code });
+    } else {
+      const secret = await getTotpSecret(user.id);
+      verified = Boolean(secret && verifyTotpCode({ secret, token: code }));
+    }
+    if (!verified) {
+      return res.status(401).json({ ok: false, error: 'MFA_CODE_INVALID' });
+    }
+
+    await maybeSendLoginAlertEmail(req, user, ['mfa']);
+    void purgePlaceholderDossiersForUser({ userId: user.id, deletedBy: user.id }).then((result) => {
+      if (result.purged > 0) {
+        logStructured.info('LOGIN_PLACEHOLDER_PURGE', { userId: user.id, purged: result.purged, dossierIds: result.ids });
+      }
+    }).catch(() => {
+      logStructured.warn('LOGIN_PLACEHOLDER_PURGE_FAILED', { userId: user.id });
+    });
+
+    return res.json({
+      ok: true,
+      user,
+      accessToken: issueAccessToken(user),
+      refreshToken: issueRefreshToken(user),
+    });
   } catch (error) {
-    if (error?.message === 'MFA_TOKEN_INVALID') {
-      return res.status(401).json({ ok: false, error: 'MFA_TOKEN_INVALID' });
-    }
-    if (error?.message === 'MFA_NOT_ENABLED') {
-      return res.status(401).json({ ok: false, error: 'MFA_NOT_ENABLED' });
-    }
-    throw error;
+    logStructured.error('MFA_VERIFY_LOGIN_FAILED', {
+      message: error?.message || 'unknown',
+      path: req.path,
+    });
+    return res.status(500).json({ ok: false, error: 'MFA_VERIFY_FAILED' });
   }
-
-  let verified = false;
-  if (recoveryCode || method === 'recovery') {
-    verified = await consumeRecoveryCode({ userId: user.id, code: recoveryCode });
-  } else if (method === 'email') {
-    verified = verifyMfaEmailCode({ userId: user.id, code });
-  } else {
-    const secret = await getTotpSecret(user.id);
-    verified = Boolean(secret && verifyTotpCode({ secret, token: code }));
-  }
-  if (!verified) {
-    return res.status(401).json({ ok: false, error: 'MFA_CODE_INVALID' });
-  }
-
-  await maybeSendLoginAlertEmail(req, user, ['mfa']);
-  void purgePlaceholderDossiersForUser({ userId: user.id, deletedBy: user.id }).then((result) => {
-    if (result.purged > 0) {
-      logStructured.info('LOGIN_PLACEHOLDER_PURGE', { userId: user.id, purged: result.purged, dossierIds: result.ids });
-    }
-  }).catch(() => {
-    logStructured.warn('LOGIN_PLACEHOLDER_PURGE_FAILED', { userId: user.id });
-  });
-
-  return res.json({
-    ok: true,
-    user,
-    accessToken: issueAccessToken(user),
-    refreshToken: issueRefreshToken(user),
-  });
 });
 
 app.get('/api/auth/mfa/trusted-device/status', requireAuth, async (req, res) => {

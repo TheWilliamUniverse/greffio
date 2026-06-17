@@ -1,5 +1,6 @@
 import { runtimeConfig } from '@/config/runtime.js';
 import { apiGet, apiPost, parseApiResponse } from '@/api/client.js';
+import { withTransientRetry } from '@/api/networkResilience.js';
 import { mfaDeviceAuthHeaders } from '@/utils/mfaDevice.js';
 import { nativeClientAuthHeaders } from '@/utils/nativeClient.js';
 
@@ -34,7 +35,7 @@ export const fetchMfaTrustedDeviceStatus = async () => apiGet('/api/auth/mfa/tru
 
 export const trustMfaDevice = async () => apiPost('/api/auth/mfa/trust-device', {}, { headers: mfaHeaders() });
 
-export const verifyMfaLogin = async ({ mfaToken, code, recoveryCode, method = 'totp' }) => {
+export const verifyMfaLogin = async ({ mfaToken, code, recoveryCode, method = 'totp' }) => withTransientRetry(async () => {
   const response = await fetch(`${runtimeConfig.apiBaseUrl}/api/auth/mfa/verify-login`, {
     method: 'POST',
     headers: {
@@ -44,4 +45,4 @@ export const verifyMfaLogin = async ({ mfaToken, code, recoveryCode, method = 't
     body: JSON.stringify({ mfaToken, code, recoveryCode, method }),
   });
   return parseApiResponse(response);
-};
+}, { retries: 1, delays: [600] });

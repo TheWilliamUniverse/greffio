@@ -8,12 +8,12 @@ export const BlueIdleLockScreen = ({ onReconnect }) => (
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
-    className="fixed inset-0 z-[100] flex items-center justify-center bg-gradient-to-br from-[#021428]/98 via-[#0a2a5c]/96 to-[#133b7a]/98 p-6 text-white"
+    className="fixed inset-0 z-[100] flex items-center justify-center bg-[#021428]/80 p-6 text-white backdrop-blur-md"
   >
     <motion.div
       initial={{ scale: 0.96, y: 12 }}
       animate={{ scale: 1, y: 0 }}
-      className="w-full max-w-md rounded-[28px] border border-white/15 bg-white/10 p-8 text-center backdrop-blur-xl"
+      className="w-full max-w-md rounded-[28px] border border-white/20 bg-[#0a2a5c]/50 p-8 text-center shadow-[0_30px_100px_rgba(0,0,0,0.45)] backdrop-blur-xl"
     >
       <motion.div
         animate={{ rotate: [0, -8, 8, 0] }}

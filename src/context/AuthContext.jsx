@@ -251,6 +251,19 @@ export const AuthProvider = ({ children }) => {
       }
       return { success: true, user: userWithRole };
     } catch (error) {
+      const code = error?.payload?.error || error?.code || error?.message;
+      if (code === 'MFA_CODE_INVALID') {
+        return { success: false, error: 'Code MFA invalide ou expiré.' };
+      }
+      if (code === 'MFA_TOKEN_INVALID' || code === 'MFA_NOT_ENABLED') {
+        return { success: false, error: 'Session MFA expirée. Reconnectez-vous.' };
+      }
+      if (code === 'RATE_LIMITED') {
+        return { success: false, error: mapSecurityApiError(error) || 'Trop de tentatives. Réessayez dans quelques minutes.' };
+      }
+      if (code === 'MFA_VERIFY_FAILED') {
+        return { success: false, error: 'Vérification MFA indisponible. Réessayez ou contactez le support.' };
+      }
       if (isTransientApiError(error)) {
         return { success: false, error: 'Mise à jour serveur en cours. Réessayez dans quelques instants.' };
       }

@@ -4,7 +4,18 @@ import { Button } from '@/components/ui/button.jsx';
 import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 
 const LOADING_TIMEOUT_MS = 45000;
+const EDITOR_HEIGHT_DESKTOP_PX = 720;
+const EDITOR_HEIGHT_MOBILE_PX = 560;
 const INVALID_DOCUMENT_SERVER_HOSTS = ['greffio.willentreprises.com', 'www.greffio.willentreprises.com', 'api.greffio.willentreprises.com'];
+
+const resolveEditorHeightPx = (isMobilePresentation, fullViewport) => {
+  if (typeof window === 'undefined') {
+    return isMobilePresentation || fullViewport ? EDITOR_HEIGHT_MOBILE_PX : EDITOR_HEIGHT_DESKTOP_PX;
+  }
+  const ratio = isMobilePresentation || fullViewport ? 0.62 : 0.58;
+  const cap = isMobilePresentation || fullViewport ? EDITOR_HEIGHT_MOBILE_PX : EDITOR_HEIGHT_DESKTOP_PX;
+  return Math.min(Math.round(window.innerHeight * ratio), cap);
+};
 
 const normalizeDocumentServerUrl = (value = '') => String(value || '').trim().replace(/\/$/, '');
 
@@ -61,14 +72,14 @@ const resolveFriendlyOnlyOfficeError = (event) => {
 };
 
 /** ONLYOFFICE JWT signs the full config server-side — do not mutate signed fields client-side. */
-const buildDocEditorConfig = (config, events, isMobilePresentation) => {
+const buildDocEditorConfig = (config, events, isMobilePresentation, fullViewport) => {
   if (config?.token) {
     return { ...config, events };
   }
   return {
     ...config,
     type: isMobilePresentation ? 'mobile' : (config.type || 'desktop'),
-    height: '100%',
+    height: `${resolveEditorHeightPx(isMobilePresentation, fullViewport)}px`,
     width: '100%',
     events,
   };
@@ -158,7 +169,12 @@ export const OnlyOfficeEditor = ({
 
       try {
         const DocsAPI = await loadOnlyOfficeScript(documentServerUrl);
-        if (cancelled || !containerRef.current) return;
+        if (cancelled) return;
+        if (!containerRef.current) {
+          clearLoadTimeout();
+          failWithMessage('Conteneur éditeur indisponible. Réessayez.');
+          return;
+        }
         if (editorRef.current?.destroyEditor) {
           editorRef.current.destroyEditor();
         }
@@ -168,6 +184,7 @@ export const OnlyOfficeEditor = ({
             if (cancelled) return;
             clearLoadTimeout();
             setLoading(false);
+            editorRef.current?.resizeEditor?.();
             onReady?.();
           },
           onDocumentStateChange: (event) => {
@@ -202,7 +219,7 @@ export const OnlyOfficeEditor = ({
               );
             }
           },
-        }, isMobilePresentation);
+        }, isMobilePresentation, fullViewport);
         editorRef.current = new DocsAPI.DocEditor(containerRef.current.id, editorConfig);
       } catch (error) {
         if (cancelled) return;
@@ -223,18 +240,20 @@ export const OnlyOfficeEditor = ({
         editorRef.current.destroyEditor();
       }
     };
-  }, [config, documentServerUrl, failWithMessage, onReady, onDocumentSaved, bootKey, isMobilePresentation]);
+  }, [config, documentServerUrl, failWithMessage, onReady, onDocumentSaved, bootKey, isMobilePresentation, fullViewport]);
+
+  const editorHeightPx = resolveEditorHeightPx(isMobilePresentation, fullViewport);
+  const editorHeightStyle = {
+    height: `${editorHeightPx}px`,
+    minHeight: `${editorHeightPx}px`,
+  };
 
   const shellClassName = fullViewport || isMobilePresentation
-    ? 'relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border-0 bg-white sm:rounded-md sm:border sm:border-border'
-    : `relative min-h-[52vh] w-full overflow-hidden rounded-md border border-border bg-white ${className}`;
-
-  const editorHeightClass = fullViewport || isMobilePresentation
-    ? 'h-[min(62dvh,720px)] w-full sm:h-[min(58vh,720px)]'
-    : 'h-[min(58vh,720px)] w-full';
+    ? 'relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-none border-0 bg-white sm:rounded-md sm:border sm:border-border'
+    : `relative w-full overflow-hidden rounded-md border border-border bg-white ${className}`;
 
   return (
-    <div className={shellClassName}>
+    <div className={shellClassName} style={editorHeightStyle}>
       {loading && !errorMessage ? (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-white px-6 text-center">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -263,7 +282,8 @@ export const OnlyOfficeEditor = ({
           id={containerId}
           ref={containerRef}
           aria-hidden={loading}
-          className={`${editorHeightClass} ${loading ? 'pointer-events-none invisible opacity-0' : ''}`}
+          className={`w-full ${loading ? 'pointer-events-none' : ''}`}
+          style={editorHeightStyle}
         />
       )}
     </div>

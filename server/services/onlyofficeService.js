@@ -172,6 +172,10 @@ export const verifyOnlyOfficeToken = (token) => {
   }
 };
 
+export const resolveOnlyOfficeEditorHeight = (presentation = 'desktop') => (
+  presentation === 'mobile' ? '560px' : '720px'
+);
+
 export const buildOnlyOfficeEditorConfig = ({
   documentKey,
   title,
@@ -183,6 +187,7 @@ export const buildOnlyOfficeEditorConfig = ({
   presentation = 'desktop',
 }) => {
   const documentType = resolveOnlyOfficeDocumentType(fileType);
+  const editorHeight = resolveOnlyOfficeEditorHeight(presentation);
   const config = {
     document: {
       fileType,
@@ -218,7 +223,8 @@ export const buildOnlyOfficeEditorConfig = ({
         },
       },
     },
-    height: '100%',
+    // Explicit px height — JWT-signed; % collapses to 0 in CSS grid/flex parents.
+    height: editorHeight,
     width: '100%',
     type: presentation === 'mobile' ? 'mobile' : 'desktop',
   };

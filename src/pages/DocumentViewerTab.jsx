@@ -459,10 +459,10 @@ export const DocumentViewerTab = () => {
             className={
               isMobileLayout
                 ? 'flex min-h-0 flex-col bg-white'
-                : 'overflow-hidden rounded-xl border border-border bg-white shadow-elevation-sm'
+                : 'flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-white shadow-elevation-sm'
             }
           >
-            <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-5">
+            <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3 sm:px-5">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-primary" />
                 <p className="text-sm font-bold text-foreground">Éditeur Word ONLYOFFICE</p>
@@ -471,11 +471,11 @@ export const DocumentViewerTab = () => {
                 Autosave
               </span>
             </div>
-            <div className="p-0 sm:p-1">
+            <div className="flex min-h-0 flex-1 flex-col p-0 sm:p-1">
               <OnlyOfficeEditor
                 documentServerUrl={editorPayload.documentServerUrl}
                 config={editorPayload.config}
-                fullViewport={isMobileLayout || isEditMode}
+                fullViewport
                 onRetry={() => void openEditor()}
                 onDocumentSaved={() => void handleEditorSaved()}
               />

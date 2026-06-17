@@ -23,15 +23,19 @@ const encryptSecret = (plaintext) => {
 
 const decryptSecret = (payload) => {
   if (!payload) return null;
-  const [ivB64, tagB64, dataB64] = String(payload).split(':');
-  if (!ivB64 || !tagB64 || !dataB64) return null;
-  const decipher = createDecipheriv('aes-256-gcm', deriveEncryptionKey(), Buffer.from(ivB64, 'base64'));
-  decipher.setAuthTag(Buffer.from(tagB64, 'base64'));
-  const decrypted = Buffer.concat([
-    decipher.update(Buffer.from(dataB64, 'base64')),
-    decipher.final(),
-  ]);
-  return decrypted.toString('utf8');
+  try {
+    const [ivB64, tagB64, dataB64] = String(payload).split(':');
+    if (!ivB64 || !tagB64 || !dataB64) return null;
+    const decipher = createDecipheriv('aes-256-gcm', deriveEncryptionKey(), Buffer.from(ivB64, 'base64'));
+    decipher.setAuthTag(Buffer.from(tagB64, 'base64'));
+    const decrypted = Buffer.concat([
+      decipher.update(Buffer.from(dataB64, 'base64')),
+      decipher.final(),
+    ]);
+    return decrypted.toString('utf8');
+  } catch (_error) {
+    return null;
+  }
 };
 
 const hashRecoveryCode = (code) => {
@@ -84,13 +88,17 @@ const buildTotpSetup = async ({ email }) => {
 
 const verifyTotpCode = ({ secret, token }) => {
   const normalized = String(token || '').replace(/\s+/g, '');
-  if (!/^\d{6}$/.test(normalized)) return false;
-  const result = verifySync({
-    token: normalized,
-    secret: String(secret || ''),
-    epochTolerance: 30,
-  });
-  return Boolean(result?.valid);
+  if (!/^\d{6}$/.test(normalized) || !secret) return false;
+  try {
+    const result = verifySync({
+      token: normalized,
+      secret: String(secret),
+      epochTolerance: 30,
+    });
+    return Boolean(result?.valid);
+  } catch (_error) {
+    return false;
+  }
 };
 
 const normalizeRecoveryCode = (code) => String(code || '').trim().toUpperCase().replace(/\s+/g, '');
