@@ -18,17 +18,17 @@ export const SEO_PAGE_META = {
     path: '/guide',
     title: 'Guide formalités d\'entreprise – FAQ et documents | Greffio',
     description:
-      'Guide pratique Greffio : pièces pour le greffe, procuration, dépôt guichet unique et bonnes pratiques pour créer ou modifier votre entreprise.',
+      'Guide pratique Greffio : pièces du dossier, procuration, dépôt guichet unique et bonnes pratiques pour créer ou modifier votre entreprise.',
   },
   tarifs: {
     path: '/tarifs',
     title: 'Tarifs Greffio – formalités d\'entreprise en ligne | Greffio',
     description:
-      'Consultez les tarifs Greffio pour la création d\'entreprise, les statuts, le dépôt au greffe et l\'accompagnement administratif. Frais légaux affichés avant validation.',
+      'Consultez les tarifs Greffio pour la création d\'entreprise, les statuts, le dépôt du dossier et l\'accompagnement administratif. Frais légaux affichés avant validation.',
   },
   services: {
     path: '/services',
-    title: 'Catalogue formalités d\'entreprise – création, modification, greffe | Greffio',
+    title: 'Catalogue formalités d\'entreprise – création et modification | Greffio',
     description:
       'Parcourez les formalités d\'entreprise proposées par Greffio : création SAS, SARL, micro-entreprise, transfert de siège, changement de dirigeant et plus.',
   },
@@ -36,13 +36,13 @@ export const SEO_PAGE_META = {
     path: '/contact',
     title: 'Contact Greffio – accompagnement formalités d\'entreprise',
     description:
-      'Contactez l\'équipe Greffio pour vos questions sur la création d\'entreprise, les modifications statutaires ou le suivi de dossier au greffe.',
+      'Contactez l\'équipe Greffio pour vos questions sur la création d\'entreprise, les modifications statutaires ou le suivi de dossier.',
   },
   'a-propos': {
     path: '/a-propos',
     title: 'À propos de Greffio – formalités d\'entreprise en ligne',
     description:
-      'Greffio structure créations et modifications d\'entreprise avec traçabilité client-équipe, du questionnaire au dépôt au greffe.',
+      'Greffio structure créations et modifications d\'entreprise avec traçabilité client-équipe, du questionnaire au dépôt du dossier.',
   },
   ressources: {
     path: '/ressources',
@@ -60,14 +60,14 @@ export const SEO_PAGE_META = {
 
 export const SEO_SERVICE_META = {
   'creation-sasu': {
-    title: 'Création SASU en ligne – statuts et dépôt au greffe | Greffio',
+    title: 'Création SASU en ligne – statuts et formalités | Greffio',
     description:
       'Créez votre SASU en ligne avec Greffio : statuts, annonce légale, dossier guichet unique et accompagnement administratif jusqu\'à l\'immatriculation.',
   },
   'creation-sas': {
     title: 'Création SAS en ligne – statuts et formalités | Greffio',
     description:
-      'Création de SAS en ligne : rédaction des statuts, constitution du dossier, dépôt au greffe et suivi administratif avec Greffio.',
+      'Création de SAS en ligne : rédaction des statuts, constitution du dossier, dépôt du dossier et suivi administratif avec Greffio.',
   },
   'creation-sarl': {
     title: 'Création SARL en ligne – formalités et statuts | Greffio',
@@ -77,12 +77,12 @@ export const SEO_SERVICE_META = {
   'creation-eurl': {
     title: 'Création EURL en ligne – formalités et statuts | Greffio',
     description:
-      'Création d\'EURL en ligne : statuts, dossier d\'immatriculation et suivi du dépôt au greffe avec Greffio.',
+      'Création d\'EURL en ligne : statuts, dossier d\'immatriculation et suivi du dépôt du dossier avec Greffio.',
   },
   'creation-sci': {
     title: 'Création SCI en ligne – formalités patrimoniales | Greffio',
     description:
-      'Créez votre SCI en ligne : statuts, pièces et dépôt au greffe avec un parcours guidé et un suivi administratif Greffio.',
+      'Créez votre SCI en ligne : statuts, pièces et dépôt du dossier avec un parcours guidé et un suivi administratif Greffio.',
   },
   'micro-entreprise': {
     title: 'Création micro-entreprise en ligne – démarches simplifiées | Greffio',
@@ -92,17 +92,17 @@ export const SEO_SERVICE_META = {
   'transfert-siege': {
     title: 'Transfert de siège social en ligne – formalités | Greffio',
     description:
-      'Transférez le siège social de votre entreprise : annonce légale, mise à jour statutaire et dépôt au greffe avec Greffio.',
+      'Transférez le siège social de votre entreprise : annonce légale, mise à jour statutaire et dépôt du dossier avec Greffio.',
   },
   'changement-dirigeant': {
     title: 'Changement de dirigeant en ligne – formalités RCS | Greffio',
     description:
-      'Nomination ou départ d\'un dirigeant : constitution du dossier, dépôt au guichet unique et suivi greffe avec Greffio.',
+      'Nomination ou départ d\'un dirigeant : constitution du dossier, dépôt au guichet unique et suivi administratif avec Greffio.',
   },
   'dissolution-liquidation': {
     title: 'Dissolution et liquidation – formalités d\'entreprise | Greffio',
     description:
-      'Accompagnement à la dissolution et liquidation de société : dossier, annonces légales et dépôt au greffe avec Greffio.',
+      'Accompagnement à la dissolution et liquidation de société : dossier, annonces légales et dépôt du dossier avec Greffio.',
   },
   'fermeture-entreprise': {
     title: 'Fermeture d\'entreprise en ligne – formalités | Greffio',
@@ -121,7 +121,7 @@ export const SEO_PILLAR_PAGES = {
     intro:
       'Créer une entreprise en France implique plusieurs étapes : choisir la forme juridique adaptée, rédiger les statuts, publier une annonce légale si nécessaire, constituer le dossier d\'immatriculation et le déposer via le guichet unique. Greffio aide les entrepreneurs à structurer ces étapes, préparer les documents et suivre l\'avancement sans perdre de vue les échéances administratives.',
     greffioBlock:
-      'Greffio clarifie le parcours de création : questionnaire guidé, liste de pièces, relecture de complétude, suivi du dépôt et des retours du greffe.',
+      'Greffio clarifie le parcours de création : questionnaire guidé, liste de pièces, relecture de complétude, suivi du dépôt et des retours administratifs.',
     sections: [
       {
         title: 'Les étapes essentielles d\'une création d\'entreprise',
@@ -255,7 +255,7 @@ export const SEO_PILLAR_PAGES = {
     h1: 'Guichet unique INPI : comprendre le dépôt de vos formalités d\'entreprise',
     intro:
       'Depuis la réforme des formalités des entreprises, le guichet unique INPI regroupe la majorité des démarches de création, modification et cessation. Comprendre son fonctionnement permet d\'éviter les allers-retours et de structurer un dossier complet dès le départ.',
-    greffioBlock: 'Greffio prépare les pièces au format attendu, contrôle la cohérence des informations et suit les retours du greffe.',
+    greffioBlock: 'Greffio prépare les pièces au format attendu, contrôle la cohérence des informations et suit les retours administratifs.',
     sections: [
       { title: 'Le rôle du guichet unique', paragraphs: ['Point d\'entrée numérique pour transmettre les formalités aux greffes, organismes fiscaux et sociaux concernés.'] },
       { title: 'Les démarches concernées', bullets: ['Immatriculation', 'Modification', 'Cessation d\'activité', 'Certaines formalités accessoires'] },
@@ -373,7 +373,7 @@ export const SEO_GUIDE_PAGES = {
   'changer-dirigeant': {
     path: '/guides/changer-dirigeant',
     title: 'Changer de dirigeant – formalités | Greffio',
-    description: 'Nomination ou départ d\'un dirigeant : documents et dépôt au greffe.',
+    description: 'Nomination ou départ d\'un dirigeant : documents et dépôt du dossier.',
     h1: 'Changer de dirigeant : démarches essentielles',
     intro: 'Tout changement de dirigeant doit être acté, déclaré et inscrit au RCS.',
     sections: [{ title: 'Documents usuels', bullets: ['Procès-verbal de décision', 'Mise à jour des statuts si besoin', 'Identité du nouveau dirigeant'] }],

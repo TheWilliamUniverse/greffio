@@ -104,7 +104,7 @@ export const HOME_JSON_LD = {
       name: 'Greffio',
       url: 'https://greffio.willentreprises.com/',
       inLanguage: 'fr-FR',
-      description: 'Formalités d\'entreprise en ligne : création, modification, statuts et dépôt au greffe.',
+      description: 'Formalités d\'entreprise en ligne : création, modification, statuts et dépôt du dossier.',
       publisher: { '@id': 'https://greffio.willentreprises.com/#organization' },
     },
     {
@@ -114,7 +114,7 @@ export const HOME_JSON_LD = {
       serviceType: 'Formalités d\'entreprise en ligne',
       areaServed: { '@type': 'Country', name: 'France' },
       provider: { '@id': 'https://greffio.willentreprises.com/#organization' },
-      description: 'Création d\'entreprise, modification statutaire, statuts, dépôt au greffe et accompagnement administratif pour les entrepreneurs français.',
+      description: 'Création d\'entreprise, modification statutaire, statuts, dépôt du dossier et accompagnement administratif pour les entrepreneurs français.',
     },
   ],
 };
