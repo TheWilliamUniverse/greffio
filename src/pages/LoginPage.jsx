@@ -18,6 +18,7 @@ import { isMobileBrowserViewport, isCapacitorNative } from '@/utils/platform.js'
 import { NativeWebLoginPage } from '@/pages/NativeWebLoginPage.jsx';
 import { resolveNativePostLoginPath } from '@/utils/nativeColdStart.js';
 import { resolvePostLoginPath } from '@/lib/auth/postLoginRedirect.js';
+import { resolveSessionRole } from '@/utils/roles.js';
 import { PublicMinimalLegalFooter } from '@/components/layout/PublicMinimalLegalFooter.jsx';
 import { MobileFooter } from '@/mobile/MobileFooter.jsx';
 import { SecurityChallengeWidget } from '@/components/security/SecurityChallengeWidget.jsx';
@@ -118,7 +119,7 @@ export const LoginPage = () => {
         const target = await resolveNativePostLoginPath(result.user);
         navigate(target, { replace: true });
       } else {
-        navigate(resolvePostLoginPath({ role: result.user?.role, fromPath }), { replace: true });
+        navigate(resolvePostLoginPath({ role: resolveSessionRole(result.user), fromPath }), { replace: true });
       }
     } else if (result.error === 'TEMP_ACCOUNT_EXPIRED') {
       toast.error('Ce compte temporaire a expiré (validité jusqu’à 10 h ce matin).');
@@ -192,7 +193,7 @@ export const LoginPage = () => {
         const target = await resolveNativePostLoginPath(result.user);
         navigate(target, { replace: true });
       } else {
-        navigate(resolvePostLoginPath({ role: result.user?.role, fromPath }), { replace: true });
+        navigate(resolvePostLoginPath({ role: resolveSessionRole(result.user), fromPath }), { replace: true });
       }
     } else {
       toast.error(result.error || 'Code invalide');

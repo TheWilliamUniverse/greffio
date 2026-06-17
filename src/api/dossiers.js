@@ -1,5 +1,6 @@
 import { apiGet, apiPost } from '@/api/client.js';
 import { clearCurrentDossierId } from '@/utils/sessionStore.js';
+import { isInternalUser } from '@/utils/roles.js';
 
 export const createDossier = async ({
   userId,
@@ -27,10 +28,11 @@ export const getDossierActionState = async (dossierId) => (
 );
 
 export const fetchDossierDetail = async (dossierId, { allowOpsFallback = false } = {}) => {
+  const opsFallback = allowOpsFallback || isInternalUser(null);
   try {
     return await getDossierById(dossierId);
   } catch (error) {
-    if (!allowOpsFallback || ![403, 404].includes(Number(error?.status))) {
+    if (!opsFallback || ![403, 404].includes(Number(error?.status))) {
       throw error;
     }
     const { getOpsDossierDetail } = await import('./ops.js');

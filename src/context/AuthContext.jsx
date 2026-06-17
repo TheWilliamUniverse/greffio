@@ -29,6 +29,7 @@ import { initializeClientDataCache, purgeEphemeralClientData } from '@/utils/cli
 import { setActiveSessionUserId } from '@/utils/sessionStore.js';
 import { setApiUnauthorizedHandler } from '@/api/client.js';
 import { clearAuthenticatedQueries } from '@/lib/queryClient.js';
+import { resolveSessionRole } from '@/utils/roles.js';
 export const AuthContext = createContext(null);
 
 const makeSession = (email, provider = 'email') => ({
@@ -87,21 +88,29 @@ export const AuthProvider = ({ children }) => {
         if (payload?.refreshToken) {
           saveRefreshToken(payload.refreshToken);
         }
+        const refreshedUser = payload?.user;
+        if (refreshedUser) {
+          setActiveSessionUserId(refreshedUser.id || null);
+          initializeClientDataCache(refreshedUser.id || null);
+          setCurrentUser(refreshedUser);
+          saveUser(refreshedUser);
+        }
         try {
           const profilePayload = await withTransientRetry(
             () => fetchUserProfile(),
             { retries: 1, delays: [600] },
           );
-          const user = profilePayload?.user || storedUser;
+          const user = profilePayload?.user || refreshedUser || storedUser;
           setActiveSessionUserId(user?.id || null);
           initializeClientDataCache(user?.id || null);
           setCurrentUser(user);
           saveUser(user);
         } catch (profileError) {
-          if (isTransientApiError(profileError) && storedUser) {
-            setActiveSessionUserId(storedUser?.id || null);
-            initializeClientDataCache(storedUser?.id || null);
-            setCurrentUser(storedUser);
+          if (isTransientApiError(profileError) && (refreshedUser || storedUser)) {
+            const fallbackUser = refreshedUser || storedUser;
+            setActiveSessionUserId(fallbackUser?.id || null);
+            initializeClientDataCache(fallbackUser?.id || null);
+            setCurrentUser(fallbackUser);
           } else {
             throw profileError;
           }
@@ -149,16 +158,17 @@ export const AuthProvider = ({ children }) => {
         return { success: false, error: payloadError };
       }
       const user = apiPayload.user;
-      setActiveSessionUserId(user?.id || null);
-      initializeClientDataCache(user?.id || null);
-      setCurrentUser(user);
-      saveUser(user);
       saveToken(apiPayload.accessToken);
       saveRefreshToken(apiPayload.refreshToken);
+      const userWithRole = user?.role ? user : { ...user, role: resolveSessionRole(null) || user?.role };
+      setActiveSessionUserId(userWithRole?.id || null);
+      initializeClientDataCache(userWithRole?.id || null);
+      setCurrentUser(userWithRole);
+      saveUser(userWithRole);
       saveSessions([makeSession(email, provider)]);
       try {
         const profilePayload = await fetchUserProfile();
-        const enrichedUser = profilePayload?.user || user;
+        const enrichedUser = profilePayload?.user || userWithRole;
         rememberLoginAlertsChoice(enrichedUser);
         setCurrentUser(enrichedUser);
         saveUser(enrichedUser);
@@ -177,7 +187,7 @@ export const AuthProvider = ({ children }) => {
           // non-blocking
         }
       }
-      return { success: true, user };
+      return { success: true, user: userWithRole };
     } catch (error) {
       const code = error?.payload?.error || error?.message || error?.code;
       if (code === 'TEMP_ACCOUNT_EXPIRED') {
@@ -210,16 +220,17 @@ export const AuthProvider = ({ children }) => {
         return { success: false, error: payloadError };
       }
       const user = apiPayload.user;
-      setActiveSessionUserId(user?.id || null);
-      initializeClientDataCache(user?.id || null);
-      setCurrentUser(user);
-      saveUser(user);
       saveToken(apiPayload.accessToken);
       saveRefreshToken(apiPayload.refreshToken);
-      saveSessions([makeSession(user.email)]);
+      const userWithRole = user?.role ? user : { ...user, role: resolveSessionRole(null) || user?.role };
+      setActiveSessionUserId(userWithRole?.id || null);
+      initializeClientDataCache(userWithRole?.id || null);
+      setCurrentUser(userWithRole);
+      saveUser(userWithRole);
+      saveSessions([makeSession(userWithRole.email)]);
       try {
         const profilePayload = await fetchUserProfile();
-        const enrichedUser = profilePayload?.user || user;
+        const enrichedUser = profilePayload?.user || userWithRole;
         rememberLoginAlertsChoice(enrichedUser);
         setCurrentUser(enrichedUser);
         saveUser(enrichedUser);
@@ -238,7 +249,7 @@ export const AuthProvider = ({ children }) => {
           // non-blocking
         }
       }
-      return { success: true, user };
+      return { success: true, user: userWithRole };
     } catch (error) {
       if (isTransientApiError(error)) {
         return { success: false, error: 'Mise à jour serveur en cours. Réessayez dans quelques instants.' };

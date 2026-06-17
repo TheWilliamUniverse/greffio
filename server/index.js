@@ -1106,7 +1106,7 @@ app.post('/api/auth/login', authLimiter, turnstileLogin, async (req, res) => {
   });
 });
 
-app.post('/api/auth/refresh', authRefreshLimiter, (req, res) => {
+app.post('/api/auth/refresh', authRefreshLimiter, async (req, res) => {
   const { refreshToken } = req.body || {};
   if (!refreshToken) {
     return res.status(400).json({ ok: false, error: 'REFRESH_TOKEN_REQUIRED' });
@@ -1116,13 +1116,20 @@ app.post('/api/auth/refresh', authRefreshLimiter, (req, res) => {
     if (payload.typ !== 'refresh') {
       return res.status(401).json({ ok: false, error: 'INVALID_REFRESH_TOKEN' });
     }
+    const user = await getUserById(payload.sub);
+    if (!user) {
+      return res.status(401).json({ ok: false, error: 'REFRESH_TOKEN_INVALID' });
+    }
+    const tokenUser = {
+      id: user.id,
+      role: user.role,
+      email: user.email,
+    };
     return res.json({
       ok: true,
-      accessToken: issueAccessToken({
-        id: payload.sub,
-        role: payload.role || 'CLIENT',
-        email: payload.email || null,
-      }),
+      user,
+      accessToken: issueAccessToken(tokenUser),
+      refreshToken: issueRefreshToken(tokenUser),
     });
   } catch (_error) {
     return res.status(401).json({ ok: false, error: 'REFRESH_TOKEN_INVALID' });

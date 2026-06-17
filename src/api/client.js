@@ -1,5 +1,5 @@
 import { runtimeConfig } from '@/config/runtime.js';
-import { getRefreshToken, getToken, saveRefreshToken, saveToken } from '@/utils/localStorage.js';
+import { getRefreshToken, getToken, saveRefreshToken, saveToken, saveUser } from '@/utils/localStorage.js';
 import { refreshAccessToken } from '@/api/auth.js';
 import { nativeClientAuthHeaders } from '@/utils/nativeClient.js';
 import { getOpsStepUpToken } from '@/lib/auth/opsStepUp.js';
@@ -71,6 +71,7 @@ const refreshAccessTokenOnce = async () => {
     );
     if (payload?.accessToken) saveToken(payload.accessToken);
     if (payload?.refreshToken) saveRefreshToken(payload.refreshToken);
+    if (payload?.user) saveUser(payload.user);
     return payload;
   })().finally(() => {
     refreshPromise = null;

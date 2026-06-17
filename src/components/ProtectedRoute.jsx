@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth.js';
+import { resolveSessionRole } from '@/utils/roles.js';
 import { AppBootSplash } from '@/components/system/AppBootSplash.jsx';
 
 export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
@@ -16,7 +17,7 @@ export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   }
 
   if (allowedRoles.length > 0) {
-    const userRole = String(currentUser?.role || '').toUpperCase();
+    const userRole = resolveSessionRole(currentUser);
     if (!allowedRoles.map((role) => String(role).toUpperCase()).includes(userRole)) {
       return <Navigate to="/dashboard" replace />;
     }

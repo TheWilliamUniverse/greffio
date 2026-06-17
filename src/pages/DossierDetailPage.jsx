@@ -140,9 +140,15 @@ export const DossierDetailPage = () => {
   }, [dossier, docs]);
 
   useEffect(() => {
+    if (id && internalView) {
+      navigate(`/ops/dossiers/${encodeURIComponent(id)}`, { replace: true });
+    }
+  }, [id, internalView, navigate]);
+
+  useEffect(() => {
     const load = async () => {
-      if (!id) {
-        setLoading(false);
+      if (!id || internalView) {
+        if (!id) setLoading(false);
         return;
       }
       saveCurrentDossierId(id);
@@ -209,6 +215,17 @@ export const DossierDetailPage = () => {
       setDocPreviewing('');
     }
   };
+
+  if (internalView) {
+    return (
+      <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background">
+        <Sidebar />
+        <main className="flex flex-1 items-center justify-center p-8">
+          <p className="text-sm font-medium text-muted-foreground">Ouverture du dossier dans le cockpit ops…</p>
+        </main>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
