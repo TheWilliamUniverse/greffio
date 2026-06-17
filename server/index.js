@@ -184,7 +184,6 @@ import { registerEditableDocumentSignatureRoutes } from './routes/editableDocume
 import { registerPublicDocumentVerifyRoutes } from './routes/publicDocumentVerifyRoutes.js';
 import { registerDocumentSignRoutes } from './routes/documentSignRoutes.js';
 import { notifyMandateReadyForSignature } from './services/mandateSignatureService.js';
-import { registerSignwellRoutes, ensureSignwellWebhookRegistered } from './routes/signwellRoutes.js';
 import {
   getEditableDocumentConfig,
   getSupportedEditableDocumentKeys,
@@ -202,6 +201,7 @@ import {
   buildEditorWorkspaceBlock,
 } from './routes/documentWorkspaceRoutes.js';
 import { registerOnlyOfficeRoutes } from './routes/onlyofficeRoutes.js';
+import { isOnlyOfficeConfigured, getOnlyOfficePublicApiBaseUrl } from './services/onlyofficeService.js';
 import { createVersion } from './services/documentVersionService.js';
 import verificationRouter from './routes/verificationRoutes.js';
 import identityRouter, { createDiditWebhookHandler } from './routes/identityRoutes.js';
@@ -434,6 +434,11 @@ app.get('/api/ready', healthRateLimiter, async (_req, res) => {
   if (checks.supabaseCredentialsPresent) {
     checks.supabaseStorageProbe = await probeSupabaseStorageBucket();
   }
+  checks.onlyofficeConfigured = isOnlyOfficeConfigured();
+  checks.onlyofficeApiBaseUrl = getOnlyOfficePublicApiBaseUrl();
+  if (checks.onlyofficeConfigured && !checks.onlyofficeApiBaseUrl) {
+    checks.onlyofficeWarning = 'GREFFIO_API_URL ou API_PUBLIC_URL doit pointer vers l’API (ex. https://api.greffio.willentreprises.com).';
+  }
   return res.json({ ok: true, checks });
 });
 
@@ -458,16 +463,15 @@ app.get('/api/interfaces/status', requireAuth, requireRole(['ADMIN', 'OPS', 'FOR
       },
       {
         key: 'payment',
-        status: (process.env.GOCARDLESS_ACCESS_TOKEN || process.env.GOCARDLESS_API_KEY
-          || process.env.CAWL_API_KEY
-          || process.env.GOOGLE_PAY_API_KEY
-          || process.env.GOOGLE_PAY_MERCHANT_ID)
+        status: (process.env.MOLLIE_API_KEY
+          || process.env.GOCARDLESS_ACCESS_TOKEN
+          || process.env.GOCARDLESS_API_KEY)
           ? 'healthy'
           : 'warning',
-        detail: (process.env.GOCARDLESS_ACCESS_TOKEN || process.env.GOCARDLESS_API_KEY)
-          ? 'GoCardless actif avec webhook /webhooks/gocardless'
-          : (process.env.CAWL_API_KEY || process.env.GOOGLE_PAY_API_KEY)
-            ? 'CAWL / Google Pay configurés (B2C)'
+        detail: process.env.MOLLIE_API_KEY
+          ? 'Mollie actif (B2C carte + webhooks)'
+          : (process.env.GOCARDLESS_ACCESS_TOKEN || process.env.GOCARDLESS_API_KEY)
+            ? 'GoCardless actif avec webhook /webhooks/gocardless'
             : 'Aucun provider paiement configuré: mode simulation actif',
       },
       {
@@ -2955,15 +2959,13 @@ app.post('/api/payments/create', paymentLimiter, requireAuth, async (req, res) =
 
   const amounts = computePaymentAmounts(offerCode);
 
-  // Garde-fou architecture multi-prestataires : si le frontend précise
-  // explicitement un type B2C, on refuse de router vers GoCardless.
-  // Le fallback CAWL est géré par POST /api/payments (multi-providers).
+  // Garde-fou architecture multi-prestataires : B2C → Mollie uniquement.
   const declaredCustomerType = String(req.body?.customerType || '').toLowerCase();
   if (declaredCustomerType === 'b2c') {
     return res.status(409).json({
       ok: false,
       error: 'GOCARDLESS_FORBIDDEN_FOR_B2C',
-      message: 'Les paiements B2C doivent passer par CAWL (POST /api/payments).',
+      message: 'Les paiements B2C doivent passer par Mollie (POST /api/payments).',
     });
   }
 
@@ -2996,7 +2998,7 @@ app.post('/api/payments/create', paymentLimiter, requireAuth, async (req, res) =
     return res.status(503).json({
       ok: false,
       error: 'PAYMENT_PROVIDER_NOT_CONFIGURED',
-      message: 'Paiement B2B : configurez GoCardless. Paiement B2C : Google Pay / CAWL.',
+      message: 'Paiement B2B : configurez GoCardless ou Mollie. Paiement B2C : Mollie.',
     });
   } else {
     created = {
@@ -3011,7 +3013,7 @@ app.post('/api/payments/create', paymentLimiter, requireAuth, async (req, res) =
     };
   }
 
-  const paymentProvider = hasGoCardless ? 'gocardless' : 'cawl';
+  const paymentProvider = hasGoCardless ? 'gocardless' : 'manual_bank_transfer';
 
   const payment = await upsertPayment({
     dossierId: dossier.id,
@@ -3108,41 +3110,6 @@ registerNonConvictionSignatureRoutes(app, {
   appUrl,
 });
 
-registerSignwellRoutes(app, {
-  appUrl,
-  getDossier,
-  updateDossierDocument,
-  listDossierDocuments,
-  DOCUMENT_STATUSES,
-  createSignatureRecord,
-});
-
-// Webhook CAWL e-Transactions (IPN urlencoded). Corps brut conservé pour
-// vérification RSA de la signature (champ Sign). Avant le parser JSON global.
-app.post(
-  '/api/webhooks/cawl',
-  express.urlencoded({ extended: false }),
-  (req, _res, next) => {
-    req.rawBody = new URLSearchParams(req.body || {}).toString();
-    return next();
-  },
-);
-
-// Webhook Worldline Connect – corps JSON brut pour X-GCS-Signature.
-app.post(
-  '/api/webhooks/cawl/worldline',
-  express.text({ type: '*/*' }),
-  (req, _res, next) => {
-    req.rawBody = typeof req.body === 'string' ? req.body : '';
-    try {
-      req.body = req.rawBody ? JSON.parse(req.rawBody) : {};
-    } catch (_error) {
-      req.body = {};
-    }
-    return next();
-  },
-);
-
 registerOpsRoutes(app, {
   requireAuth,
   requireRole,
@@ -3222,7 +3189,6 @@ const bootstrap = async () => {
   if (process.env.NODE_ENV !== 'production') {
     await ensureSeedDossier();
   }
-  await ensureSignwellWebhookRegistered();
   if (objectStorageConfig.driver === 's3') {
     const probe = await probeS3StorageConnectivity();
     // eslint-disable-next-line no-console

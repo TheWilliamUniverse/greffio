@@ -38,7 +38,7 @@ export const GREFFIO_AUDIT_P0 = Object.freeze([
     label: 'Paiement Mollie B2C',
     score: 8,
     status: 'OK',
-    summary: 'PSP actif Mollie, 3-D Secure, retour native Custom Tabs ; CAWL dormant documenté.',
+    summary: 'PSP actif Mollie, 3-D Secure, retour native Custom Tabs.',
   },
   {
     id: 'app-version-remote',
@@ -53,7 +53,7 @@ export const GREFFIO_AUDIT_P1 = Object.freeze([
   { id: 'statuts', label: 'Statuts William 27 articles', score: 8.5, status: 'OK', summary: 'Génération serveur + tests ; vérifier storageUrl sur dossiers anciens.' },
   { id: 'ops', label: 'Ops & back-office', score: 7.5, status: 'OK', summary: 'Cockpit, anti-rejet, assignation ; smoke mobile ops limité.' },
   { id: 'security-ci', label: 'Sécurité & CI', score: 6.5, status: 'RISK', summary: 'CSP report-only ; test:security hors pipeline CI.' },
-  { id: 'signature-dual', label: 'Double chemin signature', score: 6.5, status: 'RISK', summary: 'Greffio interne + Signwell en parallèle – clarifier par type de document.' },
+  { id: 'signature-internal', label: 'Signature interne Greffio', score: 8, status: 'OK', summary: 'Signature électronique simple (SES) via greffio_internal uniquement — prestataires tiers retirés.' },
   { id: 'push-offline', label: 'Push & offline', score: 6.5, status: 'GAP', summary: 'FCM branché partiellement ; brouillon questionnaire offline actif.' },
   { id: 'landing-seo', label: 'Landing, SEO, conversion', score: 8, status: 'OK', summary: 'Identité figée ; acquisition stable, pas de refonte globale.' },
 ]);
@@ -62,8 +62,7 @@ export const GREFFIO_AUDIT_ACTIONS = Object.freeze([
   { priority: 'P0', action: 'Parité mobile signature document (/documents/:id/sign)', area: 'documents-pdf' },
   { priority: 'P0', action: 'Smoke prod post-deploy : paiement + signature + PDF externe', area: 'observability' },
   { priority: 'P0', action: 'Coupler deploy web Hostinger + vérif API VPS à chaque release remote', area: 'app-version-remote' },
-  { priority: 'P1', action: 'Ajouter test:security et paiements au CI GitHub', area: 'security-ci' },
-  { priority: 'P1', action: 'Consolider provider signature par type de document', area: 'signature-dual' },
+  { priority: 'P1', action: 'Ajouter test:security et paiements au CI GitHub (voir greffioAuditPriorities — wiring CI optionnel)', area: 'security-ci' },
   { priority: 'P1', action: 'Refactor ciblé QuestionnairePage (réduire régressions navigation)', area: 'questionnaire' },
 ]);
 

@@ -26,7 +26,6 @@ export const securityHeadersMiddleware = (_req, res, next) => {
       'https://www.mollie.com',
       'https://challenges.cloudflare.com',
       'https://www.google.com',
-      'https://www.signwell.com',
       onlyOfficeOrigin,
     ].filter(Boolean).join(' ');
     const directives = [

@@ -44,6 +44,7 @@ export const DocumentViewerTab = () => {
   const [workflowBusy, setWorkflowBusy] = useState(false);
   const [workflowMessage, setWorkflowMessage] = useState('');
   const [workflowMessageTone, setWorkflowMessageTone] = useState('neutral');
+  const [mobileTab, setMobileTab] = useState('preview');
 
   const title = useMemo(
     () => getDocumentTypeLabel(docKey, workspace?.title || docKey),
@@ -279,6 +280,8 @@ export const DocumentViewerTab = () => {
   const showOpsValidateCta = docKey === 'signed_statutes'
     && statutesWorkflow?.status === 'pending_ops_review';
   const showEditor = Boolean(editorPayload?.ok && editorPayload?.config);
+  const editorUnavailableOnMobile = isMobileLayout && isEditMode && !showEditor && !editorLoading && Boolean(workflowMessage);
+  const showMobileTabs = isMobileLayout && canEdit && (showEditor || editorLoading);
 
   const workflowBannerClass = workflowMessageTone === 'success'
     ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
@@ -409,8 +412,49 @@ export const DocumentViewerTab = () => {
         ) : null}
       </section>
 
-      <div className={isMobileLayout ? 'flex min-h-0 flex-1 flex-col gap-3 px-0 pb-4' : 'grid gap-4 lg:grid-cols-1'}>
-        {showEditor ? (
+      {showMobileTabs ? (
+        <div className="mx-4 flex rounded-xl border border-border bg-white p-1 shadow-elevation-sm">
+          <button
+            type="button"
+            className={`flex-1 rounded-lg px-3 py-2 text-sm font-bold transition ${
+              mobileTab === 'preview' ? 'bg-primary text-white' : 'text-muted-foreground'
+            }`}
+            onClick={() => setMobileTab('preview')}
+          >
+            Aperçu PDF
+          </button>
+          <button
+            type="button"
+            className={`flex-1 rounded-lg px-3 py-2 text-sm font-bold transition ${
+              mobileTab === 'edit' ? 'bg-primary text-white' : 'text-muted-foreground'
+            }`}
+            onClick={() => setMobileTab('edit')}
+          >
+            Édition
+          </button>
+        </div>
+      ) : null}
+
+      {isMobileLayout && canEdit && showEditor ? (
+        <p className="mx-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
+          L’édition Word avancée est recommandée sur ordinateur pour une expérience optimale.
+        </p>
+      ) : null}
+
+      {editorUnavailableOnMobile ? (
+        <p className="mx-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          {workflowMessage || 'L’éditeur n’est pas disponible sur mobile. Consultez l’aperçu PDF ci-dessous.'}
+        </p>
+      ) : null}
+
+      <div
+        className={
+          isMobileLayout
+            ? 'flex min-h-0 flex-1 flex-col gap-3 px-0 pb-4'
+            : 'grid grid-cols-1 gap-4 lg:grid-cols-[3fr_2fr]'
+        }
+      >
+        {showEditor && (!isMobileLayout || mobileTab === 'edit') ? (
           <section
             className={
               isMobileLayout
@@ -439,7 +483,7 @@ export const DocumentViewerTab = () => {
           </section>
         ) : null}
 
-        {preview?.blobUrl ? (
+        {preview?.blobUrl && (!isMobileLayout || mobileTab === 'preview' || !showEditor) ? (
           <section
             className={
               isMobileLayout

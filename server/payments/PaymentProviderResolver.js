@@ -26,7 +26,6 @@ const normalizeB2bDefault = (env = process.env) => {
  *  - B2B SEPA / dossier pro → GoCardless par défaut, Mollie ou virement manuel en fallback
  *  - Factures → Mollie si configuré, sinon virement manuel
  *  - GoCardless est INTERDIT en B2C
- *  - CAWL est DORMANT (CAWL_ENABLED=true requis) – remplacé par Mollie
  *
  * Ne dispersez jamais ces règles dans les routes ou l'UI ; passez par ce service.
  */
@@ -142,9 +141,6 @@ export class PaymentProviderResolver {
     if (this.configuredProviders.has(PAYMENT_PROVIDERS.MOLLIE)) {
       return PAYMENT_PROVIDERS.MOLLIE;
     }
-    if (this.configuredProviders.has(PAYMENT_PROVIDERS.CAWL)) {
-      return PAYMENT_PROVIDERS.CAWL;
-    }
     return PAYMENT_PROVIDERS.MOLLIE;
   }
 
@@ -189,30 +185,10 @@ export class PaymentProviderResolver {
         409,
       );
     }
-    if (customerType === CUSTOMER_TYPES.B2C && provider === PAYMENT_PROVIDERS.CAWL) {
-      if (!this.configuredProviders.has(PAYMENT_PROVIDERS.CAWL)) {
-        throw new PaymentError(
-          'CAWL_DISABLED',
-          'CAWL est désactivé. Utiliser Mollie pour les paiements B2C.',
-          409,
-        );
-      }
-      return true;
-    }
     if (customerType === CUSTOMER_TYPES.B2C && provider !== PAYMENT_PROVIDERS.MOLLIE) {
       throw new PaymentError(
         'B2C_REQUIRES_MOLLIE',
         'Les paiements B2C doivent être traités via Mollie.',
-        409,
-      );
-    }
-    if (
-      customerType === CUSTOMER_TYPES.B2B
-      && provider === PAYMENT_PROVIDERS.CAWL
-    ) {
-      throw new PaymentError(
-        'CAWL_NOT_CONFIGURED_FOR_B2B',
-        'CAWL n\'est pas configuré pour les paiements B2B. Utiliser GoCardless, Mollie ou virement manuel.',
         409,
       );
     }

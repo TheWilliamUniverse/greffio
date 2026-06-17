@@ -32,7 +32,6 @@ const buildService = (overrides = {}) => {
   };
   const providers = {
     [PAYMENT_PROVIDERS.MOLLIE]: overrides.mollie || makeAdapter(PAYMENT_PROVIDERS.MOLLIE),
-    [PAYMENT_PROVIDERS.CAWL]: overrides.cawl || makeAdapter(PAYMENT_PROVIDERS.CAWL),
     [PAYMENT_PROVIDERS.GOCARDLESS]: overrides.gocardless || makeAdapter(PAYMENT_PROVIDERS.GOCARDLESS),
     [PAYMENT_PROVIDERS.MANUAL_BANK_TRANSFER]: makeAdapter(PAYMENT_PROVIDERS.MANUAL_BANK_TRANSFER),
     [PAYMENT_PROVIDERS.QONTO]: makeAdapter(PAYMENT_PROVIDERS.QONTO),

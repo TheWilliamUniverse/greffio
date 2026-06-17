@@ -53,7 +53,7 @@ export const DashboardPage = () => {
   );
   const [activeDossierId, setActiveDossierId] = useState(() => getCurrentDossierId());
   const [pickerOpen, setPickerOpen] = useState(false);
-  const { data: activeDossierPayload } = useDossierQuery(activeDossierId);
+  const { data: activeDossierPayload, isError: dossierLoadError, error: dossierError } = useDossierQuery(activeDossierId);
   const { data: actionState } = useDossierActionStateQuery(activeDossierId);
 
   useEffect(() => {
@@ -257,6 +257,16 @@ export const DashboardPage = () => {
             </div>
           </section>
 
+          {dossierLoadError && activeDossierId ? (
+            <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              {Number(dossierError?.status) === 403
+                ? 'Vous n’avez pas accès à ce dossier. Sélectionnez un autre dossier ou contactez Greffio.'
+                : Number(dossierError?.status) === 404
+                  ? 'Ce dossier est introuvable ou a été archivé.'
+                  : 'Impossible de charger le dossier actif pour le moment.'}
+            </div>
+          ) : null}
+
           {activeDossierId && activeDossierRecord ? (
             <DossierActiveBanner
               className="hidden md:block"
@@ -392,7 +402,7 @@ export const DashboardPage = () => {
                       ) : null}
                     </div>
                     <Button variant="ghost" size="sm" asChild>
-                      <Link to="/documents">Voir le coffre</Link>
+                      <Link to="/assistant-documents">Voir le coffre</Link>
                     </Button>
                   </div>
                   {notifications.length ? (
@@ -432,7 +442,7 @@ export const DashboardPage = () => {
                     )}
                   </div>
                   <Button asChild variant="outline" className="mt-5 bg-white">
-                    <Link to="/documents">
+                    <Link to="/assistant-documents">
                       <Upload className="h-4 w-4" />
                       Ouvrir le coffre
                     </Link>

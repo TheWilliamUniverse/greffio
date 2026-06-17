@@ -860,6 +860,88 @@ const transactionalTemplates = Object.freeze({
     `,
   }),
 
+  subscribers_list_signature_request: defineTemplate({
+    subject: 'Demande de signature – Liste des souscripteurs',
+    tags: ['signature', 'subscribers_list'],
+    requiredVariables: ['firstName', 'companyName', 'signingLink'],
+    preheader: 'Votre liste des souscripteurs attend votre signature.',
+    textLines: [
+      'Bonjour {{firstName}},',
+      '',
+      'La liste des souscripteurs de votre société est prête à être signée dans Greffio.',
+      'Dossier : {{companyName}}',
+      '',
+      'Signer le document : {{signingLink}}',
+    ],
+    bodyHtml: `
+      <p style="margin:0 0 16px;">Bonjour <strong>{{firstName}}</strong>,</p>
+      <p style="margin:0 0 16px;">La <strong>liste des souscripteurs</strong> est prête à être signée électroniquement.</p>
+      <p style="margin:0 0 8px;font-size:14px;"><strong>Dossier :</strong> {{companyName}}</p>
+      ${ctaButton('Signer la liste des souscripteurs', '{{signingLink}}')}
+    `,
+  }),
+
+  subscribers_list_signature_completed: defineTemplate({
+    subject: 'Document signé – Liste des souscripteurs',
+    tags: ['signature', 'subscribers_list'],
+    requiredVariables: ['firstName', 'companyName', 'signedDownloadLink'],
+    preheader: 'Votre liste des souscripteurs a été signée.',
+    textLines: [
+      'Bonjour {{firstName}},',
+      '',
+      'Votre liste des souscripteurs a été signée électroniquement.',
+      'Dossier : {{companyName}}',
+      '',
+      'Retrouvez le document : {{signedDownloadLink}}',
+    ],
+    bodyHtml: `
+      <p style="margin:0 0 16px;">Bonjour <strong>{{firstName}}</strong>,</p>
+      <p style="margin:0 0 16px;">Votre <strong>liste des souscripteurs</strong> a été signée électroniquement.</p>
+      ${ctaButton('Accéder à mes documents', '{{signedDownloadLink}}')}
+    `,
+  }),
+
+  formality_powers_signature_request: defineTemplate({
+    subject: 'Demande de signature – Procuration et pouvoirs pour formalités',
+    tags: ['signature', 'formality_powers'],
+    requiredVariables: ['firstName', 'companyName', 'signingLink'],
+    preheader: 'Votre procuration Greffio attend votre signature.',
+    textLines: [
+      'Bonjour {{firstName}},',
+      '',
+      'La procuration et les pouvoirs pour formalités sont prêts à être signés dans Greffio.',
+      'Dossier : {{companyName}}',
+      '',
+      'Signer le document : {{signingLink}}',
+    ],
+    bodyHtml: `
+      <p style="margin:0 0 16px;">Bonjour <strong>{{firstName}}</strong>,</p>
+      <p style="margin:0 0 16px;">La <strong>procuration et les pouvoirs pour formalités</strong> sont prêts à être signés.</p>
+      <p style="margin:0 0 8px;font-size:14px;"><strong>Dossier :</strong> {{companyName}}</p>
+      ${ctaButton('Signer la procuration', '{{signingLink}}')}
+    `,
+  }),
+
+  formality_powers_signature_completed: defineTemplate({
+    subject: 'Document signé – Procuration et pouvoirs pour formalités',
+    tags: ['signature', 'formality_powers'],
+    requiredVariables: ['firstName', 'companyName', 'signedDownloadLink'],
+    preheader: 'Votre procuration a été signée.',
+    textLines: [
+      'Bonjour {{firstName}},',
+      '',
+      'Votre procuration et pouvoirs pour formalités ont été signés électroniquement.',
+      'Dossier : {{companyName}}',
+      '',
+      'Retrouvez le document : {{signedDownloadLink}}',
+    ],
+    bodyHtml: `
+      <p style="margin:0 0 16px;">Bonjour <strong>{{firstName}}</strong>,</p>
+      <p style="margin:0 0 16px;">Votre <strong>procuration et pouvoirs pour formalités</strong> ont été signés électroniquement.</p>
+      ${ctaButton('Accéder à mes documents', '{{signedDownloadLink}}')}
+    `,
+  }),
+
   ops_invoice_pending_review: defineTemplate({
     subject: 'Facture à valider – {{invoiceNumber}} ({{dossierReference}})',
     tags: ['ops', 'invoice', 'pending_review'],

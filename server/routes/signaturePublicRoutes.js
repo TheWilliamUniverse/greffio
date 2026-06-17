@@ -11,9 +11,6 @@ import { getSignatureConsentText, getSignatureLegalNotice, isSignatureOtpRequire
 import { sendSignatureOtp, verifySignatureOtp, isSignatureOtpVerified } from '../services/signature/signatureOtpService.js';
 import { recordSignatureAuditEvent } from '../services/signature/signatureAuditService.js';
 import { sendWithProvider } from '../emails/provider.js';
-import { isSignwellConfigured } from '../services/signature/signwell.service.js';
-import { getSignwellDocumentBySignatureRequestId } from '../signwellStore.js';
-import { SIGNWELL_PROVIDER } from '../services/signature/signwellOrchestrator.js';
 import { buildDocumentVerifyUrl } from '../services/documentIntegrityService.js';
 import { PROXY_MANDATE_DOC_KEY } from '../services/mandateSignatureService.js';
 
@@ -91,11 +88,6 @@ export const registerSignaturePublicRoutes = (app, { getDossier, strictPublicRat
       userAgent: req.headers['user-agent'] || '',
     });
 
-    const signwellRecord = isSignwellConfigured()
-      ? await getSignwellDocumentBySignatureRequestId(request.id)
-      : null;
-    const useSignwell = Boolean(signwellRecord?.signingUrl);
-
     return res.json({
       ok: true,
       status: request.status,
@@ -105,10 +97,9 @@ export const registerSignaturePublicRoutes = (app, { getDossier, strictPublicRat
       companyName: dossier?.companyName || dossier?.denomination || 'Greffio',
       documentTitle: resolvePublicDocumentTitle(request.docKey),
       pdfUrl: `/api/signature/public/${req.params.token}/pdf`,
-      provider: useSignwell ? SIGNWELL_PROVIDER : 'internal',
-      signwellSigningUrl: signwellRecord?.signingUrl || null,
+      provider: 'internal',
       signature: {
-        provider: useSignwell ? SIGNWELL_PROVIDER : 'greffio_internal',
+        provider: 'greffio_internal',
         level: 'ses_reinforced',
         legalNotice: getSignatureLegalNotice(),
         consentText: consent.text,

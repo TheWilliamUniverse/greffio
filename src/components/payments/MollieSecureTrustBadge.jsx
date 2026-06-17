@@ -1,6 +1,7 @@
 import React from 'react';
 import { Lock } from 'lucide-react';
 import { cn } from '@/lib/utils.js';
+import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 
 const MOLLIE_WORDMARK_SRC = '/images/payments/mollie-wordmark.svg';
 
@@ -24,11 +25,19 @@ export const MollieSecureTrustBadge = ({ className, centered = true }) => (
   </p>
 );
 
-export const MolliePaymentTrustFooter = ({ className }) => (
-  <div className={cn('space-y-2 overflow-visible px-1 text-center', className)}>
-    <MollieSecureTrustBadge className="w-full" />
-    <p className="text-[11px] leading-5 text-muted-foreground/85">
-      Données chiffrées · Aucun stockage de carte côté Greffio
-    </p>
-  </div>
-);
+export const MolliePaymentTrustFooter = ({ className }) => {
+  const showMobileLine = isCapacitorNative() || isMobileBrowserViewport();
+  return (
+    <div className={cn('space-y-2 overflow-visible px-1 text-center', className)}>
+      <MollieSecureTrustBadge className="w-full" />
+      {showMobileLine ? (
+        <p className="text-[11px] leading-5 text-muted-foreground/85 md:hidden">
+          Paiement sécurisé par Mollie
+        </p>
+      ) : null}
+      <p className="text-[11px] leading-5 text-muted-foreground/85">
+        Données chiffrées · Aucun stockage de carte côté Greffio
+      </p>
+    </div>
+  );
+};

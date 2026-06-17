@@ -13,8 +13,8 @@ export const EDITABLE_DOCUMENT_REGISTRY = Object.freeze({
     validateFields: validateSubscribersListFields,
     generatePdf: generateSubscribersListPdf,
     signatureLayout: 'subscribers_list_official',
-    emailTemplateSend: 'editable_document_signature_request',
-    emailTemplateDone: 'editable_document_signature_completed',
+    emailTemplateSend: 'subscribers_list_signature_request',
+    emailTemplateDone: 'subscribers_list_signature_completed',
     publicDocumentTitle: 'Liste des souscripteurs',
   },
   formality_powers: {
@@ -26,8 +26,8 @@ export const EDITABLE_DOCUMENT_REGISTRY = Object.freeze({
     validateFields: validateFormalityPowersFields,
     generatePdf: generateFormalityPowersPdf,
     signatureLayout: 'formality_powers_official',
-    emailTemplateSend: 'editable_document_signature_request',
-    emailTemplateDone: 'editable_document_signature_completed',
+    emailTemplateSend: 'formality_powers_signature_request',
+    emailTemplateDone: 'formality_powers_signature_completed',
     publicDocumentTitle: 'Procuration et pouvoirs pour formalités',
   },
   signed_statutes: {

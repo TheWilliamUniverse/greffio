@@ -4,7 +4,6 @@ export { PaymentService } from './PaymentService.js';
 export {
   buildProviderRegistry,
   getConfiguredProviders,
-  CawlPaymentAdapter,
   GoCardlessAdapter,
   ManualBankTransferAdapter,
   QontoReconciliationAdapter,

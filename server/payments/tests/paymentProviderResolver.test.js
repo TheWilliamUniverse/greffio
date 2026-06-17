@@ -77,17 +77,6 @@ test('B2C avec provider non-Mollie → refus', () => {
   );
 });
 
-test('B2B avec provider CAWL → refus', () => {
-  const resolver = mollieConfigured();
-  assert.throws(
-    () => resolver.assertProviderAllowedForCustomerType(
-      PAYMENT_PROVIDERS.CAWL,
-      CUSTOMER_TYPES.B2B,
-    ),
-    (err) => err instanceof PaymentError && err.code === 'CAWL_NOT_CONFIGURED_FOR_B2B',
-  );
-});
-
 test('customerType inconnu → erreur dédiée', () => {
   const resolver = mollieConfigured();
   assert.throws(

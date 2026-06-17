@@ -165,7 +165,7 @@ export const GreffioPaymentTerminal = ({
         </p>
       </div>
 
-      <fieldset className="space-y-2">
+      <fieldset className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <legend className="sr-only">Moyen de paiement</legend>
         {methods.map((method) => {
           const Icon = METHOD_ICONS[method.id] || CreditCard;
@@ -254,40 +254,42 @@ export const GreffioPaymentTerminal = ({
         </div>
       )}
 
-      {requireLegalAcceptance ? (
-        <LegalAcceptanceCheckbox checked={termsAccepted} onChange={setTermsAccepted} />
-      ) : null}
+      <div className="sticky bottom-0 z-10 -mx-1 space-y-3 rounded-xl border border-[#dbe7f7] bg-white/95 p-4 backdrop-blur-sm">
+        {requireLegalAcceptance ? (
+          <LegalAcceptanceCheckbox checked={termsAccepted} onChange={setTermsAccepted} />
+        ) : null}
 
-      {localError ? (
-        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          {localError}
+        {localError ? (
+          <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            {localError}
+          </p>
+        ) : null}
+
+        <p className="text-center text-xs leading-5 text-muted-foreground">
+          En validant le paiement, vous acceptez les{' '}
+          <Link
+            to="/mentions-legales#cgv"
+            className="font-semibold text-primary hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            conditions générales de vente
+          </Link>
+          {' '}Greffio.
         </p>
-      ) : null}
 
-      <p className="text-center text-xs leading-5 text-muted-foreground">
-        En validant le paiement, vous acceptez les{' '}
-        <Link
-          to="/mentions-legales#cgv"
-          className="font-semibold text-primary hover:underline"
-          target="_blank"
-          rel="noopener noreferrer"
+        <Button
+          type="button"
+          className="h-12 w-full justify-between rounded-xl text-base font-bold"
+          onClick={() => void handlePay()}
+          disabled={payDisabled}
         >
-          conditions générales de vente
-        </Link>
-        {' '}Greffio.
-      </p>
-
-      <Button
-        type="button"
-        className="h-12 w-full justify-between rounded-xl text-base font-bold"
-        onClick={() => void handlePay()}
-        disabled={payDisabled}
-      >
-        {isCreatingPayment
-          ? 'Traitement du paiement…'
-          : `${payButtonLabel}${amountLabel ? ` – ${amountLabel}` : ''}`}
-        <ArrowRight className="h-4 w-4" />
-      </Button>
+          {isCreatingPayment
+            ? 'Traitement du paiement…'
+            : `${payButtonLabel}${amountLabel ? ` – ${amountLabel}` : ''}`}
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+      </div>
 
       {showTrustFooter ? <MolliePaymentTrustFooter /> : null}
     </div>

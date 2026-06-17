@@ -85,6 +85,9 @@ export const DossierMessageThread = ({
         ) : messages.length ? messages.map((item) => {
           const fromClient = item.authorType === 'client';
           const fromOps = item.authorType === 'ops';
+          const opsDirectionLabel = viewerRole === 'ops'
+            ? (fromOps ? 'Message envoyé' : 'Message reçu')
+            : null;
           return (
             <div
               key={item.id}
@@ -95,7 +98,11 @@ export const DossierMessageThread = ({
               }`}
             >
               <div className="mb-1 flex flex-wrap items-center justify-between gap-2 text-xs font-bold opacity-80">
-                <span>{item.authorName || (fromOps ? 'Équipe Greffio' : 'Vous')}</span>
+                <span>
+                  {opsDirectionLabel
+                    || item.authorName
+                    || (fromOps ? 'Équipe Greffio' : 'Vous')}
+                </span>
                 <span>{formatTime(item.createdAt)}</span>
               </div>
               <p>{item.body}</p>

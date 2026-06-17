@@ -29,15 +29,22 @@ export const getOnlyOfficeJwtSecret = () => String(process.env.ONLYOFFICE_JWT_SE
 
 /** Public API base URL reachable by the ONLYOFFICE container (never the SPA frontend host). */
 export const getOnlyOfficePublicApiBaseUrl = () => {
-  const configured = normalizeBaseUrl(process.env.GREFFIO_API_URL);
-  if (!configured) return null;
-  try {
-    const host = new URL(configured).hostname.toLowerCase();
-    if (FRONTEND_ONLY_HOSTS.has(host)) return null;
-  } catch (_error) {
-    return null;
+  const candidates = [
+    process.env.GREFFIO_API_URL,
+    process.env.API_PUBLIC_URL,
+  ].map(normalizeBaseUrl).filter(Boolean);
+
+  for (const configured of candidates) {
+    try {
+      const host = new URL(configured).hostname.toLowerCase();
+      if (FRONTEND_ONLY_HOSTS.has(host)) continue;
+      if (host.startsWith('api.')) return configured;
+      if (host.includes('greffio') && !FRONTEND_ONLY_HOSTS.has(host)) return configured;
+    } catch (_error) {
+      continue;
+    }
   }
-  return configured;
+  return null;
 };
 
 export const assertOnlyOfficePublicApiBaseUrl = () => {
@@ -45,7 +52,7 @@ export const assertOnlyOfficePublicApiBaseUrl = () => {
   if (!apiBase) {
     const error = new Error('ONLYOFFICE_API_BASE_MISCONFIGURED');
     error.code = 'ONLYOFFICE_API_BASE_MISCONFIGURED';
-    error.message = 'GREFFIO_API_URL doit pointer vers https://api.greffio.willentreprises.com (accessible par ONLYOFFICE).';
+    error.message = 'GREFFIO_API_URL ou API_PUBLIC_URL doit pointer vers https://api.greffio.willentreprises.com (accessible par ONLYOFFICE).';
     throw error;
   }
   return apiBase;

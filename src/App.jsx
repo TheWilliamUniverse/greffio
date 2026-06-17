@@ -153,6 +153,11 @@ const Layout = ({ children }) => {
   );
 };
 
+function DocumentsLegacyRedirect() {
+  const { search } = useLocation();
+  return <Navigate to={`/assistant-documents${search}`} replace />;
+}
+
 function AppRoutes() {
   const location = useLocation();
   useRouteQueryInvalidation();
@@ -234,7 +239,7 @@ function AppRoutes() {
             <Route path="/mobile/account" element={<ProtectedRoute><MobileAccountPage /></ProtectedRoute>} />
             <Route path="/dossiers" element={<ProtectedRoute><DossiersEntry /></ProtectedRoute>} />
             <Route path="/dossier/:id" element={<ProtectedRoute><DossierDetailEntry /></ProtectedRoute>} />
-            <Route path="/documents" element={<ProtectedRoute><DocumentsEntry /></ProtectedRoute>} />
+            <Route path="/documents" element={<ProtectedRoute><DocumentsLegacyRedirect /></ProtectedRoute>} />
             <Route path="/assistant-documents" element={<ProtectedRoute><DocumentCompletionEntry /></ProtectedRoute>} />
             <Route path="/boutique" element={<ProtectedRoute>{withSuspense(LazyClientShopPage, 'Chargement boutique…')}</ProtectedRoute>} />
             <Route path="/boutique/checkout" element={<ProtectedRoute>{withSuspense(LazyShopCheckoutPage, 'Chargement paiement…')}</ProtectedRoute>} />
