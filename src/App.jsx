@@ -11,8 +11,10 @@ import { DossiersEntry } from '@/mobile/entries/DossiersEntry.jsx';
 import { DossierDetailEntry } from '@/mobile/entries/DossierDetailEntry.jsx';
 import { PaymentEntry } from '@/mobile/entries/PaymentEntry.jsx';
 import { useRouteQueryInvalidation } from '@/hooks/useRouteQueryInvalidation.js';
+import { OpsStepUpRoute } from '@/components/auth/OpsStepUpRoute.jsx';
 import {
   LazyNonConvictionDeclarationPage,
+  LazyOpsCockpitHome,
   LazyOpsCockpitPage,
   LazyOpsDashboardPage,
   LazyOpsDossierDetailPage,
@@ -28,6 +30,7 @@ import {
   LazyOpsSettingsPage,
   LazyOpsLookupObservabilityPage,
   LazyOpsShell,
+  LazySesameGateway,
   LazyFormalityPowersPage,
   LazyDocumentWorkspaceEditPage,
   LazyDocumentViewerTab,
@@ -123,7 +126,7 @@ const NotFound = () => <NotFoundPage />;
 
 const Layout = ({ children }) => {
   const location = useLocation();
-  const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/services', '/paiement', '/ressources', '/app', '/app/welcome', '/app/home', '/guide', '/procuration', '/contact', '/a-propos', '/credentials-unlock', '/telechargement-app', '/login', '/password-reset', '/auth/app-bridge', '/tarifs', '/creation-entreprise', '/modification-entreprise', '/annonce-legale', '/guichet-unique-inpi', '/kbis', '/guides', '/glossaire', '/faq'];
+  const hideHeaderRoutes = ['/', '/signup', '/simulateur', '/statuts-gratuits', '/service', '/services', '/paiement', '/ressources', '/app', '/app/welcome', '/app/home', '/guide', '/procuration', '/contact', '/a-propos', '/credentials-unlock', '/telechargement-app', '/login', '/password-reset', '/auth/app-bridge', '/tarifs', '/creation-entreprise', '/modification-entreprise', '/annonce-legale', '/guichet-unique-inpi', '/kbis', '/guides', '/glossaire', '/faq', '/gateway'];
   const mobileWebShellActive = isMobileBrowserViewport()
     && shouldUseMobileWebShell(location.pathname);
   const shouldHideHeader = hideHeaderRoutes.some((route) => location.pathname === route || location.pathname.startsWith('/service/'))
@@ -214,8 +217,9 @@ function AppRoutes() {
             <Route path="/a-propos" element={<AboutPage />} />
             <Route path="/guide" element={<GuidePage />} />
             <Route path="/procuration" element={<MandatePage />} />
-            <Route path="/ops" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><OpsMobileEntry>{withSuspense(LazyOpsShell, 'Chargement ops…')}</OpsMobileEntry></ProtectedRoute>}>
-              <Route index element={<Navigate to="cockpit" replace />} />
+            <Route path="/gateway" element={<ProtectedRoute>{withSuspense(LazySesameGateway, 'Chargement Sésame…')}</ProtectedRoute>} />
+            <Route path="/ops" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><OpsStepUpRoute><OpsMobileEntry>{withSuspense(LazyOpsShell, 'Chargement ops…')}</OpsMobileEntry></OpsStepUpRoute></ProtectedRoute>}>
+              <Route index element={withSuspense(LazyOpsCockpitHome, 'Chargement cockpit…')} />
               <Route path="cockpit" element={withSuspense(LazyOpsCockpitPage, 'Chargement cockpit…')} />
               <Route path="dossiers" element={withSuspense(LazyOpsDossiersPage, 'Chargement dossiers ops…')} />
               <Route path="dossiers/:dossierId" element={withSuspense(LazyOpsDossierDetailPage, 'Chargement dossier ops…')} />

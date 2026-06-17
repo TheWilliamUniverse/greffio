@@ -2,6 +2,7 @@ import { runtimeConfig } from '@/config/runtime.js';
 import { getRefreshToken, getToken, saveRefreshToken, saveToken } from '@/utils/localStorage.js';
 import { refreshAccessToken } from '@/api/auth.js';
 import { nativeClientAuthHeaders } from '@/utils/nativeClient.js';
+import { getOpsStepUpToken } from '@/lib/auth/opsStepUp.js';
 import {
   isAuthSessionInvalidError,
   isTransientApiError,
@@ -116,6 +117,12 @@ export const apiFetch = async (path, options = {}) => {
       throw error;
     }
     headers.set('Authorization', `Bearer ${token}`);
+    if (path.startsWith('/api/ops/') && !path.startsWith('/api/ops/step-up/')) {
+      const stepUpToken = getOpsStepUpToken();
+      if (stepUpToken) {
+        headers.set('X-Greffio-Ops-Step-Up', stepUpToken);
+      }
+    }
   }
 
   const response = await withTransientRetry(

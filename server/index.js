@@ -22,6 +22,7 @@ import {
   statutesPreviewDraftLimiter,
   strictPublicRateLimitMiddleware,
   uploadLimiter,
+  opsStepUpLimiter,
 } from './security/rateLimits.js';
 import { createTurnstileMiddleware } from './security/turnstile.js';
 import {
@@ -178,6 +179,7 @@ import { registerNonConvictionSignatureRoutes } from './routes/nonConvictionSign
 import { registerSignaturePublicRoutes } from './routes/signaturePublicRoutes.js';
 import { registerDossierMessageRoutes } from './routes/dossierMessageRoutes.js';
 import { registerOpsRoutes } from './routes/opsRoutes.js';
+import { registerOpsStepUpRoutes } from './routes/opsStepUpRoutes.js';
 import { registerWebhookRoutes } from './routes/webhookRoutes.js';
 import { createDossierMessageHub } from './messaging/dossierMessageHub.js';
 import { registerEditableDocumentSignatureRoutes } from './routes/editableDocumentSignatureRoutes.js';
@@ -3108,6 +3110,13 @@ registerNonConvictionSignatureRoutes(app, {
   createSignatureRecord,
   transitionDossierStatus,
   appUrl,
+});
+
+registerOpsStepUpRoutes(app, {
+  requireAuth,
+  requireRole,
+  getUserById,
+  stepUpLimiter: opsStepUpLimiter,
 });
 
 registerOpsRoutes(app, {

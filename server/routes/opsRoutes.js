@@ -15,6 +15,7 @@ import {
   listPendingInvoiceReviews,
 } from '../services/qonto/invoiceOpsReviewService.js';
 import { upsertInvoice } from '../invoiceStore.js';
+import { requireOpsStepUp } from './opsStepUpRoutes.js';
 
 const OPS_TEAM_DIRECTORY = Object.freeze([
   { id: 'william', email: 'william@willentreprises.com', name: 'William ABDOU', role: 'ADMIN', initials: 'WA', title: 'Direction & pilotage ops' },
@@ -45,7 +46,9 @@ export const registerOpsRoutes = (app, deps) => {
     DOCUMENT_STATUSES,
   } = deps;
 
-  app.get('/api/ops/email-events', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
+  const opsAccess = [requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), requireOpsStepUp];
+
+  app.get('/api/ops/email-events', ...opsAccess, async (req, res) => {
     const events = await listEmailEvents({
       limit: req.query?.limit ? Number(req.query.limit) : 100,
       templateId: req.query?.templateId ? String(req.query.templateId) : null,
@@ -54,7 +57,7 @@ export const registerOpsRoutes = (app, deps) => {
     return res.json({ ok: true, events });
   });
 
-  app.get('/api/ops/cockpit', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (_req, res) => {
+  app.get('/api/ops/cockpit', ...opsAccess, async (_req, res) => {
     const payload = await buildOpsCockpitPayload({
       getAllDossiers,
       listDossierDocuments,
@@ -68,7 +71,7 @@ export const registerOpsRoutes = (app, deps) => {
     return res.json({ ok: true, ...payload });
   });
 
-  app.get('/api/ops/team-workload', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (_req, res) => {
+  app.get('/api/ops/team-workload', ...opsAccess, async (_req, res) => {
     const dossiers = await getAllDossiers();
     const members = await Promise.all(OPS_TEAM_DIRECTORY.map(async (member) => {
       const user = getUserByEmail ? await getUserByEmail(member.email) : null;
@@ -100,11 +103,11 @@ export const registerOpsRoutes = (app, deps) => {
     });
   });
 
-  app.get('/api/ops/dossiers', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (_req, res) => {
+  app.get('/api/ops/dossiers', ...opsAccess, async (_req, res) => {
     res.json({ ok: true, dossiers: await getAllDossiers() });
   });
 
-  app.get('/api/ops/dossiers-risk', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (_req, res) => {
+  app.get('/api/ops/dossiers-risk', ...opsAccess, async (_req, res) => {
     const dossiers = await getAllDossiers();
     const enriched = await Promise.all(
       dossiers.map(async (dossier) => {
@@ -116,17 +119,17 @@ export const registerOpsRoutes = (app, deps) => {
     return res.json({ ok: true, queue: sortAntiRejectionQueue(enriched) });
   });
 
-  app.get('/api/ops/payments', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (_req, res) => {
+  app.get('/api/ops/payments', ...opsAccess, async (_req, res) => {
     res.json({ ok: true, payments: await getAllPayments() });
   });
 
-  app.get('/api/ops/dossiers/:dossierId/documents', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
+  app.get('/api/ops/dossiers/:dossierId/documents', ...opsAccess, async (req, res) => {
     const dossier = await getDossier(req.params.dossierId);
     if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
     return res.json({ ok: true, documents: await listDossierDocuments(dossier.id) });
   });
 
-  app.get('/api/ops/dossiers/:dossierId/detail', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
+  app.get('/api/ops/dossiers/:dossierId/detail', ...opsAccess, async (req, res) => {
     const dossier = await getDossier(req.params.dossierId);
     if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
     const documents = await listDossierDocuments(dossier.id);
@@ -148,7 +151,7 @@ export const registerOpsRoutes = (app, deps) => {
     });
   });
 
-  app.patch('/api/ops/dossiers/:dossierId/assignment', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
+  app.patch('/api/ops/dossiers/:dossierId/assignment', ...opsAccess, async (req, res) => {
     const dossier = await getDossier(req.params.dossierId);
     if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
     const { assignedToUserId = null, opsQueue, opsPriority } = req.body || {};
@@ -161,13 +164,13 @@ export const registerOpsRoutes = (app, deps) => {
     return res.json({ ok: true, dossier: updated });
   });
 
-  app.get('/api/ops/dossiers/:dossierId/notes', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
+  app.get('/api/ops/dossiers/:dossierId/notes', ...opsAccess, async (req, res) => {
     const dossier = await getDossier(req.params.dossierId);
     if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
     return res.json({ ok: true, notes: await listOpsNotesByDossier(dossier.id) });
   });
 
-  app.post('/api/ops/dossiers/:dossierId/notes', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
+  app.post('/api/ops/dossiers/:dossierId/notes', ...opsAccess, async (req, res) => {
     const dossier = await getDossier(req.params.dossierId);
     if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
     const { note } = req.body || {};
@@ -182,7 +185,7 @@ export const registerOpsRoutes = (app, deps) => {
     return res.status(201).json({ ok: true, notes: await listOpsNotesByDossier(dossier.id) });
   });
 
-  app.get('/api/ops/dossiers/:dossierId/documents/:docKey/download', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
+  app.get('/api/ops/dossiers/:dossierId/documents/:docKey/download', ...opsAccess, async (req, res) => {
     const dossier = await getDossier(req.params.dossierId);
     if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
 
@@ -210,7 +213,7 @@ export const registerOpsRoutes = (app, deps) => {
     }
   });
 
-  app.post('/api/ops/dossiers/:dossierId/documents/:docKey/status', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
+  app.post('/api/ops/dossiers/:dossierId/documents/:docKey/status', ...opsAccess, async (req, res) => {
     const dossier = await getDossier(req.params.dossierId);
     if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
 
@@ -353,7 +356,7 @@ export const registerOpsRoutes = (app, deps) => {
     }
   });
 
-  app.delete('/api/ops/dossiers/:dossierId/documents/:docKey', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
+  app.delete('/api/ops/dossiers/:dossierId/documents/:docKey', ...opsAccess, async (req, res) => {
     const dossier = await getDossier(req.params.dossierId);
     if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
 
@@ -412,7 +415,7 @@ export const registerOpsRoutes = (app, deps) => {
     });
   });
 
-  app.get('/api/ops/dossiers/:dossierId/proofs-export', requireAuth, requireRole(['ADMIN', 'OPS', 'FORMALISTE']), async (req, res) => {
+  app.get('/api/ops/dossiers/:dossierId/proofs-export', ...opsAccess, async (req, res) => {
     const dossier = await getDossier(req.params.dossierId);
     if (!dossier) return res.status(404).json({ ok: false, error: 'DOSSIER_NOT_FOUND' });
 

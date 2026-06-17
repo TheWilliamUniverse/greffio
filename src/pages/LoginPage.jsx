@@ -53,7 +53,7 @@ export const LoginPage = () => {
   const nativeApp = isCapacitorNative();
   const nativeAppHandoff = searchParams.get('nativeApp') === '1';
   const nativeAppReturnPath = searchParams.get('return') || '/auth/app-bridge';
-  const redirectTarget = location.state?.from?.pathname || '/dashboard';
+  const redirectTarget = location.state?.from?.pathname || '/gateway';
   const { login, completeMfaLogin } = useAuth();
   const security = useSecurityConfig();
   const hasCaptchaToken = Boolean(captcha.turnstileToken || captcha.recaptchaToken);
@@ -115,7 +115,7 @@ export const LoginPage = () => {
       }
       if (nativeApp) {
         const target = await resolveNativePostLoginPath();
-        navigate(target || '/dashboard', { replace: true });
+        navigate(target || '/gateway', { replace: true });
       } else {
         navigate(redirectTarget, { replace: true });
       }
@@ -189,7 +189,7 @@ export const LoginPage = () => {
       }
       if (nativeApp) {
         const target = await resolveNativePostLoginPath();
-        navigate(target || '/dashboard', { replace: true });
+        navigate(target || '/gateway', { replace: true });
       } else {
         navigate(redirectTarget, { replace: true });
       }

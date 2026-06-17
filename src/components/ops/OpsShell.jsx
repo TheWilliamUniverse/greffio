@@ -10,6 +10,10 @@ import { isOpsMobileViewport } from '@/utils/platform.js';
 import { PUBLISHER_LEGAL_NAME } from '@/config/publisher.js';
 
 const pageMeta = {
+  '/ops': {
+    title: 'Cockpit Ops',
+    subtitle: 'État système, file d’actions et accès rapides.',
+  },
   '/ops/cockpit': {
     title: 'Cockpit ops',
     subtitle: 'Vue d’ensemble – priorités, SLA et actions immédiates.',
@@ -103,9 +107,11 @@ export const OpsShell = () => {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  const metaKey = Object.keys(pageMeta).find((path) => location.pathname.startsWith(path))
-    || (location.pathname.startsWith('/ops/dossiers/') ? '/ops/dossiers' : '/ops/cockpit');
-  const meta = pageMeta[metaKey] || pageMeta['/ops/cockpit'];
+  const metaKey = location.pathname === '/ops' || location.pathname === '/ops/'
+    ? '/ops'
+    : Object.keys(pageMeta).find((path) => location.pathname.startsWith(path))
+      || (location.pathname.startsWith('/ops/dossiers/') ? '/ops/dossiers' : '/ops');
+  const meta = pageMeta[metaKey] || pageMeta['/ops'];
 
   return (
     <div className="flex min-h-[100dvh] bg-slate-100 font-['Inter']">
@@ -133,7 +139,7 @@ export const OpsShell = () => {
           refreshing={refreshing}
           onOpenSearch={() => setSearchOpen(true)}
           onOpenMenu={mobileLayout ? () => setSidebarOpen(true) : undefined}
-          headerSummary={location.pathname.startsWith('/ops/cockpit') ? cockpitCache?.headerSummary : null}
+          headerSummary={location.pathname.startsWith('/ops/cockpit') || location.pathname === '/ops' ? cockpitCache?.headerSummary : null}
         />
         <main className={`flex-1 overflow-y-auto overflow-x-hidden ${mobileLayout ? 'p-4' : 'p-6'}`}>
           <Outlet context={{

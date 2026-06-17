@@ -1,18 +1,11 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  Activity,
-  ClipboardCheck,
-  FileSearch,
+  FileText,
   FolderKanban,
-  Gauge,
   LayoutDashboard,
-  Mail,
   Plug,
-  Receipt,
-  Settings,
   ShieldCheck,
-  Truck,
   Users,
   X,
 } from 'lucide-react';
@@ -20,18 +13,12 @@ import { cn } from '@/lib/utils.js';
 import { GREFFIO_COMPANY } from '@/config/opsTeam.js';
 
 const navItems = [
-  { to: '/ops/cockpit', label: 'Cockpit', icon: LayoutDashboard, end: true },
+  { to: '/ops', label: 'Cockpit', icon: LayoutDashboard, end: true },
   { to: '/ops/dossiers', label: 'Dossiers', icon: FolderKanban },
-  { to: '/ops/documents', label: 'Documents', icon: FileSearch },
-  { to: '/ops/relances', label: 'Relances', icon: Mail },
-  { to: '/ops/invoices', label: 'Factures', icon: Receipt, roles: ['ADMIN', 'OPS'] },
+  { to: '/ops/invoices', label: 'Factures', icon: FileText, roles: ['ADMIN', 'OPS'] },
   { to: '/ops/integrations', label: 'Intégrations', icon: Plug, roles: ['ADMIN', 'OPS'] },
-  { to: '/ops/depot', label: 'Dépôt GU', icon: Truck },
-  { to: '/ops/qualite', label: 'Qualité', icon: ClipboardCheck },
   { to: '/ops/equipe', label: 'Équipe', icon: Users },
-  { to: '/ops/audit', label: 'Audit', icon: ShieldCheck },
-  { to: '/ops-observability', label: 'Observabilité', icon: Activity, external: true },
-  { to: '/ops/settings', label: 'Paramètres', icon: Settings },
+  { to: '/ops/audit', label: 'Journal', icon: ShieldCheck },
 ];
 
 export const OpsSidebar = ({ collapsed = false, mobile = false, onClose, userRole = null }) => {
@@ -54,7 +41,7 @@ export const OpsSidebar = ({ collapsed = false, mobile = false, onClose, userRol
         {!collapsed ? (
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-extrabold">Greffio Ops</p>
-            <p className="truncate text-[11px] text-slate-400">Cockpit formaliste</p>
+            <p className="truncate text-[11px] text-slate-400">Command Center</p>
           </div>
         ) : null}
         {mobile && onClose ? (
@@ -71,7 +58,7 @@ export const OpsSidebar = ({ collapsed = false, mobile = false, onClose, userRol
     </div>
 
     <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-      {visibleItems.map(({ to, label, icon: Icon, end, external }) => (
+      {visibleItems.map(({ to, label, icon: Icon, end }) => (
         <NavLink
           key={to}
           to={to}
@@ -86,7 +73,6 @@ export const OpsSidebar = ({ collapsed = false, mobile = false, onClose, userRol
         >
           <Icon className="h-4 w-4 shrink-0" />
           {!collapsed ? <span>{label}</span> : null}
-          {!collapsed && external ? <Gauge className="ml-auto h-3.5 w-3.5 opacity-50" /> : null}
         </NavLink>
       ))}
     </nav>

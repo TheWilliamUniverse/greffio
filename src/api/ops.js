@@ -108,6 +108,13 @@ export const getOpsEmailEvents = async ({
 
 export const getOpsInvoicesPendingReview = async () => apiGet('/api/ops/invoices/pending-review');
 
+export const sendOpsStepUpCode = async () => apiPost('/api/ops/step-up/send-code', {});
+
+export const verifyOpsStepUp = async ({ method, code } = {}) => apiPost('/api/ops/step-up/verify', {
+  method,
+  code,
+});
+
 export const approveOpsInvoiceSend = async (invoiceId) => apiPost(
   `/api/ops/invoices/${encodeURIComponent(invoiceId)}/approve-send`,
 );

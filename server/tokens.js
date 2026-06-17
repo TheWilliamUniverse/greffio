@@ -37,11 +37,19 @@ const issueRefreshToken = (user) => jwt.sign({
   typ: 'refresh',
 }, JWT_SECRET(), { expiresIn: REFRESH_EXPIRES() });
 
+const issueOpsStepUpToken = (user) => jwt.sign({
+  sub: user.id,
+  role: user.role,
+  email: user.email,
+  typ: 'ops_step_up',
+}, JWT_SECRET(), { expiresIn: '15m' });
+
 const verifyToken = (token) => jwt.verify(token, JWT_SECRET());
 
 export {
   issueAccessToken,
   issueMfaPendingToken,
+  issueOpsStepUpToken,
   issueRefreshToken,
   verifyToken,
 };

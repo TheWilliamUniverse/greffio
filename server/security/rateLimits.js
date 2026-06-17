@@ -102,6 +102,12 @@ export const credentialsUnlockLimiter = createSpecializedRateLimiter({
   signal: 'CREDENTIALS_UNLOCK_RATE_LIMIT_HIT',
 });
 
+export const opsStepUpLimiter = createSpecializedRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  signal: 'OPS_STEP_UP_RATE_LIMIT_HIT',
+});
+
 export const appDownloadAccessLimiter = createSpecializedRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 10,
