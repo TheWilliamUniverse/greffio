@@ -1,6 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import Database from 'better-sqlite3';
+import { createRequire } from 'node:module';
+import dotenv from 'dotenv';
+
+dotenv.config({ quiet: true });
+
+/** Postgres production skips SQLite so login/API stay up without native better-sqlite3. */
+let sqlite = null;
+
+if (!process.env.DATABASE_URL) {
+  const require = createRequire(import.meta.url);
+  const Database = require('better-sqlite3');
 
 const dataDir = path.resolve(process.cwd(), 'server', 'data');
 if (!fs.existsSync(dataDir)) {
@@ -8,7 +18,7 @@ if (!fs.existsSync(dataDir)) {
 }
 
 const dbPath = path.join(dataDir, 'greffio.sqlite');
-const sqlite = new Database(dbPath);
+sqlite = new Database(dbPath);
 
 sqlite.pragma('journal_mode = WAL');
 sqlite.pragma('foreign_keys = ON');
@@ -655,6 +665,8 @@ CREATE INDEX IF NOT EXISTS idx_invoices_payment_id
   ['documents', 'editor_locked_until', 'TEXT'],
   ['documents', 'editor_locked_by', 'TEXT'],
 ].forEach(([table, column, type]) => addColumnIfMissing(table, column, type));
+
+}
 
 export {
   sqlite,
