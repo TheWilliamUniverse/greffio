@@ -43,8 +43,8 @@ export const ResourceHero = ({
           Déposez un Cerfa ou formulaire administratif. Greffio détecte les zones à compléter et génère un PDF avec des champs bleus remplissables.
         </p>
         <Button asChild className="mt-4 w-full gap-2">
-          <Link to="/assistant-documents">
-            Ouvrir l’assistant
+          <Link to="/boutique#boutique-outils-gratuits">
+            Voir dans la boutique
             <ArrowRight className="h-4 w-4" />
           </Link>
         </Button>

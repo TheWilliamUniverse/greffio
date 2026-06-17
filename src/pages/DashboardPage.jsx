@@ -198,6 +198,10 @@ export const DashboardPage = () => {
     setPickerOpen(false);
   };
 
+  const documentsVaultUrl = activeDossierId
+    ? `/documents?dossierId=${encodeURIComponent(activeDossierId)}`
+    : '/documents';
+
   const activeDossierRecord = activeDossierPayload?.dossier
     || dossiersRaw.find((item) => item.id === activeDossierId);
 
@@ -402,7 +406,7 @@ export const DashboardPage = () => {
                       ) : null}
                     </div>
                     <Button variant="ghost" size="sm" asChild>
-                      <Link to="/assistant-documents">Voir le coffre</Link>
+                      <Link to={documentsVaultUrl}>Voir le coffre</Link>
                     </Button>
                   </div>
                   {notifications.length ? (
@@ -442,7 +446,7 @@ export const DashboardPage = () => {
                     )}
                   </div>
                   <Button asChild variant="outline" className="mt-5 bg-white">
-                    <Link to="/assistant-documents">
+                    <Link to={documentsVaultUrl}>
                       <Upload className="h-4 w-4" />
                       Ouvrir le coffre
                     </Link>

@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import {
   FilePlus2,
   FileText,
-  FormInput,
   Search,
   Upload,
 } from 'lucide-react';
@@ -326,14 +325,6 @@ export const MobileDocumentsPage = () => {
           </Button>
         </div>
         <input ref={uploadRef} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => void handleUpload(e)} />
-        <div className="mt-3">
-          <Button asChild variant="outline" size="sm" className="h-10 w-full rounded-2xl bg-white">
-            <Link to={dossierId ? `/assistant-documents?dossierId=${dossierId}` : '/assistant-documents'}>
-              <FormInput className="h-4 w-4" />
-              Compléter un PDF externe
-            </Link>
-          </Button>
-        </div>
         <input
           ref={rowUploadRef}
           type="file"
