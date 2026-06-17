@@ -1,9 +1,13 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { CheckCircle2, Link2, Plug, RefreshCw, Unplug, XCircle } from 'lucide-react';
+import { CheckCircle2, CreditCard, Link2, Plug, RefreshCw, Unplug, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { AuthContext } from '@/context/AuthContext.jsx';
-import { getMollieConnectAuthorize, getMollieConnectStatus } from '@/api/ops.js';
+import {
+  getMollieConnectAuthorize,
+  getMollieConnectStatus,
+  getMolliePaymentStatus,
+} from '@/api/ops.js';
 import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
 import { Button } from '@/components/ui/button.jsx';
 
@@ -19,10 +23,32 @@ const CALLBACK_MESSAGES = {
   token_failed: 'Échec de l’échange du code OAuth.',
 };
 
+const StatusBadge = ({ ok, okLabel, koLabel }) => (
+  ok ? (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800">
+      <CheckCircle2 className="h-3.5 w-3.5" />
+      {okLabel}
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800">
+      <Unplug className="h-3.5 w-3.5" />
+      {koLabel}
+    </span>
+  )
+);
+
+const DetailRow = ({ label, value }) => (
+  <div className="rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
+    <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</dt>
+    <dd className="mt-1 font-mono text-xs text-slate-800 break-all">{value || '—'}</dd>
+  </div>
+);
+
 export const OpsIntegrationsPage = () => {
   const { currentUser } = useContext(AuthContext);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [status, setStatus] = useState(null);
+  const [paymentStatus, setPaymentStatus] = useState(null);
+  const [connectStatus, setConnectStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -31,18 +57,24 @@ export const OpsIntegrationsPage = () => {
 
   const loadStatus = useCallback(async ({ silent = false } = {}) => {
     if (!canManageIntegrations) {
-      setStatus(null);
+      setPaymentStatus(null);
+      setConnectStatus(null);
       setLoading(false);
       return;
     }
     if (!silent) setLoading(true);
     else setRefreshing(true);
     try {
-      const payload = await getMollieConnectStatus();
-      setStatus(payload || null);
+      const [paymentPayload, connectPayload] = await Promise.all([
+        getMolliePaymentStatus(),
+        getMollieConnectStatus(),
+      ]);
+      setPaymentStatus(paymentPayload || null);
+      setConnectStatus(connectPayload || null);
     } catch (error) {
-      setStatus(null);
-      toast.error('Impossible de charger le statut Mollie Connect.', {
+      setPaymentStatus(null);
+      setConnectStatus(null);
+      toast.error('Impossible de charger les statuts Mollie.', {
         description: error?.message || 'Erreur réseau',
       });
     } finally {
@@ -92,16 +124,16 @@ export const OpsIntegrationsPage = () => {
   };
 
   const connectedCount = useMemo(() => {
-    const value = status?.connectedAccounts;
+    const value = connectStatus?.connectedAccounts;
     return Number.isFinite(value) ? value : null;
-  }, [status?.connectedAccounts]);
+  }, [connectStatus?.connectedAccounts]);
 
   if (!canManageIntegrations) {
     return (
       <div className="mx-auto max-w-3xl rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
         <p className="text-sm font-semibold text-slate-900">Accès réservé à l’équipe ops intégrations</p>
         <p className="mt-2 text-sm text-slate-600">
-          Seuls les profils Admin et Ops peuvent connecter Mollie Connect.
+          Seuls les profils Admin et Ops peuvent gérer les intégrations Mollie.
         </p>
       </div>
     );
@@ -112,10 +144,10 @@ export const OpsIntegrationsPage = () => {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Greffio Ops · Intégrations</p>
-          <h2 className="mt-1 text-2xl font-extrabold text-slate-900">Paiements Mollie Connect</h2>
+          <h2 className="mt-1 text-2xl font-extrabold text-slate-900">Mollie — deux applications</h2>
           <p className="mt-2 max-w-2xl text-sm text-slate-600">
-            Connectez le compte plateforme Mollie pour activer l’onboarding partenaires et les paiements
-            sous-comptes. Les tokens OAuth restent chiffrés côté API.
+            Paiements B2C clients (clé API) et Connect Partners (OAuth plateforme). Les secrets restent
+            côté API ; cette page affiche uniquement l’état de configuration.
           </p>
         </div>
         <Button
@@ -130,26 +162,60 @@ export const OpsIntegrationsPage = () => {
         </Button>
       </div>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        {loading ? (
-          <PageLoadingState compact className="py-8" label="Chargement du statut Mollie…" />
-        ) : (
-          <div className="space-y-5">
-            <div className="flex flex-wrap items-center gap-2">
-              {status?.configured ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  OAuth configuré
-                </span>
-              ) : (
+      {loading ? (
+        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <PageLoadingState compact className="py-8" label="Chargement des statuts Mollie…" />
+        </section>
+      ) : (
+        <>
+          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <CreditCard className="h-4 w-4 text-slate-500" />
+              <h3 className="text-base font-bold text-slate-900">Paiements Greffio (B2C)</h3>
+              <StatusBadge
+                ok={paymentStatus?.configured}
+                okLabel="Clé API configurée"
+                koLabel="Clé API manquante"
+              />
+              {paymentStatus?.paymentOAuthConfigured ? (
+                <StatusBadge ok okLabel="OAuth app enregistrée" koLabel="" />
+              ) : null}
+              {paymentStatus?.callbackUrlMatch === false ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800">
-                  <Unplug className="h-3.5 w-3.5" />
-                  OAuth non configuré
+                  Callback URL à vérifier
                 </span>
-              )}
+              ) : null}
+            </div>
+
+            <dl className="grid gap-3 text-sm">
+              <DetailRow label="Profil Mollie" value={paymentStatus?.profileId} />
+              <DetailRow label="Callback URL (dashboard)" value={paymentStatus?.callbackUrl} />
+              <DetailRow label="Webhook URL" value={paymentStatus?.webhookUrl} />
+              <DetailRow label="Client OAuth (app Greffio)" value={paymentStatus?.paymentOAuthClientId} />
+            </dl>
+
+            {!paymentStatus?.configured ? (
+              <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <p>
+                  Variables serveur requises : MOLLIE_API_KEY, MOLLIE_PROFILE_ID, MOLLIE_CALLBACK_URL,
+                  MOLLIE_WEBHOOK_URL. Optionnel : MOLLIE_PAYMENT_OAUTH_CLIENT_ID / SECRET (app dashboard « Greffio »).
+                </p>
+              </div>
+            ) : null}
+          </section>
+
+          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <Link2 className="h-4 w-4 text-slate-500" />
+              <h3 className="text-base font-bold text-slate-900">Connect Partners</h3>
+              <StatusBadge
+                ok={connectStatus?.configured}
+                okLabel="OAuth configuré"
+                koLabel="OAuth non configuré"
+              />
               {connectedCount != null ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
-                  <Link2 className="h-3.5 w-3.5" />
                   {connectedCount > 0
                     ? `${connectedCount} compte${connectedCount > 1 ? 's' : ''} connecté${connectedCount > 1 ? 's' : ''}`
                     : 'Aucun compte connecté'}
@@ -158,35 +224,20 @@ export const OpsIntegrationsPage = () => {
             </div>
 
             <dl className="grid gap-3 text-sm">
-              <div className="rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
-                <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Client OAuth</dt>
-                <dd className="mt-1 font-mono text-xs text-slate-800 break-all">
-                  {status?.clientId || '—'}
-                </dd>
-              </div>
-              <div className="rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
-                <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Redirect URI</dt>
-                <dd className="mt-1 font-mono text-xs text-slate-800 break-all">
-                  {status?.redirectUri || '—'}
-                </dd>
-              </div>
-              <div className="rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
-                <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Scopes</dt>
-                <dd className="mt-1 text-xs text-slate-800 break-words">
-                  {status?.scopes || '—'}
-                </dd>
-              </div>
+              <DetailRow label="Client OAuth (Connect for Partners)" value={connectStatus?.clientId} />
+              <DetailRow label="Redirect URI" value={connectStatus?.redirectUri} />
+              <DetailRow label="Scopes" value={connectStatus?.scopes} />
             </dl>
 
-            <div className="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-slate-600">
-                {status?.configured
-                  ? 'Lancez le flux OAuth Mollie pour lier ou relier un compte organisation.'
-                  : 'Configurez MOLLIE_OAUTH_* sur l’API avant de connecter.'}
+                {connectStatus?.configured
+                  ? 'Lancez le flux OAuth pour lier ou relier un compte organisation partenaire.'
+                  : 'Configurez MOLLIE_OAUTH_* (app Connect for Partners) sur l’API avant de connecter.'}
               </p>
               <Button
                 type="button"
-                disabled={!status?.configured || connecting}
+                disabled={!connectStatus?.configured || connecting}
                 onClick={() => void handleConnectMollie()}
               >
                 <Plug className={`mr-2 h-4 w-4 ${connecting ? 'animate-pulse' : ''}`} />
@@ -194,18 +245,18 @@ export const OpsIntegrationsPage = () => {
               </Button>
             </div>
 
-            {!status?.configured ? (
-              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            {!connectStatus?.configured ? (
+              <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                 <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
                 <p>
                   Variables serveur requises : MOLLIE_OAUTH_CLIENT_ID, MOLLIE_OAUTH_CLIENT_SECRET,
-                  MOLLIE_CONNECT_REDIRECT_URI.
+                  MOLLIE_CONNECT_REDIRECT_URI (app <span className="font-mono">app_jDVb…</span> uniquement).
                 </p>
               </div>
             ) : null}
-          </div>
-        )}
-      </section>
+          </section>
+        </>
+      )}
     </div>
   );
 };

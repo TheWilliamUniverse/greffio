@@ -113,6 +113,7 @@ export const createMollieConnectClientLink = async ({ accessToken, name, email, 
 };
 
 export const describeMollieConnectStatus = ({ connectedAccounts = null } = {}) => ({
+  app: 'Connect Partners',
   configured: isMollieConnectConfigured(),
   redirectUri: resolveMollieConnectRedirectUri(),
   clientId: process.env.MOLLIE_OAUTH_CLIENT_ID || null,

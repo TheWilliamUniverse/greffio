@@ -1,4 +1,9 @@
+import { getMollieProfileId, isMollieTestMode } from '../mollie.js';
+
 const trimSlash = (value) => String(value || '').replace(/\/$/, '');
+
+/** Redirect URI enregistrée dans l’app OAuth « Greffio » (paiement B2C). */
+export const MOLLIE_PAYMENT_CALLBACK_EXPECTED = 'https://greffio.willentreprises.com/api/mollie/callback';
 
 const resolveApiPublicUrl = () => trimSlash(
   process.env.API_PUBLIC_URL
@@ -47,3 +52,25 @@ export const resolveMollieUrls = () => ({
   webhookUrl: resolveMollieWebhookUrl(),
   callbackUrl: resolveMollieCallbackUrl(),
 });
+
+/** Diagnostic app OAuth « Greffio » (paiements B2C) — clé API + callback dashboard. */
+export const describeMolliePaymentStatus = () => {
+  const urls = resolveMollieUrls();
+  return {
+    app: 'Paiements Greffio (B2C)',
+    configured: Boolean(process.env.MOLLIE_API_KEY),
+    apiKeyConfigured: Boolean(process.env.MOLLIE_API_KEY),
+    profileConfigured: Boolean(process.env.MOLLIE_PROFILE_ID),
+    profileId: getMollieProfileId(),
+    testmode: isMollieTestMode(),
+    callbackUrl: urls.callbackUrl,
+    callbackUrlExpected: MOLLIE_PAYMENT_CALLBACK_EXPECTED,
+    callbackUrlMatch: urls.callbackUrl === MOLLIE_PAYMENT_CALLBACK_EXPECTED,
+    webhookUrl: urls.webhookUrl,
+    paymentOAuthClientId: process.env.MOLLIE_PAYMENT_OAUTH_CLIENT_ID || null,
+    paymentOAuthConfigured: Boolean(
+      process.env.MOLLIE_PAYMENT_OAUTH_CLIENT_ID
+      && process.env.MOLLIE_PAYMENT_OAUTH_CLIENT_SECRET,
+    ),
+  };
+};

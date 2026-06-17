@@ -112,6 +112,8 @@ export const approveOpsInvoiceSend = async (invoiceId) => apiPost(
   `/api/ops/invoices/${encodeURIComponent(invoiceId)}/approve-send`,
 );
 
+export const getMolliePaymentStatus = async () => apiGet('/api/mollie/status');
+
 export const getMollieConnectStatus = async () => apiGet('/api/mollie/connect/status');
 
 export const getMollieConnectAuthorize = async () => apiGet('/api/mollie/connect/authorize');

@@ -1,4 +1,5 @@
-# Configure Mollie Connect OAuth env vars on VPS Greffio API (/opt/greffio/.env).
+# Configure Mollie env vars on VPS Greffio API (/opt/greffio/.env).
+# Syncs BOTH OAuth apps: payment B2C (Greffio) + Connect Partners.
 # Usage: pwsh -File scripts/configure-mollie-connect-vps.ps1
 
 $ErrorActionPreference = 'Stop'
@@ -28,6 +29,7 @@ if (-not $keyFile) {
 }
 
 $keyContent = (Get-Content $keyFile -Raw) -replace '\\_', '_'
+$paymentCallback = 'https://greffio.willentreprises.com/api/mollie/callback'
 $connectRedirect = 'https://api.greffio.willentreprises.com/api/mollie/connect/callback'
 
 function Get-MollieOAuthBlock {
@@ -49,6 +51,11 @@ if (-not $connectBlock) {
     $connectBlock = Get-MollieOAuthBlock -Content $keyContent -AfterMarker 'Greffio Connect for Partners'
 }
 
+$paymentBlock = Get-MollieOAuthBlock -Content $keyContent -AfterMarker $paymentCallback
+if (-not $paymentBlock) {
+    $paymentBlock = Get-MollieOAuthBlock -Content $keyContent -AfterMarker 'Greffio accompagne'
+}
+
 if ($connectBlock) {
     $ClientId = $connectBlock.ClientId
     $ClientSecret = $connectBlock.ClientSecret
@@ -64,8 +71,14 @@ if ($connectBlock) {
 }
 
 Write-Host "Credentials source: $keyFile" -ForegroundColor DarkGray
-Write-Host "OAuth client ID: $ClientId" -ForegroundColor DarkGray
+Write-Host "Connect OAuth client ID: $ClientId" -ForegroundColor DarkGray
 Write-Host "Connect redirect: $connectRedirect" -ForegroundColor DarkGray
+if ($paymentBlock) {
+    Write-Host "Payment OAuth client ID: $($paymentBlock.ClientId)" -ForegroundColor DarkGray
+    Write-Host "Payment callback: $paymentCallback" -ForegroundColor DarkGray
+} else {
+    Write-Host 'Payment OAuth block not found — MOLLIE_PAYMENT_OAUTH_* skipped' -ForegroundColor Yellow
+}
 
 function Get-MollieOptionalEnv {
     param([string]$Content)
@@ -98,7 +111,7 @@ function Invoke-RemoteShell {
     if ($LASTEXITCODE -ne 0) { throw "Remote command failed (exit $LASTEXITCODE)" }
 }
 
-Write-Host "=== Configuration Mollie Connect sur $VpsHost ===" -ForegroundColor Cyan
+Write-Host "=== Configuration Mollie (dual apps) sur $VpsHost ===" -ForegroundColor Cyan
 
 $RemoteScript = @'
 ENV_FILE="/opt/greffio/.env"
@@ -117,6 +130,8 @@ upsert_env() {
 upsert_env MOLLIE_OAUTH_CLIENT_ID __CLIENT_ID__
 upsert_env MOLLIE_OAUTH_CLIENT_SECRET __CLIENT_SECRET__
 upsert_env MOLLIE_CONNECT_REDIRECT_URI https://api.greffio.willentreprises.com/api/mollie/connect/callback
+upsert_env MOLLIE_CALLBACK_URL https://greffio.willentreprises.com/api/mollie/callback
+__PAYMENT_OAUTH_ENV__
 __OPTIONAL_ENV__
 upsert_env MOLLIE_WEBHOOK_URL https://api.greffio.willentreprises.com/api/webhooks/mollie
 upsert_env API_PUBLIC_URL https://api.greffio.willentreprises.com
@@ -127,8 +142,8 @@ cd /opt/greffio
 pm2 restart greffio-api --update-env
 sleep 8
 
-echo "=== Mollie Connect env (masked) ==="
-grep -E '^MOLLIE_(OAUTH|CONNECT|WEBHOOK|API_KEY|PROFILE_ID)' "$ENV_FILE" | sed 's/=.*/=***/'
+echo "=== Mollie env (masked) ==="
+grep -E '^MOLLIE_(OAUTH|CONNECT|WEBHOOK|API_KEY|PROFILE_ID|CALLBACK|PAYMENT)' "$ENV_FILE" | sed 's/=.*/=***/'
 
 echo "=== GET /api/health (local) ==="
 curl -fsS http://127.0.0.1:8787/api/health && echo
@@ -136,6 +151,13 @@ curl -fsS http://127.0.0.1:8787/api/health && echo
 
 $RemoteScript = $RemoteScript.Replace('__CLIENT_ID__', $ClientId)
 $RemoteScript = $RemoteScript.Replace('__CLIENT_SECRET__', $ClientSecret)
+
+$paymentOAuthLines = @()
+if ($paymentBlock) {
+    $paymentOAuthLines += "upsert_env MOLLIE_PAYMENT_OAUTH_CLIENT_ID $($paymentBlock.ClientId)"
+    $paymentOAuthLines += "upsert_env MOLLIE_PAYMENT_OAUTH_CLIENT_SECRET $($paymentBlock.ClientSecret)"
+}
+$RemoteScript = $RemoteScript.Replace('__PAYMENT_OAUTH_ENV__', ($paymentOAuthLines -join "`n"))
 
 $optionalLines = @()
 if ($optionalEnv.ApiKey) {
@@ -152,4 +174,4 @@ $RemoteScript = $RemoteScript.Replace('__OPTIONAL_ENV__', ($optionalLines -join 
 $RemoteScript = $RemoteScript -replace "`r`n", "`n" -replace "`r", "`n"
 
 Invoke-RemoteShell $RemoteScript
-Write-Host 'Mollie Connect VPS configuration terminée.' -ForegroundColor Green
+Write-Host 'Configuration Mollie VPS (dual apps) terminée.' -ForegroundColor Green

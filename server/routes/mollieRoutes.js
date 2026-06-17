@@ -1,5 +1,5 @@
 import { retrieveMolliePayment, isMolliePaidStatus, listMollieMethods, getMollieProfileId, isMollieTestMode } from '../mollie.js';
-import { resolveMollieUrls } from '../config/mollieUrls.js';
+import { describeMolliePaymentStatus } from '../config/mollieUrls.js';
 
 /**
  * Routes publiques Mollie (callback utilisateur + diagnostic).
@@ -38,18 +38,9 @@ export const registerMollieRoutes = (app, deps = {}) => {
     return res.redirect(302, target);
   });
 
-  app.get('/api/mollie/status', (_req, res) => {
-    const urls = resolveMollieUrls();
-    return res.json({
-      ok: true,
-      configured: Boolean(process.env.MOLLIE_API_KEY),
-      profileId: getMollieProfileId(),
-      testmode: isMollieTestMode(),
-      webhookUrl: urls.webhookUrl,
-      callbackUrl: urls.callbackUrl,
-      apiPublicUrl: urls.apiPublicUrl,
-    });
-  });
+  app.get('/api/mollie/status', (_req, res) => (
+    res.json({ ok: true, ...describeMolliePaymentStatus() })
+  ));
 
   app.get('/api/mollie/methods', async (req, res) => {
     if (!process.env.MOLLIE_API_KEY) {
