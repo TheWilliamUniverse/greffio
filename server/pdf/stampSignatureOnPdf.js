@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { loadPdfFonts } from './pdfFonts.js';
 import { replaceDraftWatermarkWithSignedBadge } from './pdfLayoutPremium.js';
+import { formatParisStampTimestamp } from '../utils/parisDateTime.js';
 import {
   FORMALITY_POWERS_SIGNATURE_LINE_Y,
   FORMALITY_POWERS_STAMP_MAX_HEIGHT,
@@ -29,15 +30,7 @@ const pdfSafeText = (value, fallback = '') => {
     });
 };
 
-const formatSignatureTimestampFr = (signedAtIso) => {
-  const date = new Date(signedAtIso);
-  if (Number.isNaN(date.getTime())) return pdfSafeText('');
-  const pad = (value) => String(value).padStart(2, '0');
-  return pdfSafeText(
-    `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} `
-    + `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`,
-  );
-};
+const formatSignatureTimestampFr = (signedAtIso) => pdfSafeText(formatParisStampTimestamp(signedAtIso));
 
 export const stampSignatureOnPdf = async ({
   inputPath,

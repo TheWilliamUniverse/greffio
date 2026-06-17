@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { PDFDocument, rgb } from 'pdf-lib';
+import { formatParisFrenchDateTime } from '../../utils/parisDateTime.js';
 import { loadPdfFonts } from '../../pdf/pdfFonts.js';
 
 const drawLine = (page, font, text, y, size = 10) => {
@@ -54,7 +55,8 @@ export const generateSignatureProofCertificatePdf = async ({
   drawLine(page, font, `Provider : ${signatureMeta.provider || 'greffio_internal'}`, y); y -= 14;
   drawLine(page, font, `Niveau : ${signatureMeta.level || 'ses_reinforced'}`, y); y -= 14;
   drawLine(page, font, `Preuve : ${signatureMeta.proofId || signatureRequest.proofId || '–'}`, y); y -= 14;
-  drawLine(page, font, `Signé le : ${signatureMeta.signedAt || signatureRequest.signedAt || '–'}`, y); y -= 14;
+  const signedAtLabel = formatParisFrenchDateTime(signatureMeta.signedAt || signatureRequest.signedAt) || '–';
+  drawLine(page, font, `Signé le : ${signedAtLabel}`, y); y -= 14;
   drawLine(page, font, signatureMeta.proofLine || '', y); y -= 20;
 
   section('Consentement');

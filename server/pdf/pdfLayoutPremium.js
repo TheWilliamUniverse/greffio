@@ -2,6 +2,7 @@ import QRCode from 'qrcode';
 import { degrees, rgb } from 'pdf-lib';
 import { formatFrenchDate } from './nonConvictionPdf.js';
 import { loadPdfFonts } from './pdfFonts.js';
+import { formatParisFrenchDateTime } from '../utils/parisDateTime.js';
 
 export const PAGE_WIDTH = 595.28;
 export const PAGE_HEIGHT = 841.89;
@@ -36,8 +37,7 @@ export const formatFrenchDateTime = (value) => {
   if (!value) return '';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return formatFrenchDate(value);
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${formatFrenchDate(value)} à ${pad(date.getHours())} h ${pad(date.getMinutes())}`;
+  return formatParisFrenchDateTime(value);
 };
 
 export const wrapTextByWidth = (text, font, size, maxWidth) => {
