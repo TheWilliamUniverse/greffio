@@ -9,7 +9,7 @@ import { isPageVisible } from '@/utils/pageVisibility.js';
 const ANALYSIS_POLL_BACKOFF_MS = [2500, 4000, 7000, 12000];
 
 export const useDocumentAnalysisStatus = (documentId) => {
-  const [document, setDocument] = useState(null);
+  const [completionDocument, setCompletionDocument] = useState(null);
   const [fields, setFields] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -22,7 +22,7 @@ export const useDocumentAnalysisStatus = (documentId) => {
     setLoading(true);
     try {
       const payload = await getDocumentCompletionStatus(documentId);
-      setDocument(payload.document);
+      setCompletionDocument(payload.document);
       setFields(payload.fields || []);
       setError('');
       return payload;
@@ -78,41 +78,41 @@ export const useDocumentAnalysisStatus = (documentId) => {
     const onVisible = () => {
       if (isPageVisible() && !cancelled) void refresh();
     };
-    document.addEventListener('visibilitychange', onVisible);
+    globalThis.document?.addEventListener('visibilitychange', onVisible);
 
     return () => {
       cancelled = true;
       clearPoll();
-      document.removeEventListener('visibilitychange', onVisible);
+      globalThis.document?.removeEventListener('visibilitychange', onVisible);
     };
   }, [documentId, refresh]);
 
   useEffect(() => {
-    if (!document?.status) return;
-    if (TERMINAL_STATUSES.has(document.status) && pollRef.current) {
+    if (!completionDocument?.status) return;
+    if (TERMINAL_STATUSES.has(completionDocument.status) && pollRef.current) {
       window.clearTimeout(pollRef.current);
       pollRef.current = null;
     }
-  }, [document?.status]);
+  }, [completionDocument?.status]);
 
   const ensureExported = useCallback(async () => {
     if (!documentId) return null;
-    if (document?.status === 'exported') return document;
+    if (completionDocument?.status === 'exported') return completionDocument;
     try {
       const payload = await exportDocumentCompletionPdf(documentId);
-      setDocument(payload.document);
+      setCompletionDocument(payload.document);
       setFields(payload.fields || []);
       return payload.document;
     } catch (err) {
       setError(err?.message || 'Export impossible.');
       return null;
     }
-  }, [document?.status, documentId]);
+  }, [completionDocument?.status, documentId]);
 
-  const isProcessing = document ? PROCESSING_STATUSES.has(document.status) : false;
+  const isProcessing = completionDocument ? PROCESSING_STATUSES.has(completionDocument.status) : false;
 
   return {
-    document,
+    document: completionDocument,
     fields,
     loading,
     error,

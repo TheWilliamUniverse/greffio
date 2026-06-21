@@ -12,7 +12,8 @@ export const PdfPreviewPanel = ({
   blobUrl = '',
   filename = 'document.pdf',
   emptyMessage = 'Générez l’aperçu pour afficher le document ici.',
-  onOpen,
+  expanded = false,
+  className = '',
 }) => {
   const [mobile, setMobile] = useState(isMobilePreview);
 
@@ -43,7 +44,7 @@ export const PdfPreviewPanel = ({
   };
 
   return (
-    <section className="flex min-h-[280px] flex-col bg-[#1e293b] md:min-h-[420px]">
+    <section className={`flex flex-col bg-[#1e293b] ${expanded ? 'min-h-0 flex-1' : 'min-h-[280px] md:min-h-[420px]'}`}>
       <div className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
         <p className="text-sm font-semibold text-white">{title}</p>
         {blobUrl || onOpen ? (
@@ -75,7 +76,7 @@ export const PdfPreviewPanel = ({
           <iframe
             title={title}
             src={blobUrl}
-            className="min-h-[360px] w-full flex-1 bg-[#334155]"
+            className={`w-full flex-1 bg-[#334155] ${expanded ? 'min-h-0' : 'min-h-[360px]'}`}
           />
         )
       ) : (

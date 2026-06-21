@@ -1,6 +1,6 @@
 import express from 'express';
 import { rejectIfWebhookSecretMissing } from '../utils/webhookSecurity.js';
-import { retrieveMolliePayment, isMolliePaidStatus, isMollieFailedStatus } from '../mollie.js';
+import { retrieveMolliePayment, isMolliePaidStatus, isMollieFailedStatus, resolveMollieRefundState, listMolliePaymentRefunds, hasMolliePendingRefund } from '../mollie.js';
 import { notifyInvoicePaymentOutcome } from '../services/invoicePaymentNotifications.js';
 import { queueInvoiceAfterPaymentSuccess } from '../services/qonto/invoiceOpsReviewService.js';
 
@@ -139,8 +139,37 @@ export const registerWebhookRoutes = (app, deps) => {
     });
 
     const previousStatus = payment.status;
+    const refundState = resolveMollieRefundState(providerState);
+    let refundPending = false;
 
-    if (isMolliePaidStatus(providerState.status) && payment.status !== 'paid') {
+    if (!refundState.internalStatus && process.env.MOLLIE_API_KEY) {
+      try {
+        const refunds = await listMolliePaymentRefunds({ providerPaymentId });
+        refundPending = hasMolliePendingRefund(refunds);
+      } catch (_error) {
+        refundPending = false;
+      }
+    }
+
+    if (refundState.internalStatus) {
+      payment.status = refundState.internalStatus;
+      payment.refundedAt = refundState.refundedAt || new Date().toISOString();
+      payment.providerPayload = providerState.raw;
+      payment.metadata = {
+        ...(payment.metadata && typeof payment.metadata === 'object' ? payment.metadata : {}),
+        refundPending: false,
+      };
+      await upsertPayment(payment);
+    } else if (refundPending) {
+      payment.providerPayload = providerState.raw;
+      payment.metadata = {
+        ...(payment.metadata && typeof payment.metadata === 'object' ? payment.metadata : {}),
+        refundPending: true,
+      };
+      await upsertPayment(payment);
+    } else if (
+      isMolliePaidStatus(providerState.status) && payment.status !== 'paid'
+    ) {
       payment.status = 'paid';
       payment.paidAt = providerState.paidAt || new Date().toISOString();
       payment.providerPayload = providerState.raw;

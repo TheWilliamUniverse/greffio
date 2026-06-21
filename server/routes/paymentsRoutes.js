@@ -202,6 +202,7 @@ export const registerPaymentsRoutes = (app, deps) => {
           ok: true,
           resolved: true,
           status: payment.status,
+          refundPending: payment.metadata?.refundPending === true,
           paymentId: payment.id,
           dossierId: payment.dossierId || null,
           resourceOrderId: payment.resourceOrderId || null,

@@ -1,0 +1,9 @@
+node_modules/
+.expo/
+dist/
+*.jks
+*.p8
+*.mobileprovision
+.DS_Store
+ios/
+android/

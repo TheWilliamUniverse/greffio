@@ -75,6 +75,55 @@ export const isMollieFailedStatus = (status) => {
   return normalized === 'failed' || normalized === 'expired' || normalized === 'cancelled';
 };
 
+export const isMollieRefundedStatus = (status) => String(status || '').toLowerCase() === 'refunded';
+
+const parseMollieMoney = (money) => {
+  const value = Number.parseFloat(String(money?.value ?? '0').replace(',', '.'));
+  return Number.isFinite(value) ? value : 0;
+};
+
+/** Déduit remboursement total/partiel et remboursement en cours depuis la réponse Mollie. */
+export const resolveMollieRefundState = (payment) => {
+  const raw = payment?.raw || payment || {};
+  const status = String(raw.status || payment?.status || '').toLowerCase();
+  const amount = parseMollieMoney(raw.amount);
+  const refunded = parseMollieMoney(raw.amountRefunded);
+  const modifiedAt = raw.modifiedAt || raw.settlementAt || null;
+
+  if (isMollieRefundedStatus(status) || (refunded > 0 && amount > 0 && refunded >= amount)) {
+    return {
+      internalStatus: 'refunded',
+      refundedAt: modifiedAt || new Date().toISOString(),
+      refundPending: false,
+    };
+  }
+
+  if (refunded > 0 && amount > 0 && refunded < amount) {
+    return {
+      internalStatus: 'partially_refunded',
+      refundedAt: modifiedAt || new Date().toISOString(),
+      refundPending: false,
+    };
+  }
+
+  return {
+    internalStatus: null,
+    refundedAt: null,
+    refundPending: false,
+  };
+};
+
+const MOLLIE_PENDING_REFUND_STATUSES = new Set(['queued', 'pending', 'processing']);
+
+export const hasMolliePendingRefund = (refunds = []) => (
+  refunds.some((refund) => MOLLIE_PENDING_REFUND_STATUSES.has(String(refund?.status || '').toLowerCase()))
+);
+
+export const listMolliePaymentRefunds = async ({ providerPaymentId }) => {
+  const payload = await mollieRequest('GET', `/payments/${encodeURIComponent(providerPaymentId)}/refunds`);
+  return Array.isArray(payload?._embedded?.refunds) ? payload._embedded.refunds : [];
+};
+
 const formatMollieAmount = (amountTotalCents, currency = 'EUR') => ({
   currency,
   value: (amountTotalCents / 100).toFixed(2),
@@ -87,7 +136,7 @@ export const listMollieMethods = async ({
   amountTotalCents,
   currency = 'EUR',
   locale = 'fr_FR',
-  includeWallets = 'applepay',
+  includeWallets = 'applepay,googlepay',
 } = {}) => {
   const params = new URLSearchParams();
   if (Number.isFinite(amountTotalCents) && amountTotalCents > 0) {

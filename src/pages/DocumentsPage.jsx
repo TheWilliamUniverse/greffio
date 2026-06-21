@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Archive, CheckCircle2, Eye, FilePlus2, FileText, Search, ShieldCheck, Trash2, Upload } from 'lucide-react';
+import { Archive, CheckCircle2, FilePlus2, FileText, Search, ShieldCheck, Upload } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { StatusBadge } from '@/components/StatusBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
@@ -20,12 +20,12 @@ import {
 } from '@/api/documents.js';
 import { IdentityVerificationCard } from '@/components/identity/IdentityVerificationCard.jsx';
 import { DossierBreadcrumb } from '@/components/layout/DossierBreadcrumb.jsx';
-import { PdfPreviewPanel } from '@/components/documents/PdfPreviewPanel.jsx';
 import { DocumentPreviewActions } from '@/components/documents/DocumentPreviewActions.jsx';
-import { StatutesWorkflowBadge } from '@/components/documents/StatutesWorkflowBadge.jsx';
+import { PdfPreviewPanel } from '@/components/documents/PdfPreviewPanel.jsx';
 import { mapDocumentPreviewError } from '@/utils/dossierDocumentFile.js';
 import { openDocumentViewerTab } from '@/pages/DocumentViewerTab.jsx';
 import { FormalityPowerSummary } from '@/components/documents/FormalityPowerSummary.jsx';
+import { DocumentsListRow } from '@/components/documents/DocumentsListRow.jsx';
 import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
 import { DocumentStatusCard } from '@/components/patterns/DocumentStatusCard.jsx';
 import { GreffioSignatureInfoBanner } from '@/components/signature/GreffioSignatureInfoBanner.jsx';
@@ -38,7 +38,7 @@ import { queryKeys } from '@/hooks/queries/queryKeys.js';
 import { isInternalUser } from '@/utils/roles.js';
 import { getDocumentStatusLabel, getDocumentTypeLabel } from '@/utils/documentStatusLabels.js';
 import { documentHasFile, filterClientActionRequiredDocuments, filterClientVisibleDocuments, formatDocumentRejectionHint, resolveClientDocumentStatus } from '@/utils/documentWorkflow.js';
-import { resolveStatutesClientDisplayStatus, getStatutesWorkflowLabelClient } from '@/utils/statutesWorkflowClient.js';
+import { resolveStatutesClientDisplayStatus } from '@/utils/statutesWorkflowClient.js';
 import {
   readDossierIdFromSearchParams,
   resolveDocumentsDossierId,
@@ -75,7 +75,10 @@ export const DocumentsPage = () => {
     isLoading: loadingDossier,
     isError: dossierLoadError,
   } = useDossierQuery(resolvedDossierId);
-  const apiDocuments = dossierPayload?.documents || [];
+  const apiDocuments = useMemo(
+    () => dossierPayload?.documents ?? [],
+    [dossierPayload?.documents],
+  );
   const visibleApiDocuments = useMemo(
     () => filterClientVisibleDocuments(apiDocuments),
     [apiDocuments],
@@ -194,10 +197,10 @@ export const DocumentsPage = () => {
     return matchesQuery && matchesType;
   }), [normalizedDocuments, query, type]);
 
-  const invalidateDossierDocuments = async () => {
+  const invalidateDossierDocuments = useCallback(async () => {
     if (!resolvedDossierId) return;
     await queryClient.invalidateQueries({ queryKey: queryKeys.dossier(resolvedDossierId) });
-  };
+  }, [queryClient, resolvedDossierId]);
 
   const uploadPdfFile = async (docKey, file) => {
     if (!file || !resolvedDossierId || !docKey) return;
@@ -244,11 +247,6 @@ export const DocumentsPage = () => {
     const file = event.target.files?.[0];
     await uploadPdfFile(selectedDocKey, file);
     event.target.value = '';
-  };
-
-  const triggerRowUpload = (docKey) => {
-    pendingUploadDocKey.current = docKey;
-    rowUploadRef.current?.click();
   };
 
   const onRowUpload = async (event) => {
@@ -316,7 +314,7 @@ export const DocumentsPage = () => {
     if (previewDoc?.blobUrl) URL.revokeObjectURL(previewDoc.blobUrl);
   }, [previewDoc?.blobUrl]);
 
-  const openDocumentPreview = async (docKey, label) => {
+  const openDocumentPreview = useCallback(async (docKey, label) => {
     if (!resolvedDossierId || !docKey) return;
     setPreviewLoadingDocKey(docKey);
     setUploadError(null);
@@ -341,7 +339,7 @@ export const DocumentsPage = () => {
     } finally {
       setPreviewLoadingDocKey(null);
     }
-  };
+  }, [resolvedDossierId]);
 
   const openDocumentDownload = async (docKey) => {
     if (!resolvedDossierId || !docKey) return;
@@ -361,7 +359,7 @@ export const DocumentsPage = () => {
     }
   };
 
-  const removeAttachment = async (docKey, label) => {
+  const removeAttachment = useCallback(async (docKey, label) => {
     if (!resolvedDossierId || !docKey) return;
     const confirmed = window.confirm(`Supprimer la pièce jointe « ${label} » ? Vous pourrez en déposer une nouvelle ensuite.`);
     if (!confirmed) return;
@@ -377,8 +375,12 @@ export const DocumentsPage = () => {
     } finally {
       setDeletingDocKey(null);
     }
-  };
+  }, [invalidateDossierDocuments, resolvedDossierId]);
 
+  const handleRowUpload = useCallback((docKey) => {
+    pendingUploadDocKey.current = docKey;
+    rowUploadRef.current?.click();
+  }, []);
 
   const mergedPowerDocument = useMemo(
     () => resolveMergedFormalityPowerDocument(normalizedDocuments),
@@ -387,11 +389,36 @@ export const DocumentsPage = () => {
   const showPowerSection = Boolean(resolvedDossierId) && !eiLike;
   const isInitialLoading = loadingDossiers || (Boolean(resolvedDossierId) && loadingDossier && !dossierPayload && !dossierLoadError);
   const identityDocUploaded = normalizedDocuments.some((document) => document.docKey === 'identity_proof' && document.hasFile);
-  const summary = [
+  const summary = useMemo(() => ([
     { label: 'Pièces en coffre', value: normalizedDocuments.length, text: 'document(s) du dossier actif', icon: Archive },
     { label: 'À traiter', value: waitingDocs.length, text: 'pièces à compléter ou signer', icon: FileText },
     { label: 'Dossier relié', value: resolvedDossierId ? 1 : 0, text: resolvedDossierId ? 'dossier actif sélectionné' : 'aucun dossier actif', icon: CheckCircle2 },
-  ];
+  ]), [normalizedDocuments.length, resolvedDossierId, waitingDocs.length]);
+
+  const mergedPowerActions = useMemo(() => {
+    if (!mergedPowerDocument) return [];
+    const document = mergedPowerDocument;
+    const fileDocKey = document.docKey;
+    return [
+      document.hasFile ? {
+        label: previewLoadingDocKey === fileDocKey ? 'Ouverture…' : 'Voir',
+        onClick: () => { void openDocumentPreview(fileDocKey, MERGED_FORMALITY_POWER_LABEL); },
+        disabled: previewLoadingDocKey === fileDocKey,
+      } : null,
+      document.hasFile ? {
+        label: 'Télécharger',
+        onClick: () => { void openDocumentDownload(fileDocKey); },
+      } : null,
+      {
+        label: 'Compléter en ligne',
+        to: `/dossier/${resolvedDossierId}/pouvoirs-formalites`,
+      },
+    ].filter(Boolean);
+  }, [mergedPowerDocument, openDocumentPreview, previewLoadingDocKey, resolvedDossierId]);
+
+  const handleVerificationUpdated = useCallback(() => {
+    void invalidateDossierDocuments();
+  }, [invalidateDossierDocuments]);
 
   if (isInitialLoading) {
     return (
@@ -509,52 +536,31 @@ export const DocumentsPage = () => {
             <IdentityVerificationCard
               dossierId={resolvedDossierId}
               identityDocUploaded={identityDocUploaded}
-              onVerificationUpdated={() => { void invalidateDossierDocuments(); }}
+              onVerificationUpdated={handleVerificationUpdated}
             />
           ) : null}
 
           {showPowerSection ? (
-            <section className="space-y-4 rounded-md border border-border bg-white p-5 shadow-elevation-sm">
+            <section className="space-y-4 rounded-md border border-border bg-white p-5 shadow-elevation-sm [content-visibility:auto] [contain-intrinsic-size:auto_240px]">
               <div>
                 <p className="text-sm font-bold uppercase text-primary">Représentation</p>
                 <h2 className="mt-1 text-xl font-extrabold text-foreground">{MERGED_FORMALITY_POWER_LABEL}</h2>
               </div>
               {mergedPowerDocument ? (
                 <div className="space-y-3">
-                  {(() => {
-                    const document = mergedPowerDocument;
-                    const fileDocKey = document.docKey;
-                    const actions = [
-                      document.hasFile ? {
-                        label: previewLoadingDocKey === fileDocKey ? 'Ouverture…' : 'Voir',
-                        onClick: () => { void openDocumentPreview(fileDocKey, MERGED_FORMALITY_POWER_LABEL); },
-                        disabled: previewLoadingDocKey === fileDocKey,
-                      } : null,
-                      document.hasFile ? {
-                        label: 'Télécharger',
-                        onClick: () => { void openDocumentDownload(fileDocKey); },
-                      } : null,
-                      {
-                        label: 'Compléter en ligne',
-                        to: `/dossier/${resolvedDossierId}/pouvoirs-formalites`,
-                      },
-                    ].filter(Boolean);
-                    return (
-                      <DocumentStatusCard
-                        title={MERGED_FORMALITY_POWER_LABEL}
-                        subtitle={null}
-                        status={mapFormalityPowerStatus(document)}
-                        badges={isFormalityPowerDocument(document).confidence !== 'low' ? ['Vaut procuration'] : []}
-                        shieldNotch
-                        warning={
-                          ['REJECTED', 'INVALID'].includes(document.status)
-                            ? formatDocumentRejectionHint(document)
-                            : (document.status === 'PENDING_REVIEW' ? 'Contrôle Greffio en cours.' : undefined)
-                        }
-                        actions={actions}
-                      />
-                    );
-                  })()}
+                  <DocumentStatusCard
+                    title={MERGED_FORMALITY_POWER_LABEL}
+                    subtitle={null}
+                    status={mapFormalityPowerStatus(mergedPowerDocument)}
+                    badges={isFormalityPowerDocument(mergedPowerDocument).confidence !== 'low' ? ['Vaut procuration'] : []}
+                    shieldNotch
+                    warning={
+                      ['REJECTED', 'INVALID'].includes(mergedPowerDocument.status)
+                        ? formatDocumentRejectionHint(mergedPowerDocument)
+                        : (mergedPowerDocument.status === 'PENDING_REVIEW' ? 'Contrôle Greffio en cours.' : undefined)
+                    }
+                    actions={mergedPowerActions}
+                  />
                   <FormalityPowerSummary document={mergedPowerDocument} />
                 </div>
               ) : (
@@ -627,7 +633,7 @@ export const DocumentsPage = () => {
             </section>
           ) : null}
 
-          <section className="grid gap-4 md:grid-cols-3">
+          <section className="grid gap-4 md:grid-cols-3 [content-visibility:auto] [contain-intrinsic-size:auto_160px]">
             {summary.map((item) => (
               <div key={item.label} className="rounded-md border border-border bg-white p-5 shadow-elevation-sm">
                 <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-md bg-secondary text-primary">
@@ -654,7 +660,7 @@ export const DocumentsPage = () => {
             </div>
           </section>
 
-          <section className="rounded-md border border-primary/20 bg-secondary p-5 shadow-elevation-sm">
+          <section className="rounded-md border border-primary/20 bg-secondary p-5 shadow-elevation-sm [content-visibility:auto] [contain-intrinsic-size:auto_120px]">
             <div className="flex items-start gap-3">
               <ShieldCheck className="mt-1 h-5 w-5 text-primary" />
               <div>
@@ -690,73 +696,24 @@ export const DocumentsPage = () => {
               </div>
             </section>
           ) : (
-            <section className="overflow-hidden rounded-md border border-border bg-white shadow-elevation-sm">
+            <section className="overflow-hidden rounded-md border border-border bg-white shadow-elevation-sm [content-visibility:auto]">
               <div className="grid grid-cols-[1.4fr_140px_160px] gap-4 border-b border-border bg-muted px-5 py-3 text-xs font-bold uppercase text-muted-foreground max-lg:hidden">
                 <span>Document</span>
                 <span>Statut</span>
                 <span>Actions</span>
               </div>
               {filteredDocuments.map((document) => (
-                <div key={document.id} className="grid gap-4 border-b border-border px-5 py-4 last:border-b-0 lg:grid-cols-[1.4fr_140px_160px] lg:items-center">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-md bg-secondary text-primary">
-                      <FileText className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-foreground">{document.name}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {document.date ? `Mis à jour le ${new Date(document.date).toLocaleDateString('fr-FR')}` : 'En attente de dépôt'}
-                      </p>
-                      {['REJECTED', 'INVALID'].includes(document.status) ? (
-                        <p className="mt-1 text-xs text-destructive">{formatDocumentRejectionHint(document)}</p>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <StatusBadge status={document.status} className="w-fit" />
-                    {document.docKey === 'signed_statutes' && document.statutesWorkflowStatus ? (
-                      <StatutesWorkflowBadge
-                        status={document.statutesWorkflowStatus}
-                        label={getStatutesWorkflowLabelClient({ metadata: { statutesWorkflowStatus: document.statutesWorkflowStatus } })}
-                      />
-                    ) : null}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="bg-white"
-                      aria-label="Aperçu"
-                      onClick={() => openDocumentPreview(document.docKey, document.name)}
-                      disabled={!resolvedDossierId || !document.hasFile || previewLoadingDocKey === document.docKey}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="bg-white"
-                      aria-label="Déposer un PDF"
-                      title="Déposer un PDF"
-                      onClick={() => triggerRowUpload(document.docKey)}
-                      disabled={!resolvedDossierId || !document.canUpload || uploadingDocKey === document.docKey}
-                    >
-                      {uploadingDocKey === document.docKey
-                        ? <span className="text-xs">…</span>
-                        : <Upload className="h-4 w-4" />}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="bg-white text-destructive hover:bg-destructive/5 hover:text-destructive"
-                      aria-label="Supprimer la pièce jointe"
-                      onClick={() => removeAttachment(document.docKey, document.name)}
-                      disabled={!resolvedDossierId || !document.hasFile || deletingDocKey === document.docKey}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                <DocumentsListRow
+                  key={document.id}
+                  document={document}
+                  resolvedDossierId={resolvedDossierId}
+                  isPreviewLoading={previewLoadingDocKey === document.docKey}
+                  isUploading={uploadingDocKey === document.docKey}
+                  isDeleting={deletingDocKey === document.docKey}
+                  onPreview={openDocumentPreview}
+                  onUpload={handleRowUpload}
+                  onDelete={removeAttachment}
+                />
               ))}
             </section>
           )}

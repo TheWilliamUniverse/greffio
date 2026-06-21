@@ -16,10 +16,11 @@ export const buildCover = (data) => {
 
   return {
     title: 'STATUTS',
+    legalForm: data.legalForm,
     legalFormLabel: label,
     denomination: data.denomination,
     sigle: data.sigle !== 'Non prévu' ? data.sigle : null,
-    capitalLine: `${data.legalForm} au capital de ${data.capital} euros`,
+    capitalLine: `${label} au capital de ${data.capital} euros`,
     seatBlock: `Siège social :\n${data.seat.full}`,
     registryLine: registryStatus,
     reference: data.reference,

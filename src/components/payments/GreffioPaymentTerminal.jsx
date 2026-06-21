@@ -10,6 +10,12 @@ import { fetchMollieMethods, fetchPaymentTerminalConfig } from '@/api/mollie.js'
 import { MOLLIE_PROFILE_ID } from '@/config/mollie.js';
 import { cn } from '@/lib/utils.js';
 import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
+import {
+  pickDefaultConsumerPaymentMethod,
+  resolvePaymentMethodHint,
+  shouldRecommendWalletOnMobile,
+  sortConsumerCheckoutMethods,
+} from '@/utils/paymentMethods.js';
 import paymentLogo from '../../../assets/payments/greffio-payment-logo.png';
 
 const PAYMENT_GRADIENT_ONLY = 'linear-gradient(180deg, rgba(248,251,255,0.98) 0%, rgba(255,255,255,1) 55%, rgba(238,244,255,0.96) 100%)';
@@ -34,7 +40,7 @@ const METHOD_ICONS = {
 const resolveMethodLabel = (method) => {
   if (method?.description) return method.description;
   if (method?.id === 'creditcard') return 'Carte bancaire';
-  if (method?.id === 'applepay') return 'Apple Pay';
+  if (method?.id === 'googlepay') return 'Google Pay';
   if (method?.id === 'banktransfer') return 'Virement bancaire';
   return method?.id || 'Paiement';
 };
@@ -50,6 +56,7 @@ export const GreffioPaymentTerminal = ({
   variant = 'panel',
   showTrustFooter = true,
   className,
+  mobileCheckout = false,
 }) => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [methods, setMethods] = useState([]);
@@ -99,12 +106,10 @@ export const GreffioPaymentTerminal = ({
           mollieConfig?.profileId || methodsPayload?.profileId || MOLLIE_PROFILE_ID,
         );
         setTestmode(Boolean(mollieConfig?.testmode ?? methodsPayload?.testmode));
-        const list = Array.isArray(methodsPayload?.methods) ? methodsPayload.methods : [];
+        const rawList = Array.isArray(methodsPayload?.methods) ? methodsPayload.methods : [];
+        const list = sortConsumerCheckoutMethods(rawList);
         setMethods(list);
-        const preferred = list.find((item) => item.id === 'creditcard')
-          || list.find((item) => item.checkoutMode === 'embedded')
-          || list[0];
-        if (preferred?.id) setSelectedMethodId(preferred.id);
+        setSelectedMethodId(pickDefaultConsumerPaymentMethod(list));
       } catch (_error) {
         if (!cancelled) {
           setProfileId(MOLLIE_PROFILE_ID);
@@ -127,8 +132,14 @@ export const GreffioPaymentTerminal = ({
     () => methods.find((item) => item.id === selectedMethodId) || null,
     [methods, selectedMethodId],
   );
+  const walletRecommendation = useMemo(
+    () => shouldRecommendWalletOnMobile(methods),
+    [methods],
+  );
+  const isMobilePay = isCapacitorNative() || isMobileBrowserViewport();
   const isEmbeddedCard = selectedMethodId === 'creditcard';
   const isHostedMethod = selectedMethod && selectedMethod.checkoutMode === 'hosted';
+  const useCompactMobileCheckout = mobileCheckout && isMobilePay;
   const payDisabled = isCreatingPayment
     || !amountCents
     || (requireLegalAcceptance && !termsAccepted)
@@ -161,11 +172,21 @@ export const GreffioPaymentTerminal = ({
       <div>
         <h2 className="text-lg font-extrabold text-[hsl(var(--greffio-blue-900))]">Options de paiement</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          {offerLabel} – choisissez votre moyen de paiement sécurisé.
+          {offerLabel} – validation sur Greffio, puis confirmation sécurisée si votre banque l&apos;exige.
         </p>
       </div>
 
-      <fieldset className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      {walletRecommendation && walletRecommendation !== selectedMethodId ? (
+        <div className="rounded-xl border border-[#b9d0ef] bg-[#f8fbff] px-4 py-3 text-sm leading-6 text-muted-foreground">
+          Sur mobile, nous recommandons{' '}
+          <span className="font-semibold text-foreground">
+            {walletRecommendation === 'applepay' ? 'Apple Pay' : 'Google Pay'}
+          </span>
+          {' '}pour valider en un geste, sans connexion à l&apos;espace client de votre banque.
+        </div>
+      ) : null}
+
+      <fieldset className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
         <legend className="sr-only">Moyen de paiement</legend>
         {methods.map((method) => {
           const Icon = METHOD_ICONS[method.id] || CreditCard;
@@ -176,10 +197,10 @@ export const GreffioPaymentTerminal = ({
               key={method.id}
               htmlFor={inputId}
               className={cn(
-                'flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition',
+                'flex min-h-[52px] cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3.5 transition',
                 active
                   ? 'border-[hsl(var(--greffio-blue))] bg-white shadow-[0_8px_24px_rgba(30,77,140,0.08)]'
-                  : 'border-border bg-white/90 hover:border-[#b9d0ef]',
+                  : 'border-border/80 bg-white hover:border-[#b9d0ef]',
               )}
             >
               <input
@@ -198,16 +219,16 @@ export const GreffioPaymentTerminal = ({
                   className="h-6 w-auto shrink-0 object-contain"
                 />
               ) : (
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[hsl(var(--greffio-blue))]/10 text-[hsl(var(--greffio-blue))]">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--greffio-blue))]/10 text-[hsl(var(--greffio-blue))]">
                   <Icon className="h-4 w-4" />
                 </span>
               )}
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-extrabold text-[hsl(var(--greffio-blue-900))]">
+                <span className="block text-sm font-extrabold text-[hsl(var(--greffio-blue-900))] sm:text-base">
                   {resolveMethodLabel(method)}
                 </span>
-                <span className="mt-0.5 block text-xs text-muted-foreground">
-                  {method.checkoutMode === 'embedded' ? 'Formulaire Greffio' : 'Page sécurisée Mollie'}
+                <span className="mt-0.5 block text-xs text-muted-foreground sm:text-sm">
+                  {resolvePaymentMethodHint(method.id)}
                 </span>
               </span>
             </label>
@@ -216,7 +237,7 @@ export const GreffioPaymentTerminal = ({
       </fieldset>
 
       {isEmbeddedCard ? (
-        <div className="space-y-4 rounded-xl border border-[#dbe7f7] bg-white p-4 sm:p-5">
+        <div className="space-y-4 rounded-2xl border border-[#dbe7f7] bg-white p-4 sm:p-5">
           <PaymentBrandBadges compact floating />
           {profileId ? (
             <MollieCardForm
@@ -228,9 +249,10 @@ export const GreffioPaymentTerminal = ({
           ) : (
             <p className="text-sm text-muted-foreground">Chargement du formulaire carte…</p>
           )}
-          {nativeApp ? (
+          {isMobilePay ? (
             <p className="rounded-lg bg-[#f8fbff] px-3 py-2 text-xs leading-5 text-muted-foreground">
-              Sur l&apos;app mobile, la vérification 3-D Secure s&apos;ouvre dans le navigateur système puis vous ramène dans Greffio.
+              Après « Payer », confirmez dans l&apos;application de votre banque si une notification apparaît.
+              Vous reviendrez automatiquement sur Greffio – pas besoin de rester connecté sur le site de la banque.
             </p>
           ) : null}
         </div>
@@ -244,9 +266,9 @@ export const GreffioPaymentTerminal = ({
                   <HostedIcon className="h-4 w-4" />
                 </span>
                 <span>
-                  Vous serez redirigé vers la page sécurisée Mollie pour finaliser{' '}
+                  Vous serez redirigé vers la validation sécurisée Mollie pour finaliser{' '}
                   <span className="font-semibold text-foreground">{resolveMethodLabel(selectedMethod)}</span>.
-                  {nativeApp ? ' Sur mobile, le navigateur système s\'ouvrira automatiquement.' : ''}
+                  {isMobilePay ? ' Validation sur votre téléphone, puis retour automatique sur Greffio.' : ''}
                 </span>
               </p>
             );
@@ -254,7 +276,12 @@ export const GreffioPaymentTerminal = ({
         </div>
       )}
 
-      <div className="sticky bottom-0 z-10 -mx-1 space-y-3 rounded-xl border border-[#dbe7f7] bg-white/95 p-4 backdrop-blur-sm">
+      <div className={cn(
+        'sticky bottom-0 z-10 space-y-3 rounded-2xl border border-[#dbe7f7] bg-white/95 p-4 backdrop-blur-sm',
+        useCompactMobileCheckout
+          ? '-mx-0 mb-[calc(0.25rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(10,18,32,0.08)]'
+          : '-mx-1',
+      )}>
         {requireLegalAcceptance ? (
           <LegalAcceptanceCheckbox checked={termsAccepted} onChange={setTermsAccepted} />
         ) : null}
@@ -280,7 +307,10 @@ export const GreffioPaymentTerminal = ({
 
         <Button
           type="button"
-          className="h-12 w-full justify-between rounded-xl text-base font-bold"
+          className={cn(
+            'h-12 w-full justify-between text-base font-bold',
+            useCompactMobileCheckout ? 'rounded-full' : 'rounded-xl',
+          )}
           onClick={() => void handlePay()}
           disabled={payDisabled}
         >
@@ -297,7 +327,7 @@ export const GreffioPaymentTerminal = ({
 
   if (!isCard) {
     return (
-      <section className={cn('rounded-xl border border-border bg-white p-5 shadow-elevation-sm sm:p-6', className)}>
+      <section className={cn('greffio-payment-terminal rounded-xl border border-border bg-white p-5 shadow-elevation-sm sm:p-6', className)}>
         {paymentBody}
       </section>
     );
@@ -306,35 +336,44 @@ export const GreffioPaymentTerminal = ({
   return (
     <section
       className={cn(
-        'relative mx-auto w-full max-w-2xl rounded-[28px] border border-[#cfe0f5]',
-        'shadow-[0_28px_80px_rgba(30,77,140,0.14)]',
+        'greffio-payment-terminal relative mx-auto w-full max-w-2xl',
+        useCompactMobileCheckout
+          ? 'greffio-mobile-checkout-card overflow-hidden border-[#cfe0f5] p-0 shadow-[0_12px_40px_rgba(30,77,140,0.1)]'
+          : 'rounded-[28px] border border-[#cfe0f5] shadow-[0_28px_80px_rgba(30,77,140,0.14)]',
         className,
       )}
-      style={{
+      style={useCompactMobileCheckout ? undefined : {
         backgroundImage: cardBackgroundImage,
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
       }}
     >
-      <div className="relative border-b border-white/70 px-5 py-6 sm:px-7">
+      <div className={cn(
+        'relative border-b border-white/70',
+        useCompactMobileCheckout ? 'border-border/60 px-5 py-5' : 'px-5 py-6 sm:px-7',
+      )}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <div className="mb-3 flex items-center gap-3">
-              <img src={paymentLogo} alt="" aria-hidden className="h-8 w-auto" />
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Paiement sécurisé</p>
-            </div>
-            <h2 className="text-2xl font-extrabold text-[hsl(var(--greffio-blue-900))]">
+            {!useCompactMobileCheckout ? (
+              <div className="mb-3 flex items-center gap-3">
+                <img src={paymentLogo} alt="" aria-hidden className="h-8 w-auto" />
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Paiement sécurisé</p>
+              </div>
+            ) : (
+              <p className="greffio-mobile-checkout-meta mb-2 text-primary">Terminal de paiement</p>
+            )}
+            <h2 className="text-lg font-extrabold tracking-tight text-[hsl(var(--greffio-blue-900))] sm:text-2xl">
               Régler en toute sécurité
             </h2>
           </div>
           <div className="rounded-2xl border border-white/80 bg-white/90 px-4 py-3 text-center sm:min-w-[180px] sm:text-right">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Montant TTC</p>
-            <p className="mt-0.5 text-3xl font-extrabold text-[hsl(var(--greffio-blue-900))]">{amountLabel || '–'}</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Montant TTC</p>
+            <p className="mt-0.5 text-2xl font-extrabold tracking-tight text-[hsl(var(--greffio-blue-900))] sm:text-3xl">{amountLabel || '–'}</p>
           </div>
         </div>
       </div>
 
-      <div className="relative px-5 py-6 sm:px-7">
+      <div className={cn('relative', useCompactMobileCheckout ? 'px-5 py-5' : 'px-5 py-6 sm:px-7')}>
         {paymentBody}
       </div>
     </section>

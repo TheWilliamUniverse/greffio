@@ -15,9 +15,12 @@ const escapeXml = (value) => String(value ?? '')
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&apos;');
 
-const odtParagraph = (text, { bold = false, size = '13pt' } = {}) => (
-  `<text:p text:style-name="${bold ? 'Bold' : 'Body'}"><text:span text:style-name="${bold ? 'BoldSpan' : 'BodySpan'}" fo:font-size="${size}">${escapeXml(text)}</text:span></text:p>`
-);
+const odtParagraph = (text, { bold = false, size = '13pt', align = 'left' } = {}) => {
+  const styleName = bold
+    ? (align === 'center' ? 'BoldCenter' : 'Bold')
+    : (align === 'center' ? 'Center' : 'Body');
+  return `<text:p text:style-name="${styleName}"><text:span text:style-name="${bold ? 'BoldSpan' : 'BodySpan'}" fo:font-size="${size}">${escapeXml(text)}</text:span></text:p>`;
+};
 
 export { buildStatutesExportElements };
 
@@ -32,10 +35,12 @@ export const buildStatutesOdtBlob = (preview) => {
   const body = elements.map((item) => {
     if (item.type === 'page-break') return '<text:p text:style-name="PageBreak"/>';
     if (item.type === 'cover-spacer') return odtParagraph('', { size: `${COVER_FONT_SIZE_PT}pt` });
-    if (item.type === 'cover-title') return odtParagraph(item.text, { bold: true, size: `${COVER_FONT_SIZE_PT}pt` });
-    if (item.type === 'cover-line') return odtParagraph(item.text, { bold: Boolean(item.bold), size: `${COVER_FONT_SIZE_PT}pt` });
-    if (item.type === 'cover-reference') return odtParagraph(item.text, { size: `${COVER_REFERENCE_FONT_SIZE_PT}pt` });
-    if (item.type === 'section-title') return `${odtParagraph('', { size: '8pt' })}${odtParagraph(item.text, { bold: true, size: '16pt' })}`;
+    if (item.type === 'cover-title') return odtParagraph(item.text, { bold: true, size: `${COVER_FONT_SIZE_PT}pt`, align: 'center' });
+    if (item.type === 'cover-line') return odtParagraph(item.text, { bold: Boolean(item.bold), size: `${COVER_FONT_SIZE_PT}pt`, align: 'center' });
+    if (item.type === 'cover-reference') return odtParagraph(item.text, { size: `${COVER_REFERENCE_FONT_SIZE_PT}pt`, align: 'center' });
+    if (item.type === 'section-title') {
+      return `${odtParagraph('', { size: '8pt' })}${odtParagraph(item.text, { bold: true, size: '16pt', align: item.align || 'center' })}`;
+    }
     if (item.type === 'article') {
       const paragraphs = String(item.body || '').split(/\n\n+/).map((part) => part.trim()).filter(Boolean);
       const bodyOdt = paragraphs.map((paragraph) => odtParagraph(paragraph, { size: '14pt' })).join('');
@@ -57,7 +62,9 @@ export const buildStatutesOdtBlob = (preview) => {
 <office:document-styles xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" office:version="1.2">
   <office:styles>
     <style:style style:name="Body" style:family="paragraph"><style:paragraph-properties fo:margin-bottom="0.18cm" fo:line-height="140%"/></style:style>
+    <style:style style:name="Center" style:family="paragraph"><style:paragraph-properties fo:margin-bottom="0.18cm" fo:line-height="140%" fo:text-align="center"/></style:style>
     <style:style style:name="Bold" style:family="paragraph"><style:paragraph-properties fo:margin-bottom="0.18cm" fo:line-height="140%"/></style:style>
+    <style:style style:name="BoldCenter" style:family="paragraph"><style:paragraph-properties fo:margin-bottom="0.18cm" fo:line-height="140%" fo:text-align="center"/></style:style>
     <style:style style:name="BodySpan" style:family="text"><style:text-properties fo:font-size="14pt"/></style:style>
     <style:style style:name="BoldSpan" style:family="text"><style:text-properties fo:font-weight="bold" fo:font-size="14pt"/></style:style>
   </office:styles>

@@ -25,7 +25,7 @@ const MARGIN_BOTTOM = 57;
 const MARGIN_H = 71;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_H * 2;
 const FOOTER_Y = 28;
-const LABEL_COL_X = MARGIN_H + 188;
+const LABEL_COL_X = MARGIN_H + 248;
 
 const COLOR_TEXT = rgb(0, 0, 0);
 const COLOR_MUTED = rgb(0.2, 0.2, 0.2);
@@ -106,8 +106,19 @@ const drawLeftLines = (page, font, y, text, { size = SIZE_BODY, lineHeight = LIN
   return y;
 };
 
-const drawLabelValue = (page, font, fontBold, y, label, value) => {
-  page.drawText(pdfSafe(label), {
+const securitiesCountLabel = (unit) => (
+  unit.toLowerCase() === 'actions' ? "Nombre d'actions souscrites" : 'Nombre de parts sociales souscrites'
+);
+
+const securitiesTotalCountLabel = (unit) => (
+  unit.toLowerCase() === 'actions' ? "Nombre total d'actions souscrites" : 'Nombre total de parts sociales souscrites'
+);
+
+const drawLabelValue = (page, font, fontBold, y, label, value, gapRow = GAP_ROW) => {
+  const labelText = pdfSafe(label);
+  const labelWidth = fontBold.widthOfTextAtSize(labelText, SIZE_BODY);
+  const valueX = Math.max(LABEL_COL_X, MARGIN_H + labelWidth + 14);
+  page.drawText(labelText, {
     x: MARGIN_H,
     y,
     size: SIZE_BODY,
@@ -115,14 +126,14 @@ const drawLabelValue = (page, font, fontBold, y, label, value) => {
     color: COLOR_TEXT,
   });
   page.drawText(pdfSafe(value || '–'), {
-    x: LABEL_COL_X,
+    x: valueX,
     y,
     size: SIZE_BODY,
     font,
     color: COLOR_TEXT,
-    maxWidth: CONTENT_WIDTH - (LABEL_COL_X - MARGIN_H),
+    maxWidth: CONTENT_WIDTH - (valueX - MARGIN_H),
   });
-  return y - GAP_ROW;
+  return y - gapRow;
 };
 
 const getSubscriberRows = (subscriber, securitiesUnit) => (
@@ -135,7 +146,7 @@ const getSubscriberRows = (subscriber, securitiesUnit) => (
       ['Siège social', subscriber.address || '–'],
       ['Représentant légal', subscriber.legalRepresentativeName || '–'],
       ['Qualité du représentant', subscriber.legalRepresentativeQuality || '–'],
-      [`Nombre de ${securitiesUnit.toLowerCase()} souscrites`, subscriber.titlesCount || '–'],
+      [securitiesCountLabel(securitiesUnit), subscriber.titlesCount || '–'],
       ['Pourcentage du capital', subscriber.sharePercent || '–'],
       ['Apport en numéraire', subscriber.contributionCash || '0 €'],
       ['Apport en nature', subscriber.contributionInKind || 'Néant'],
@@ -148,7 +159,7 @@ const getSubscriberRows = (subscriber, securitiesUnit) => (
       ['Date et lieu de naissance', subscriber.birthDatePlace || '–'],
       ['Nationalité', subscriber.nationality || 'Française'],
       ['Adresse', subscriber.address || '–'],
-      [`Nombre de ${securitiesUnit.toLowerCase()} souscrites`, subscriber.titlesCount || '–'],
+      [securitiesCountLabel(securitiesUnit), subscriber.titlesCount || '–'],
       ['Pourcentage du capital', subscriber.sharePercent || '–'],
       ['Apport en numéraire', subscriber.contributionCash || '0 €'],
       ['Apport en nature', subscriber.contributionInKind || 'Néant'],
@@ -262,14 +273,16 @@ export const generateSubscribersListPdf = async ({ filename, fields = {} }) => {
   const signatureReservedTop = SUBSCRIBERS_LIST_SIGNATURE_LINE_Y
     + SUBSCRIBERS_LIST_SIGNATURE_HEADING_ABOVE_LINE
     + 16;
+  const gapSection = singleSubscriber ? 28 : GAP_SECTION;
+  const gapRow = singleSubscriber ? 16 : GAP_ROW;
+  const gapParagraph = singleSubscriber ? 14 : GAP_PARAGRAPH;
 
   let page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   let pageNumber = 1;
-  let totalPages = 1;
   let y = PAGE_HEIGHT - MARGIN_TOP;
 
   const drawFooter = (targetPage, num, total) => {
-    const label = `Liste des souscripteurs — Page ${num} sur ${total}`;
+    const label = `Liste des souscripteurs – Page ${num} sur ${total}`;
     targetPage.drawText(label, {
       x: MARGIN_H,
       y: FOOTER_Y,
@@ -280,22 +293,26 @@ export const generateSubscribersListPdf = async ({ filename, fields = {} }) => {
   };
 
   const startNewPage = () => {
-    drawFooter(page, pageNumber, totalPages);
     pageNumber += 1;
-    totalPages += 1;
     page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
     y = PAGE_HEIGHT - MARGIN_TOP;
   };
 
-  const ensureSpace = (needed, { signatureZone = false } = {}) => {
-    const floorY = signatureZone ? signatureReservedTop : SUBSCRIBERS_LIST_CONTENT_BOTTOM_Y;
+  const getContentFloor = ({ signatureZone = false } = {}) => {
+    if (signatureZone) return signatureReservedTop;
+    if (singleSubscriber && pageNumber === 1) return MARGIN_BOTTOM + 16;
+    return SUBSCRIBERS_LIST_CONTENT_BOTTOM_Y;
+  };
+
+  const ensureSpace = (needed, options = {}) => {
+    const floorY = getContentFloor(options);
     if (y - needed < floorY) startNewPage();
   };
 
   y = drawCentered(page, fontBold, y, 'LISTE DES SOUSCRIPTEURS', SIZE_TITLE);
   y -= SIZE_TITLE * 0.9;
   y = drawCentered(page, font, y, String(fields.legalFormHeader || 'Société en formation'), SIZE_OVERLINE);
-  y -= GAP_SECTION;
+  y -= gapSection;
 
   ensureSpace(120);
   y = drawSectionHeading(page, fontBold, y, 'Société concernée');
@@ -307,14 +324,14 @@ export const generateSubscribersListPdf = async ({ filename, fields = {} }) => {
     ['Statut', fields.companyFormationStatus || 'Société en cours de constitution'],
     [fields.officerDesignationLabel || 'Président désigné', fields.presidentDesignated || fields.signatureFullName],
   ].forEach(([label, value]) => {
-    ensureSpace(GAP_ROW + 4);
-    y = drawLabelValue(page, font, fontBold, y, label, value);
+    ensureSpace(gapRow + 4);
+    y = drawLabelValue(page, font, fontBold, y, label, value, gapRow);
   });
-  y -= 6;
+  y -= singleSubscriber ? 10 : 6;
 
   ensureSpace(estimateBlockHeight(fields.introParagraph));
   y = drawLeftLines(page, font, y, fields.introParagraph || 'Le présent état récapitule les souscriptions effectuées dans le cadre de la constitution de la société désignée ci-dessus.');
-  y -= GAP_PARAGRAPH;
+  y -= gapParagraph;
 
   subscribers.forEach((subscriber, index) => {
     const heading = singleSubscriber
@@ -323,25 +340,29 @@ export const generateSubscribersListPdf = async ({ filename, fields = {} }) => {
     ensureSpace(estimateSubscriberBlockHeight(subscriber, securitiesUnit) + 10);
     y = drawSectionHeading(page, fontBold, y, heading);
     getSubscriberRows(subscriber, securitiesUnit).forEach(([label, value]) => {
-      ensureSpace(GAP_ROW + 4);
-      y = drawLabelValue(page, font, fontBold, y, label, value);
+      ensureSpace(gapRow + 4);
+      y = drawLabelValue(page, font, fontBold, y, label, value, gapRow);
     });
-    y -= 8;
+    y -= singleSubscriber ? 12 : 8;
   });
+
+  if (singleSubscriber) {
+    startNewPage();
+  }
 
   ensureSpace(90);
   y = drawSectionHeading(page, fontBold, y, 'Récapitulatif des souscriptions');
   [
-    [`Nombre total de ${securitiesUnit.toLowerCase()} souscrites`, recap.totalShares || '0'],
+    [securitiesTotalCountLabel(securitiesUnit), recap.totalShares || '0'],
     ['Montant total des apports en numéraire', recap.totalCash || '0 €'],
     ['Montant total des apports en nature', recap.totalInKind || 'Néant'],
     ['Montant total libéré à la constitution', recap.totalLiberated || '0 €'],
     ['Pourcentage du capital souscrit', recap.totalPercent || '100 %'],
   ].forEach(([label, value]) => {
-    ensureSpace(GAP_ROW + 4);
-    y = drawLabelValue(page, font, fontBold, y, label, value);
+    ensureSpace(gapRow + 4);
+    y = drawLabelValue(page, font, fontBold, y, label, value, gapRow);
   });
-  y -= 6;
+  y -= singleSubscriber ? 10 : 6;
 
   ensureSpace(60, { signatureZone: true });
   y = drawSectionHeading(page, fontBold, y, 'Certification');
@@ -350,7 +371,7 @@ export const generateSubscribersListPdf = async ({ filename, fields = {} }) => {
     page.drawText(line, { x: MARGIN_H, y, size: SIZE_BODY, font, color: COLOR_TEXT, maxWidth: CONTENT_WIDTH });
     y -= LINE_BODY;
   });
-  y -= GAP_PARAGRAPH;
+  y -= gapParagraph;
 
   ensureSpace(40, { signatureZone: true });
   y = drawSectionHeading(page, fontBold, y, 'Dépôt des fonds');
@@ -360,9 +381,11 @@ export const generateSubscribersListPdf = async ({ filename, fields = {} }) => {
     y -= LINE_BODY;
   });
 
-  const signatureBlockHeight = SUBSCRIBERS_LIST_SIGNATURE_HEADING_ABOVE_LINE + 24;
-  if (y < signatureReservedTop + signatureBlockHeight) {
-    startNewPage();
+  if (!singleSubscriber) {
+    const signatureBlockHeight = SUBSCRIBERS_LIST_SIGNATURE_HEADING_ABOVE_LINE + 24;
+    if (y < signatureReservedTop + signatureBlockHeight) {
+      startNewPage();
+    }
   }
 
   drawSignatureBlock(page, font, fontBold, fields, dateFr);
@@ -370,11 +393,11 @@ export const generateSubscribersListPdf = async ({ filename, fields = {} }) => {
     page,
     font,
     fontBold,
-    fields.signatureReminder || "Rappel : le président désigné certifie l'exactitude, la sincérité et la complétude des informations relatives aux souscriptions et aux apports indiqués dans le présent état.",
+    fields.signatureReminder || "Le président désigné est tenu de conserver les justificatifs des apports et de leur libération pendant la durée légale.",
   );
 
   const pages = pdfDoc.getPages();
-  totalPages = pages.length;
+  const totalPages = pages.length;
   pages.forEach((targetPage, index) => {
     drawFooter(targetPage, index + 1, totalPages);
   });

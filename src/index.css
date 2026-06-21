@@ -80,25 +80,78 @@
 
   html {
     scroll-behavior: smooth;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     overflow-x: hidden;
   }
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     font-family: 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  #root {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+  }
+
+  img,
+  video,
+  iframe,
+  table {
+    max-width: 100%;
   }
 
   @media (max-width: 767px) {
     input,
     select,
+    textarea,
+    button,
+    a,
+    [role='button'] {
+      touch-action: manipulation;
+    }
+
+    input,
+    select,
     textarea {
       font-size: 16px;
     }
+
+    .greffio-payment-terminal input,
+    .greffio-payment-terminal select,
+    .greffio-payment-terminal textarea,
+    .greffio-payment-terminal .mollie-component,
+    .greffio-payment-terminal [class*='mollie'] {
+      font-size: 16px;
+    }
+  }
+
+  .greffio-onlyoffice-host {
+    display: block;
+    width: 100%;
+    min-height: inherit;
+    contain: layout style paint;
+  }
+
+  .greffio-onlyoffice-host iframe {
+    display: block;
+    width: 100% !important;
+    min-height: inherit;
   }
 
   h1,
@@ -451,6 +504,79 @@
   .mobile-sticky-form-actions button,
   .mobile-sticky-form-actions a {
     min-height: 44px;
+  }
+
+  .greffio-mobile-checkout {
+    --greffio-checkout-bg: #f4f7fb;
+    background: var(--greffio-checkout-bg);
+    min-height: 100%;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .greffio-mobile-checkout-card {
+    border-radius: 1rem;
+    border: 1px solid hsl(var(--border) / 0.8);
+    background: #fff;
+    box-shadow: 0 4px 18px rgba(10, 18, 32, 0.06);
+    padding: 1.25rem;
+  }
+
+  .greffio-mobile-checkout-hero {
+    border-radius: 1rem;
+    background: hsl(var(--greffio-blue));
+    box-shadow: 0 12px 32px rgba(30, 77, 140, 0.18);
+    padding: 1.25rem;
+    color: #fff;
+  }
+
+  .greffio-mobile-checkout-title {
+    font-size: 1.125rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+  }
+
+  .greffio-mobile-checkout-meta {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.72;
+  }
+
+  .greffio-mobile-checkout-amount {
+    font-size: 1.875rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
+
+  .greffio-mobile-checkout-body {
+    font-size: 0.875rem;
+    line-height: 1.55;
+  }
+
+  .greffio-mobile-floating-nav {
+    left: 1rem;
+    right: 1rem;
+    bottom: max(0.625rem, env(safe-area-inset-bottom));
+    margin-inline: auto;
+    max-width: 32rem;
+    border-radius: 1.375rem;
+    border: 1px solid hsl(var(--border) / 0.75);
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow:
+      0 10px 40px rgba(10, 18, 32, 0.12),
+      0 1px 0 rgba(255, 255, 255, 0.85) inset;
+    backdrop-filter: blur(16px);
+    padding: 0.375rem 0.5rem;
+  }
+
+  .greffio-mobile-floating-nav-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
   }
 
   .app-shell-viewport {

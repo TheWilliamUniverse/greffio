@@ -1,16 +1,18 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Download,
   FileText,
   Loader2,
+  Maximize2,
+  Minimize2,
   PencilLine,
   RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { PdfPreviewPanel } from '@/components/documents/PdfPreviewPanel.jsx';
-import { OnlyOfficeEditor } from '@/components/documents/OnlyOfficeEditor.jsx';
+import { OnlyOfficeEditor, preloadOnlyOfficeAssets } from '@/components/documents/OnlyOfficeEditor.jsx';
 import { StatutesWorkflowBadge } from '@/components/documents/StatutesWorkflowBadge.jsx';
 import { downloadDossierDocument } from '@/api/documents.js';
 import {
@@ -48,6 +50,8 @@ export const DocumentViewerTab = () => {
   const [workflowMessage, setWorkflowMessage] = useState('');
   const [workflowMessageTone, setWorkflowMessageTone] = useState('neutral');
   const [mobileTab, setMobileTab] = useState('preview');
+  const [expandedPanel, setExpandedPanel] = useState(null);
+  const editorResizeTimerRef = useRef(null);
 
   const title = useMemo(
     () => getDocumentTypeLabel(docKey, workspace?.title || docKey),
@@ -128,6 +132,9 @@ export const DocumentViewerTab = () => {
         setWorkflowMessageTone('warning');
         setWorkflowMessage(session?.message || 'L’éditeur ONLYOFFICE n’est pas configuré. L’aperçu reste disponible.');
         return;
+      }
+      if (session.documentServerUrl) {
+        preloadOnlyOfficeAssets(session.documentServerUrl);
       }
       setEditorPayload(session);
     } catch (sessionError) {
@@ -236,15 +243,45 @@ export const DocumentViewerTab = () => {
     docKey,
   ]);
 
+  useEffect(() => () => {
+    if (editorResizeTimerRef.current) {
+      clearTimeout(editorResizeTimerRef.current);
+    }
+  }, []);
+
   useEffect(() => {
-    void loadDocument();
-  }, [loadDocument]);
+    if (!expandedPanel) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setExpandedPanel(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [expandedPanel]);
+
+  const toggleExpandedPanel = useCallback((panel) => {
+    setExpandedPanel((current) => (current === panel ? null : panel));
+    if (editorResizeTimerRef.current) {
+      clearTimeout(editorResizeTimerRef.current);
+    }
+    editorResizeTimerRef.current = window.setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 120);
+  }, []);
 
   useEffect(() => {
     if (isEditMode && workspace?.capabilities?.freeEdit && !editorPayload && !editorLoading) {
       void openEditor();
     }
   }, [isEditMode, workspace, editorPayload, editorLoading, openEditor]);
+
+  useEffect(() => {
+    void loadDocument();
+  }, [loadDocument]);
 
   useEffect(() => () => {
     if (preview?.blobUrl) URL.revokeObjectURL(preview.blobUrl);
@@ -321,7 +358,10 @@ export const DocumentViewerTab = () => {
   const showEditorFallback = Boolean(editorUnavailable && !showEditor && !editorLoading);
   const canDownloadDocxSource = Boolean(workspace?.currentVersion?.fileFormat === 'docx' || docKey === 'signed_statutes');
   const editorUnavailableOnMobile = isMobileLayout && isEditMode && !showEditor && !editorLoading && Boolean(workflowMessage);
-  const showMobileTabs = isMobileLayout && canEdit && (showEditor || editorLoading);
+  const showMobileTabs = isMobileLayout && canEdit && (showEditor || editorLoading) && !expandedPanel;
+
+  const isEditorExpanded = expandedPanel === 'editor';
+  const isPreviewExpanded = expandedPanel === 'preview';
 
   const workflowBannerClass = workflowMessageTone === 'success'
     ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
@@ -510,31 +550,49 @@ export const DocumentViewerTab = () => {
         className={
           isMobileLayout
             ? 'flex min-h-0 flex-1 flex-col gap-3 px-0 pb-4'
-            : 'grid grid-cols-1 gap-4 lg:grid-cols-[3fr_2fr]'
+            : 'grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[3fr_2fr] lg:items-stretch'
         }
       >
         {showEditor && (!isMobileLayout || mobileTab === 'edit') ? (
           <section
             className={
-              isMobileLayout
-                ? 'flex min-h-0 flex-col bg-white'
-                : 'flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-white shadow-elevation-sm'
+              isEditorExpanded
+                ? 'fixed inset-0 z-50 flex flex-col bg-white'
+                : isMobileLayout
+                  ? 'flex min-h-[min(560px,70dvh)] flex-1 flex-col bg-white'
+                  : 'flex min-h-[720px] flex-1 flex-col overflow-hidden rounded-xl border border-border bg-white shadow-elevation-sm'
             }
           >
             <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3 sm:px-5">
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-primary" />
-                <p className="text-sm font-bold text-foreground">Éditeur Word ONLYOFFICE</p>
+              <div className="flex min-w-0 items-center gap-2">
+                <FileText className="h-4 w-4 shrink-0 text-primary" />
+                <p className="truncate text-sm font-bold text-foreground">
+                  {isEditorExpanded ? `Éditeur Word ONLYOFFICE – ${title}` : 'Éditeur Word ONLYOFFICE'}
+                </p>
               </div>
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
-                Autosave
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary ${isEditorExpanded ? 'hidden sm:inline' : ''}`}>
+                  Autosave
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={isEditorExpanded ? 'outline' : 'ghost'}
+                  className={`h-8 px-2 text-xs ${isEditorExpanded ? 'bg-white' : ''}`}
+                  onClick={() => toggleExpandedPanel('editor')}
+                  aria-label={isEditorExpanded ? 'Quitter le plein écran' : 'Ouvrir l’éditeur en plein écran'}
+                >
+                  {isEditorExpanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+                  {isEditorExpanded ? 'Quitter' : 'Plein écran'}
+                </Button>
+              </div>
             </div>
-            <div className="flex min-h-0 flex-1 flex-col p-0 sm:p-1">
+            <div className={`flex flex-1 flex-col p-0 sm:p-1 ${isEditorExpanded ? 'min-h-0' : 'min-h-[min(520px,65dvh)]'}`}>
               <OnlyOfficeEditor
                 documentServerUrl={editorPayload.documentServerUrl}
                 config={editorPayload.config}
                 fullViewport
+                expanded={isEditorExpanded}
                 onRetry={() => void openEditor()}
                 onDocumentSaved={() => void handleEditorSaved()}
                 onUnavailable={handleEditorUnavailable}
@@ -546,13 +604,17 @@ export const DocumentViewerTab = () => {
         {preview?.blobUrl && (!isMobileLayout || mobileTab === 'preview' || !showEditor) ? (
           <section
             className={
-              isMobileLayout
-                ? 'mx-4 overflow-hidden rounded-xl border border-border bg-white shadow-elevation-sm'
-                : 'overflow-hidden rounded-xl border border-border bg-white shadow-elevation-sm'
+              isPreviewExpanded
+                ? 'fixed inset-0 z-50 flex flex-col bg-white'
+                : isMobileLayout
+                  ? 'mx-4 overflow-hidden rounded-xl border border-border bg-white shadow-elevation-sm'
+                  : 'overflow-hidden rounded-xl border border-border bg-white shadow-elevation-sm [content-visibility:auto] [contain-intrinsic-size:720px]'
             }
           >
-            <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-5">
-              <p className="text-sm font-bold text-foreground">Aperçu PDF</p>
+            <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3 sm:px-5">
+              <p className="truncate text-sm font-bold text-foreground">
+                {isPreviewExpanded ? `Aperçu PDF – ${title}` : 'Aperçu PDF'}
+              </p>
               <div className="flex items-center gap-2">
                 {previewRefreshing ? (
                   <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
@@ -560,6 +622,17 @@ export const DocumentViewerTab = () => {
                     Mise à jour…
                   </span>
                 ) : null}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={isPreviewExpanded ? 'outline' : 'ghost'}
+                  className={`h-8 px-2 text-xs ${isPreviewExpanded ? 'bg-white' : ''}`}
+                  onClick={() => toggleExpandedPanel('preview')}
+                  aria-label={isPreviewExpanded ? 'Quitter le plein écran' : 'Ouvrir l’aperçu PDF en plein écran'}
+                >
+                  {isPreviewExpanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+                  {isPreviewExpanded ? 'Quitter' : 'Plein écran'}
+                </Button>
                 <Button
                   type="button"
                   size="sm"
@@ -573,11 +646,15 @@ export const DocumentViewerTab = () => {
                 </Button>
               </div>
             </div>
-            <PdfPreviewPanel
-              title={title}
-              blobUrl={preview.blobUrl}
-              filename={preview.filename}
-            />
+            <div className={isPreviewExpanded ? 'flex min-h-0 flex-1 flex-col' : ''}>
+              <PdfPreviewPanel
+                title={title}
+                blobUrl={preview.blobUrl}
+                filename={preview.filename}
+                expanded={isPreviewExpanded}
+                className={isPreviewExpanded ? 'min-h-0 flex-1' : ''}
+              />
+            </div>
           </section>
         ) : null}
       </div>

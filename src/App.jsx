@@ -69,6 +69,7 @@ import { AboutPage } from '@/pages/AboutPage.jsx';
 import { GuidePage } from '@/pages/GuidePage.jsx';
 import { MandatePage } from '@/pages/MandatePage.jsx';
 import { PaymentVerificationPage } from '@/pages/PaymentVerificationPage.jsx';
+import { PaymentAuthenticationPage } from '@/pages/PaymentAuthenticationPage.jsx';
 import { DocumentCompletionEntry } from '@/mobile/entries/DocumentCompletionEntry.jsx';
 import { SignaturePublicPage } from '@/pages/SignaturePublicPage.jsx';
 import { DocumentSignPage } from '@/pages/DocumentSignPage.jsx';
@@ -149,7 +150,7 @@ const Layout = ({ children }) => {
   );
 
   return (
-    <div className="flex min-h-[100dvh] flex-col font-['Inter'] md:min-h-screen">
+    <div className="flex min-h-[100dvh] w-full min-w-0 max-w-full flex-col overflow-x-hidden font-['Inter'] md:min-h-screen">
       {!shouldHideHeader && <Header />}
       {content}
     </div>
@@ -231,6 +232,7 @@ function AppRoutes() {
             <Route path="/ops-legacy" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><Navigate to="/ops/cockpit" replace /></ProtectedRoute>} />
             <Route path="/ops-observability" element={<ProtectedRoute allowedRoles={['ADMIN', 'OPS', 'FORMALISTE']}><OpsMobileEntry>{withSuspense(LazyOpsLookupObservabilityPage, 'Chargement observabilité…')}</OpsMobileEntry></ProtectedRoute>} />
             <Route path="/paiement/verification" element={<PaymentVerificationPage />} />
+            <Route path="/paiement/authentification" element={<PaymentAuthenticationPage />} />
             <Route path="/verify/document/:id" element={<DocumentVerifyPage />} />
 
             <Route path="/dashboard" element={<ProtectedRoute><DashboardEntry /></ProtectedRoute>} />

@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { z } from 'zod';
 import { readOpenAiKey } from '../../../services/assistant/config.js';
 import { documentCompletionConfig } from '../config.js';
+import { DOCUMENT_COMPLETION_SECURITIES_RULES } from '../securitiesTerminology.js';
 
 const aiFieldSchema = z.object({
   fields: z.array(z.object({
@@ -122,6 +123,7 @@ Contraintes:
 - Privilégie les champs administratifs français (Cerfa, SIREN, SIRET, RCS, signature, dates).
 - Évite les doublons proches des candidats existants.
 - Coordonnées en points PDF, origine bas-gauche.
+${DOCUMENT_COMPLETION_SECURITIES_RULES}
 `.trim();
 
   try {

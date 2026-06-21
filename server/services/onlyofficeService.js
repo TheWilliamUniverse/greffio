@@ -255,7 +255,7 @@ export const buildOnlyOfficeEditorConfig = ({
         autosave: true,
         forcesave: true,
         compactHeader: true,
-        toolbarNoTabs: true,
+        // toolbarNoTabs → 404 index_loader.html sur Document Server 9.4.x (ONLYOFFICE #3694)
         hideRightMenu: true,
         hideRulers: presentation === 'mobile',
         features: {

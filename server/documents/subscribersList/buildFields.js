@@ -26,6 +26,10 @@ const formatEuroDisplay = (value) => {
 const formatBirthDatePlaceDisplay = (raw) => {
   const value = String(raw || '').trim();
   if (!value) return 'À compléter';
+  const isoWithPlace = value.match(/^(\d{4}-\d{2}-\d{2})\s+(à\s+.+)$/i);
+  if (isoWithPlace) {
+    return `${formatFrenchDate(isoWithPlace[1])} ${isoWithPlace[2]}`.trim();
+  }
   const isoMatch = value.match(/^(\d{4}-\d{2}-\d{2})(.*)$/);
   if (isoMatch) {
     const dateFr = formatFrenchDate(isoMatch[1]);
@@ -33,6 +37,18 @@ const formatBirthDatePlaceDisplay = (raw) => {
   }
   return value;
 };
+
+const formatCapitalDisplay = (raw) => {
+  const value = String(raw || '').trim();
+  if (!value) return 'À préciser';
+  if (/€/.test(value)) return value;
+  const amount = parseFrenchAmount(value);
+  return amount ? `${formatFrInteger(amount)} €` : value;
+};
+
+const securitiesSubscriptionPhrase = (securitiesUnit) => (
+  securitiesUnit.toLowerCase() === 'actions' ? "d'actions" : 'de parts sociales'
+);
 
 const resolveQualityLabel = (subscriber = {}) => {
   const role = String(subscriber.roleTitle || 'Associé').trim();
@@ -84,18 +100,18 @@ const buildRecap = (subscribers = []) => {
 
 const buildDepositParagraph = (amountLabel, deposited) => {
   if (deposited) {
-    return `La somme de ${amountLabel}, correspondant aux apports en numéraire libérés à la constitution, a été déposée sur un compte ouvert au nom de la société en formation, conformément à l'attestation établie par le dépositaire des fonds.`;
+    return `La somme de ${amountLabel}, correspondant aux apports en numéraire libérés à la constitution, a été déposée sur un compte ouvert au nom de la société en formation, conformément à l'attestation du dépositaire des fonds.`;
   }
-  return `La somme de ${amountLabel}, correspondant aux apports en numéraire libérés à la constitution, sera déposée sur un compte ouvert au nom de la société en formation auprès du dépositaire des fonds.`;
+  return `La somme de ${amountLabel}, correspondant aux apports en numéraire libérés à la constitution, sera déposée sur un compte ouvert au nom de la société en formation auprès du dépositaire des fonds, conformément aux dispositions légales applicables.`;
 };
 
-const buildCertificationParagraph = ({ legalForm, securitiesUnit, signatoryTitle, singleSubscriber }) => {
-  const unit = securitiesUnit.toLowerCase();
+const buildCertificationParagraph = ({ securitiesUnit, signatoryTitle, singleSubscriber }) => {
   const signatory = signatoryTitle || 'le président désigné';
   if (singleSubscriber) {
-    return `Le présent état, qui constate la souscription de l'intégralité des ${unit} composant le capital social de la société en formation ainsi que la libération des apports indiqués ci-dessus, est certifié exact, sincère et véritable par ${signatory.toLowerCase()}.`;
+    return `Le présent état constate la souscription de l'intégralité du capital social de la société en formation et le versement de la fraction libérée des apports en numéraire indiqués ci-dessus. ${signatory} certifie que les informations qui y figurent sont exactes, sincères et complètes.`;
   }
-  return `Le présent état, qui constate la souscription des ${unit} composant le capital social de la société en formation ainsi que la libération des apports indiqués ci-dessus, est certifié exact, sincère et véritable par ${signatory.toLowerCase()}.`;
+  const unitPhrase = securitiesSubscriptionPhrase(securitiesUnit);
+  return `Le présent état constate les souscriptions ${unitPhrase} composant le capital social de la société en formation et la libération des apports indiqués ci-dessus. ${signatory} certifie que les informations qui y figurent sont exactes, sincères et complètes.`;
 };
 
 const hasCapitalDepositAttestation = (documents = []) => (
@@ -105,6 +121,13 @@ const hasCapitalDepositAttestation = (documents = []) => (
     || doc.status === 'validated'
     || Boolean(doc.storageUrl || doc.fileUrl)
   ))
+);
+
+const usesObsoleteSubscribersBoilerplate = (value = '') => (
+  /souscriptions de actions/i.test(value)
+  || /constate la souscription des actions et le versement de la moitié/i.test(value)
+  || /certifié exact, sincère et véritable par/i.test(value)
+  || /Rappel : le président désigné certifie l'exactitude/i.test(value)
 );
 
 export const buildSubscribersListFields = ({
@@ -138,14 +161,14 @@ export const buildSubscribersListFields = ({
     fallbackTitle: signatureTitle,
   });
   const singleSubscriber = subscribers.length <= 1 || legalForm === 'SASU' || legalForm === 'EURL';
-  const securitiesWord = securitiesUnit.toLowerCase();
+  const securitiesWord = securitiesSubscriptionPhrase(securitiesUnit);
   const signatoryTitleLabel = signature.signatoryTitle || signatureTitle;
   const signatureBlockHeading = ['SARL', 'EURL', 'SCI'].includes(legalForm)
     ? 'SIGNATURE DU GÉRANT'
     : 'SIGNATURE DU PRÉSIDENT DÉSIGNÉ';
   const signatureReminder = ['SARL', 'EURL', 'SCI'].includes(legalForm)
-    ? "Rappel : le gérant certifie l'exactitude, la sincérité et la complétude des informations relatives aux souscriptions et aux apports indiqués dans le présent état."
-    : "Rappel : le président désigné certifie l'exactitude, la sincérité et la complétude des informations relatives aux souscriptions et aux apports indiqués dans le présent état.";
+    ? "Le gérant est tenu de conserver les justificatifs des apports et de leur libération pendant la durée légale."
+    : "Le président désigné est tenu de conserver les justificatifs des apports et de leur libération pendant la durée légale.";
 
   const seatLine = [data.seat?.address, [data.seat?.postalCode, data.seat?.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
 
@@ -153,12 +176,12 @@ export const buildSubscribersListFields = ({
     legalFormHeader: LEGAL_FORM_SUBTITLE[legalForm] || `${LEGAL_FORM_LABELS[legalForm] || legalForm} en formation`,
     companyName: String(data.denomination || dossier?.companyName || '').trim(),
     companyLegalFormLabel: LEGAL_FORM_LABELS[legalForm] || legalForm,
-    companyCapital: String(data.capital || '').trim() || 'À préciser',
+    companyCapital: formatCapitalDisplay(data.capital),
     companyRegisteredOffice: seatLine || 'Siège social à compléter',
     companyFormationStatus: 'Société en cours de constitution',
     presidentDesignated: String(data.president || data.director || signature.signatoryName || '').trim(),
     officerDesignationLabel: ['SARL', 'EURL', 'SCI'].includes(legalForm) ? 'Gérant désigné' : 'Président désigné',
-    introParagraph: `Le présent état récapitule les souscriptions de ${securitiesWord} effectuées dans le cadre de la constitution de la société désignée ci-dessus.`,
+    introParagraph: `Le présent état récapitule les souscriptions ${securitiesWord} effectuées dans le cadre de la constitution de la société désignée ci-dessus.`,
     securitiesUnit,
     subscribers,
     singleSubscriber,
@@ -167,7 +190,6 @@ export const buildSubscribersListFields = ({
     depositDeposited,
     depositParagraph: buildDepositParagraph(depositAmountLabel, depositDeposited),
     certificationParagraph: buildCertificationParagraph({
-      legalForm,
       securitiesUnit,
       signatoryTitle: signatoryTitleLabel,
       singleSubscriber,
@@ -190,12 +212,23 @@ export const buildSubscribersListFields = ({
   return {
     ...initial,
     ...savedFields,
+    companyCapital: formatCapitalDisplay(savedFields.companyCapital || initial.companyCapital),
+    introParagraph: usesObsoleteSubscribersBoilerplate(savedFields.introParagraph)
+      ? initial.introParagraph
+      : (savedFields.introParagraph || initial.introParagraph),
     subscribers: Array.isArray(savedFields.subscribers) && savedFields.subscribers.length
       ? savedFields.subscribers.map((row) => enrichSubscriberContributions(row, securitiesUnit))
       : initial.subscribers,
     recap: savedFields.recap || initial.recap,
-    depositParagraph: savedFields.depositParagraph || initial.depositParagraph,
-    certificationParagraph: savedFields.certificationParagraph || initial.certificationParagraph,
+    depositParagraph: usesObsoleteSubscribersBoilerplate(savedFields.depositParagraph)
+      ? initial.depositParagraph
+      : (savedFields.depositParagraph || initial.depositParagraph),
+    certificationParagraph: usesObsoleteSubscribersBoilerplate(savedFields.certificationParagraph)
+      ? initial.certificationParagraph
+      : (savedFields.certificationParagraph || initial.certificationParagraph),
+    signatureReminder: usesObsoleteSubscribersBoilerplate(savedFields.signatureReminder)
+      ? initial.signatureReminder
+      : (savedFields.signatureReminder || initial.signatureReminder),
   };
 };
 

@@ -59,7 +59,7 @@ const DetailRow = ({ label, value, copyable = false }) => {
     <div className="rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
       <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</dt>
       <dd className="mt-1 flex items-start justify-between gap-2">
-        <span className="font-mono text-xs text-slate-800 break-all">{value || '—'}</span>
+        <span className="font-mono text-xs text-slate-800 break-all">{value || '–'}</span>
         {copyable && value ? (
           <Button type="button" size="sm" variant="ghost" className="h-7 shrink-0 px-2" onClick={() => void copyValue()}>
             <Copy className="h-3.5 w-3.5" />
@@ -170,7 +170,7 @@ export const OpsIntegrationsPage = () => {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Greffio Ops · Intégrations</p>
-          <h2 className="mt-1 text-2xl font-extrabold text-slate-900">Mollie — deux applications</h2>
+          <h2 className="mt-1 text-2xl font-extrabold text-slate-900">Mollie – deux applications</h2>
           <p className="mt-2 max-w-2xl text-sm text-slate-600">
             Paiements B2C clients (clé API) et Connect Partners (OAuth plateforme). Les secrets restent
             côté API ; cette page affiche uniquement l’état de configuration.

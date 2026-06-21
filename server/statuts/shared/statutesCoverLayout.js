@@ -1,3 +1,5 @@
+import { resolveStatutesCoverCompanyLine } from '../../legal/statutes/shared/formatting.js';
+
 export const COVER_FONT_SIZE_PT = 18;
 export const COVER_REFERENCE_FONT_SIZE_PT = 10;
 
@@ -46,10 +48,10 @@ export const layoutStatutesCover = (cover = {}, pageMetrics = {}) => {
   const marginBottom = pageMetrics.marginBottom ?? 58;
   const contentHeight = pageHeight - marginTop - marginBottom;
 
+  const companyLine = resolveStatutesCoverCompanyLine(cover);
   const topLines = [
     { text: cover.title || 'STATUTS', bold: true },
-    { text: cover.legalFormLabel || '', bold: true },
-    { text: cover.denomination || '', bold: true },
+    ...(companyLine ? [{ text: companyLine, bold: true }] : []),
   ].filter((line) => line.text);
 
   if (cover.sigle) topLines.push({ text: `(${cover.sigle})`, bold: false });
@@ -115,7 +117,7 @@ export const layoutStatutesCover = (cover = {}, pageMetrics = {}) => {
 
 export const buildStatutesCoverExportElements = (cover = {}) => {
   const layout = layoutStatutesCover(cover);
-  const elements = [{ type: 'page-break' }];
+  const elements = [];
 
   layout.topLines.forEach((line, index) => {
     elements.push({

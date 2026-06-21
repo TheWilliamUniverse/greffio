@@ -28,6 +28,35 @@ export const usesActions = (legalForm) => ['SAS', 'SASU'].includes(String(legalF
 
 export const STATUTES_SUPPORTED_FORMS = Object.freeze(['SAS', 'SASU', 'SARL', 'EURL', 'SCI']);
 
+export const normalizeLegalFormCode = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const upper = raw.toUpperCase();
+  if (STATUTES_SUPPORTED_FORMS.includes(upper)) return upper;
+  const byLabel = Object.entries(LEGAL_FORM_LABELS).find(([, label]) => (
+    label.toLowerCase() === raw.toLowerCase()
+    || raw.toLowerCase().includes(label.toLowerCase())
+  ));
+  return byLabel?.[0] || upper;
+};
+
+export const resolveLegalFormLabel = (legalForm, { withAcronym = false } = {}) => {
+  const code = normalizeLegalFormCode(legalForm);
+  const label = LEGAL_FORM_LABELS[code] || String(legalForm || '').trim();
+  if (!label) return '';
+  return withAcronym && code && LEGAL_FORM_LABELS[code] ? `${label} (${code})` : label;
+};
+
+export const stripLegalFormAcronym = (label) => String(label || '').replace(/\s*\([^)]+\)\s*$/, '').trim();
+
+export const resolveStatutesCoverCompanyLine = (cover = {}) => {
+  const denomination = String(cover.denomination || '').trim();
+  const legalFormText = stripLegalFormAcronym(cover.legalFormLabel)
+    || resolveLegalFormLabel(cover.legalForm || cover.metadata?.legalForm);
+  if (denomination && legalFormText) return `${denomination} ${legalFormText}`;
+  return denomination || legalFormText || '';
+};
+
 export const article = (number, title, body) => ({
   kind: 'article',
   number,

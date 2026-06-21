@@ -31,8 +31,12 @@ export const Header = () => {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-white/90 backdrop-blur-xl">
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center px-4 md:px-6">
-        <Link to="/" className="mr-6 flex items-center">
-          <GreffioLogo variant="full" className="scale-75 origin-left" />
+        <Link
+          to={isAuthenticated ? '/dashboard' : '/'}
+          className="mr-6 flex w-[5.5rem] shrink-0 items-center overflow-hidden sm:w-auto sm:max-w-[9rem]"
+          aria-label={isAuthenticated ? 'Greffio – Retour au tableau de bord' : 'Greffio – Retour à l’accueil'}
+        >
+          <GreffioLogo variant="full" className="origin-left scale-75" />
         </Link>
 
         <div className="hidden items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground md:flex">

@@ -1,4 +1,4 @@
-import { DIRECTOR_LABELS, usesActions } from '../legal/statutes/shared/formatting.js';
+import { DIRECTOR_LABELS, usesActions, normalizeLegalFormCode } from '../legal/statutes/shared/formatting.js';
 import { resolveWilliamObjetSocialBullets } from '../legal/statutes/reference/williamObjetSocialCatalog.js';
 import { formatFrInteger, parseFrenchAmount } from '../statuts/shared/numberFormat.js';
 import { isLegallyMinor } from './minorAssociateRules.js';
@@ -192,7 +192,9 @@ const buildAssociates = (questionnaire = {}, user = null, legalForm = 'SASU') =>
 };
 
 export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {}) => {
-  const legalForm = pick(questionnaire.formeJuridique, dossier?.legalForm, dossier?.formeJuridique, 'SASU').toUpperCase();
+  const legalForm = normalizeLegalFormCode(
+    pick(questionnaire.formeJuridique, dossier?.legalForm, dossier?.formeJuridique, 'SASU'),
+  ) || 'SASU';
   const denomination = pick(questionnaire.denomination, questionnaire.companyName, dossier?.denomination, dossier?.companyName, 'Dénomination à compléter');
   const capitalRaw = pick(questionnaire.capital, questionnaire.capitalAmount, questionnaire.capitalMontant, dossier?.capital, '1000');
   const capitalFormatted = formatEuros(capitalRaw) || '1 000';

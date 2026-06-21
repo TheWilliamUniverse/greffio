@@ -1,5 +1,6 @@
 import { buildStandardAnnexes } from '../../legal/statutes/shared/annexes.js';
 import { buildWilliamCover, buildWilliamSignatures } from '../../legal/statutes/reference/williamHelpers.js';
+import { resolveLegalFormLabel } from '../../legal/statutes/shared/formatting.js';
 import { formatFrEuros } from '../shared/numberFormat.js';
 import { joinStatutesArticleBody } from '../shared/normalizeStatutesParagraphs.js';
 import { estimatePageCount, countWilliamArticles } from '../renderers/renderWilliamSas2026.js';
@@ -10,12 +11,7 @@ const articleTitleFromHeading = (heading, number) => {
   return match ? match[1].trim() : `Article ${number}`;
 };
 
-const legalFormShortLabel = (legalForm) => {
-  const f = String(legalForm || 'SAS').toUpperCase();
-  if (f === 'SASU') return 'Société par Actions Simplifiée Unipersonnelle';
-  if (f === 'SAS') return 'Société par Actions Simplifiée';
-  return f;
-};
+const legalFormShortLabel = (legalForm) => resolveLegalFormLabel(legalForm);
 
 const buildArticleBodiesMap = (blocks = []) => {
   const articleBodies = new Map();
@@ -56,9 +52,7 @@ export const adaptRenderedBlocksToLegacyDocument = ({
   const cover = buildWilliamCover({
     ...statutesData,
     capital: capitalLabel ? capitalLabel.replace(/\s+euros$/i, '') : statutesData.capital,
-    legalFormLabel: statutesData.legalFormLabel || (legalForm === 'SASU'
-      ? 'Société par Actions Simplifiée Unipersonnelle (SASU)'
-      : 'Société par Actions Simplifiée (SAS)'),
+    legalFormLabel: statutesData.legalFormLabel || resolveLegalFormLabel(legalForm, { withAcronym: true }),
     legalFormShort: legalFormShortLabel(legalForm),
     seat,
     greffe: statutesData.greffe,

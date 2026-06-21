@@ -164,6 +164,50 @@ const canAdvanceInputStep = (step, associate) => {
   return Boolean(String(value || '').trim());
 };
 
+const isWizardStepComplete = (step, associate) => {
+  if (step.id === 'addAnother') return true;
+  if (step.kind === 'choice') return Boolean(String(readStepValue(associate, step) || '').trim());
+  if (step.kind === 'input') return canAdvanceInputStep(step, associate);
+  return true;
+};
+
+export const resolveAssociatesWizardResume = (associates = [], resume = {}) => {
+  const list = Array.isArray(associates) && associates.length ? associates : [createEmptyAssociate()];
+  const savedAssociateIndex = Number(resume?.associatesAssociateIndex);
+  const savedLocalStepIndex = Number(resume?.associatesLocalStepIndex);
+  if (
+    Number.isInteger(savedAssociateIndex)
+    && savedAssociateIndex >= 0
+    && savedAssociateIndex < list.length
+    && Number.isInteger(savedLocalStepIndex)
+    && savedLocalStepIndex >= 0
+  ) {
+    const steps = buildWizardSteps(list[savedAssociateIndex], savedAssociateIndex);
+    return {
+      associateIndex: savedAssociateIndex,
+      localStepIndex: Math.min(savedLocalStepIndex, Math.max(steps.length - 1, 0)),
+    };
+  }
+
+  for (let associateIndex = 0; associateIndex < list.length; associateIndex += 1) {
+    const steps = buildWizardSteps(list[associateIndex], associateIndex);
+    for (let localStepIndex = 0; localStepIndex < steps.length; localStepIndex += 1) {
+      const step = steps[localStepIndex];
+      if (step.id === 'addAnother') continue;
+      if (!isWizardStepComplete(step, list[associateIndex])) {
+        return { associateIndex, localStepIndex };
+      }
+    }
+  }
+
+  const lastAssociateIndex = Math.max(list.length - 1, 0);
+  const lastSteps = buildWizardSteps(list[lastAssociateIndex], lastAssociateIndex);
+  return {
+    associateIndex: lastAssociateIndex,
+    localStepIndex: Math.max(lastSteps.length - 1, 0),
+  };
+};
+
 export const AssociatesMobileWizard = forwardRef(({
   value = [],
   onChange,
@@ -171,10 +215,17 @@ export const AssociatesMobileWizard = forwardRef(({
   stepCurrent,
   stepTotal,
   onComplete,
+  resumePosition,
+  onResumePositionChange,
 }, ref) => {
   const associates = Array.isArray(value) && value.length ? value : [createEmptyAssociate()];
-  const [associateIndex, setAssociateIndex] = useState(0);
-  const [localStepIndex, setLocalStepIndex] = useState(0);
+  const initialResume = useMemo(
+    () => resolveAssociatesWizardResume(associates, resumePosition),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+  const [associateIndex, setAssociateIndex] = useState(initialResume.associateIndex);
+  const [localStepIndex, setLocalStepIndex] = useState(initialResume.localStepIndex);
 
   const safeAssociateIndex = Math.min(associateIndex, Math.max(associates.length - 1, 0));
   const currentAssociate = associates[safeAssociateIndex] || createEmptyAssociate();
@@ -190,6 +241,13 @@ export const AssociatesMobileWizard = forwardRef(({
       setLocalStepIndex(safeLocalStepIndex);
     }
   }, [localStepIndex, safeLocalStepIndex]);
+
+  useEffect(() => {
+    onResumePositionChange?.({
+      associatesAssociateIndex: safeAssociateIndex,
+      associatesLocalStepIndex: safeLocalStepIndex,
+    });
+  }, [safeAssociateIndex, safeLocalStepIndex, onResumePositionChange]);
 
   const patchAssociate = (patch) => {
     const next = associates.map((item, index) => (

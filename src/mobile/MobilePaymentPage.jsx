@@ -110,7 +110,7 @@ export const MobilePaymentPage = () => {
           cardToken,
         });
         if (payload.checkoutUrl) {
-          await openPaymentCheckoutUrl(payload.checkoutUrl);
+          await openPaymentCheckoutUrl(payload.checkoutUrl, { checkoutMode: payload.checkoutMode });
           return;
         }
         throw new Error('CHECKOUT_URL_MISSING');
@@ -118,7 +118,7 @@ export const MobilePaymentPage = () => {
       if (resourceOrderId) {
         const payload = await checkoutResourceOrder(resourceOrderId, { mollieMethod: method, cardToken });
         if (payload.checkoutUrl) {
-          await openPaymentCheckoutUrl(payload.checkoutUrl);
+          await openPaymentCheckoutUrl(payload.checkoutUrl, { checkoutMode: payload.checkoutMode });
           return;
         }
         throw new Error('CHECKOUT_URL_MISSING');
@@ -136,7 +136,7 @@ export const MobilePaymentPage = () => {
         cardToken,
       });
       if (payload.checkoutUrl) {
-        await openPaymentCheckoutUrl(payload.checkoutUrl);
+        await openPaymentCheckoutUrl(payload.checkoutUrl, { checkoutMode: payload.checkoutMode });
         return;
       }
       throw new Error('CHECKOUT_URL_MISSING');
@@ -166,88 +166,93 @@ export const MobilePaymentPage = () => {
     ? `Panier boutique (${cartOrders.length} article${cartOrders.length > 1 ? 's' : ''})`
     : resourceOrder?.serviceTitle || selectedOffer.title;
 
+  const pageTitle = isCartFlow
+    ? `Panier (${cartOrders.length} article${cartOrders.length > 1 ? 's' : ''})`
+    : resourceOrder
+      ? resourceOrder.serviceTitle
+      : resourceLanding
+        ? resourceLanding.title
+        : selectedOffer.title;
+
   return (
-    <MobilePageContainer className="[--mobile-page-bottom-extra:2.75rem]">
+    <MobilePageContainer
+      hasBottomNav={false}
+      className="greffio-mobile-checkout [--mobile-page-bottom-extra:1.25rem] space-y-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))]"
+    >
       {pspStatus === 'paid' ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+        <div className="greffio-mobile-checkout-card border-emerald-200 bg-emerald-50 text-base text-emerald-900">
           <CheckCircle2 className="mb-2 h-5 w-5" />
           Paiement confirmé. Votre dossier sera mis à jour sous quelques instants.
-          <Button asChild className="mt-3 h-11 w-full">
+          <Button asChild className="mt-4 h-12 w-full rounded-full text-base font-bold">
             <Link to="/dashboard">Retour à l’accueil</Link>
           </Button>
         </div>
       ) : null}
 
       {pspStatus === 'failed' || pspStatus === 'cancelled' ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <div className="greffio-mobile-checkout-card border-amber-200 bg-amber-50 text-base text-amber-900">
           Le paiement n’a pas abouti. Vous pouvez réessayer en toute sécurité.
         </div>
       ) : null}
 
       {dossiersError ? <OfflineDataBanner cachedAt={dataUpdatedAt ? new Date(dataUpdatedAt).toISOString() : null} /> : null}
 
-      <section className="rounded-2xl bg-[hsl(var(--greffio-blue))] p-5 text-white shadow-lg">
-        <p className="text-xs font-bold uppercase text-white/70">Paiement sécurisé</p>
-        <h1 className="mt-2 text-2xl font-extrabold">
-          {isCartFlow
-            ? `Panier (${cartOrders.length} article${cartOrders.length > 1 ? 's' : ''})`
-            : resourceOrder
-              ? resourceOrder.serviceTitle
-              : resourceLanding
-                ? resourceLanding.title
-                : selectedOffer.title}
+      <section className="greffio-mobile-checkout-hero">
+        <p className="greffio-mobile-checkout-meta">Paiement sécurisé</p>
+        <h1 className="greffio-mobile-checkout-title mt-2 text-xl font-extrabold tracking-tight sm:text-2xl">
+          {pageTitle}
         </h1>
-        <p className="mt-3 text-3xl font-extrabold">
+        <p className="greffio-mobile-checkout-amount mt-3">
           {resourceOrder
             ? resourcePriceLabel
             : resourceLanding
               ? formatResourcePrice(resourceLanding.priceTtc)
               : selectedOffer.price}
         </p>
-        <p className="mt-2 text-sm text-white/85">
+        <p className="greffio-mobile-checkout-body mt-2 text-white/85">
           {resourceOrder || resourceLanding ? 'Commande document – TVA incluse' : selectedOffer.tax}
         </p>
         {orderReference ? (
-          <p className="mt-2 text-xs font-semibold text-white/80">{orderReference}</p>
+          <p className="greffio-mobile-checkout-meta mt-2 normal-case tracking-normal text-white/80">{orderReference}</p>
         ) : null}
       </section>
 
       {isResourceFlow && (resourceOrder || isCartFlow) ? (
-        <section className="rounded-2xl border border-border bg-white p-4 shadow-sm">
-          <div className="mb-2 flex items-center gap-2">
-            <FileText className="h-4 w-4 text-primary" />
-            <p className="text-sm font-extrabold">Récapitulatif</p>
+        <section className="greffio-mobile-checkout-card">
+          <div className="mb-3 flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" />
+            <p className="text-lg font-extrabold tracking-tight text-[hsl(var(--greffio-blue-900))]">Récapitulatif</p>
           </div>
           {isCartFlow ? (
-            <ul className="space-y-1 text-sm text-muted-foreground">
+            <ul className="space-y-2 text-base text-muted-foreground">
               {cartOrders.map((order) => (
-                <li key={order.id} className="flex justify-between gap-2">
+                <li key={order.id} className="flex justify-between gap-3">
                   <span>{order.serviceTitle}</span>
-                  <span className="font-semibold text-foreground">
+                  <span className="shrink-0 font-semibold text-foreground">
                     {`${Number(order.priceTtc || 0).toFixed(2).replace('.', ',')} €`}
                   </span>
                 </li>
               ))}
             </ul>
           ) : (
-            <>
+            <div className="greffio-mobile-checkout-body space-y-1 text-muted-foreground">
               {resourceOrder.companyName ? (
-                <p className="text-sm text-muted-foreground">{resourceOrder.companyName}</p>
+                <p>{resourceOrder.companyName}</p>
               ) : null}
               {catalogService?.estimatedDelay ? (
-                <p className="mt-1 text-xs text-muted-foreground">Délai : {catalogService.estimatedDelay}</p>
+                <p className="text-sm">Délai : {catalogService.estimatedDelay}</p>
               ) : null}
               {catalogService ? (
-                <p className="mt-1 text-xs text-muted-foreground">{getProcessingLabel(catalogService)}</p>
+                <p className="text-sm">{getProcessingLabel(catalogService)}</p>
               ) : null}
-            </>
+            </div>
           )}
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-border bg-muted/40 p-4 text-sm leading-6 text-muted-foreground">
-        <div className="mb-2 flex items-center gap-2 font-bold text-foreground">
-          <ShieldCheck className="h-4 w-4 text-primary" />
+      <section className="greffio-mobile-checkout-card greffio-mobile-checkout-body text-muted-foreground">
+        <div className="mb-2 flex items-center gap-2 text-base font-extrabold text-foreground">
+          <ShieldCheck className="h-5 w-5 text-primary" />
           Paiement sécurisé
         </div>
         Sur l’application, le paiement s’ouvre dans le navigateur sécurisé de votre téléphone.
@@ -255,9 +260,9 @@ export const MobilePaymentPage = () => {
       </section>
 
       {resourceLanding ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <div className="greffio-mobile-checkout-card border-amber-200 bg-amber-50 text-base text-amber-900">
           Indiquez d’abord l’entreprise concernée (SIREN, dénomination) pour finaliser cette commande.
-          <Button asChild className="mt-3 h-11 w-full">
+          <Button asChild className="mt-4 h-12 w-full rounded-full text-base font-bold">
             <Link to={currentUser ? '/boutique' : '/ressources'}>
               Compléter ma commande
               <ArrowRight className="h-4 w-4" />
@@ -284,22 +289,23 @@ export const MobilePaymentPage = () => {
           isCreatingPayment={isCreatingPayment}
           payButtonLabel="Payer en ligne"
           className="mb-1"
+          mobileCheckout
         />
       ) : null}
 
       {!currentUser ? (
-        <Button asChild variant="outline" className="h-11 w-full bg-white">
+        <Button asChild variant="outline" className="h-12 w-full rounded-full bg-white text-base font-semibold">
           <Link to={`/signup?service=${service}`}>Créer un compte d’abord</Link>
         </Button>
       ) : null}
 
       {resourceOrder ? (
-        <Button asChild variant="ghost" className="h-11 w-full">
+        <Button asChild variant="ghost" className="h-12 w-full text-base font-semibold">
           <Link to="/boutique/commandes">Mes commandes</Link>
         </Button>
       ) : null}
 
-      <Button asChild variant="ghost" className="h-11 w-full">
+      <Button asChild variant="ghost" className="h-12 w-full text-base font-semibold">
         <Link to={resourceOrder || resourceLanding ? '/boutique' : '/tarifs'}>Retour</Link>
       </Button>
     </MobilePageContainer>

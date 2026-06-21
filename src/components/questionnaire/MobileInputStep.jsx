@@ -25,6 +25,7 @@ export const MobileInputStep = ({
   onAdvance,
   canAdvance = false,
   compact = false,
+  autoAdvanceMs = 0,
   showProgressBar = true,
   showStepMeta = true,
   children,
@@ -44,6 +45,14 @@ export const MobileInputStep = ({
     }, 120);
     return () => window.clearTimeout(timer);
   }, [autoFocus, resolvedId]);
+
+  useEffect(() => {
+    if (!autoAdvanceMs || !canAdvance || typeof onAdvance !== 'function') return undefined;
+    const timer = window.setTimeout(() => {
+      onAdvance();
+    }, autoAdvanceMs);
+    return () => window.clearTimeout(timer);
+  }, [autoAdvanceMs, canAdvance, value, onAdvance]);
 
   const handleKeyDown = (event) => {
     if (event.key !== 'Enter' || event.shiftKey) return;

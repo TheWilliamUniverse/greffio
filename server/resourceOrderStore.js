@@ -5,9 +5,27 @@ import { makeResourceOrderPublicReference } from './utils/resourceOrderReference
 
 const nowIso = () => new Date().toISOString();
 
+const parseJsonField = (value) => {
+  if (!value) return {};
+  if (typeof value === 'object') return value;
+  try {
+    return JSON.parse(value);
+  } catch (_error) {
+    return {};
+  }
+};
+
+const ORDER_WITH_PAYMENT_SELECT = `
+  ro.*,
+  p.status AS payment_status,
+  p.refunded_at AS payment_refunded_at,
+  p.metadata_json AS payment_metadata_json
+`;
+
 const mapRow = (row) => {
   if (!row) return null;
   const metadata = row.metadata_json ? JSON.parse(row.metadata_json) : (row.metadata || {});
+  const paymentMetadata = parseJsonField(row.payment_metadata_json || row.paymentMetadataJson);
   return {
     id: row.id,
     userId: row.user_id || row.userId,
@@ -34,6 +52,9 @@ const mapRow = (row) => {
     updatedAt: row.updated_at || row.updatedAt,
     paidAt: row.paid_at || row.paidAt || null,
     completedAt: row.completed_at || row.completedAt || null,
+    paymentStatus: row.payment_status || row.paymentStatus || null,
+    refundedAt: row.payment_refunded_at || row.paymentRefundedAt || null,
+    refundPending: paymentMetadata.refundPending === true,
   };
 };
 
@@ -128,45 +149,70 @@ export const createResourceOrder = async ({
 
 export const getResourceOrderById = async (orderId) => {
   if (hasPostgres) {
-    const result = await query('SELECT * FROM resource_orders WHERE id = $1 LIMIT 1', [orderId]);
+    const result = await query(
+      `SELECT ${ORDER_WITH_PAYMENT_SELECT}
+       FROM resource_orders ro
+       LEFT JOIN payments p ON p.id = ro.payment_id
+       WHERE ro.id = $1
+       LIMIT 1`,
+      [orderId],
+    );
     return mapRow(result.rows[0]);
   }
-  const row = sqlite.prepare('SELECT * FROM resource_orders WHERE id = ?').get(orderId);
+  const row = sqlite.prepare(
+    `SELECT ${ORDER_WITH_PAYMENT_SELECT}
+     FROM resource_orders ro
+     LEFT JOIN payments p ON p.id = ro.payment_id
+     WHERE ro.id = ?
+     LIMIT 1`,
+  ).get(orderId);
   return mapRow(row);
 };
 
 export const listResourceOrdersByUser = async (userId) => {
   if (hasPostgres) {
     const result = await query(
-      'SELECT * FROM resource_orders WHERE user_id = $1 ORDER BY created_at DESC LIMIT 100',
+      `SELECT ${ORDER_WITH_PAYMENT_SELECT}
+       FROM resource_orders ro
+       LEFT JOIN payments p ON p.id = ro.payment_id
+       WHERE ro.user_id = $1
+       ORDER BY ro.created_at DESC
+       LIMIT 100`,
       [userId],
     );
     return result.rows.map(mapRow);
   }
   return sqlite.prepare(
-    'SELECT * FROM resource_orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 100',
+    `SELECT ${ORDER_WITH_PAYMENT_SELECT}
+     FROM resource_orders ro
+     LEFT JOIN payments p ON p.id = ro.payment_id
+     WHERE ro.user_id = ?
+     ORDER BY ro.created_at DESC
+     LIMIT 100`,
   ).all(userId).map(mapRow);
 };
 
 export const listResourceOrdersForOps = async ({ status } = {}) => {
-  const sqlBase = 'SELECT * FROM resource_orders';
+  const sqlBase = `SELECT ${ORDER_WITH_PAYMENT_SELECT}
+    FROM resource_orders ro
+    LEFT JOIN payments p ON p.id = ro.payment_id`;
   if (hasPostgres) {
     if (status) {
       const result = await query(
-        `${sqlBase} WHERE status = $1 ORDER BY created_at DESC LIMIT 200`,
+        `${sqlBase} WHERE ro.status = $1 ORDER BY ro.created_at DESC LIMIT 200`,
         [status],
       );
       return result.rows.map(mapRow);
     }
-    const result = await query(`${sqlBase} ORDER BY created_at DESC LIMIT 200`);
+    const result = await query(`${sqlBase} ORDER BY ro.created_at DESC LIMIT 200`);
     return result.rows.map(mapRow);
   }
   if (status) {
     return sqlite.prepare(
-      `${sqlBase} WHERE status = ? ORDER BY created_at DESC LIMIT 200`,
+      `${sqlBase} WHERE ro.status = ? ORDER BY ro.created_at DESC LIMIT 200`,
     ).all(status).map(mapRow);
   }
-  return sqlite.prepare(`${sqlBase} ORDER BY created_at DESC LIMIT 200`).all().map(mapRow);
+  return sqlite.prepare(`${sqlBase} ORDER BY ro.created_at DESC LIMIT 200`).all().map(mapRow);
 };
 
 export const updateResourceOrder = async (orderId, patch) => {

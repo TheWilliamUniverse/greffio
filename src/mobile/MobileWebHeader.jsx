@@ -18,6 +18,9 @@ export const MobileWebHeader = ({ title, onMenuClick }) => {
 
         {isAuthenticatedCockpit ? (
           <>
+            <Link to="/dashboard" className="shrink-0" aria-label="Greffio – Retour au tableau de bord">
+              <GreffioLogo variant="mark" className="h-9 w-9" />
+            </Link>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold text-[hsl(var(--greffio-blue-900))]">
                 {title || 'Accueil'}

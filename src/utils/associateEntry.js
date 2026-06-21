@@ -53,3 +53,8 @@ export const buildAssociatesSummary = (associates = []) => associates
     return parts.join(', ');
   })
   .join('\n');
+
+export const isAssociatesWizardComplete = (associates = []) => {
+  const list = Array.isArray(associates) && associates.length ? associates : [];
+  return list.length > 0 && list.every((entry) => isAssociateEntryComplete(entry));
+};

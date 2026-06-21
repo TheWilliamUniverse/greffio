@@ -140,7 +140,7 @@ export const DemarchePicker = ({
             kicker="Votre démarche"
             title="Créer une société"
             subtitle="La forme juridique sera choisie à l'étape suivante."
-            hint="Appuyez sur Continuer pour passer à la suite."
+            hint="La forme juridique sera choisie à l'étape suivante."
             gridClassName="grid grid-cols-1 gap-2.5"
           >
             {confirmationCard}

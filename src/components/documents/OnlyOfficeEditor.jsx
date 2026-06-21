@@ -3,7 +3,7 @@ import { AlertTriangle, Loader2, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { isCapacitorNative, isMobileBrowserViewport } from '@/utils/platform.js';
 
-const LOADING_TIMEOUT_MS = 25000;
+const LOADING_TIMEOUT_MS = 45000;
 const SCRIPT_LOAD_TIMEOUT_MS = 12000;
 const EDITOR_HEIGHT_DESKTOP_PX = 720;
 const EDITOR_HEIGHT_MOBILE_PX = 560;
@@ -29,6 +29,51 @@ const isValidDocumentServerUrl = (documentServerUrl) => {
   } catch (_error) {
     return false;
   }
+};
+
+export const preloadOnlyOfficeAssets = (documentServerUrl) => {
+  const base = normalizeDocumentServerUrl(documentServerUrl);
+  if (!base || !isValidDocumentServerUrl(base)) return;
+  const origin = (() => {
+    try {
+      return new URL(base).origin;
+    } catch (_error) {
+      return base;
+    }
+  })();
+  if (!document.querySelector(`link[data-onlyoffice-preconnect="${origin}"]`)) {
+    const preconnect = document.createElement('link');
+    preconnect.rel = 'preconnect';
+    preconnect.href = origin;
+    preconnect.crossOrigin = 'anonymous';
+    preconnect.dataset.onlyofficePreconnect = origin;
+    document.head.appendChild(preconnect);
+  }
+  const scriptHref = `${base}/web-apps/apps/api/documents/api.js`;
+  if (!document.querySelector('link[data-onlyoffice-preload="1"]')) {
+    const preload = document.createElement('link');
+    preload.rel = 'preload';
+    preload.as = 'script';
+    preload.href = scriptHref;
+    preload.dataset.onlyofficePreload = '1';
+    document.head.appendChild(preload);
+  }
+};
+
+const parseConfigHeightPx = (config, isMobilePresentation, fullViewport, expanded = false) => {
+  if (expanded && typeof window !== 'undefined') {
+    return Math.max(520, Math.round(window.innerHeight - 72));
+  }
+  const raw = config?.height;
+  if (typeof raw === 'string') {
+    const match = raw.match(/^(\d+(?:\.\d+)?)px$/);
+    if (match) {
+      const parsed = Math.round(Number(match[1]));
+      if (parsed >= 320) return parsed;
+    }
+  }
+  if (typeof raw === 'number' && raw >= 320) return Math.round(raw);
+  return resolveEditorHeightPx(isMobilePresentation, fullViewport);
 };
 
 const loadOnlyOfficeScript = (documentServerUrl) => new Promise((resolve, reject) => {
@@ -118,6 +163,7 @@ export const OnlyOfficeEditor = ({
   onUnavailable,
   className = '',
   fullViewport = false,
+  expanded = false,
 }) => {
   const containerId = useId().replace(/:/g, '');
   const containerRef = useRef(null);
@@ -125,6 +171,7 @@ export const OnlyOfficeEditor = ({
   const documentDirtyRef = useRef(false);
   const saveNotifyTimerRef = useRef(null);
   const loadTimeoutRef = useRef(null);
+  const resizeObserverRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [bootKey, setBootKey] = useState(0);
@@ -196,7 +243,16 @@ export const OnlyOfficeEditor = ({
             if (cancelled) return;
             clearLoadTimeout();
             setLoading(false);
-            editorRef.current?.resizeEditor?.();
+            window.requestAnimationFrame(() => {
+              editorRef.current?.resizeEditor?.();
+            });
+            if (containerRef.current && typeof ResizeObserver !== 'undefined') {
+              resizeObserverRef.current?.disconnect();
+              resizeObserverRef.current = new ResizeObserver(() => {
+                editorRef.current?.resizeEditor?.();
+              });
+              resizeObserverRef.current.observe(containerRef.current);
+            }
             onReady?.();
           },
           onDocumentStateChange: (event) => {
@@ -245,6 +301,8 @@ export const OnlyOfficeEditor = ({
     return () => {
       cancelled = true;
       clearLoadTimeout();
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
       if (saveNotifyTimerRef.current) {
         clearTimeout(saveNotifyTimerRef.current);
       }
@@ -254,11 +312,17 @@ export const OnlyOfficeEditor = ({
     };
   }, [config, documentServerUrl, failWithMessage, onReady, onDocumentSaved, bootKey, isMobilePresentation, fullViewport]);
 
-  const editorHeightPx = resolveEditorHeightPx(isMobilePresentation, fullViewport);
+  const editorHeightPx = parseConfigHeightPx(config, isMobilePresentation, fullViewport, expanded);
   const editorHeightStyle = {
     height: `${editorHeightPx}px`,
     minHeight: `${editorHeightPx}px`,
   };
+
+  useEffect(() => {
+    window.requestAnimationFrame(() => {
+      editorRef.current?.resizeEditor?.();
+    });
+  }, [expanded, editorHeightPx]);
 
   const shellClassName = fullViewport || isMobilePresentation
     ? 'relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-none border-0 bg-white sm:rounded-md sm:border sm:border-border'
@@ -294,7 +358,7 @@ export const OnlyOfficeEditor = ({
           id={containerId}
           ref={containerRef}
           aria-hidden={loading}
-          className={`w-full ${loading ? 'pointer-events-none' : ''}`}
+          className={`greffio-onlyoffice-host w-full flex-1 ${loading ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
           style={editorHeightStyle}
         />
       )}

@@ -96,7 +96,7 @@ const MobileWebShellInner = ({
   const { drawerOpen, setDrawerOpen } = useMobileShellOverlay();
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-background md:contents">
+    <div className="flex min-h-[100dvh] w-full min-w-0 max-w-full flex-col overflow-x-hidden bg-background md:contents">
       {showAuthenticatedNav ? (
         <MobileSidebarDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       ) : null}

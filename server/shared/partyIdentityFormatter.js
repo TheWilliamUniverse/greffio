@@ -1,3 +1,5 @@
+import { formatFrenchDate } from '../pdf/nonConvictionPdf.js';
+
 const legalFormLabelFromCode = (form) => {
   const f = String(form || 'SAS').toUpperCase();
   if (f === 'SASU') return 'Société par Actions Simplifiée Unipersonnelle (SASU)';
@@ -167,8 +169,11 @@ export const formatSubscriberListRow = (associate = {}, { securitiesUnit = 'Acti
     };
   }
 
-  const birthDate = String(associate.birthDate || '').trim();
+  const birthDateRaw = String(associate.birthDate || '').trim();
   const birthPlace = String(associate.birthPlace || '').trim();
+  const birthDate = /^\d{4}-\d{2}-\d{2}$/.test(birthDateRaw)
+    ? formatFrenchDate(birthDateRaw)
+    : birthDateRaw;
   const birthDatePlace = [birthDate, birthPlace ? `à ${birthPlace}` : ''].filter(Boolean).join(' ').trim();
   const fullName = String(associate.label || '').trim()
     || [associate.firstName, associate.lastName].filter(Boolean).join(' ').trim();

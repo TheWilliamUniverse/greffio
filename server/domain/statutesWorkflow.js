@@ -49,6 +49,9 @@ export const canEditStatutesInOnlyOffice = (document = null) => (
   STATUTES_ONLYOFFICE_EDITABLE_STATUSES.has(getStatutesWorkflowStatus(document))
 );
 
+/** Alias historique (tests + callers génériques). */
+export const canEditStatutes = canEditStatutesInOnlyOffice;
+
 export const canRequestStatutesSignature = (document = null) => (
   getStatutesWorkflowStatus(document) === STATUTES_WORKFLOW_STATUSES.VALIDATED
 );

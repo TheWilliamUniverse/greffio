@@ -194,7 +194,7 @@ export const FormalityPowersPage = () => {
     <>
       <div className="rounded-xl border border-[var(--we-border)] bg-[#fafcff] p-4 text-sm leading-6 text-muted-foreground">
         <p className="font-semibold text-foreground">{fields.companyName || 'Société'}</p>
-        <p className="mt-1">{fields.legalForm || 'Forme juridique'} · Greffe de {fields.greffe || '—'}</p>
+        <p className="mt-1">{fields.legalForm || 'Forme juridique'} · Greffe de {fields.greffe || '–'}</p>
         <p className="mt-1">Mandataire : {fields.mandataire || 'WILLIAM ESTABLISHMENTS'}</p>
       </div>
 

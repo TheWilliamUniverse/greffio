@@ -13,7 +13,7 @@ const resolveVariant = (variant) => {
   return 'wordmark';
 };
 
-export const GreffioLogo = ({ variant = 'full', className = '', to }) => {
+export const GreffioLogo = ({ variant = 'full', className = '', to, linkLabel }) => {
   const resolved = resolveVariant(variant);
   const isIconOnly = resolved === 'mark';
   const isTile = resolved === 'tile';
@@ -65,6 +65,11 @@ export const GreffioLogo = ({ variant = 'full', className = '', to }) => {
   );
 
   if (to) {
+    const resolvedLinkLabel = linkLabel || (
+      to === '/dashboard'
+        ? 'Greffio – Retour au tableau de bord'
+        : 'Greffio – Retour à l’accueil'
+    );
     return (
       <Link
         to={to}
@@ -72,7 +77,7 @@ export const GreffioLogo = ({ variant = 'full', className = '', to }) => {
           'inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
           isOnBlue && 'focus-visible:ring-offset-[hsl(var(--greffio-blue))]',
         )}
-        aria-label="Greffio – Retour à l’accueil"
+        aria-label={resolvedLinkLabel}
         translate="no"
       >
         {logo}

@@ -43,10 +43,10 @@ export const WebMobileBottomNav = () => {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-white/96 pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_22px_rgba(10,18,32,0.08)] backdrop-blur md:hidden"
+      className="greffio-mobile-floating-nav fixed z-40 md:hidden"
       aria-label="Navigation cockpit mobile"
     >
-      <ul className="mx-auto grid max-w-lg grid-cols-5">
+      <ul className="grid grid-cols-5">
         {ITEMS.map((item) => {
           const active = isActive(location.pathname, item.to);
           const Icon = item.icon;
@@ -54,7 +54,7 @@ export const WebMobileBottomNav = () => {
             <li key={item.to}>
               <Link
                 to={item.to}
-                className={`flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-1 px-1 py-2.5 text-[10px] font-semibold transition ${
+                className={`flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-1 px-1 py-2 transition ${
                   active ? 'text-[hsl(var(--greffio-blue))]' : 'text-muted-foreground'
                 }`}
               >
@@ -68,14 +68,14 @@ export const WebMobileBottomNav = () => {
                   </span>
                 ) : (
                   <span
-                    className={`flex h-8 w-8 items-center justify-center rounded-md transition ${
+                    className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${
                       active ? 'bg-secondary text-[hsl(var(--greffio-blue))]' : 'text-muted-foreground'
                     }`}
                   >
                     <Icon className="h-[1.15rem] w-[1.15rem]" strokeWidth={active ? 2.4 : 2} />
                   </span>
                 )}
-                <span className="leading-none">{item.label}</span>
+                <span className="greffio-mobile-floating-nav-label">{item.label}</span>
               </Link>
             </li>
           );

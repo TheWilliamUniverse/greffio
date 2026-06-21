@@ -1,4 +1,4 @@
-import { usesActions } from '../legal/statutes/shared/formatting.js';
+import { usesActions, resolveLegalFormLabel } from '../legal/statutes/shared/formatting.js';
 import { buildWilliamDocumentByForm } from '../legal/statutes/reference/williamAdaptations.js';
 import { mapStatutesDataToRenderContext } from './mappers/mapStatutesDataToRenderContext.js';
 import { renderWilliamSas2026Blocks } from './renderers/renderWilliamSas2026.js';
@@ -21,7 +21,7 @@ export const generateStatutesDocument = (statutesData = {}) => {
 
   if (legalForm === 'SASU') {
     blocks = applySasuAdaptationsToBlocks(blocks);
-    context.company.legalFormLabel = 'Société par Actions Simplifiée Unipersonnelle (SASU)';
+    context.company.legalFormLabel = resolveLegalFormLabel('SASU', { withAcronym: true });
   }
 
   const validation = assertValidGeneratedStatuts({ blocks, context, legalForm });

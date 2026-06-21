@@ -5,6 +5,7 @@ import {
   getStatutesWorkflowStatus,
   transitionStatutesWorkflow,
   canRequestStatutesSignature,
+  canEditStatutes,
 } from '../statutesWorkflow.js';
 
 test('statutes workflow defaults to pending client review metadata', () => {
@@ -38,6 +39,21 @@ test('ops validation unlocks signature', () => {
 test('signature remains blocked before validation', () => {
   assert.equal(
     canRequestStatutesSignature({ metadata: { statutesWorkflowStatus: 'pending_client_review' } }),
+    false,
+  );
+});
+
+test('client can edit statutes during review phases', () => {
+  assert.equal(
+    canEditStatutes({ metadata: { statutesWorkflowStatus: 'pending_client_review' } }),
+    true,
+  );
+  assert.equal(
+    canEditStatutes({ metadata: { statutesWorkflowStatus: 'validated' } }),
+    false,
+  );
+  assert.equal(
+    canEditStatutes({ metadata: { statutesWorkflowStatus: 'signed' } }),
     false,
   );
 });

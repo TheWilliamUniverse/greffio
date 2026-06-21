@@ -24,6 +24,9 @@ import { Label } from '@/components/ui/label.jsx';
 import { ProgressiveStepChips } from '@/components/ProgressiveStepChips.jsx';
 import { MobileChoiceStep, MobileChoiceTile } from '@/components/questionnaire/MobileChoiceStep.jsx';
 import { MobileInputStep } from '@/components/questionnaire/MobileInputStep.jsx';
+import { FormalityCategoryBackButton } from '@/components/questionnaire/FormalityCategoryPicker.jsx';
+import { LegalFormFamilyPicker } from '@/components/questionnaire/LegalFormFamilyPicker.jsx';
+import { QUESTIONNAIRE_FORM_FAMILY_AUTRES, getCatalogFormsForFamily } from '@/lib/questionnaireFormFamilies.js';
 import { QuestionPanelSuccessOverlay } from '@/components/questionnaire/QuestionPanelSuccessOverlay.jsx';
 import { ProgressCircle } from '@/components/questionnaire/ProgressCircle.jsx';
 import { QuestionSectionHint } from '@/components/questionnaire/QuestionSectionHint.jsx';
@@ -190,14 +193,6 @@ const PROJECT_DETAIL_FIELDS = [
   { key: 'activity', label: 'Activité principale', type: 'text', placeholder: 'Ex. conseil en gestion', required: true },
 ];
 const INITIATOR_LEGAL_FORMS = ['SA', 'SAS', 'SASU', 'SARL', 'EURL', 'SCI', 'Association', 'Autre personne morale'];
-const targetFormGroups = COMPANY_FORM_CATALOG.reduce((groups, form) => {
-  const group = groups.find((item) => item.category === form.family);
-  if (group) {
-    group.forms.push(form);
-    return groups;
-  }
-  return [...groups, { category: form.family, forms: [form] }];
-}, []);
 const fieldClass = `${mobileFieldClass}`;
 
 const typePresetByQuery = Object.freeze({
@@ -273,6 +268,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
   const keyboardOffset = useMobileKeyboardOffset();
   const questionAnimationTimersRef = useRef([]);
   const wizardNextRef = useRef(() => {});
+  const wizardTransitionLockRef = useRef(false);
   const draft = getProjectDraft();
   const requestedType = String(searchParams.get('type') || 'statuts').toLowerCase();
   const formalityPreset = resolveSimulatorFormFromQuery(searchParams.get('formality'));
@@ -285,7 +281,9 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
   const [journeyStepError, setJourneyStepError] = useState('');
   const [projectSubStep, setProjectSubStep] = useState(skipJourneyPicker && initialSkipContact ? 1 : 0);
   const [showOffers, setShowOffers] = useState(false);
-  const [selectedFamily, setSelectedFamily] = useState('Formes les plus courantes');
+  const [selectedFormFamilyPrimary, setSelectedFormFamilyPrimary] = useState('');
+  const [selectedFormFamily, setSelectedFormFamily] = useState('');
+  const [formFamilyPickerTier, setFormFamilyPickerTier] = useState('primary');
   const [questionMode, setQuestionMode] = useState('avance');
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [questionExitPhase, setQuestionExitPhase] = useState(null);
@@ -360,11 +358,8 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     if (needsExistingCompanyLookup) {
       subSteps = [{ id: 'company_lookup', label: 'Entreprise' }, ...subSteps];
     }
-    if (isMobilePresentation) {
-      subSteps = subSteps.filter((item) => item.id !== 'form_family');
-    }
     return subSteps;
-  }, [skipContactStep, needsExistingCompanyLookup, isMobilePresentation]);
+  }, [skipContactStep, needsExistingCompanyLookup]);
   const activeProjectSubIndex = useMemo(() => {
     let index = skipContactStep ? Math.max(0, projectSubStep - 1) : projectSubStep;
     if (needsExistingCompanyLookup) {
@@ -465,8 +460,8 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     }
   };
   const visibleForms = useMemo(
-    () => targetFormGroups.find((group) => group.category === selectedFamily).forms || targetFormGroups[0].forms || [],
-    [selectedFamily],
+    () => getCatalogFormsForFamily(selectedFormFamily),
+    [selectedFormFamily],
   );
 
   useEffect(() => {
@@ -600,6 +595,7 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     (projectSubStep === 0 && !isAccountCreationStep)
     || (projectSubStep === 1 && initiatorFieldStep === 0)
     || projectSubStep === 2
+    || projectSubStep === 3
     || (projectSubStep === 4 && !isProjectDetailSelectStep)
   );
   const selectInitiatorType = (nextType) => {
@@ -734,16 +730,53 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     tryWizardContinue();
   };
 
-  const chooseFamily = (category) => {
-    const group = targetFormGroups.find((item) => item.category === category);
-    setSelectedFamily(category);
-    if (group.forms.length && !group.forms.some((form) => form.label === data.legalForm)) {
-      update('legalForm', group.forms[0].label);
+  const scheduleWizardAdvance = (advanceFn, delayMs = 320) => {
+    if (wizardTransitionLockRef.current) return;
+    wizardTransitionLockRef.current = true;
+    window.setTimeout(() => {
+      advanceFn();
+      wizardTransitionLockRef.current = false;
+    }, delayMs);
+  };
+
+  const selectFormFamilyPrimary = (primary) => {
+    setSelectedFormFamilyPrimary(primary);
+    if (primary === QUESTIONNAIRE_FORM_FAMILY_AUTRES) {
+      setFormFamilyPickerTier('secondary');
+      setSelectedFormFamily('');
+      return;
     }
-    setProjectSubStep(3);
+    setFormFamilyPickerTier('primary');
+    setSelectedFormFamily(primary);
+    const forms = getCatalogFormsForFamily(primary);
+    if (forms.length && !forms.some((form) => form.label === data.legalForm)) {
+      update('legalForm', forms[0].label);
+    }
+    const advance = () => setProjectSubStep(3);
+    if (isMobilePresentation) scheduleWizardAdvance(advance);
+    else setProjectSubStep(3);
+  };
+
+  const selectFormFamilySecondary = (secondary) => {
+    setSelectedFormFamily(secondary);
+    setFormFamilyPickerTier('primary');
+    const forms = getCatalogFormsForFamily(secondary);
+    if (forms.length && !forms.some((form) => form.label === data.legalForm)) {
+      update('legalForm', forms[0].label);
+    }
+    const advance = () => setProjectSubStep(3);
+    if (isMobilePresentation) scheduleWizardAdvance(advance);
+    else setProjectSubStep(3);
+  };
+
+  const resetFormFamilySelection = () => {
+    setFormFamilyPickerTier('primary');
+    setSelectedFormFamilyPrimary('');
+    setSelectedFormFamily('');
   };
 
   const chooseLegalForm = (label) => {
+    if (wizardTransitionLockRef.current) return;
     update('legalForm', label);
     const profile = getFormProfile(label);
     if (profile === 'INDIVIDUAL') {
@@ -751,8 +784,11 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     }
     setActiveQuestionIndex(0);
     setQuestionnaireFinished(false);
-    setProjectSubStep(4);
-    setProjectDetailIndex(0);
+    const advance = () => {
+      setProjectSubStep(4);
+      setProjectDetailIndex(0);
+    };
+    if (isMobilePresentation) scheduleWizardAdvance(advance);
   };
 
   useEffect(() => {
@@ -870,7 +906,11 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
       }
       return Boolean(String(data.initiatorName || '').trim());
     }
-    if (projectSubStep === 2) return Boolean(data.legalForm);
+    if (projectSubStep === 2) {
+      if (formFamilyPickerTier === 'secondary') return Boolean(selectedFormFamily);
+      if (selectedFormFamilyPrimary === QUESTIONNAIRE_FORM_FAMILY_AUTRES) return false;
+      return Boolean(selectedFormFamilyPrimary);
+    }
     if (projectSubStep === 3) return Boolean(data.legalForm);
     if (isMobilePresentation) return isProjectDetailFieldValid();
     return Boolean(String(data.companyName || '').trim() && String(data.city || '').trim());
@@ -912,10 +952,8 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
       return;
     }
     if (projectSubStep < PROJECT_SUB_STEPS.length - 1) {
-      let nextSubStep = projectSubStep + 1;
-      if (nextSubStep === 3) nextSubStep = 4;
-      setProjectSubStep(nextSubStep);
-      if (nextSubStep === 4) setProjectDetailIndex(0);
+      setProjectSubStep(projectSubStep + 1);
+      if (projectSubStep + 1 === 4) setProjectDetailIndex(0);
       return;
     }
     setStep(2);
@@ -948,11 +986,12 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
       return;
     }
     if (projectSubStep > (skipContactStep ? 1 : 0)) {
-      let nextSubStep = projectSubStep - 1;
-      if (nextSubStep === 3) nextSubStep = 2;
-      setProjectSubStep(nextSubStep);
-      if (nextSubStep === 4) setProjectDetailIndex(PROJECT_DETAIL_FIELDS.length - 1);
-      if (nextSubStep === 1) setInitiatorFieldStep(Math.max(0, initiatorMobileSteps.length - 1));
+      setProjectSubStep(projectSubStep - 1);
+      if (projectSubStep - 1 === 4) setProjectDetailIndex(PROJECT_DETAIL_FIELDS.length - 1);
+      if (projectSubStep - 1 === 1) setInitiatorFieldStep(Math.max(0, initiatorMobileSteps.length - 1));
+      if (projectSubStep - 1 === 2 && selectedFormFamilyPrimary === QUESTIONNAIRE_FORM_FAMILY_AUTRES) {
+        setFormFamilyPickerTier('secondary');
+      }
       return;
     }
     setStep(0);
@@ -1079,15 +1118,11 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
   const mobileActionBarPosition = isCapacitorNative()
     ? 'bottom-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom))]'
     : 'bottom-[calc(var(--bottom-nav-height-web)+env(safe-area-inset-bottom))]';
-  useEffect(() => {
-    if (step === 1 && projectSubStep === 3) {
-      setProjectSubStep(2);
-    }
-  }, [step, projectSubStep]);
 
   const choiceTapNoContinue = (
     step === 0
     || (step === 1 && projectSubStep === 2)
+    || (step === 1 && projectSubStep === 3)
     || (step === 1 && projectSubStep === 0 && !isAccountCreationStep && isMobilePresentation)
     || (step === 1 && projectSubStep === 1 && isMobilePresentation && (
       activeInitiatorStep?.kind === 'choice'
@@ -1577,33 +1612,63 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
                         )}
 
                         {projectSubStep === 2 && (
-                          <MobileChoiceStep
-                            kicker="Projet"
-                            title="Choisissez votre forme juridique"
-                            subtitle="Toutes les formes disponibles – touchez la vôtre pour continuer."
-                            hint={isCapacitorNative()
-                              ? 'Touchez une forme pour continuer.'
-                              : 'Sélectionnez une forme pour continuer.'}
-                            gridClassName="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3"
-                          >
-                            {targetFormGroups.flatMap((group) => group.forms.map((form) => ({ form, group: group.category }))).map(({ form, group }) => {
-                              const availability = getFormAvailability(form.key);
-                              const availabilityLabel = availability === SERVICE_AVAILABILITY.AVAILABLE_NOW
-                                ? 'Disponible'
-                                : availability === SERVICE_AVAILABILITY.COMING_SOON
-                                  ? 'Bientôt'
-                                  : 'Sur devis';
-                              return (
-                                <MobileChoiceTile
-                                  key={form.key}
-                                  title={form.label}
-                                  description={`${group} · ${availabilityLabel}`}
-                                  selected={data.legalForm === form.label}
-                                  onSelect={() => chooseLegalForm(form.label)}
-                                />
-                              );
-                            })}
-                          </MobileChoiceStep>
+                          formFamilyPickerTier === 'secondary' ? (
+                            <LegalFormFamilyPicker
+                              tier="secondary"
+                              value={selectedFormFamily}
+                              mobilePresentation
+                              onSelect={selectFormFamilySecondary}
+                            />
+                          ) : (
+                            <LegalFormFamilyPicker
+                              tier="primary"
+                              value={selectedFormFamilyPrimary}
+                              mobilePresentation
+                              onSelect={selectFormFamilyPrimary}
+                            />
+                          )
+                        )}
+
+                        {projectSubStep === 3 && (
+                          <div className="space-y-3">
+                            <FormalityCategoryBackButton
+                              onClick={() => {
+                                setProjectSubStep(2);
+                                if (selectedFormFamilyPrimary === QUESTIONNAIRE_FORM_FAMILY_AUTRES) {
+                                  setFormFamilyPickerTier('secondary');
+                                } else {
+                                  resetFormFamilySelection();
+                                }
+                              }}
+                            />
+                            <MobileChoiceStep
+                              kicker={selectedFormFamily || 'Projet'}
+                              title="Choisissez votre forme juridique"
+                              subtitle="Comparez les formes disponibles dans cette catégorie."
+                              hint={isCapacitorNative()
+                                ? 'Touchez une forme pour continuer.'
+                                : 'Sélectionnez une forme pour continuer.'}
+                              gridClassName="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3"
+                            >
+                              {visibleForms.map((form) => {
+                                const availability = getFormAvailability(form.key);
+                                const availabilityLabel = availability === SERVICE_AVAILABILITY.AVAILABLE_NOW
+                                  ? 'Disponible'
+                                  : availability === SERVICE_AVAILABILITY.COMING_SOON
+                                    ? 'Bientôt'
+                                    : 'Sur devis';
+                                return (
+                                  <MobileChoiceTile
+                                    key={form.key}
+                                    title={form.label}
+                                    description={availabilityLabel}
+                                    selected={data.legalForm === form.label}
+                                    onSelect={() => chooseLegalForm(form.label)}
+                                  />
+                                );
+                              })}
+                            </MobileChoiceStep>
+                          </div>
                         )}
 
                         {projectSubStep === 4 && (

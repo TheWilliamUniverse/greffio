@@ -188,8 +188,8 @@ const MobileAppShellInner = ({ children }) => {
         </main>
         {showBottomNav ? (
           showAuthenticatedNav ? (
-            <nav aria-label="Navigation cockpit mobile" className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md">
-              <ul className="mx-auto grid max-w-lg grid-cols-5">
+            <nav aria-label="Navigation cockpit mobile" className="greffio-mobile-floating-nav fixed z-40">
+              <ul className="grid grid-cols-5">
                 {MOBILE_AUTH_TABS_NATIVE.map((tab) => {
                   const Icon = tabIcons[tab.icon] || Home;
                   const active = isTabActive(location.pathname, tab.path);
@@ -201,7 +201,7 @@ const MobileAppShellInner = ({ children }) => {
                         onClick={() => {
                           if (isPrimary) void triggerMobileHaptic('medium');
                         }}
-                        className={`flex min-h-[48px] flex-col items-center justify-center gap-1 px-1 py-2.5 text-[10px] font-semibold transition ${
+                        className={`flex min-h-[48px] flex-col items-center justify-center gap-1 px-1 py-2 transition ${
                           active ? 'text-primary' : 'text-muted-foreground'
                         }`}
                       >
@@ -212,11 +212,11 @@ const MobileAppShellInner = ({ children }) => {
                             <Icon className="h-5 w-5" strokeWidth={2.4} />
                           </span>
                         ) : (
-                          <span className={`rounded-xl p-1.5 transition ${active ? 'bg-secondary text-primary' : ''}`}>
+                          <span className={`flex h-9 w-9 items-center justify-center rounded-xl p-1.5 transition ${active ? 'bg-secondary text-primary' : ''}`}>
                             <Icon className="h-[1.15rem] w-[1.15rem]" strokeWidth={active ? 2.4 : 2} />
                           </span>
                         )}
-                        {tab.label}
+                        <span className="greffio-mobile-floating-nav-label">{tab.label}</span>
                       </Link>
                     </li>
                   );

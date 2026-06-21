@@ -6,6 +6,8 @@ export const FRENCH_ADMINISTRATIVE_FIELD_KEYWORDS = [
   { normalizedKey: 'legal_name', type: 'legal_name', category: 'company', labels: ['dénomination', 'dénomination sociale', 'raison sociale', 'nom commercial'], confidenceBoost: 0.2 },
   { normalizedKey: 'legal_form', type: 'legal_form', category: 'company', labels: ['forme juridique', 'statut juridique'], confidenceBoost: 0.18 },
   { normalizedKey: 'share_capital', type: 'currency', category: 'company', labels: ['capital social', 'montant du capital', 'capital'], confidenceBoost: 0.16 },
+  { normalizedKey: 'share_count_actions', type: 'number', category: 'company', labels: ['nombre d\'actions', "nombre d actions", 'actions souscrites', 'souscription d\'actions', 'cession d\'actions'], confidenceBoost: 0.2, securitiesType: 'actions' },
+  { normalizedKey: 'share_count_parts', type: 'number', category: 'company', labels: ['nombre de parts sociales', 'parts sociales souscrites', 'souscription de parts sociales', 'cession de parts sociales', 'parts sociales'], confidenceBoost: 0.2, securitiesType: 'parts_sociales' },
   { normalizedKey: 'siren', type: 'siren', category: 'registry', labels: ['siren', 'numéro siren'], confidenceBoost: 0.25 },
   { normalizedKey: 'siret', type: 'siret', category: 'registry', labels: ['siret', 'numéro siret'], confidenceBoost: 0.25 },
   { normalizedKey: 'rcs_city', type: 'rcs_city', category: 'registry', labels: ['rcs', 'immatriculé au rcs de', 'greffe de'], confidenceBoost: 0.18 },

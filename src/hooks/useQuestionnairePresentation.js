@@ -3,7 +3,7 @@ import { isCompactQuestionnaireViewport, isUnifiedQuestionnairePresentation } fr
 export const resolveQuestionMode = (field) => {
   if (!field) return 'unknown';
   if (field.type === 'recap_summary') return 'recap';
-  if (field.type === 'beneficial_owners_picker') return 'composite';
+  if (field.type === 'beneficial_owners_picker') return 'beneficial-owners';
   if (field.type === 'associates_minor_panel') return 'associate-wizard';
   if (field.type === 'form_family_picker' || field.type === 'form_family_secondary_picker') return 'form_family';
   if (field.type === 'comparateur_cta') return 'comparateur';
@@ -19,7 +19,7 @@ export const resolveQuestionMode = (field) => {
 };
 
 export const shouldHideStickyContinueForMode = (mode) => (
-  ['choice', 'input', 'textarea', 'legal-confirmation', 'form_family', 'comparateur', 'associate-wizard', 'composite', 'capital-liberation'].includes(mode)
+  ['choice', 'input', 'textarea', 'legal-confirmation', 'form_family', 'comparateur', 'associate-wizard', 'composite', 'capital-liberation', 'beneficial-owners'].includes(mode)
 );
 
 export const resolveFieldInputMode = (field) => {

@@ -57,7 +57,10 @@
     "cap:open:android": "npx cap open android",
     "mobile:build": "npm run build && node scripts/use-capacitor-config.mjs bundled && npx cap sync android",
     "mobile:build:remote": "npm run build && node scripts/use-capacitor-config.mjs remote && npx cap sync android",
-    "mobile:dev:live": "node scripts/use-capacitor-config.mjs dev && npx cap sync android"
+    "mobile:dev:live": "node scripts/use-capacitor-config.mjs dev && npx cap sync android",
+    "mobile:ios:install": "cd mobile-expo && npm install",
+    "mobile:ios:eas:preview": "cd mobile-expo && eas build --platform ios --profile preview",
+    "mobile:ios:eas:production": "cd mobile-expo && eas build --platform ios --profile production"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1063.0",

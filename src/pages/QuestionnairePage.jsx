@@ -66,7 +66,6 @@ import { fetchUserProfile } from '@/api/profile.js';
 import { contactDetailsFromUser } from '@/utils/userProfile.js';
 import {
   useQuestionnairePresentation,
-  shouldAutoAdvanceMobileField,
   resolveFieldInputMode,
   resolveQuestionMode,
 } from '@/hooks/useQuestionnairePresentation.js';
@@ -184,6 +183,7 @@ export const QuestionnairePage = () => {
   const [touchedFields, setTouchedFields] = useState({});
   const pendingTapAdvanceRef = useRef(null);
   const forceAdvanceAfterIgnoreRef = useRef(false);
+  const navigationLockRef = useRef(false);
 
   const useUnifiedPresentation = isUnifiedQuestionnairePresentation();
   const isCompactViewport = isCompactQuestionnaireViewport();
@@ -342,10 +342,17 @@ export const QuestionnairePage = () => {
   const buildPersistPayload = (data, resumeMeta = {}) => ({
     ...data,
     _resume: {
+      ...(data._resume || {}),
       stepId: step?.id,
       fieldKey: activeField?.key || '',
       demarcheCategory: resumeMeta.demarcheCategory ?? demarcheCategory,
       categoryConfirmed: resumeMeta.categoryConfirmed ?? demarcheCategoryConfirmed,
+      ...(resumeMeta.associatesAssociateIndex != null
+        ? { associatesAssociateIndex: resumeMeta.associatesAssociateIndex }
+        : {}),
+      ...(resumeMeta.associatesLocalStepIndex != null
+        ? { associatesLocalStepIndex: resumeMeta.associatesLocalStepIndex }
+        : {}),
     },
   });
 
@@ -733,6 +740,7 @@ export const QuestionnairePage = () => {
   useEffect(() => {
     const pendingKey = pendingTapAdvanceRef.current;
     if (!pendingKey || !useUnifiedPresentation) return undefined;
+    if (navigationLockRef.current) return undefined;
     if (!activeGroup.some((field) => field.key === pendingKey)) return undefined;
     if (!canAdvanceCurrentGroup) {
       pendingTapAdvanceRef.current = null;
@@ -740,8 +748,9 @@ export const QuestionnairePage = () => {
     }
     pendingTapAdvanceRef.current = null;
     const timer = window.setTimeout(() => {
+      if (navigationLockRef.current) return;
       void goNext();
-    }, 220);
+    }, 320);
     return () => window.clearTimeout(timer);
   }, [formData, activeGroup, canAdvanceCurrentGroup, useUnifiedPresentation]);
 
@@ -800,12 +809,6 @@ export const QuestionnairePage = () => {
       if (field.key === 'apportsNature' && String(value || '').trim() !== 'Oui') {
         next.detailApportsNature = '';
       }
-      if (useUnifiedPresentation
-        && shouldAutoAdvanceMobileField(field, next[field.key], {
-          isValid: isFieldValueValid(field, next[field.key], next),
-        })) {
-        window.setTimeout(() => requestTapAdvance(field.key), 400);
-      }
       return next;
     });
   };
@@ -816,110 +819,109 @@ export const QuestionnairePage = () => {
   };
 
   const handleTapFieldUpdate = (field, value) => {
+    if (navigationLockRef.current) return;
     void lightQuestionnaireHaptic();
-    const resolvedValue = field.type === 'checkbox' ? Boolean(value) : value;
-    const nextFormSnapshot = { ...formData, [field.key]: resolvedValue };
-    const willAutoAdvance = useUnifiedPresentation
-      && shouldAutoAdvanceMobileField(field, resolvedValue, {
-        isValid: isFieldValueValid(field, resolvedValue, nextFormSnapshot),
-      });
     updateField(field, value);
-    if (!willAutoAdvance) {
-      requestTapAdvance(field.key);
-    }
+    requestTapAdvance(field.key);
   };
 
   const goNext = async () => {
-    setStepError('');
-    if (!canContinue) {
-      const message = resolveContinueBlockMessage(step, formData, activeField, visibleStepFields);
-      setStepError(message);
-      if (activeField?.key) {
-        setTouchedFields((current) => ({ ...current, [activeField.key]: true }));
-      }
-      if (message) toast.error(message);
-      return;
-    }
-    if (!isLastGroupInStep) {
-      setTouchedFields({});
-      setGroupIndex((current) => Math.min(current + 1, fieldGroups.length - 1));
-      return;
-    }
+    if (navigationLockRef.current) return;
+    navigationLockRef.current = true;
     try {
-      setAutosaveState('saving');
-      const basePayload = step.id === 'contact' ? { ...formData, ...contactPayload } : formData;
-      const persistData = step.id === 'recap'
-        ? { ...basePayload, recapAcknowledged: true }
-        : basePayload;
-      const saveResult = await persistQuestionnaire({
-        dataPatch: buildPersistPayload(persistData),
-        progressPercent: progress,
-      });
-      const activeDossierId = saveResult?.dossierId || getCurrentDossierId();
-      if (!activeDossierId) {
-        setStepError('Impossible de créer le dossier. Rechargez la page.');
-        setAutosaveState('error');
+      setStepError('');
+      if (!canContinue) {
+        const message = resolveContinueBlockMessage(step, formData, activeField, visibleStepFields);
+        setStepError(message);
+        if (activeField?.key) {
+          setTouchedFields((current) => ({ ...current, [activeField.key]: true }));
+        }
+        if (message) toast.error(message);
         return;
       }
-      await completeQuestionnaireStep({
-        dossierId: activeDossierId,
-        stepId: step.id,
-        dataPatch: buildPersistPayload(persistData),
-        progressPercent: progress,
-        continueWithWarnings: stepFieldStates.missingButContinueAllowed,
-        missingFieldKeys: stepFieldStates.softMissing.map((item) => item.key),
-      });
-      setAutosaveState('saved');
-    } catch (error) {
-      const apiError = error?.payload?.error || error?.message;
-      if (apiError === 'DOSSIER_FORBIDDEN') {
-        clearCurrentDossierId();
-        setDossierId(null);
-        setStepError('Ce dossier n’est pas rattaché à votre compte. Réessayez : un nouveau dossier sera créé.');
-      } else if (apiError === 'QUESTIONNAIRE_SOFT_MISSING') {
-        setStepError('Certains champs facultatifs restent à compléter – vous pouvez continuer et les finaliser plus tard.');
-      } else if (apiError === 'QUESTIONNAIRE_BLOCKING_FIELDS') {
-        setStepError('Des informations essentielles manquent pour constituer le dossier.');
-      } else if (apiError === 'IDENTITY_VERIFICATION_REQUIRED') {
-        setStepError("La vérification d'identité sera demandée avant le dépôt officiel, pas à cette étape.");
-      } else if (apiError === 'QUESTIONNAIRE_SAVE_FAILED') {
-        setStepError(error?.payload?.message || "L'enregistrement a échoué côté serveur. Réessayez dans un instant.");
-      } else if (apiError === 'AUTH_TOKEN_MISSING' || error?.status === 401) {
-        setStepError('Session expirée. Reconnectez-vous puis réessayez.');
-      } else {
-        setStepError("Une erreur est survenue pendant l'enregistrement. Réessayez.");
+      if (!isLastGroupInStep) {
+        setTouchedFields({});
+        setGroupIndex((current) => Math.min(current + 1, fieldGroups.length - 1));
+        return;
       }
-      setAutosaveState('error');
-      toast.error('Enregistrement impossible pour le moment.');
-      return;
-    }
+      try {
+        setAutosaveState('saving');
+        const basePayload = step.id === 'contact' ? { ...formData, ...contactPayload } : formData;
+        const persistData = step.id === 'recap'
+          ? { ...basePayload, recapAcknowledged: true }
+          : basePayload;
+        const saveResult = await persistQuestionnaire({
+          dataPatch: buildPersistPayload(persistData),
+          progressPercent: progress,
+        });
+        const activeDossierId = saveResult?.dossierId || getCurrentDossierId();
+        if (!activeDossierId) {
+          setStepError('Impossible de créer le dossier. Rechargez la page.');
+          setAutosaveState('error');
+          return;
+        }
+        await completeQuestionnaireStep({
+          dossierId: activeDossierId,
+          stepId: step.id,
+          dataPatch: buildPersistPayload(persistData),
+          progressPercent: progress,
+          continueWithWarnings: stepFieldStates.missingButContinueAllowed,
+          missingFieldKeys: stepFieldStates.softMissing.map((item) => item.key),
+        });
+        setAutosaveState('saved');
+      } catch (error) {
+        const apiError = error?.payload?.error || error?.message;
+        if (apiError === 'DOSSIER_FORBIDDEN') {
+          clearCurrentDossierId();
+          setDossierId(null);
+          setStepError('Ce dossier n’est pas rattaché à votre compte. Réessayez : un nouveau dossier sera créé.');
+        } else if (apiError === 'QUESTIONNAIRE_SOFT_MISSING') {
+          setStepError('Certains champs facultatifs restent à compléter – vous pouvez continuer et les finaliser plus tard.');
+        } else if (apiError === 'QUESTIONNAIRE_BLOCKING_FIELDS') {
+          setStepError('Des informations essentielles manquent pour constituer le dossier.');
+        } else if (apiError === 'IDENTITY_VERIFICATION_REQUIRED') {
+          setStepError("La vérification d'identité sera demandée avant le dépôt officiel, pas à cette étape.");
+        } else if (apiError === 'QUESTIONNAIRE_SAVE_FAILED') {
+          setStepError(error?.payload?.message || "L'enregistrement a échoué côté serveur. Réessayez dans un instant.");
+        } else if (apiError === 'AUTH_TOKEN_MISSING' || error?.status === 401) {
+          setStepError('Session expirée. Reconnectez-vous puis réessayez.');
+        } else {
+          setStepError("Une erreur est survenue pendant l'enregistrement. Réessayez.");
+        }
+        setAutosaveState('error');
+        toast.error('Enregistrement impossible pour le moment.');
+        return;
+      }
 
-    if (stepIndex >= QUESTIONNAIRE_FLOW.length - 1) {
-      const resolvedDossierId = dossierId || getCurrentDossierId();
-      toast.success('Questionnaire validé – vos données sont enregistrées.');
-      const form = String(formData.formeJuridique || '').toUpperCase();
-      if (!eiLike && isStatutesSupportedForm(form) && resolvedDossierId) {
-        navigate(`/statuts?dossierId=${encodeURIComponent(resolvedDossierId)}`);
-      } else {
-        navigate('/dashboard');
+      if (stepIndex >= QUESTIONNAIRE_FLOW.length - 1) {
+        const resolvedDossierId = dossierId || getCurrentDossierId();
+        toast.success('Questionnaire validé – vos données sont enregistrées.');
+        const form = String(formData.formeJuridique || '').toUpperCase();
+        if (!eiLike && isStatutesSupportedForm(form) && resolvedDossierId) {
+          navigate(`/statuts?dossierId=${encodeURIComponent(resolvedDossierId)}`);
+        } else {
+          navigate('/dashboard');
+        }
+        return;
       }
-      return;
-    }
-    let nextIndex = stepIndex + 1;
-    const applicableSteps = getApplicableFlowSteps(formData);
-    while (nextIndex < QUESTIONNAIRE_FLOW.length) {
-      const nextStep = QUESTIONNAIRE_FLOW[nextIndex];
-      if (!applicableSteps.some((entry) => entry.id === nextStep.id)) {
+      let nextIndex = stepIndex + 1;
+      const applicableSteps = getApplicableFlowSteps(formData);
+      while (nextIndex < QUESTIONNAIRE_FLOW.length) {
+        const nextStep = QUESTIONNAIRE_FLOW[nextIndex];
+        if (!applicableSteps.some((entry) => entry.id === nextStep.id)) {
+          nextIndex += 1;
+          continue;
+        }
+        const visibleFields = getVisibleFieldsForStep(nextStep, formData);
+        if (visibleFields.length) break;
         nextIndex += 1;
-        continue;
       }
-      const visibleFields = getVisibleFieldsForStep(nextStep, formData);
-      if (visibleFields.length) break;
-      nextIndex += 1;
+      setTouchedFields({});
+      setStepIndex(nextIndex);
+      setGroupIndex(0);
+    } finally {
+      navigationLockRef.current = false;
     }
-    setTouchedFields({});
-    setStepIndex(nextIndex);
-    setGroupIndex(0);
   };
 
   const goBack = () => {
@@ -1024,6 +1026,7 @@ export const QuestionnairePage = () => {
         updateField(field, sanitized);
       }}
       onAdvance={goNext}
+      autoAdvanceMs={useUnifiedPresentation && isCompactStep ? 650 : 0}
     >
       {extra}
     </MobileInputStep>
@@ -1209,29 +1212,26 @@ export const QuestionnairePage = () => {
     }
 
     if (field.type === 'beneficial_owners_picker') {
-      const picker = (
+      return (
         <BeneficialOwnersPicker
+          key={field.key}
           formData={formData}
           selectedIds={formData.beneficiairesEffectifsSelected || []}
           summaryText={formData.beneficiairesEffectifs || ''}
           otherName={formData.beneficiairesEffectifsAutre || ''}
           fieldClass={fieldClass}
+          mobilePresentation={useUnifiedPresentation}
+          compositeStepProps={useUnifiedPresentation ? {
+            kicker: PROGRESSIVE_STEP_LABELS[step.id] || step.title,
+            title: `${field.label}${field.required ? ' *' : ''}`,
+            subtitle: step.description,
+            progressPercent: progress,
+            stepCurrent: presentation.stepCurrent,
+            stepTotal: presentation.stepTotal,
+          } : null}
+          onAdvance={() => { void goNext(); }}
           onChange={(patch) => setFormData((current) => ({ ...current, ...patch }))}
         />
-      );
-      return (
-        <MobileCompositeStep
-          key={field.key}
-          kicker={PROGRESSIVE_STEP_LABELS[step.id] || step.title}
-          title={`${field.label}${field.required ? ' *' : ''}`}
-          subtitle={step.description}
-          progressPercent={progress}
-          stepCurrent={presentation.stepCurrent}
-          stepTotal={presentation.stepTotal}
-          hint="Sélectionnez les bénéficiaires effectifs puis appuyez sur Continuer."
-        >
-          {picker}
-        </MobileCompositeStep>
       );
     }
 
@@ -1251,6 +1251,11 @@ export const QuestionnairePage = () => {
           ref={associatesWizardRef}
           key={field.key}
           value={formData.associates}
+          resumePosition={formData._resume}
+          onResumePositionChange={(patch) => setFormData((current) => ({
+            ...current,
+            _resume: { ...(current._resume || {}), ...patch },
+          }))}
           onChange={handleAssociatesChange}
           progressPercent={progress}
           stepCurrent={presentation.stepCurrent}

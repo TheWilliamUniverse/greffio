@@ -11,6 +11,7 @@ export const sigleSuffix = (data) => (
 
 export const buildWilliamCover = (data) => ({
   title: 'STATUTS',
+  legalForm: data.legalForm,
   legalFormLabel: data.legalFormLabel || 'Société par Actions Simplifiée (SAS)',
   denomination: data.denomination,
   sigle: data.sigle !== 'Non prévu' ? data.sigle : null,

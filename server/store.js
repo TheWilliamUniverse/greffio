@@ -1186,6 +1186,7 @@ const getAllPayments = async () => {
         provider,
         provider_payment_id AS "providerPaymentId",
         provider_payload_json AS "providerPayloadJson",
+        metadata_json AS "metadataJson",
         created_at AS "createdAt",
         paid_at AS "paidAt",
         failed_at AS "failedAt",
@@ -1214,6 +1215,7 @@ const getAllPayments = async () => {
         provider,
         provider_payment_id AS providerPaymentId,
         provider_payload_json AS providerPayloadJson,
+        metadata_json AS metadataJson,
         created_at AS createdAt,
         paid_at AS paidAt,
         failed_at AS failedAt,
@@ -1593,6 +1595,7 @@ const getPaymentByProviderId = async (providerPaymentId) => {
         provider,
         provider_payment_id AS "providerPaymentId",
         provider_payload_json AS "providerPayloadJson",
+        metadata_json AS "metadataJson",
         created_at AS "createdAt",
         paid_at AS "paidAt",
         failed_at AS "failedAt",
@@ -1620,6 +1623,7 @@ const getPaymentByProviderId = async (providerPaymentId) => {
         provider,
         provider_payment_id AS providerPaymentId,
         provider_payload_json AS providerPayloadJson,
+        metadata_json AS metadataJson,
         created_at AS createdAt,
         paid_at AS paidAt,
         failed_at AS failedAt,
@@ -1634,6 +1638,7 @@ const getPaymentByProviderId = async (providerPaymentId) => {
   return {
     ...row,
     providerPayload: row.providerPayloadJson ? JSON.parse(row.providerPayloadJson) : {},
+    metadata: parseJsonMetadata(row.metadataJson),
   };
 };
 

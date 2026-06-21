@@ -2,8 +2,10 @@ import {
   createMolliePayment,
   isMollieConfigured,
   isMolliePaidStatus,
+  isMollieRefundedStatus,
   listMollieMethods,
   normalizeMollieMethod,
+  resolveMollieRefundState,
   retrieveMolliePayment,
 } from '../../mollie.js';
 import { resolveMolliePaymentRedirectUrl, resolveMollieWebhookUrl } from '../../config/mollieUrls.js';
@@ -93,12 +95,16 @@ export class MolliePaymentAdapter {
   async getPaymentStatus(providerPaymentId) {
     if (!this.isConfigured()) return PAYMENT_STATUSES.PENDING;
     const state = await retrieveMolliePayment({ providerPaymentId });
+    const refundState = resolveMollieRefundState(state.raw || state);
+    if (refundState.internalStatus) return refundState.internalStatus;
     if (isMolliePaidStatus(state.status)) return PAYMENT_STATUSES.PAID;
     return this.mapStatus(state.status);
   }
 
   mapStatus(providerStatus) {
     const status = String(providerStatus || '').toLowerCase();
+    if (isMollieRefundedStatus(status)) return PAYMENT_STATUSES.REFUNDED;
+    if (status === 'partially_refunded') return PAYMENT_STATUSES.PARTIALLY_REFUNDED;
     if (isMolliePaidStatus(status)) return PAYMENT_STATUSES.PAID;
     if (status === 'failed' || status === 'expired') return PAYMENT_STATUSES.FAILED;
     if (status === 'cancelled') return PAYMENT_STATUSES.CANCELLED;

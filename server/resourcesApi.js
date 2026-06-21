@@ -42,11 +42,18 @@ export const getResourceConfig = () => {
   };
 };
 
-export const submitResourceOrder = async ({ userId, body, appUrl, customerName }) => {
+export const submitResourceOrder = async ({ userId, body, appUrl, customerName, customerEmail }) => {
   const service = getCatalogItemById(body?.serviceId);
   if (!service) {
     const error = new Error('SERVICE_NOT_FOUND');
     error.status = 404;
+    throw error;
+  }
+
+  const contactEmail = String(body?.email || customerEmail || '').trim();
+  if (!contactEmail) {
+    const error = new Error('CONTACT_EMAIL_REQUIRED');
+    error.status = 400;
     throw error;
   }
 
@@ -61,7 +68,7 @@ export const submitResourceOrder = async ({ userId, body, appUrl, customerName }
     companyName: body?.companyName,
     siren: body?.siren,
     dossierId: body?.dossierId,
-    contactEmail: body?.email,
+    contactEmail,
     status: needsPayment ? 'pending_payment' : 'processing',
     fulfillmentMode,
     priceTtcCents,

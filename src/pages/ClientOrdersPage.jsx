@@ -18,7 +18,7 @@ import {
 import { PageLoadingState } from '@/components/patterns/PageLoadingState.jsx';
 import { deleteResourceOrder, listResourceOrders } from '@/api/resources.js';
 import { formatResourcePrice } from '@/config/resourceServices.js';
-import { formatOrderPublicReference, formatOrderStatusLabel } from '@/utils/orderReference.js';
+import { formatOrderPublicReference, resolveOrderStatusDisplay, orderStatusDisplayToneClass } from '@/utils/orderReference.js';
 
 const DELETABLE_STATUSES = new Set(['draft', 'pending_payment']);
 
@@ -116,6 +116,8 @@ export const ClientOrdersPage = () => {
             <ul className="mt-8 space-y-3">
               {orders.map((order) => {
                 const ref = formatOrderPublicReference(order);
+                const statusDisplay = resolveOrderStatusDisplay(order);
+                const badgeTone = orderStatusDisplayToneClass(statusDisplay.tone) || statusTone(order.status);
                 const created = order.createdAt
                   ? new Date(order.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
                   : null;
@@ -139,8 +141,8 @@ export const ClientOrdersPage = () => {
                         ) : null}
                       </div>
                       <div className="text-right">
-                        <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone(order.status)}`}>
-                          {formatOrderStatusLabel(order.status)}
+                        <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${badgeTone}`}>
+                          {statusDisplay.label}
                         </span>
                         <p className="mt-2 text-lg font-extrabold">{formatResourcePrice(order.priceTtc)}</p>
                       </div>

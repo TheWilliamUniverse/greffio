@@ -402,6 +402,33 @@ test('layoutStatutesCover – page de garde sur une page avec espacement flexibl
   assert.ok(formatCoverSeatLines('Siège social :\n470 Promenade des Anglais\n06200 Nice')[0].includes('470 Promenade des Anglais'));
 });
 
+test('buildStatutesCoverExportElements – pas de page blanche initiale', () => {
+  const elements = buildStatutesCoverExportElements({
+    title: 'STATUTS',
+    legalForm: 'SASU',
+    legalFormLabel: 'Société par Actions Simplifiée Unipersonnelle (SASU)',
+    denomination: 'TRUE POWER',
+    capitalLine: 'Société par Actions Simplifiée Unipersonnelle au capital de 10 000 euros',
+    seatBlock: 'Siège social :\n470 Promenade des Anglais\n06200 Nice',
+    registryLine: 'Immatriculée au Registre du Commerce et des Sociétés de Nice',
+  });
+  assert.notEqual(elements[0]?.type, 'page-break');
+  assert.equal(elements[0]?.type, 'cover-title');
+});
+
+test('layoutStatutesCover – dénomination et forme juridique sur une ligne', () => {
+  const layout = layoutStatutesCover({
+    title: 'STATUTS',
+    legalForm: 'SASU',
+    legalFormLabel: 'Société par Actions Simplifiée Unipersonnelle (SASU)',
+    denomination: 'TRUE POWER',
+    capitalLine: 'Société par Actions Simplifiée Unipersonnelle au capital de 10 000 euros',
+    seatBlock: 'Siège social :\n470 Promenade des Anglais\n06200 Nice',
+    registryLine: 'Immatriculée au Registre du Commerce et des Sociétés de Nice',
+  });
+  assert.ok(layout.topLines.some((line) => line.text === 'TRUE POWER Société par Actions Simplifiée Unipersonnelle'));
+});
+
 test('buildStatutesCoverExportElements – sauts d’espaces réguliers avant RCS', () => {
   const elements = buildStatutesCoverExportElements({
     title: 'STATUTS',

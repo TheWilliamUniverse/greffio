@@ -4,8 +4,45 @@ import {
   normalizeMollieMethod,
   resolveMollieCheckoutMode,
   getMollieProfileId,
+  resolveMollieRefundState,
+  isMollieRefundedStatus,
+  hasMolliePendingRefund,
 } from '../../mollie.js';
 import { MolliePaymentAdapter } from '../providers/MolliePaymentAdapter.js';
+
+test('resolveMollieRefundState détecte remboursement total et partiel', () => {
+  assert.deepEqual(resolveMollieRefundState({
+    status: 'refunded',
+    amount: { value: '99.00' },
+    amountRefunded: { value: '99.00' },
+    modifiedAt: '2026-06-19T10:00:00.000Z',
+  }), {
+    internalStatus: 'refunded',
+    refundedAt: '2026-06-19T10:00:00.000Z',
+    refundPending: false,
+  });
+
+  assert.deepEqual(resolveMollieRefundState({
+    status: 'paid',
+    amount: { value: '99.00' },
+    amountRefunded: { value: '30.00' },
+    modifiedAt: '2026-06-19T10:00:00.000Z',
+  }), {
+    internalStatus: 'partially_refunded',
+    refundedAt: '2026-06-19T10:00:00.000Z',
+    refundPending: false,
+  });
+});
+
+test('hasMolliePendingRefund détecte les remboursements en cours', () => {
+  assert.equal(hasMolliePendingRefund([{ status: 'processing' }]), true);
+  assert.equal(hasMolliePendingRefund([{ status: 'refunded' }]), false);
+});
+
+test('isMollieRefundedStatus reconnaît refunded', () => {
+  assert.equal(isMollieRefundedStatus('refunded'), true);
+  assert.equal(isMollieRefundedStatus('paid'), false);
+});
 
 test('normalizeMollieMethod mappe card → creditcard', () => {
   assert.equal(normalizeMollieMethod('card'), 'creditcard');

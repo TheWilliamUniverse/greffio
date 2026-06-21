@@ -16,25 +16,41 @@ export const storePaymentReturnPath = () => {
 };
 
 /**
- * Ouvre l’URL checkout Mollie.
- * Sur app native Capacitor : navigateur système (Custom Tabs) pour éviter les blocages WebView.
- * Le retour utilisateur passe par /api/mollie/callback → /paiement/verification (app link HTTPS).
+ * Ouvre une URL checkout Mollie dans le navigateur système (Custom Tabs / Safari).
  */
-export const openPaymentCheckoutUrl = async (checkoutUrl) => {
+export const openExternalCheckoutUrl = async (checkoutUrl) => {
   const url = String(checkoutUrl || '').trim();
   if (!url) throw new Error('CHECKOUT_URL_MISSING');
-
-  storePaymentReturnPath();
 
   if (isCapacitorNative() && CapApp?.openUrl) {
     try {
       await CapApp.openUrl({ url });
       return 'external';
     } catch (_error) {
-      // fallback WebView ci-dessous
+      // fallback navigation ci-dessous
     }
   }
 
   window.location.assign(url);
   return 'navigate';
+};
+
+/**
+ * Ouvre l’URL checkout Mollie.
+ * - Apple Pay / Google Pay : redirection directe vers la page wallet Mollie.
+ * - Carte (3-D Secure) : page intermédiaire Greffio puis validation bancaire app-to-app si possible.
+ */
+export const openPaymentCheckoutUrl = async (checkoutUrl, { checkoutMode } = {}) => {
+  const url = String(checkoutUrl || '').trim();
+  if (!url) throw new Error('CHECKOUT_URL_MISSING');
+
+  storePaymentReturnPath();
+
+  if (String(checkoutMode || '').toLowerCase() === 'embedded_3ds') {
+    const target = encodeURIComponent(url);
+    window.location.assign(`/paiement/authentification?target=${target}`);
+    return 'auth_interstitial';
+  }
+
+  return openExternalCheckoutUrl(url);
 };

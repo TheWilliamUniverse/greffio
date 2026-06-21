@@ -5,15 +5,11 @@ import { resolveGreffeCity, resolveTribunalCommerce } from '../shared/resolveTri
 import { sortAssociatesStatutesCanon, resolveLegalEntitySignatoryQuality, formatStatutesPersonDisplayName } from '../../shared/partyIdentityFormatter.js';
 import { deriveStatutsCapitalModel, validateStatutsCapitalModel } from '../shared/deriveStatutsCapital.js';
 import { resolveGlobalLiberationPercent } from '../shared/parseLiberationPercent.js';
+import { resolveLegalFormLabel } from '../../legal/statutes/shared/formatting.js';
 
 const parseAmount = parseFrenchAmount;
 
-const legalFormLabel = (form) => {
-  const f = String(form || 'SAS').toUpperCase();
-  if (f === 'SASU') return 'Société par Actions Simplifiée Unipersonnelle (SASU)';
-  if (f === 'SAS') return 'Société par Actions Simplifiée (SAS)';
-  return f;
-};
+const legalFormLabel = (form) => resolveLegalFormLabel(form, { withAcronym: true });
 
 export const mapStatutesDataToRenderContext = (statutesData = {}) => {
   const legalForm = String(statutesData.legalForm || 'SAS').toUpperCase();

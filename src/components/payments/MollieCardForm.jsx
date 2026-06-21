@@ -32,7 +32,7 @@ const loadMollieScript = () => {
 const GREFFIO_COMPONENT_STYLES = {
   base: {
     color: '#1e3a5f',
-    fontSize: '15px',
+    fontSize: '16px',
     fontWeight: '500',
     backgroundColor: '#ffffff',
     '::placeholder': {

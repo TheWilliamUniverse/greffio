@@ -1,0 +1,33 @@
+{
+  "name": "greffio-mobile-expo",
+  "version": "1.2.20",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "ios": "expo run:ios",
+    "android": "expo run:android",
+    "prebuild": "expo prebuild",
+    "eas:build:ios:preview": "eas build --platform ios --profile preview",
+    "eas:build:ios:production": "eas build --platform ios --profile production",
+    "eas:submit:ios": "eas submit --platform ios --profile production"
+  },
+  "dependencies": {
+    "expo": "~53.0.12",
+    "expo-constants": "~17.1.6",
+    "expo-linking": "~7.1.5",
+    "expo-splash-screen": "~0.30.9",
+    "expo-status-bar": "~2.2.3",
+    "expo-system-ui": "~5.0.8",
+    "react": "19.0.0",
+    "react-native": "0.79.3",
+    "react-native-safe-area-context": "5.4.0",
+    "react-native-webview": "13.13.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@types/react": "~19.0.10",
+    "eas-cli": "^16.3.2",
+    "typescript": "~5.8.3"
+  }
+}

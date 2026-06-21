@@ -4,6 +4,8 @@ import { COOKIE_CONSENT_KEY } from '../src/config/cookieCatalog.js';
 const DOSSIER_ID = 'e2e-forme-flow';
 const MOBILE_VIEWPORT = { width: 390, height: 844 };
 const DESKTOP_VIEWPORT = { width: 1280, height: 800 };
+/** Select fields auto-advance shortly after tap once React commits the new value. */
+const TAP_ADVANCE_MS = 400;
 
 const e2eUser = {
   id: 'e2e-user',
@@ -136,6 +138,19 @@ const dismissCookieBanner = async (page) => {
   }
 };
 
+const waitForTapAdvance = async (page, ms = TAP_ADVANCE_MS) => {
+  await page.waitForTimeout(ms);
+};
+
+const tapChoice = async (page, name) => {
+  await page.getByRole('radio', { name }).click();
+  await waitForTapAdvance(page);
+};
+
+const expectStepHeading = async (page, name) => {
+  await expect(page.getByRole('heading', { name })).toBeVisible({ timeout: 15_000 });
+};
+
 test.beforeEach(async ({ context, page }) => {
   await context.clearCookies();
   await page.addInitScript(({ user, consentKey }) => {
@@ -155,6 +170,30 @@ test.beforeEach(async ({ context, page }) => {
   await mockQuestionnaireApis(page);
 });
 
+test.describe('questionnaire mobile – tap-to-advance contact', () => {
+  test('initiateur personne physique avance sans bouton Continuer', async ({ page }) => {
+    await page.unroute(/\/api\//);
+    await mockQuestionnaireApis(page, {
+      initiatorType: '',
+      firstName: '',
+      lastName: '',
+      nationality: 'Française',
+      birthDate: '',
+      email: '',
+      phone: '',
+      typeFormalite: '',
+      _resume: { stepId: 'contact', fieldKey: 'initiatorType', categoryConfirmed: false },
+    });
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await page.goto(`/questionnaire?dossierId=${DOSSIER_ID}`);
+    await dismissCookieBanner(page);
+
+    await expectStepHeading(page, /Type de déclarant/i);
+    await tapChoice(page, /Personne physique/i);
+    await expectStepHeading(page, /Prénom/i);
+  });
+});
+
 test.describe('questionnaire mobile – flux catégorie puis forme', () => {
   test('immatriculer une nouvelle structure → familles juridiques directement', async ({ page }) => {
     await page.unroute(/\/api\//);
@@ -163,18 +202,13 @@ test.describe('questionnaire mobile – flux catégorie puis forme', () => {
     await page.goto(`/questionnaire?dossierId=${DOSSIER_ID}`);
     await dismissCookieBanner(page);
 
-    await expect(page.getByText('Choisissez une famille de formalité')).toBeVisible({ timeout: 20_000 });
-    await page.getByRole('radio', { name: /Immatriculer une nouvelle structure/i }).click();
+    await expectStepHeading(page, /Choisissez une famille de formalité/i);
+    await tapChoice(page, /Immatriculer une nouvelle structure/i);
 
-    await expect(page.getByText(/forme juridique sera choisie/i)).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByRole('button', { name: /Changer de famille/i })).toBeVisible();
-    await page.getByRole('button', { name: /Étape suivante/i }).click();
-
-    await expect(page.getByText('Quelle catégorie correspond à votre projet ?')).toBeVisible({ timeout: 15_000 });
+    await expectStepHeading(page, /Quelle catégorie correspond à votre projet/i);
     await expect(page.getByRole('radio', { name: /Créer une SASU/i })).toHaveCount(0);
-    await page.getByRole('radio', { name: /Formes les plus courantes/i }).click();
-
-    await expect(page.getByText(/Savez-vous déjà quelle forme juridique/i)).toBeVisible({ timeout: 10_000 });
+    await tapChoice(page, /Formes les plus courantes/i);
+    await expectStepHeading(page, /Savez-vous déjà quelle forme juridique/i);
   });
 
   test('catégorie commerciale → comparateur → ignorer', async ({ page }) => {
@@ -182,20 +216,20 @@ test.describe('questionnaire mobile – flux catégorie puis forme', () => {
     await page.goto(`/questionnaire?dossierId=${DOSSIER_ID}`);
     await dismissCookieBanner(page);
 
-    await expect(page.getByText('Quelle catégorie correspond à votre projet ?')).toBeVisible({ timeout: 20_000 });
-    await page.getByRole('radio', { name: /Sociétés commerciales classiques/i }).click();
+    await expectStepHeading(page, /Quelle catégorie correspond à votre projet/i);
+    await tapChoice(page, /Sociétés commerciales classiques/i);
+    await expectStepHeading(page, /Savez-vous déjà quelle forme juridique/i);
+    await tapChoice(page, /Non, j.*ai besoin d.*aide/i);
 
-    await expect(page.getByText(/Savez-vous déjà quelle forme juridique/i)).toBeVisible({ timeout: 10_000 });
-    await page.getByRole('radio', { name: /Non, j.*ai besoin d.*aide/i }).click();
-
-    await expect(page.getByText(/Comparez les formes avant de choisir/i)).toBeVisible({ timeout: 10_000 });
+    await expectStepHeading(page, /Comparez les formes avant de choisir/i);
     await expect(page.getByRole('link', { name: /Lancer le comparateur/i })).toBeVisible();
     await dismissCookieBanner(page);
     const ignoreButton = page.getByRole('button', { name: /Ignorer pour l'instant/i });
     await ignoreButton.scrollIntoViewIfNeeded();
     await ignoreButton.click();
+    await waitForTapAdvance(page, 500);
 
-    await expect(page.getByText(/Dénomination/i)).toBeVisible({ timeout: 15_000 });
+    await expectStepHeading(page, /Dénomination/i);
   });
 
   test('catégorie commerciale → forme connue → SAS', async ({ page }) => {
@@ -203,16 +237,15 @@ test.describe('questionnaire mobile – flux catégorie puis forme', () => {
     await page.goto(`/questionnaire?dossierId=${DOSSIER_ID}`);
     await dismissCookieBanner(page);
 
-    await expect(page.getByText('Quelle catégorie correspond à votre projet ?')).toBeVisible({ timeout: 20_000 });
-    await page.getByRole('radio', { name: /Formes les plus courantes/i }).click();
+    await expectStepHeading(page, /Quelle catégorie correspond à votre projet/i);
+    await tapChoice(page, /Formes les plus courantes/i);
+    await expectStepHeading(page, /Savez-vous déjà quelle forme juridique/i);
+    await tapChoice(page, /Oui, je sais déjà/i);
 
-    await expect(page.getByText(/Savez-vous déjà quelle forme juridique/i)).toBeVisible({ timeout: 10_000 });
-    await page.getByRole('radio', { name: /Oui, je sais déjà/i }).click();
+    await expectStepHeading(page, /Forme juridique/i);
+    await tapChoice(page, /^SAS /i);
 
-    await expect(page.getByRole('heading', { name: /Forme juridique \*/i })).toBeVisible({ timeout: 10_000 });
-    await page.getByRole('radio', { name: /^SAS\b/i }).first().click();
-
-    await expect(page.getByText(/Dénomination/i)).toBeVisible({ timeout: 15_000 });
+    await expectStepHeading(page, /Dénomination/i);
   });
 
   test('Autres → catégorie secondaire → forme GAEC', async ({ page }) => {
@@ -220,16 +253,15 @@ test.describe('questionnaire mobile – flux catégorie puis forme', () => {
     await page.goto(`/questionnaire?dossierId=${DOSSIER_ID}`);
     await dismissCookieBanner(page);
 
-    await expect(page.getByText('Quelle catégorie correspond à votre projet ?')).toBeVisible({ timeout: 20_000 });
-    await page.getByRole('radio', { name: /^Autres\b/i }).click();
+    await expectStepHeading(page, /Quelle catégorie correspond à votre projet/i);
+    await tapChoice(page, /^Autres\b/i);
+    await expectStepHeading(page, /Précisez votre catégorie/i);
+    await tapChoice(page, /Agricole/i);
 
-    await expect(page.getByText('Précisez votre catégorie')).toBeVisible({ timeout: 10_000 });
-    await page.getByRole('radio', { name: /Agricole/i }).click();
+    await expectStepHeading(page, /Forme juridique/i);
+    await tapChoice(page, /^GAEC\b/i);
 
-    await expect(page.getByRole('heading', { name: /Forme juridique \*/i })).toBeVisible({ timeout: 10_000 });
-    await page.getByRole('radio', { name: /^GAEC\b/i }).click();
-
-    await expect(page.getByText(/Dénomination/i)).toBeVisible({ timeout: 15_000 });
+    await expectStepHeading(page, /Dénomination/i);
   });
 });
 
@@ -239,15 +271,14 @@ test.describe('questionnaire desktop – flux unifié step-by-step', () => {
     await page.goto(`/questionnaire?dossierId=${DOSSIER_ID}`);
     await dismissCookieBanner(page);
 
-    await expect(page.getByText('Quelle catégorie correspond à votre projet ?')).toBeVisible({ timeout: 20_000 });
-    await page.getByRole('radio', { name: /Formes les plus courantes/i }).click();
+    await expectStepHeading(page, /Quelle catégorie correspond à votre projet/i);
+    await tapChoice(page, /Formes les plus courantes/i);
+    await expectStepHeading(page, /Savez-vous déjà quelle forme juridique/i);
+    await tapChoice(page, /Oui, je sais déjà/i);
 
-    await expect(page.getByText(/Savez-vous déjà quelle forme juridique/i)).toBeVisible({ timeout: 10_000 });
-    await page.getByRole('radio', { name: /Oui, je sais déjà/i }).click();
+    await expectStepHeading(page, /Forme juridique/i);
+    await tapChoice(page, /^SAS /i);
 
-    await expect(page.getByRole('heading', { name: /Forme juridique \*/i })).toBeVisible({ timeout: 10_000 });
-    await page.getByRole('radio', { name: /^SAS\b/i }).first().click();
-
-    await expect(page.getByText(/Dénomination/i)).toBeVisible({ timeout: 15_000 });
+    await expectStepHeading(page, /Dénomination/i);
   });
 });

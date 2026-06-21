@@ -206,6 +206,75 @@ const isMfaEnabled = async (userId) => {
   return Boolean(record?.mfaEnabled);
 };
 
+const listUsersWithTotpMfa = async () => {
+  const whereClause = hasPostgres
+    ? `mfa_enabled = TRUE OR totp_secret_encrypted IS NOT NULL OR totp_pending_secret_encrypted IS NOT NULL`
+    : `mfa_enabled = 1 OR totp_secret_encrypted IS NOT NULL OR totp_pending_secret_encrypted IS NOT NULL`;
+  if (hasPostgres) {
+    const result = await query(`
+      SELECT id, email, role, mfa_enabled AS "mfaEnabled"
+      FROM users
+      WHERE ${whereClause}
+      ORDER BY email ASC
+    `);
+    return result.rows;
+  }
+  return sqlite.prepare(`
+    SELECT id, email, role, mfa_enabled AS mfaEnabled
+    FROM users
+    WHERE ${whereClause}
+    ORDER BY email ASC
+  `).all();
+};
+
+/** Désactive toute la MFA TOTP (secrets, codes de secours, appareils de confiance). */
+const resetAllTotpMfa = async () => {
+  const users = await listUsersWithTotpMfa();
+  const updatedAt = nowIso();
+  if (hasPostgres) {
+    await query(`
+      UPDATE users
+      SET
+        mfa_enabled = FALSE,
+        totp_secret_encrypted = NULL,
+        totp_pending_secret_encrypted = NULL,
+        updated_at = $1
+      WHERE mfa_enabled = TRUE
+         OR totp_secret_encrypted IS NOT NULL
+         OR totp_pending_secret_encrypted IS NOT NULL
+    `, [updatedAt]);
+    await query('DELETE FROM mfa_recovery_codes');
+    await query(
+      'UPDATE mfa_trusted_devices SET revoked_at = $1 WHERE revoked_at IS NULL',
+      [updatedAt],
+    );
+  } else {
+    sqlite.prepare(`
+      UPDATE users
+      SET
+        mfa_enabled = 0,
+        totp_secret_encrypted = NULL,
+        totp_pending_secret_encrypted = NULL,
+        updated_at = ?
+      WHERE mfa_enabled = 1
+         OR totp_secret_encrypted IS NOT NULL
+         OR totp_pending_secret_encrypted IS NOT NULL
+    `).run(updatedAt);
+    sqlite.prepare('DELETE FROM mfa_recovery_codes').run();
+    sqlite.prepare(
+      'UPDATE mfa_trusted_devices SET revoked_at = ? WHERE revoked_at IS NULL',
+    ).run(updatedAt);
+  }
+  return {
+    resetCount: users.length,
+    users: users.map((user) => ({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    })),
+  };
+};
+
 export {
   activateTotp,
   consumeRecoveryCode,
@@ -214,6 +283,8 @@ export {
   getMfaStatus,
   getTotpSecret,
   isMfaEnabled,
+  listUsersWithTotpMfa,
   replaceRecoveryCodes,
+  resetAllTotpMfa,
   savePendingTotpSecret,
 };

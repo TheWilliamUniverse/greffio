@@ -40,6 +40,12 @@ export const resolvePaymentCheckoutErrorMessage = (error) => {
   if (code === 'AUTH_TOKEN_MISSING' || code === 'AUTH_SESSION_EXPIRED') {
     return 'Session expirée. Reconnectez-vous pour payer.';
   }
+  if (code === 'CONTACT_EMAIL_REQUIRED') {
+    return 'Votre compte doit avoir une adresse e-mail valide pour commander.';
+  }
+  if (code === 'CART_EMPTY' || code === 'SERVICE_NOT_FOUND') {
+    return 'Panier invalide. Rechargez la page boutique et réessayez.';
+  }
   if (code === 'CHECKOUT_URL_MISSING') {
     return 'Le lien de paiement sécurisé n’a pas pu être généré.';
   }

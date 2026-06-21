@@ -4,11 +4,13 @@ import { CircleCheckBig, Clock3, Loader2, LockKeyhole, ShieldCheck } from 'lucid
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { fetchPaymentVerificationStatus } from '@/api/payments.js';
+import { formatPaymentStatusLabel } from '@/utils/orderReference.js';
 import { isCapacitorNative } from '@/utils/platform.js';
 import { isPageVisible } from '@/utils/pageVisibility.js';
 
 const PAID_STATUSES = new Set(['paid', 'authorized', 'PAID', 'AUTHORIZED']);
 const FAILED_STATUSES = new Set(['failed', 'cancelled', 'expired', 'FAILED', 'CANCELLED', 'EXPIRED']);
+const REFUND_STATUSES = new Set(['refunded', 'partially_refunded']);
 const PAYMENT_POLL_BACKOFF_MS = [2000, 3000, 5000, 8000, 12000];
 
 const normalizeStatus = (value) => String(value || '').trim().toLowerCase();
@@ -23,6 +25,7 @@ export const PaymentVerificationPage = () => {
 
   const [polling, setPolling] = useState(true);
   const [resolvedStatus, setResolvedStatus] = useState(initialStatus || '');
+  const [refundPending, setRefundPending] = useState(false);
   const [pollError, setPollError] = useState('');
 
   useEffect(() => {
@@ -62,8 +65,15 @@ export const PaymentVerificationPage = () => {
         if (cancelled) return;
         const nextStatus = payload?.status || payload?.dossierStatus || initialStatus || '';
         if (nextStatus) setResolvedStatus(nextStatus);
+        setRefundPending(Boolean(payload?.refundPending));
         const normalized = normalizeStatus(nextStatus);
-        if (PAID_STATUSES.has(nextStatus) || PAID_STATUSES.has(normalized) || FAILED_STATUSES.has(normalized)) {
+        if (
+          PAID_STATUSES.has(nextStatus)
+          || PAID_STATUSES.has(normalized)
+          || FAILED_STATUSES.has(normalized)
+          || REFUND_STATUSES.has(normalized)
+          || payload?.refundPending
+        ) {
           finishPolling();
           return;
         }
@@ -120,6 +130,24 @@ export const PaymentVerificationPage = () => {
         description: 'Votre paiement Mollie a été accepté. Votre espace Greffio va refléter le nouveau statut.',
       };
     }
+    if (refundPending) {
+      return {
+        icon: <Clock3 className="h-6 w-6" />,
+        tone: 'text-amber-800 bg-amber-100',
+        title: formatPaymentStatusLabel(null, { refundPending: true }),
+        description: 'Votre remboursement est en cours de traitement auprès de Mollie. Le statut sera mis à jour sous peu.',
+      };
+    }
+    if (REFUND_STATUSES.has(paymentStatus)) {
+      return {
+        icon: <CircleCheckBig className="h-6 w-6" />,
+        tone: paymentStatus === 'partially_refunded' ? 'text-orange-800 bg-orange-100' : 'text-slate-700 bg-slate-100',
+        title: formatPaymentStatusLabel(paymentStatus),
+        description: paymentStatus === 'partially_refunded'
+          ? 'Une partie du montant a été remboursée sur votre moyen de paiement.'
+          : 'Le montant a été remboursé sur votre moyen de paiement.',
+      };
+    }
     if (FAILED_STATUSES.has(paymentStatus)) {
       return {
         icon: <Clock3 className="h-6 w-6" />,
@@ -136,7 +164,7 @@ export const PaymentVerificationPage = () => {
         ? 'Nous confirmons le statut auprès de Mollie avant de mettre à jour votre dossier.'
         : 'Votre retour depuis Mollie a été enregistré. Le statut peut encore être en cours de synchronisation.',
     };
-  }, [paymentStatus, polling, resolvedStatus]);
+  }, [paymentStatus, polling, refundPending, resolvedStatus]);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.08),transparent_42%),linear-gradient(180deg,#f8fbff_0%,#ffffff_55%,#eef4ff_100%)] px-4 py-10 sm:px-6 lg:px-8">

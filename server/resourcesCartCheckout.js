@@ -54,6 +54,7 @@ export const prepareCartOrders = async ({
   items,
   appUrl,
   customerName,
+  customerEmail,
 }) => {
   const expanded = expandCartItems(items);
   if (!expanded.length) {
@@ -78,6 +79,7 @@ export const prepareCartOrders = async ({
       },
       appUrl,
       customerName,
+      customerEmail,
     });
     await updateResourceOrder(order.id, {
       metadata: {

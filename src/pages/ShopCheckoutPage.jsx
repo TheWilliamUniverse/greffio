@@ -80,8 +80,8 @@ export const ShopCheckoutPage = () => {
       }
       setOrderIds(ids);
       return true;
-    } catch (_error) {
-      toast.error('Impossible d\'enregistrer la commande pour le moment.');
+    } catch (error) {
+      toast.error(resolvePaymentCheckoutErrorMessage(error));
       return false;
     } finally {
       setPreparing(false);
@@ -100,7 +100,7 @@ export const ShopCheckoutPage = () => {
       });
       if (payload.checkoutUrl) {
         clearCart();
-        await openPaymentCheckoutUrl(payload.checkoutUrl);
+        await openPaymentCheckoutUrl(payload.checkoutUrl, { checkoutMode: payload.checkoutMode });
         return;
       }
       throw new Error('CHECKOUT_URL_MISSING');
@@ -130,7 +130,7 @@ export const ShopCheckoutPage = () => {
         <header className="border-b border-border bg-white px-6 py-4">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <GreffioLogo variant="mark" to="/boutique" className="hidden sm:block" />
+              <GreffioLogo variant="mark" to="/dashboard" className="hidden sm:block" />
               <div>
                 <p className="text-sm font-bold uppercase text-primary">Boutique Greffio</p>
                 <h1 className="text-xl font-extrabold">Finaliser ma commande</h1>
