@@ -1087,6 +1087,7 @@ export const QuestionnairePage = () => {
           value={formData.liberationCapital || ''}
           capitalAmount={formData.capital || ''}
           onChange={(nextValue) => updateField(field, nextValue)}
+          onAdvance={() => requestTapAdvance(field.key)}
           mobilePresentation={useUnifiedPresentation}
           kicker={PROGRESSIVE_STEP_LABELS[step.id] || step.title}
           label={field.label}

@@ -48,6 +48,34 @@ const resumeAtContactFormaliteQuestionnaire = {
   },
 };
 
+const resumeAtLiberationCapital = {
+  initiatorType: 'personne_physique',
+  firstName: 'Jean',
+  lastName: 'Dupont',
+  nationality: 'Française',
+  birthDate: '1990-01-01',
+  email: 'jean.dupont@example.com',
+  phone: '0600000000',
+  typeFormalite: 'creation_societe',
+  formeJuridiqueFamillePrimary: 'commercial',
+  formeJuridiqueFamille: 'commercial',
+  connaissezFormeJuridique: 'oui',
+  comparateurIgnore: false,
+  formeJuridique: 'SASU',
+  denomination: 'Test SASU E2E',
+  adresseSiege: '12 rue de la République',
+  codePostal: '75001',
+  villeSiege: 'Paris',
+  activite: 'Conseil en stratégie digitale et accompagnement des PME.',
+  capital: '1000',
+  liberationCapital: '',
+  _resume: {
+    stepId: 'entreprise',
+    fieldKey: 'liberationCapital',
+    categoryConfirmed: true,
+  },
+};
+
 const mockQuestionnaireApis = async (page, questionnairePayload = resumeQuestionnaire) => {
   await page.route(/\/api\//, async (route) => {
     const url = route.request().url();
@@ -248,6 +276,22 @@ test.describe('questionnaire mobile – flux catégorie puis forme', () => {
     await expectStepHeading(page, /Dénomination/i);
   });
 
+  test('catégorie commerciale → forme connue → SASU', async ({ page }) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await page.goto(`/questionnaire?dossierId=${DOSSIER_ID}`);
+    await dismissCookieBanner(page);
+
+    await expectStepHeading(page, /Quelle catégorie correspond à votre projet/i);
+    await tapChoice(page, /Formes les plus courantes/i);
+    await expectStepHeading(page, /Savez-vous déjà quelle forme juridique/i);
+    await tapChoice(page, /Oui, je sais déjà/i);
+
+    await expectStepHeading(page, /Forme juridique/i);
+    await tapChoice(page, /^SASU /i);
+
+    await expectStepHeading(page, /Dénomination/i);
+  });
+
   test('Autres → catégorie secondaire → forme GAEC', async ({ page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto(`/questionnaire?dossierId=${DOSSIER_ID}`);
@@ -262,6 +306,20 @@ test.describe('questionnaire mobile – flux catégorie puis forme', () => {
     await tapChoice(page, /^GAEC\b/i);
 
     await expectStepHeading(page, /Dénomination/i);
+  });
+});
+
+test.describe('questionnaire mobile – libération du capital SASU', () => {
+  test('libération intégrale avance vers apports en nature', async ({ page }) => {
+    await page.unroute(/\/api\//);
+    await mockQuestionnaireApis(page, resumeAtLiberationCapital);
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await page.goto(`/questionnaire?dossierId=${DOSSIER_ID}`);
+    await dismissCookieBanner(page);
+
+    await expectStepHeading(page, /Libération du capital/i);
+    await tapChoice(page, /Libération intégrale/i);
+    await expectStepHeading(page, /apports en nature/i);
   });
 });
 

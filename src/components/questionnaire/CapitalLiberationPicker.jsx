@@ -53,6 +53,7 @@ export const CapitalLiberationPicker = ({
   value = '',
   capitalAmount = '',
   onChange,
+  onAdvance,
   mobilePresentation = false,
   kicker = '',
   label = 'Libération du capital',
@@ -89,6 +90,7 @@ export const CapitalLiberationPicker = ({
     void lightQuestionnaireHaptic();
     setMode('full');
     onChange?.('100 %');
+    if (mobilePresentation) onAdvance?.();
   };
 
   const applyPartial = (nextPercent = partialPercent) => {
@@ -159,6 +161,20 @@ export const CapitalLiberationPicker = ({
           />
         </div>
         {sliderBlock}
+        {mode === 'partial' ? (
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm"
+              onClick={() => {
+                void lightQuestionnaireHaptic();
+                onAdvance?.();
+              }}
+            >
+              Continuer
+            </button>
+          </div>
+        ) : null}
       </MobileCompositeStep>
     );
   }
