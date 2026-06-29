@@ -333,9 +333,9 @@ export const OnlyOfficeEditor = ({
       {loading && !errorMessage ? (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-white px-6 text-center">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <p className="text-sm font-medium text-foreground">Chargement de l’éditeur ONLYOFFICE…</p>
+          <p className="text-sm font-medium text-foreground">Préparation de l’éditeur…</p>
           <p className="max-w-sm text-xs leading-5 text-muted-foreground">
-            Connexion au serveur document et préparation du fichier Word.
+            Connexion au serveur document et ouverture de votre fichier Word.
           </p>
         </div>
       ) : null}

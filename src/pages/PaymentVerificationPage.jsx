@@ -123,8 +123,8 @@ export const PaymentVerificationPage = () => {
       return {
         icon: <Loader2 className="h-6 w-6 animate-spin" />,
         tone: 'text-primary bg-primary/10',
-        title: 'Paiement en cours de vérification…',
-        description: 'Greffio interroge le prestataire Mollie et met à jour votre dossier. Cela prend généralement quelques secondes.',
+        title: 'Vérification du paiement en cours…',
+        description: 'Greffio confirme le statut auprès de Mollie et met à jour votre dossier. Cela prend généralement quelques secondes.',
       };
     }
     if (PAID_STATUSES.has(paymentStatus) || PAID_STATUSES.has(resolvedStatus)) {
@@ -164,7 +164,7 @@ export const PaymentVerificationPage = () => {
     return {
       icon: polling ? <Loader2 className="h-6 w-6 animate-spin" /> : <CircleCheckBig className="h-6 w-6" />,
       tone: polling ? 'text-primary bg-primary/10' : 'text-emerald-700 bg-emerald-100',
-      title: polling ? 'Paiement en cours de vérification…' : 'Retour paiement effectué',
+      title: polling ? 'Vérification du paiement en cours…' : 'Retour paiement effectué',
       description: polling
         ? 'Nous confirmons le statut auprès de Mollie avant de mettre à jour votre dossier.'
         : 'Votre retour depuis Mollie a été enregistré. Le statut peut encore être en cours de synchronisation.',

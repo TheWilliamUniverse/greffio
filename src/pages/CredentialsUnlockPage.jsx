@@ -48,8 +48,8 @@ export const CredentialsUnlockPage = () => {
       toast.success('Identifiants déverrouillés');
     } catch (error) {
       toast.error(error?.message === 'CREDENTIAL_UNLOCK_CODE_INVALID'
-        ? 'Code incorrect.'
-        : 'Impossible de déverrouiller vos identifiants.');
+        ? 'Code incorrect. Vérifiez le SMS reçu ou demandez un nouveau lien à votre équipe Greffio.'
+        : 'Déverrouillage momentanément indisponible. Réessayez dans quelques instants.');
     } finally {
       setSubmitting(false);
     }
@@ -85,7 +85,7 @@ export const CredentialsUnlockPage = () => {
           ) : null}
 
           {!loading && token && !meta?.ok && !result ? (
-            <p className="text-sm text-destructive">Ce lien n’est plus valide ou a déjà été utilisé.</p>
+            <p className="text-sm text-muted-foreground">Ce lien n’est plus actif. Demandez un nouveau SMS de déverrouillage à votre équipe Greffio.</p>
           ) : null}
 
           {!loading && meta?.ok && !result ? (

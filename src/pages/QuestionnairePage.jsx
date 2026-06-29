@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input.jsx';
@@ -45,7 +45,6 @@ import {
 } from '@/api/questionnaire.js';
 import { lookupCompanyBySiren } from '@/api/company.js';
 import { createDossier, listDossiers } from '@/api/dossiers.js';
-import { QuestionnaireRecapPanel } from '@/components/questionnaire/QuestionnaireRecapPanel.jsx';
 import { clearCurrentDossierId, getCurrentDossierId, saveCurrentDossierId } from '@/utils/sessionStore.js';
 import { buildDossierBootstrap, isDossierQuestionnaireResumable, pickResumableDraftDossier } from '@/utils/dossierBootstrap.js';
 import { isQuestionnaireExplicitResume, isQuestionnaireNewIntent } from '@/utils/questionnaireNavigation.js';
@@ -86,6 +85,10 @@ import {
   resolveServiceFromFormality,
   mapSimulatorDraftToQuestionnaire,
 } from '@/utils/formalityMapping.js';
+
+const QuestionnaireRecapPanel = lazy(() => import('@/components/questionnaire/QuestionnaireRecapPanel.jsx').then((module) => ({
+  default: module.QuestionnaireRecapPanel,
+})));
 
 const defaultData = {
   initiatorType: 'personne_physique',
@@ -182,6 +185,7 @@ export const QuestionnairePage = () => {
   const [demarcheCategoryConfirmed, setDemarcheCategoryConfirmed] = useState(false);
   const [touchedFields, setTouchedFields] = useState({});
   const pendingTapAdvanceRef = useRef(null);
+  const [tapAdvanceSignal, setTapAdvanceSignal] = useState(0);
   const forceAdvanceAfterIgnoreRef = useRef(false);
   const navigationLockRef = useRef(false);
 
@@ -752,7 +756,7 @@ export const QuestionnairePage = () => {
       void goNext();
     }, 320);
     return () => window.clearTimeout(timer);
-  }, [formData, activeGroup, canAdvanceCurrentGroup, useUnifiedPresentation]);
+  }, [formData, activeGroup, canAdvanceCurrentGroup, useUnifiedPresentation, tapAdvanceSignal]);
 
   useEffect(() => {
     if (!forceAdvanceAfterIgnoreRef.current || !formData.comparateurIgnore || step.id !== 'forme') return undefined;
@@ -816,6 +820,7 @@ export const QuestionnairePage = () => {
   const requestTapAdvance = (fieldKey) => {
     if (!useUnifiedPresentation) return;
     pendingTapAdvanceRef.current = fieldKey;
+    setTapAdvanceSignal((current) => current + 1);
   };
 
   const handleTapFieldUpdate = (field, value) => {
@@ -1037,7 +1042,11 @@ export const QuestionnairePage = () => {
     if (!field) return null;
 
     if (field.type === 'recap_summary') {
-      return <QuestionnaireRecapPanel formData={formData} />;
+      return (
+        <Suspense fallback={<p className="text-sm text-muted-foreground">Chargement du récapitulatif…</p>}>
+          <QuestionnaireRecapPanel formData={formData} />
+        </Suspense>
+      );
     }
 
     if (field.type === 'form_family_picker' || field.type === 'form_family_secondary_picker') {

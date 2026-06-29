@@ -11,10 +11,10 @@ export const securityConfig = {
 export const mapSecurityApiError = (error) => {
   const code = error?.payload?.error || error?.code || error?.message;
   if (code === 'RATE_LIMITED') {
-    return error?.payload?.message || 'Trop de tentatives. Réessayez dans quelques minutes.';
+    return error?.payload?.message || 'Pour protéger votre compte, merci de patienter quelques minutes avant de réessayer.';
   }
   if (code === 'SECURITY_CHECK_REQUIRED') {
-    return error?.payload?.message || 'Nous n\'avons pas pu vérifier cette action. Merci de réessayer.';
+    return error?.payload?.message || 'Une vérification de sécurité est nécessaire. Réessayez dans un instant.';
   }
   return null;
 };

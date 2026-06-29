@@ -307,13 +307,13 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       const code = error?.payload?.error || error?.code || error?.message;
       if (code === 'MFA_CODE_INVALID') {
-        return { success: false, error: 'Code MFA invalide ou expiré.' };
+        return { success: false, error: 'Code incorrect ou expiré. Réessayez ou demandez un nouveau code.' };
       }
       if (code === 'MFA_TOKEN_INVALID' || code === 'MFA_NOT_ENABLED') {
         return { success: false, error: 'Session MFA expirée. Reconnectez-vous.' };
       }
       if (code === 'RATE_LIMITED') {
-        return { success: false, error: mapSecurityApiError(error) || 'Trop de tentatives. Réessayez dans quelques minutes.' };
+        return { success: false, error: mapSecurityApiError(error) || 'Pour protéger votre compte, merci de patienter quelques minutes avant de réessayer.' };
       }
       if (code === 'MFA_TOTP_UNAVAILABLE') {
         return {

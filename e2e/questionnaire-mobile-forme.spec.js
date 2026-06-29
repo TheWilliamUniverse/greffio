@@ -321,6 +321,20 @@ test.describe('questionnaire mobile – libération du capital SASU', () => {
     await tapChoice(page, /Libération intégrale/i);
     await expectStepHeading(page, /apports en nature/i);
   });
+
+  test('libération partielle → Continuer avance vers apports en nature', async ({ page }) => {
+    await page.unroute(/\/api\//);
+    await mockQuestionnaireApis(page, resumeAtLiberationCapital);
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await page.goto(`/questionnaire?dossierId=${DOSSIER_ID}`);
+    await dismissCookieBanner(page);
+
+    await expectStepHeading(page, /Libération du capital/i);
+    await tapChoice(page, /Libération partielle/i);
+    await expect(page.getByRole('button', { name: 'Continuer' })).toBeVisible();
+    await page.getByRole('button', { name: 'Continuer' }).click();
+    await expectStepHeading(page, /apports en nature/i);
+  });
 });
 
 test.describe('questionnaire desktop – flux unifié step-by-step', () => {

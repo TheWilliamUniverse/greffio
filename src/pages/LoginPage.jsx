@@ -104,7 +104,7 @@ export const LoginPage = () => {
       setMfaToken(result.mfaToken);
       resetMfaState();
       setStep('mfa');
-      toast.message('Vérification en deux étapes requise');
+      toast.message('Vérification en deux étapes – c’est une protection standard pour votre compte.');
       return;
     }
 
@@ -125,14 +125,14 @@ export const LoginPage = () => {
       toast.error('Ce compte temporaire a expiré (validité jusqu’à 10 h ce matin).');
     } else if (result.error === 'SECURITY_CHECK_REQUIRED') {
       setFailedAttempts((value) => Math.max(value + 1, 2));
-      toast.error(result.message || 'Nous n\'avons pas pu vérifier cette action. Merci de réessayer.');
+      toast.error(result.message || 'Une vérification de sécurité est nécessaire. Réessayez dans un instant.');
     } else if (result.error === 'RATE_LIMITED') {
-      toast.error(result.message || 'Trop de tentatives. Réessayez dans quelques minutes.');
+      toast.error(result.message || 'Pour protéger votre compte, merci de patienter quelques minutes avant de réessayer.');
     } else {
       setFailedAttempts((value) => value + 1);
       setFieldErrors({
         email: '',
-        password: result.error || 'Connexion impossible. Vérifiez vos identifiants ou réessayez dans quelques instants.',
+        password: result.error || 'Identifiants non reconnus. Vérifiez email et mot de passe, puis réessayez.',
       });
     }
   };
@@ -196,7 +196,7 @@ export const LoginPage = () => {
         navigate(resolvePostLoginPath({ role: resolveSessionRole(result.user), fromPath }), { replace: true });
       }
     } else {
-      toast.error(result.error || 'Code invalide');
+      toast.error(result.error || 'Code incorrect ou expiré. Réessayez ou demandez un nouveau code.');
     }
   };
 
