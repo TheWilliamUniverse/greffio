@@ -309,6 +309,34 @@ test.describe('questionnaire mobile – flux catégorie puis forme', () => {
   });
 });
 
+const resumeAtAdresseSiege = {
+  initiatorType: 'personne_physique',
+  firstName: 'Jean',
+  lastName: 'Dupont',
+  nationality: 'Française',
+  birthDate: '1990-01-01',
+  email: 'jean.dupont@example.com',
+  phone: '0600000000',
+  typeFormalite: 'creation_societe',
+  formeJuridiqueFamillePrimary: 'commercial',
+  formeJuridiqueFamille: 'commercial',
+  connaissezFormeJuridique: 'oui',
+  comparateurIgnore: false,
+  formeJuridique: 'SASU',
+  denomination: 'Test SASU E2E',
+  adresseSiege: '',
+  codePostal: '',
+  villeSiege: '',
+  activite: '',
+  capital: '',
+  liberationCapital: '',
+  _resume: {
+    stepId: 'entreprise',
+    fieldKey: 'adresseSiege',
+    categoryConfirmed: true,
+  },
+};
+
 const resumeAtApportsMissingSiege = {
   initiatorType: 'personne_physique',
   firstName: 'Jean',
@@ -337,6 +365,52 @@ const resumeAtApportsMissingSiege = {
     categoryConfirmed: true,
   },
 };
+
+test.describe('questionnaire mobile – saisie adresse siège', () => {
+  test('saisie partielle ne fait pas avancer automatiquement', async ({ page }) => {
+    await page.unroute(/\/api\//);
+    await mockQuestionnaireApis(page, resumeAtAdresseSiege);
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await page.goto(`/questionnaire?dossierId=${DOSSIER_ID}`);
+    await dismissCookieBanner(page);
+
+    await expectStepHeading(page, /Adresse du siège/i);
+    const addressInput = page.getByPlaceholder('12 rue de la République');
+    await addressInput.fill('12 rue');
+    await page.waitForTimeout(900);
+    await expectStepHeading(page, /Adresse du siège/i);
+
+    await addressInput.fill('12 rue de la République');
+    await page.getByRole('button', { name: 'Question suivante' }).click();
+    await expectStepHeading(page, /Code postal du siège/i);
+  });
+
+  test('code postal partiel ne fait pas avancer automatiquement', async ({ page }) => {
+    await page.unroute(/\/api\//);
+    await mockQuestionnaireApis(page, {
+      ...resumeAtAdresseSiege,
+      adresseSiege: '12 rue de la République',
+      _resume: {
+        stepId: 'entreprise',
+        fieldKey: 'codePostal',
+        categoryConfirmed: true,
+      },
+    });
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await page.goto(`/questionnaire?dossierId=${DOSSIER_ID}`);
+    await dismissCookieBanner(page);
+
+    await expectStepHeading(page, /Code postal du siège/i);
+    const postalInput = page.getByPlaceholder('75001');
+    await postalInput.fill('75');
+    await page.waitForTimeout(900);
+    await expectStepHeading(page, /Code postal du siège/i);
+
+    await postalInput.fill('75001');
+    await page.getByRole('button', { name: 'Question suivante' }).click();
+    await expectStepHeading(page, /Ville du siège/i);
+  });
+});
 
 test.describe('questionnaire mobile – libération du capital SASU', () => {
   test('libération intégrale avance vers apports en nature', async ({ page }) => {

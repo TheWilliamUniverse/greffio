@@ -1152,7 +1152,6 @@ export const QuestionnairePage = () => {
         updateField(field, sanitized);
       }}
       onAdvance={goNext}
-      autoAdvanceMs={useUnifiedPresentation && isCompactStep ? 650 : 0}
     >
       {extra}
     </MobileInputStep>
