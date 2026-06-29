@@ -11,6 +11,21 @@ const resolveAssociateLiberation = ({
   const associatePercentRaw = associate.liberationPercent ?? associate.liberationRate;
   const associatePercent = parseLiberationPercent(associatePercentRaw);
 
+  if (explicitReleased > 0 && subscribed > 0 && explicitReleased > subscribed + 0.01) {
+    if (associatePercent != null) {
+      return {
+        released: Math.round(subscribed * associatePercent / 100),
+        liberationPercent: associatePercent,
+        source: 'percent',
+      };
+    }
+    return {
+      released: Math.round(subscribed * globalLiberationPercent / 100),
+      liberationPercent: globalLiberationPercent,
+      source: 'global',
+    };
+  }
+
   if (explicitReleased > 0) {
     const percent = subscribed > 0
       ? Math.round((explicitReleased / subscribed) * 1000) / 10
@@ -19,13 +34,13 @@ const resolveAssociateLiberation = ({
       const expectedFromPercent = Math.round(subscribed * associatePercent / 100);
       if (Math.abs(expectedFromPercent - explicitReleased) > 0.01) {
         return {
-          error: `Libération incohérente pour ${associate.label || associate.fullName} : montant ${explicitReleased} € incompatible avec ${associatePercent} %.`,
+          error: `Libération incohérente pour ${associate.label || associate.fullName} : ${formatFrEuros(explicitReleased)} libérés à ${associatePercent} % du numéraire souscrit (${formatFrEuros(subscribed)} → attendu ${formatFrEuros(expectedFromPercent)}). Vérifiez la libération du capital dans le questionnaire.`,
         };
       }
     }
     return {
       released: explicitReleased,
-      liberationPercent: percent,
+      liberationPercent: associatePercent ?? percent,
       source: 'amount',
     };
   }
@@ -183,7 +198,7 @@ export const validateStatutsCapitalModel = (model) => {
     if (associate.subscribedAmount > 0) {
       const expectedFromRate = Math.round(associate.subscribedAmount * associate.liberationPercent / 100);
       if (Math.abs(associate.releasedAmount - expectedFromRate) > 0.01) {
-        errors.push(`Libération incohérente pour ${associate.label || associate.fullName} : ${associate.releasedAmount} € incompatible avec ${associate.liberationPercent} %.`);
+        errors.push(`Libération incohérente pour ${associate.label || associate.fullName} : ${formatFrEuros(associate.releasedAmount)} libérés à ${associate.liberationPercent} % du numéraire souscrit (${formatFrEuros(associate.subscribedAmount)} → attendu ${formatFrEuros(expectedFromRate)}).`);
       }
     }
 

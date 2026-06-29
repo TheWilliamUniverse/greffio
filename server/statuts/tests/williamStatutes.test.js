@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { mapStatutesData } from '../../utils/statutesDataMapper.js';
 import { mapStatutesDataToRenderContext } from '../mappers/mapStatutesDataToRenderContext.js';
 import { renderWilliamSas2026Blocks, countWilliamArticles, estimatePageCount } from '../renderers/renderWilliamSas2026.js';
 import { validateGeneratedStatuts } from '../validators/validateGeneratedStatuts.js';
@@ -566,6 +567,30 @@ test('deriveStatutsCapitalModel – montant libéré incompatible avec taux bloq
     }),
     (error) => error.code === 'STATUTES_CAPITAL_INCONSISTENT',
   );
+});
+
+test('mapStatutesData – montant global erroné sur associé est corrigé', () => {
+  const statutesData = mapStatutesData({
+    dossier: { id: 'test', reference: 'GF-TEST' },
+    questionnaire: {
+      formeJuridique: 'SASU',
+      denomination: 'TRUE POWER',
+      capital: '1000',
+      liberationCapital: '50 %',
+      adresseSiege: '470 Promenade des Anglais',
+      codePostal: '06200',
+      villeSiege: 'Nice',
+      associates: [{
+        label: 'William ABDOU',
+        share: '100 %',
+        liberationAmount: '5000',
+        liberationRate: '50 %',
+      }],
+    },
+  });
+  const ctx = mapStatutesDataToRenderContext(statutesData);
+  assert.equal(ctx.capitalModel.associatesComputed[0].releasedAmount, 500);
+  assert.equal(ctx.capitalModel.associatesComputed[0].subscribedAmount, 1000);
 });
 
 test('buildPowersAnnexe – aligné procuration (elle, sans annonce légale)', () => {

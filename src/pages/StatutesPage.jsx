@@ -95,6 +95,7 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
   const [loadError, setLoadError] = useState('');
   const [showDocumentsLink, setShowDocumentsLink] = useState(false);
   const [generationError, setGenerationError] = useState('');
+  const [generationHint, setGenerationHint] = useState('');
 
   useEffect(() => {
     const fromUrl = searchParams.get('dossierId');
@@ -240,6 +241,7 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
     try {
       setGenerating(true);
       setGenerationError('');
+      setGenerationHint('');
       const payload = await generateStatutes(dossierId);
       if (payload?.dossierId) {
         saveCurrentDossierId(payload.dossierId);
@@ -259,6 +261,7 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
     } catch (error) {
       const resolved = resolveStatutesGenerationToast(error, dossierId);
       setGenerationError(resolved.message);
+      setGenerationHint(resolved.hint || '');
       toast.error(resolved.message);
     } finally {
       setGenerating(false);
@@ -383,6 +386,9 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
           {generationError ? (
             <QuestionnaireNotice variant="error" title="Génération des statuts">
               <p>{generationError}</p>
+              {generationHint ? (
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{generationHint}</p>
+              ) : null}
               <p className="mt-2">
                 <Link
                   to={dossierId ? questionnaireResumePath(dossierId) : QUESTIONNAIRE_NEW_PATH}

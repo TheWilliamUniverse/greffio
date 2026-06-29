@@ -6,6 +6,12 @@ const DATA_ERROR_CODES = new Set([
   'STATUTES_TEXT_VALIDATION_FAILED',
 ]);
 
+const formatLiberationClientHint = (message = '') => {
+  const text = String(message || '');
+  if (!/libération incohérente/i.test(text)) return null;
+  return 'Ouvrez le questionnaire → étape « Libération du capital » et vérifiez le montant libéré par associé (il doit correspondre au % appliqué à sa part de capital en numéraire).';
+};
+
 export const resolveStatutesGenerationToast = (error, _dossierId) => {
   const code = error?.payload?.error;
   const validationErrors = error?.payload?.validation?.errors;
@@ -24,10 +30,12 @@ export const resolveStatutesGenerationToast = (error, _dossierId) => {
     const detail = validationErrors?.[0]
       || missingFields.join(', ')
       || serverMessage;
+    const liberationHint = formatLiberationClientHint(detail || serverMessage);
     return {
       message: detail
         ? `Génération bloquée : ${detail}`
         : 'Données incomplètes : complétez le questionnaire puis réessayez.',
+      hint: liberationHint,
       showQuestionnaireLink: true,
       missingFields,
     };

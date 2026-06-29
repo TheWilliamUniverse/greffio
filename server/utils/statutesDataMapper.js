@@ -84,13 +84,26 @@ const enrichAssociatesForCapital = (associates = [], { capitalAmount, totalShare
     if (!sharePct && shares > 0) sharePct = Math.round((shares / total) * 1000) / 10;
     const subscribed = (shares || 0) * nominal;
     const cashFormatted = associate.contributionCash || (subscribed ? formatEuros(subscribed) : '');
-    const released = associate.liberationAmount || (subscribed ? formatEuros(Math.round(subscribed * liberationPct)) : '');
+    const expectedReleased = subscribed > 0 ? Math.round(subscribed * liberationPct) : 0;
+    const explicitReleased = parseFrenchAmount(associate.liberationAmount);
+    const perAssociateRate = parseFrenchAmount(String(associate.liberationRate || associate.liberationPercent || '').replace('%', '').trim());
+    let releasedValue = expectedReleased;
+    if (explicitReleased > 0) {
+      if (Math.abs(explicitReleased - expectedReleased) <= 1) {
+        releasedValue = explicitReleased;
+      } else if (explicitReleased <= subscribed + 0.01 && perAssociateRate > 0) {
+        releasedValue = explicitReleased;
+      }
+    }
+    const released = releasedValue > 0 ? formatEuros(releasedValue) : '';
     return {
       ...associate,
       share: sharePct ? `${sharePct} %` : associate.share,
       titlesCount: shares ? String(shares) : associate.titlesCount,
       contributionCash: cashFormatted,
       liberationAmount: released,
+      liberationRate: perAssociateRate > 0 ? `${perAssociateRate} %` : '',
+      liberationPercent: perAssociateRate > 0 ? String(perAssociateRate) : '',
     };
   });
 };
@@ -156,7 +169,7 @@ const parseAssociateEntry = (entry, fallback = {}) => {
       nationality: '',
       roleLabel: pick(entry.roleLabel, entry.role, 'Associé'),
       contributionCash: pick(entry.contributionCash, entry.apportNumeraire, ''),
-      liberationRate: pick(entry.liberationRate, '50%'),
+      liberationRate: pick(entry.liberationRate, entry.liberationPercent, ''),
       liberationAmount: pick(entry.liberationAmount, ''),
       contributionInKind: pick(entry.contributionInKind, entry.apportNature, ''),
     };
@@ -176,7 +189,7 @@ const parseAssociateEntry = (entry, fallback = {}) => {
       legalRepresentatives: '',
       roleLabel: 'Associé',
       contributionCash: '',
-      liberationRate: '50%',
+      liberationRate: '',
       liberationAmount: '',
       contributionInKind: '',
     };
@@ -196,7 +209,7 @@ const parseAssociateEntry = (entry, fallback = {}) => {
     legalRepresentatives: pick(entry.legalRepresentatives, entry.legalGuardian, ''),
     roleLabel: pick(entry.roleLabel, entry.role, 'Associé'),
     contributionCash: pick(entry.contributionCash, entry.apportNumeraire, ''),
-    liberationRate: pick(entry.liberationRate, '50%'),
+    liberationRate: pick(entry.liberationRate, entry.liberationPercent, ''),
     liberationAmount: pick(entry.liberationAmount, ''),
     contributionInKind: pick(entry.contributionInKind, entry.apportNature, ''),
     civility: pick(entry.civility, ''),

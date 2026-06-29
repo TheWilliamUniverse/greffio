@@ -2,14 +2,28 @@ import React from 'react';
 import { DEMARCHE_CATALOG } from '@/lib/questionnaireFlow.js';
 import { formatInitiatorType } from '@/utils/initiatorLabels.js';
 
+import { parseLiberationPercentValue } from '@/components/questionnaire/CapitalLiberationPicker.jsx';
+
+const parseCapitalAmount = (capital) => {
+  const normalized = String(capital || '').replace(/\s/g, '').replace(',', '.');
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+};
+
+const formatEuroRecap = (amount) => new Intl.NumberFormat('fr-FR', {
+  style: 'currency',
+  currency: 'EUR',
+  maximumFractionDigits: 0,
+}).format(amount);
+
 const formatValue = (value) => {
   if (value == null || value === '') return '–';
   if (Array.isArray(value)) return value.length ? `${value.length} élément(s)` : '–';
   return String(value);
 };
 
-const formatSectionValue = (section, key, value) => {
-  if (section.format) return section.format(key, value);
+const formatSectionValue = (section, key, value, formData = {}) => {
+  if (section.format) return section.format(key, value, formData);
   if (key === 'initiatorType') return formatInitiatorType(value);
   return formatValue(value);
 };
@@ -58,11 +72,21 @@ const SECTIONS = [
       apportsNature: 'Apports en nature',
       detailApportsNature: 'Détail apports en nature',
     },
-    format: (key, value) => {
+    format: (key, value, formData = {}) => {
       if (key === 'liberationCapital') {
-        const parsed = Number(String(value || '').replace('%', '').replace(',', '.').trim());
-        if (parsed === 100) return 'Libération intégrale (100 %)';
-        if (Number.isFinite(parsed)) return `Libération partielle (${parsed} %)`;
+        const parsed = parseLiberationPercentValue(value) ?? Number(String(value || '').replace('%', '').replace(',', '.').trim());
+        const capitalNum = parseCapitalAmount(formData.capital);
+        if (parsed === 100) {
+          return capitalNum
+            ? `Libération intégrale (100 %) — ${formatEuroRecap(capitalNum)} libérés`
+            : 'Libération intégrale (100 %)';
+        }
+        if (Number.isFinite(parsed) && parsed > 0) {
+          const released = capitalNum ? Math.round((capitalNum * parsed) / 100) : null;
+          return released
+            ? `Libération partielle (${parsed} %) — ${formatEuroRecap(released)} libérés sur ${formatEuroRecap(capitalNum)}`
+            : `Libération partielle (${parsed} %)`;
+        }
       }
       return formatValue(value);
     },
@@ -76,7 +100,7 @@ export const QuestionnaireRecapPanel = ({ formData = {}, onEditStep }) => (
         .map((key) => ({
           key,
           label: section.labels[key] || key,
-          value: formatSectionValue(section, key, formData[key]),
+          value: formatSectionValue(section, key, formData[key], formData),
         }))
         .filter((row) => row.value !== '–');
       if (!rows.length) return null;
