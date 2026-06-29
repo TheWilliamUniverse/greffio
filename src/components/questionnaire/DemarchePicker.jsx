@@ -9,6 +9,7 @@ import {
 import {
   MobileChoiceStep,
   MobileChoiceTile,
+  MOBILE_CHOICE_TWO_COL_GRID,
 } from '@/components/questionnaire/MobileChoiceStep.jsx';
 import {
   DEMARCHE_CATALOG,
@@ -90,11 +91,6 @@ export const DemarchePicker = ({
     onChange(CREATION_AUTO_FORMALITY);
   }, [shouldSkipCreationTiles, value, onChange]);
 
-  useEffect(() => {
-    if (!mobilePresentation || !shouldSkipCreationTiles || value !== CREATION_AUTO_FORMALITY) return;
-    onAdvance?.();
-  }, [mobilePresentation, shouldSkipCreationTiles, value, onAdvance]);
-
   if (categoryFirst && !categoryConfirmed) {
     return (
       <FormalityCategoryPicker
@@ -108,6 +104,7 @@ export const DemarchePicker = ({
           }
           if (categoryId) setCategoryConfirmed(true);
         }}
+        onAdvance={mobilePresentation ? onAdvance : undefined}
         mobilePresentation={mobilePresentation}
         progressPercent={progressPercent}
         stepCurrent={stepCurrent}
@@ -141,7 +138,7 @@ export const DemarchePicker = ({
             title="Créer une société"
             subtitle="La forme juridique sera choisie à l'étape suivante."
             hint="La forme juridique sera choisie à l'étape suivante."
-            gridClassName="grid grid-cols-1 gap-2.5"
+            gridClassName={MOBILE_CHOICE_TWO_COL_GRID}
           >
             {confirmationCard}
           </MobileChoiceStep>
@@ -173,7 +170,7 @@ export const DemarchePicker = ({
           progressPercent={progressPercent}
           stepCurrent={stepCurrent}
           stepTotal={stepTotal}
-          gridClassName="grid grid-cols-1 gap-2.5"
+          gridClassName={MOBILE_CHOICE_TWO_COL_GRID}
         >
           {filteredItems.map((item) => (
             <MobileChoiceTile

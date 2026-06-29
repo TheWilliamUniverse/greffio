@@ -223,6 +223,36 @@ test.describe('questionnaire mobile – tap-to-advance contact', () => {
 });
 
 test.describe('questionnaire mobile – flux catégorie puis forme', () => {
+  test('famille de formalité en grille 2 colonnes sur mobile', async ({ page }) => {
+    await page.unroute(/\/api\//);
+    await mockQuestionnaireApis(page, resumeAtContactFormaliteQuestionnaire);
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await page.goto(`/questionnaire?dossierId=${DOSSIER_ID}`);
+    await dismissCookieBanner(page);
+
+    await expectStepHeading(page, /Choisissez une famille de formalité/i);
+    const grid = page.locator('.mobile-choice-grid').first();
+    await expect(grid).toHaveClass(/grid-cols-2/);
+  });
+
+  test('modifications → démarche tap avance vers SIREN existant', async ({ page }) => {
+    await page.unroute(/\/api\//);
+    await mockQuestionnaireApis(page, resumeAtContactFormaliteQuestionnaire);
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await page.goto(`/questionnaire?dossierId=${DOSSIER_ID}`);
+    await dismissCookieBanner(page);
+
+    await expectStepHeading(page, /Choisissez une famille de formalité/i);
+    await tapChoice(page, /Capital, gouvernance, activité/i);
+
+    await expectStepHeading(page, /Quelle démarche/i);
+    const demarcheGrid = page.locator('.mobile-choice-grid').first();
+    await expect(demarcheGrid).toHaveClass(/grid-cols-2/);
+    await tapChoice(page, /Changer de dirigeant/i);
+
+    await expectStepHeading(page, /SIREN/i);
+  });
+
   test('immatriculer une nouvelle structure → familles juridiques directement', async ({ page }) => {
     await page.unroute(/\/api\//);
     await mockQuestionnaireApis(page, resumeAtContactFormaliteQuestionnaire);

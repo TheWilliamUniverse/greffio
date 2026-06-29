@@ -36,7 +36,7 @@ export const MobileChoiceTile = ({
     className={cn(
       'mobile-choice-tile group relative flex w-full flex-col text-left transition-all duration-200 ease-out',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2',
-      compact ? 'min-h-[3rem] rounded-2xl p-3.5' : 'min-h-[3.25rem] rounded-[22px] p-4 sm:min-h-[3.5rem] sm:p-5',
+      compact ? 'min-h-[2.75rem] rounded-2xl p-2.5 sm:min-h-[3rem] sm:p-3.5' : 'min-h-[3.25rem] rounded-[22px] p-4 sm:min-h-[3.5rem] sm:p-5',
       selected
         ? 'border-2 border-primary bg-secondary/70 shadow-[0_10px_28px_rgba(30,77,140,0.12)]'
         : 'border border-[#d4e2f5] bg-white shadow-[0_2px_12px_rgba(15,31,61,0.05)] hover:border-primary/30 hover:shadow-[0_12px_32px_rgba(15,31,61,0.1)]',
@@ -48,7 +48,7 @@ export const MobileChoiceTile = ({
       <span
         className={cn(
           'mb-2.5 shrink-0 overflow-hidden rounded-xl',
-          compact ? 'h-11 w-11' : 'h-12 w-12',
+          compact ? 'h-9 w-9 sm:h-11 sm:w-11' : 'h-12 w-12',
         )}
       >
         <img
@@ -66,28 +66,28 @@ export const MobileChoiceTile = ({
         className={cn(
           'mb-2.5 flex shrink-0 items-center justify-center rounded-xl text-primary',
           iconTone,
-          compact ? 'h-9 w-9' : 'h-10 w-10',
+          compact ? 'h-8 w-8 sm:h-9 sm:w-9' : 'h-10 w-10',
         )}
       >
-        <Icon className={compact ? 'h-4 w-4' : 'h-5 w-5'} strokeWidth={2.2} aria-hidden />
+        <Icon className={compact ? 'h-3.5 w-3.5 sm:h-4 sm:w-4' : 'h-5 w-5'} strokeWidth={2.2} aria-hidden />
       </span>
     ) : null}
     {kicker ? (
-      <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary/70">
+      <span className={cn('font-bold uppercase tracking-[0.12em] text-primary/70', compact ? 'text-[9px] sm:text-[10px]' : 'text-[10px]')}>
         {kicker}
       </span>
     ) : null}
     <span
       className={cn(
         'block font-extrabold leading-snug text-[hsl(var(--greffio-blue-900))]',
-        compact ? 'text-sm' : 'text-base',
+        compact ? 'text-xs sm:text-sm' : 'text-base',
         selected && 'text-primary',
       )}
     >
       {title}
     </span>
     {description ? (
-      <span className={cn('mt-1 block leading-snug text-muted-foreground', compact ? 'text-xs' : 'text-sm')}>
+      <span className={cn('mt-0.5 block leading-snug text-muted-foreground', compact ? 'line-clamp-2 text-[11px] sm:mt-1 sm:text-xs' : 'mt-1 text-sm')}>
         {description}
       </span>
     ) : null}
@@ -137,7 +137,7 @@ export const MobileChoiceStep = ({
       <div
         className={cn(
           'mobile-choice-grid w-full max-w-md',
-          gridClassName || 'grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3',
+          gridClassName || 'grid grid-cols-2 gap-2.5',
         )}
         role="radiogroup"
         aria-label={title}
@@ -151,6 +151,8 @@ export const MobileChoiceStep = ({
     ) : null}
   </div>
 );
+
+export const MOBILE_CHOICE_TWO_COL_GRID = 'grid grid-cols-2 gap-2.5';
 
 export const isMobileChoiceField = (field) => (
   Boolean(field && (field.type === 'select' || field.type === 'checkbox'))

@@ -2,12 +2,13 @@ import React from 'react';
 import { ArrowLeft, Check } from 'lucide-react';
 import { PRIMARY_FORMALITY_CATEGORIES } from '@/lib/questionnaireFlow.js';
 import { getCategoryVisual } from '@/config/demarcheVisuals.js';
-import { MobileChoiceStep, MobileChoiceTile } from '@/components/questionnaire/MobileChoiceStep.jsx';
+import { MobileChoiceStep, MobileChoiceTile, MOBILE_CHOICE_TWO_COL_GRID } from '@/components/questionnaire/MobileChoiceStep.jsx';
 
 export const FormalityCategoryPicker = ({
   value,
   onChange,
   onContinue,
+  onAdvance,
   mobilePresentation = false,
   progressPercent,
   stepCurrent,
@@ -23,7 +24,7 @@ export const FormalityCategoryPicker = ({
         progressPercent={progressPercent}
         stepCurrent={stepCurrent}
         stepTotal={stepTotal}
-        gridClassName="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3"
+        gridClassName={MOBILE_CHOICE_TWO_COL_GRID}
       >
         {PRIMARY_FORMALITY_CATEGORIES.map((category) => {
           const selected = value === category.id;
@@ -40,6 +41,9 @@ export const FormalityCategoryPicker = ({
               onSelect={() => {
                 onChange(category.id);
                 onContinue?.(category.id);
+                if (category.id === 'creation') {
+                  onAdvance?.();
+                }
               }}
               className="overflow-hidden"
             />
