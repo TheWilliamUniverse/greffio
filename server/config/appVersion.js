@@ -38,10 +38,11 @@ const parseChangelog = (value) => {
 const DEFAULT_MIN_VERSION_CODE = 261422041;
 
 const PUBLISHED_CHANGELOG = [
-  'Navigation landing sans déconnexion',
-  'Checkout boutique : Apple Pay, Google Pay et virement',
-  'Simulateur desktop : sélection de forme corrigée',
-  'Éditeur ONLYOFFICE : chargement document fiabilisé',
+  'Connexion : messages d’erreur auth plus clairs',
+  'Questionnaire mobile : avancement au tap plus fluide',
+  'Paiement SASU : parcours checkout fiabilisé',
+  'Éditeur ONLYOFFICE : conflits de version mieux signalés',
+  'Signature : liens expirés avec renvoi facilité',
 ];
 
 export const getAppVersionConfig = () => ({

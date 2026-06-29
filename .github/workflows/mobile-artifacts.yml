@@ -67,11 +67,7 @@ jobs:
         run: npx cap sync android
 
       - name: Compute Android version
-        run: |
-          VERSION_CODE=$(date +'%y%j%H%M')
-          VERSION_NAME="1.0.${VERSION_CODE}"
-          echo "ANDROID_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
-          echo "ANDROID_VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
+        run: node scripts/read-android-version.mjs --github-env >> "$GITHUB_ENV"
 
       - name: Prepare optional signing config
         working-directory: android

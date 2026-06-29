@@ -78,7 +78,7 @@
     "@capacitor/push-notifications": "^8.1.1",
     "@capacitor/share": "^8.0.1",
     "@capawesome-team/capacitor-file-opener": "^8.0.1",
-    "@capgo/capacitor-native-biometric": "^7.6.0",
+    "@capgo/capacitor-native-biometric": "^8.4.11",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/plus-jakarta-sans": "^5.2.8",
     "@hookform/resolvers": "^5.2.2",

@@ -24,3 +24,5 @@ npm run mobile:build
 cd android && ./gradlew.bat bundleRelease
 Copy-Item app/build/outputs/bundle/release/app-release.aab releases/android/greffio-{version}-{code}.aab
 ```
+
+**Biométrie Capacitor :** `@capgo/capacitor-native-biometric` est aligné sur Capacitor 8 (`peer: @capacitor/core >= 8`). L’API utilisée par `biometricAuth.js` (`isAvailable`, `verifyIdentity`, `setCredentials`, `getCredentials`, `deleteCredentials`) est inchangée entre 7.x et 8.x.

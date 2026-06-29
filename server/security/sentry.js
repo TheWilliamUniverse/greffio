@@ -2,6 +2,8 @@ import { logStructured } from '../utils/structuredLog.js';
 
 let sentryReady = false;
 
+export const isSentryConfigured = () => Boolean(String(process.env.SENTRY_DSN || '').trim());
+
 export const initSentry = async () => {
   const dsn = String(process.env.SENTRY_DSN || '').trim();
   if (!dsn) return false;

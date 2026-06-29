@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ExternalLink, FileText, Mail, PenLine } from 'lucide-react';
+import { ExternalLink, FileText, Mail, PenLine, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Sidebar } from '@/components/Sidebar.jsx';
 import { PdfPreviewPanel } from '@/components/documents/PdfPreviewPanel.jsx';
@@ -61,6 +61,7 @@ export const NonConvictionDeclarationPage = () => {
   const [saving, setSaving] = useState(false);
   const [signMode, setSignMode] = useState(null);
   const [signedResult, setSignedResult] = useState(null);
+  const [signatureDispatch, setSignatureDispatch] = useState(null);
   const nativeApp = isCapacitorNative();
 
   useMobileSignatureOverlay(Boolean(signMode), () => setSignMode(null));
@@ -79,6 +80,7 @@ export const NonConvictionDeclarationPage = () => {
         const payload = await loadNonConvictionEditor(dossierId);
         if (cancelled) return;
         setFields(normalizeFields(payload.fields || {}));
+        setSignatureDispatch(payload.signatureDispatch || null);
         setLoadStatus('ready');
       } catch (error) {
         if (cancelled) return;
@@ -199,6 +201,13 @@ export const NonConvictionDeclarationPage = () => {
       });
       toast.success('Email de signature envoyé.');
       setSignMode(null);
+      setSignatureDispatch({
+        status: 'pending',
+        signerEmail: signaturePayload.signerEmail,
+        signerEmailMasked: signaturePayload.signerEmail,
+        signerFullName: signaturePayload.signerFullName,
+        canResend: true,
+      });
     } catch (error) {
       const offline = typeof navigator !== 'undefined' && !navigator.onLine;
       toast.error(offline
@@ -208,6 +217,56 @@ export const NonConvictionDeclarationPage = () => {
       setSaving(false);
     }
   };
+
+  const onResendSignatureLink = async () => {
+    if (!signatureDispatch?.canResend) return;
+    setSaving(true);
+    try {
+      const normalized = normalizeFields(fields);
+      const signerEmail = signatureDispatch.signerEmail || normalized.signerEmail || normalized.email || '';
+      const signerFullName = signatureDispatch.signerFullName || normalized.signatureFullName || '';
+      await sendNonConvictionSignatureRequest(dossierId, {
+        fields: normalized,
+        signerEmail,
+        signerFullName,
+      });
+      toast.success('Nouveau lien de signature envoyé.');
+      setSignatureDispatch((current) => ({
+        ...current,
+        status: 'pending',
+        canResend: true,
+      }));
+    } catch (error) {
+      const offline = typeof navigator !== 'undefined' && !navigator.onLine;
+      toast.error(offline
+        ? 'Envoi impossible. Vérifiez votre connexion puis réessayez.'
+        : mapError(error));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const signatureDispatchBanner = signatureDispatch?.canResend ? (
+    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+      <p>
+        {signatureDispatch.status === 'expired'
+          ? 'Le lien de signature a expiré.'
+          : 'Une demande de signature est en attente.'}
+        {signatureDispatch.signerEmailMasked ? ` Destinataire : ${signatureDispatch.signerEmailMasked}.` : ''}
+      </p>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="mt-3 bg-white"
+        disabled={saving}
+        onClick={() => void onResendSignatureLink()}
+      >
+        <RefreshCw className={`h-4 w-4 ${saving ? 'animate-spin' : ''}`} />
+        Renvoyer le lien
+      </Button>
+    </div>
+  ) : null;
 
   if (loadStatus !== 'ready' || !fields) {
     return (
@@ -262,6 +321,7 @@ export const NonConvictionDeclarationPage = () => {
             intro="Complétez le formulaire conforme au modèle administratif. Vous pourrez vérifier le PDF avant signature."
           >
             <div className="space-y-4">
+              {signatureDispatchBanner}
               <section className="rounded-2xl border border-border/70 bg-white p-4 shadow-sm">
                 <NonConvictionEditorForm fields={fields} updateField={updateField} />
 
@@ -293,6 +353,7 @@ export const NonConvictionDeclarationPage = () => {
               <p className="text-sm text-muted-foreground">
                 Complétez le formulaire conforme au modèle administratif. Vous pourrez vérifier le PDF avant signature.
               </p>
+              {signatureDispatchBanner ? <div className="mt-4">{signatureDispatchBanner}</div> : null}
               <div className="mt-4">
                 <NonConvictionEditorForm fields={fields} updateField={updateField} />
               </div>

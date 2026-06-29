@@ -66,6 +66,17 @@ const ChecklistItem = ({ label, ok }) => (
   </div>
 );
 
+const resolveStatutesWilliamHint = (legalForm) => {
+  const form = String(legalForm || '').toUpperCase();
+  if (['SARL', 'EURL', 'SCI'].includes(form)) {
+    return `Statuts adaptés William (${form}) — structure conforme, relecture avant dépôt.`;
+  }
+  if (form === 'SASU') {
+    return '27 articles William SASU — document complet prêt à relire avant génération PDF.';
+  }
+  return '27 articles William SAS — document complet prêt à relire avant génération PDF.';
+};
+
 export const StatutesPage = ({ presentation = 'auto' }) => {
   const bottomPad = useMobileSafeBottomPadding();
   const isMobilePresentation = presentation === 'mobile'
@@ -310,6 +321,7 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
   const isOpsViewer = ['ADMIN', 'OPS', 'FORMALISTE', 'TEAM'].includes(currentUser?.role);
   const incorporated = preview?.incorporatedData;
   const completeness = preview?.metadata?.completeness ?? 0;
+  const statutesWilliamHint = resolveStatutesWilliamHint(incorporated?.legalForm);
 
   return (
     <div className={cn(
@@ -406,6 +418,7 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
                         <> – champs manquants : {preview.metadata.missingFields.join(', ')}</>
                       ) : null}
                     </p>
+                    <p className="mt-2 text-xs text-muted-foreground">{statutesWilliamHint}</p>
                   </div>
                   <Button asChild variant="outline" className="bg-white">
                     <Link to={dossierId ? questionnaireResumePath(dossierId) : QUESTIONNAIRE_NEW_PATH}>Compléter le questionnaire</Link>
@@ -444,7 +457,7 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
                 <div className="we-panel p-6 lg:col-span-2">
                   <h2 className="text-lg font-extrabold">Statuts complets</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {preview.clauseCount || preview.allClauses?.length || 0} articles rédigés – document William prêt à relire avant génération PDF.
+                    {statutesWilliamHint}
                   </p>
                   {preview.preamble?.paragraphs?.length ? (
                     <div className="mt-5 rounded-xl border border-dashed border-[var(--we-border)] bg-[#fafcff] p-4">

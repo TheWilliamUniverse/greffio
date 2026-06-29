@@ -31,7 +31,7 @@ import {
 } from './security/loginRisk.js';
 import { securityHeadersMiddleware } from './security/headers.js';
 import { buildPublicSecurityConfig } from './security/publicSecurityConfig.js';
-import { initSentry, captureSecurityException } from './security/sentry.js';
+import { initSentry, captureSecurityException, isSentryConfigured } from './security/sentry.js';
 import { isAssistantBudgetExhausted, spendAssistantBudget } from './security/verificationBudget.js';
 import { initSchema } from './dbClient.js';
 import { DOSSIER_STATUSES } from './stateMachine.js';
@@ -215,6 +215,11 @@ import {
 } from './mfaTrustedDeviceStore.js';
 import { handleAssistantRequest } from './assistant/assistantController.js';
 import { isAssistantConfigured } from './services/assistant.js';
+import { isMollieConfigured } from './mollie.js';
+import { isBrevoConfigured } from './emails/brevoProvider.js';
+import { isCawlPaymentEnabled } from './payments/types.js';
+import { isSignwellConfigured } from './services/signature/signatureProvider.js';
+import { buildSignatureDispatchSummary } from './services/signature/signatureDispatchSummary.js';
 import {
   createSupabaseSignedDownloadUrl,
   createSignedDownloadUrl,
@@ -417,6 +422,11 @@ app.get('/api/ready', healthRateLimiter, async (_req, res) => {
     supabaseCredentialsPresent: objectStorageConfig.supabaseCredentialsPresent,
     supabaseStorageActive: objectStorageConfig.supabaseStorageActive,
     assistantConfigured: isAssistantConfigured(),
+    brevoConfigured: isBrevoConfigured(),
+    mollieConfigured: isMollieConfigured(),
+    sentryConfigured: isSentryConfigured(),
+    signwellConfigured: isSignwellConfigured(),
+    cawlEnabled: isCawlPaymentEnabled(),
     localStorageBacklog: await countDocumentsWithLocalStorage(),
     timestamp: new Date().toISOString(),
   };
@@ -2251,17 +2261,18 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async 
   let savedFields = {};
   let workspace = { enabled: false };
   let documents = [];
+  let existingDoc = null;
   try {
     await ensureDossierDocuments(dossier.id);
     documents = await listDossierDocuments(dossier.id);
-    const existing = documents.find((item) => item.docKey === docKey);
-    savedFields = existing?.metadata?.fields && typeof existing.metadata.fields === 'object'
-      ? existing.metadata.fields
+    existingDoc = documents.find((item) => item.docKey === docKey) || null;
+    savedFields = existingDoc?.metadata?.fields && typeof existingDoc.metadata.fields === 'object'
+      ? existingDoc.metadata.fields
       : {};
     workspace = await buildEditorWorkspaceBlock({
       dossierId: dossier.id,
       docKey,
-      document: existing || null,
+      document: existingDoc,
     });
   } catch (error) {
     console.error('DOCUMENT_EDITOR_LOAD_FAILED', error);
@@ -2277,6 +2288,11 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async 
         savedFields,
         documents,
       });
+      const signatureDispatch = await buildSignatureDispatchSummary({
+        dossierId: dossier.id,
+        docKey,
+        document: existingDoc,
+      });
       return res.json({
         ok: true,
         docKey,
@@ -2284,6 +2300,7 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async 
         title: editableConfig.title,
         fields,
         workspace,
+        signatureDispatch,
       });
     }
   } catch (error) {
@@ -2321,6 +2338,11 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async 
   if (!fields.signatureFullName?.trim()) {
     fields.signatureFullName = `${fields.declarantFirstName || ''} ${fields.declarantLastName || ''}`.trim();
   }
+  const signatureDispatch = await buildSignatureDispatchSummary({
+    dossierId: dossier.id,
+    docKey,
+    document: existingDoc,
+  });
   return res.json({
     ok: true,
     docKey,
@@ -2328,6 +2350,7 @@ app.get('/api/dossiers/:dossierId/documents/:docKey/editor', requireAuth, async 
     title: 'Déclaration de non-condamnation et de filiation',
     fields,
     workspace,
+    signatureDispatch,
   });
 });
 
