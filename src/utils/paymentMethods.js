@@ -64,19 +64,19 @@ export const pickDefaultConsumerPaymentMethod = (methods = []) => {
 
 export const resolvePaymentMethodHint = (methodId) => {
   const id = String(methodId || '').toLowerCase();
-  if (id === 'applepay') {
-    return 'Validation Face ID / Touch ID – sans connexion à votre banque sur le web.';
-  }
-  if (id === 'googlepay') {
-    return 'Validation sur votre téléphone – sans connexion à votre banque sur le web.';
+  if (id === 'applepay' || id === 'googlepay') {
+    return 'Paiement rapide et sécurisé.';
   }
   if (id === 'creditcard') {
-    return 'Votre banque peut vous demander de confirmer dans son application mobile, puis vous revenir ici automatiquement.';
+    return 'Carte Visa, Mastercard ou CB.';
   }
   if (id === 'paypal') {
-    return 'Paiement sécurisé via PayPal.';
+    return 'Paiement via PayPal.';
   }
-  return 'Paiement sécurisé via Mollie.';
+  if (id === 'banktransfer') {
+    return 'Virement bancaire.';
+  }
+  return 'Paiement sécurisé.';
 };
 
 export const shouldRecommendWalletOnMobile = (methods = []) => {

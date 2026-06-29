@@ -60,6 +60,12 @@ export const MobileInputStep = ({
     if (canAdvance && typeof onAdvance === 'function') onAdvance();
   };
 
+  const scrollInputToEnd = () => {
+    const input = inputRef.current;
+    if (!input || typeof input.scrollLeft !== 'number') return;
+    input.scrollLeft = input.scrollWidth;
+  };
+
   return (
     <div
       className={cn(
@@ -95,7 +101,7 @@ export const MobileInputStep = ({
       </header>
 
       <div className={cn(compact ? 'pt-1' : 'flex flex-1 flex-col justify-center py-4 sm:py-6')}>
-        <div className="relative mx-auto w-full max-w-md">
+        <div className="mx-auto w-full max-w-md space-y-3">
           <Input
             ref={inputRef}
             id={resolvedId}
@@ -109,22 +115,29 @@ export const MobileInputStep = ({
             placeholder={placeholder}
             aria-invalid={invalid || undefined}
             aria-describedby={errorMessage ? errorId : undefined}
-            onChange={(event) => onChange?.(event.target.value)}
+            onChange={(event) => {
+              onChange?.(event.target.value);
+              window.requestAnimationFrame(scrollInputToEnd);
+            }}
+            onFocus={scrollInputToEnd}
             onKeyDown={handleKeyDown}
             className={cn(
-              'h-14 rounded-2xl border-2 bg-white px-4 text-base font-semibold shadow-sm',
+              'h-14 w-full overflow-x-auto rounded-2xl border-2 bg-white px-4 text-base font-semibold shadow-sm',
               invalid ? 'border-red-400' : 'border-[#d4e2f5] focus-visible:border-primary',
             )}
           />
           {canAdvance ? (
-            <button
-              type="button"
-              aria-label="Question suivante"
-              onClick={onAdvance}
-              className="absolute bottom-2 right-2 inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white shadow-md"
-            >
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </button>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                aria-label="Question suivante"
+                onClick={onAdvance}
+                className="inline-flex h-11 min-w-[3rem] items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-bold text-white shadow-md"
+              >
+                Continuer
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
           ) : null}
         </div>
         {extra}

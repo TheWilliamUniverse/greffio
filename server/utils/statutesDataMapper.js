@@ -15,6 +15,57 @@ const pick = (...values) => {
   return '';
 };
 
+const isPlaceholderValue = (value, markers = ['à compléter', 'à préciser']) => {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!normalized) return true;
+  return markers.some((marker) => normalized.includes(marker));
+};
+
+const assignEqualSharesIfMissing = (associates = [], totalShares = 0) => {
+  if (!associates.length) return associates;
+  const hasAnyShare = associates.some((associate) => {
+    const sharePct = parseFrenchAmount(String(associate.share || '').replace('%', '').trim());
+    const titles = parseFrenchAmount(associate.titlesCount);
+    return sharePct > 0 || titles > 0;
+  });
+  if (hasAnyShare) return associates;
+
+  const total = parseFrenchAmount(totalShares) || associates.length;
+  if (associates.length === 1) {
+    return associates.map((associate) => ({
+      ...associate,
+      share: '100 %',
+      titlesCount: String(total),
+    }));
+  }
+
+  const baseShares = Math.floor(total / associates.length);
+  let remainder = total - (baseShares * associates.length);
+  return associates.map((associate, index) => {
+    const shares = baseShares + (index < remainder ? 1 : 0);
+    const pct = total > 0 ? Math.round((shares / total) * 1000) / 10 : 0;
+    return {
+      ...associate,
+      share: `${pct} %`,
+      titlesCount: String(shares),
+    };
+  });
+};
+
+const buildRepartitionSummary = (associates = [], legalForm = 'SAS') => {
+  if (!associates.length) return '';
+  if (['SASU', 'EURL'].includes(legalForm) && associates.length === 1) {
+    return '100 % de l’associé unique';
+  }
+  return associates
+    .map((associate) => {
+      const share = pick(associate.share, associate.percentage);
+      return share ? `${associate.label} : ${share}` : associate.label;
+    })
+    .filter(Boolean)
+    .join(' · ');
+};
+
 const formatEuros = (value) => {
   const amount = parseFrenchAmount(value);
   if (!amount) return null;
@@ -225,6 +276,7 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
   let associates = buildAssociates(questionnaire, user, legalForm);
   const capitalAmountNum = parseFrenchAmount(capitalRaw) || 1000;
   const totalSharesNum = parseFrenchAmount(nombreTitres) || capitalAmountNum;
+  associates = assignEqualSharesIfMissing(associates, totalSharesNum);
   const liberationPercent = resolveGlobalLiberationPercent({
     liberationCapital: questionnaire.liberationCapital,
     liberationCapitalAutre: questionnaire.liberationCapitalAutre,
@@ -246,11 +298,13 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
   const presidentLabel = officersFromAssociates.president;
   const directeurGeneralLabel = officersFromAssociates.directeurGeneral;
   const directorResolved = pick(officersFromAssociates.president, director);
-  const repartition = pick(
-    questionnaire.repartition,
-    questionnaire.associesSummary,
-    ['SASU', 'EURL'].includes(legalForm) ? '100 % de l’associé unique' : 'Répartition à compléter',
-  );
+  let repartition = pick(questionnaire.repartition, questionnaire.associesSummary, '');
+  if (isPlaceholderValue(repartition)) {
+    repartition = buildRepartitionSummary(associates, legalForm);
+  }
+  if (!repartition && ['SASU', 'EURL'].includes(legalForm)) {
+    repartition = '100 % de l’associé unique';
+  }
   const objetSocialBullets = resolveWilliamObjetSocialBullets({
     ...questionnaire,
     objetSocial,
@@ -352,13 +406,13 @@ export const mapStatutesData = ({ dossier, questionnaire = {}, user = null } = {
   const securitiesLabel = usesActions(legalForm) ? 'Répartition des actions' : 'Répartition des parts sociales';
 
   const requiredChecks = [
-    { key: 'denomination', label: 'Dénomination sociale', ok: denomination !== 'Dénomination à compléter' },
-    { key: 'objetSocial', label: 'Objet social', ok: Boolean(objetSocial) },
-    { key: 'siege', label: 'Siège social complet', ok: seat.line1 !== 'Adresse du siège à compléter' && seat.postalCode !== 'Code postal à compléter' && seat.city !== 'Ville à compléter' },
+    { key: 'denomination', label: 'Dénomination sociale', ok: !isPlaceholderValue(denomination, ['dénomination à compléter']) },
+    { key: 'objetSocial', label: 'Objet social', ok: Boolean(objetSocial) && !isPlaceholderValue(objetSocial) },
+    { key: 'siege', label: 'Siège social complet', ok: !isPlaceholderValue(seat.line1, ['adresse du siège à compléter']) && !isPlaceholderValue(seat.postalCode, ['code postal à compléter']) && !isPlaceholderValue(seat.city, ['ville à compléter']) },
     { key: 'capital', label: 'Capital social', ok: Boolean(formatEuros(capitalRaw)) },
-    { key: 'director', label: directorCheckLabel, ok: !director.endsWith('à compléter') },
-    { key: 'repartition', label: securitiesLabel, ok: Boolean(repartition) },
-    { key: 'beneficiairesEffectifs', label: 'Bénéficiaires effectifs', ok: Boolean(data.beneficiairesEffectifs) },
+    { key: 'director', label: directorCheckLabel, ok: !isPlaceholderValue(directorResolved) },
+    { key: 'repartition', label: securitiesLabel, ok: !isPlaceholderValue(repartition) },
+    { key: 'beneficiairesEffectifs', label: 'Bénéficiaires effectifs', ok: Boolean(data.beneficiairesEffectifs) && !isPlaceholderValue(data.beneficiairesEffectifs) },
   ];
 
   const completeness = Math.round((requiredChecks.filter((item) => item.ok).length / requiredChecks.length) * 100);

@@ -26,6 +26,7 @@ import { mapDocumentPreviewError, normalizePdfBlob, openCachedPdfInSystemViewer,
 import { useMobileSafeBottomPadding } from '@/hooks/useMobileSafeBottomPadding.js';
 import { cn } from '@/lib/utils.js';
 import { QUESTIONNAIRE_NEW_PATH, questionnaireResumePath } from '@/utils/questionnaireNavigation.js';
+import { resolveStatutesGenerationToast } from '@/utils/statutesGenerationErrors.js';
 
 const parseQuestionnaire = (dataJson) => {
   if (!dataJson) return {};
@@ -82,6 +83,7 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
   const [dossierName, setDossierName] = useState('');
   const [loadError, setLoadError] = useState('');
   const [showDocumentsLink, setShowDocumentsLink] = useState(false);
+  const [generationError, setGenerationError] = useState('');
 
   useEffect(() => {
     const fromUrl = searchParams.get('dossierId');
@@ -226,6 +228,7 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
     }
     try {
       setGenerating(true);
+      setGenerationError('');
       const payload = await generateStatutes(dossierId);
       if (payload?.dossierId) {
         saveCurrentDossierId(payload.dossierId);
@@ -243,24 +246,9 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
           : 'Statuts générés.',
       );
     } catch (error) {
-      const code = error?.payload?.error;
-      if (code === 'STATUTES_NOT_REQUIRED_FOR_EI') {
-        toast.error('Statuts non applicables à ce dossier.');
-      } else if (code === 'DOSSIER_FORBIDDEN' || code === 'DOSSIER_NOT_FOUND') {
-        toast.error('Dossier inaccessible. Ouvrez le questionnaire puis revenez ici.');
-      } else if (code === 'STATUTES_VALIDATION_FAILED') {
-        const detail = error?.payload?.validation?.errors?.[0]
-          || error?.payload?.missingFields?.join(', ');
-        toast.error(detail
-          ? `Données incomplètes : ${detail}`
-          : 'Données incomplètes : complétez le questionnaire puis réessayez.');
-      } else if (code === 'STATUTES_INCOMPLETE') {
-        toast.error('Le modèle de statuts est incomplet. Contactez le support Greffio.');
-      } else if (code === 'LEGAL_FORM_UNSUPPORTED') {
-        toast.error('Forme juridique non prise en charge pour la génération automatique.');
-      } else {
-        toast.error('Génération impossible.');
-      }
+      const resolved = resolveStatutesGenerationToast(error, dossierId);
+      setGenerationError(resolved.message);
+      toast.error(resolved.message);
     } finally {
       setGenerating(false);
     }
@@ -377,6 +365,20 @@ export const StatutesPage = ({ presentation = 'auto' }) => {
           {loadError ? (
             <QuestionnaireNotice variant="error" title="Chargement du dossier">
               {loadError}
+            </QuestionnaireNotice>
+          ) : null}
+
+          {generationError ? (
+            <QuestionnaireNotice variant="error" title="Génération des statuts">
+              <p>{generationError}</p>
+              <p className="mt-2">
+                <Link
+                  to={dossierId ? questionnaireResumePath(dossierId) : QUESTIONNAIRE_NEW_PATH}
+                  className="font-semibold underline underline-offset-2"
+                >
+                  Compléter le questionnaire
+                </Link>
+              </p>
             </QuestionnaireNotice>
           ) : null}
 

@@ -178,11 +178,11 @@ export const GreffioPaymentTerminal = ({
 
       {walletRecommendation && walletRecommendation !== selectedMethodId ? (
         <div className="rounded-xl border border-[#b9d0ef] bg-[#f8fbff] px-4 py-3 text-sm leading-6 text-muted-foreground">
-          Sur mobile, nous recommandons{' '}
+          Sur mobile,{' '}
           <span className="font-semibold text-foreground">
             {walletRecommendation === 'applepay' ? 'Apple Pay' : 'Google Pay'}
           </span>
-          {' '}pour valider en un geste, sans connexion à l&apos;espace client de votre banque.
+          {' '}est disponible pour un paiement plus rapide.
         </div>
       ) : null}
 
@@ -251,8 +251,7 @@ export const GreffioPaymentTerminal = ({
           )}
           {isMobilePay ? (
             <p className="rounded-lg bg-[#f8fbff] px-3 py-2 text-xs leading-5 text-muted-foreground">
-              Après « Payer », confirmez dans l&apos;application de votre banque si une notification apparaît.
-              Vous reviendrez automatiquement sur Greffio – pas besoin de rester connecté sur le site de la banque.
+              Votre banque peut demander une confirmation rapide avant de valider le paiement.
             </p>
           ) : null}
         </div>
@@ -266,9 +265,8 @@ export const GreffioPaymentTerminal = ({
                   <HostedIcon className="h-4 w-4" />
                 </span>
                 <span>
-                  Vous serez redirigé vers la validation sécurisée Mollie pour finaliser{' '}
+                  Vous serez redirigé vers la page sécurisée Mollie pour finaliser{' '}
                   <span className="font-semibold text-foreground">{resolveMethodLabel(selectedMethod)}</span>.
-                  {isMobilePay ? ' Validation sur votre téléphone, puis retour automatique sur Greffio.' : ''}
                 </span>
               </p>
             );

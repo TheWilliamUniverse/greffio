@@ -174,6 +174,7 @@ import {
   buildStatutesPdfForDossier,
   resolveStatutesPdfAccess,
 } from './services/statutesPdfService.js';
+import { buildStatutesErrorPayload } from './services/statutesBuildErrors.js';
 import { resolveDossierAccess } from './utils/dossierAccess.js';
 import { registerNonConvictionSignatureRoutes } from './routes/nonConvictionSignatureRoutes.js';
 import { registerSignaturePublicRoutes } from './routes/signaturePublicRoutes.js';
@@ -2731,18 +2732,8 @@ app.get('/api/dossiers/:dossierId/statutes/preview', requireAuth, async (req, re
   try {
     statutesDocument = draftStatutesDocument(statutesData);
   } catch (error) {
-    if (error?.code === 'STATUTES_INCOMPLETE') {
-      return res.status(500).json({ ok: false, error: 'STATUTES_INCOMPLETE', articleCount: error.articleCount });
-    }
-    if (error?.code === 'STATUTES_VALIDATION_FAILED') {
-      return res.status(422).json({
-        ok: false,
-        error: 'STATUTES_VALIDATION_FAILED',
-        validation: error.validation,
-        missingFields: statutesData.missingFields,
-        completeness: statutesData.completeness,
-      });
-    }
+    const mapped = buildStatutesErrorPayload(error, { dossier, questionnaire, user });
+    if (mapped) return res.status(mapped.status).json(mapped.body);
     throw error;
   }
   const preview = documentToPreview(statutesDocument);
@@ -2790,22 +2781,8 @@ app.post('/api/dossiers/:dossierId/statutes/generate', requireAuth, async (req, 
   try {
     buildResult = await buildStatutesPdfForDossier({ dossier, questionnaire, user });
   } catch (error) {
-    if (error?.code === 'STATUTES_INCOMPLETE') {
-      return res.status(500).json({ ok: false, error: 'STATUTES_INCOMPLETE', articleCount: error.articleCount });
-    }
-    if (error?.code === 'STATUTES_VALIDATION_FAILED') {
-      const statutesData = mapStatutesData({ dossier, questionnaire, user });
-      return res.status(422).json({
-        ok: false,
-        error: 'STATUTES_VALIDATION_FAILED',
-        validation: error.validation,
-        missingFields: statutesData.missingFields,
-        completeness: statutesData.completeness,
-      });
-    }
-    if (error?.code === 'LEGAL_FORM_UNSUPPORTED') {
-      return res.status(409).json({ ok: false, error: 'LEGAL_FORM_UNSUPPORTED', legalForm });
-    }
+    const mapped = buildStatutesErrorPayload(error, { dossier, questionnaire, user });
+    if (mapped) return res.status(mapped.status).json(mapped.body);
     throw error;
   }
 
