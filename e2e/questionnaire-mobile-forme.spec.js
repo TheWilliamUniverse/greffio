@@ -309,6 +309,35 @@ test.describe('questionnaire mobile – flux catégorie puis forme', () => {
   });
 });
 
+const resumeAtApportsMissingSiege = {
+  initiatorType: 'personne_physique',
+  firstName: 'Jean',
+  lastName: 'Dupont',
+  nationality: 'Française',
+  birthDate: '1990-01-01',
+  email: 'jean.dupont@example.com',
+  phone: '0600000000',
+  typeFormalite: 'creation_societe',
+  formeJuridiqueFamillePrimary: 'commercial',
+  formeJuridiqueFamille: 'commercial',
+  connaissezFormeJuridique: 'oui',
+  comparateurIgnore: false,
+  formeJuridique: 'SASU',
+  denomination: 'Test SASU E2E',
+  adresseSiege: '',
+  codePostal: '75001',
+  villeSiege: 'Paris',
+  activite: 'Conseil en stratégie digitale et accompagnement des PME.',
+  capital: '1000',
+  liberationCapital: '100 %',
+  apportsNature: '',
+  _resume: {
+    stepId: 'entreprise',
+    fieldKey: 'apportsNature',
+    categoryConfirmed: true,
+  },
+};
+
 test.describe('questionnaire mobile – libération du capital SASU', () => {
   test('libération intégrale avance vers apports en nature', async ({ page }) => {
     await page.unroute(/\/api\//);
@@ -319,6 +348,26 @@ test.describe('questionnaire mobile – libération du capital SASU', () => {
 
     await expectStepHeading(page, /Libération du capital/i);
     await tapChoice(page, /Libération intégrale/i);
+    await expectStepHeading(page, /apports en nature/i);
+  });
+
+  test('siège manquant sur apports → CTA, complétion, retour apports', async ({ page }) => {
+    await page.unroute(/\/api\//);
+    await mockQuestionnaireApis(page, resumeAtApportsMissingSiege);
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await page.goto(`/questionnaire?dossierId=${DOSSIER_ID}`);
+    await dismissCookieBanner(page);
+
+    await expectStepHeading(page, /apports en nature/i);
+    await tapChoice(page, /Non, uniquement du numéraire/i);
+
+    await expect(page.getByRole('button', { name: /Compléter l'adresse du siège/i })).toBeVisible();
+    await page.getByRole('button', { name: /Compléter l'adresse du siège/i }).click();
+
+    await expectStepHeading(page, /Adresse du siège/i);
+    await page.getByPlaceholder('12 rue de la République').fill('12 rue de la République');
+    await page.getByRole('button', { name: 'Question suivante' }).click();
+
     await expectStepHeading(page, /apports en nature/i);
   });
 

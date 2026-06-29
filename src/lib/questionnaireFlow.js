@@ -450,9 +450,131 @@ export const getApplicableFlowSteps = (formData = {}) => (
   QUESTIONNAIRE_FLOW.filter((step) => !step.condition || step.condition(formData))
 );
 
-const getFlowStepIndexById = (stepId = '') => {
+export const getFlowStepIndexById = (stepId = '') => {
   const index = QUESTIONNAIRE_FLOW.findIndex((entry) => entry.id === stepId);
   return Math.max(index, 0);
+};
+
+const resolveFieldGroupIndex = (step, formData, fieldKey, mobilePresentation = false) => {
+  if (!fieldKey) return 0;
+  const groups = mobilePresentation
+    ? resolveMobileFieldGroups(step, formData)
+    : getVisibleFieldsForStep(step, formData).map((field) => [field]);
+  return groupIndexFromFieldKey(groups, fieldKey);
+};
+
+/** Premier champ bloquant manquant avant la position courante (ordre du questionnaire). */
+export const findPriorMissingBlockingField = (
+  formData = {},
+  currentStepId = '',
+  currentFieldKey = '',
+  options = {},
+) => {
+  const { mobilePresentation = false } = options;
+  const applicable = getApplicableFlowSteps(formData);
+  const currentApplicableIndex = applicable.findIndex((entry) => entry.id === currentStepId);
+  if (currentApplicableIndex < 0) return null;
+
+  const currentStep = applicable[currentApplicableIndex];
+  const currentGroupIndex = resolveFieldGroupIndex(
+    currentStep,
+    formData,
+    currentFieldKey,
+    mobilePresentation,
+  );
+
+  for (let stepIdx = 0; stepIdx <= currentApplicableIndex; stepIdx += 1) {
+    const flowStep = applicable[stepIdx];
+    const visibleFields = getVisibleFieldsForStep(flowStep, formData);
+    const groups = mobilePresentation
+      ? resolveMobileFieldGroups(flowStep, formData)
+      : visibleFields.map((field) => [field]);
+
+    for (const field of visibleFields) {
+      if (stepIdx === currentApplicableIndex) {
+        const fieldGroupIndex = groupIndexFromFieldKey(groups, field.key);
+        if (fieldGroupIndex >= currentGroupIndex) break;
+      }
+      if (!isGreffeBlockingField(field)) continue;
+      if (isFieldValueValid(field, formData[field.key], formData)) continue;
+      return { stepId: flowStep.id, fieldKey: field.key, field };
+    }
+  }
+
+  if (currentStep?.id === 'gouvernance') {
+    const directorCheck = validateDirectorEligibility(formData);
+    if (!directorCheck.ok) {
+      return { stepId: 'gouvernance', fieldKey: 'dirigeant', field: { key: 'dirigeant', label: 'Dirigeant' } };
+    }
+  }
+
+  return null;
+};
+
+export const resolveMissingFieldCtaLabel = (field) => {
+  const key = field?.key || '';
+  const labels = {
+    adresseSiege: "Compléter l'adresse du siège",
+    codePostal: 'Indiquer le code postal',
+    villeSiege: 'Indiquer la ville du siège',
+    denomination: 'Indiquer la dénomination',
+    activite: "Décrire l'activité",
+    capital: 'Indiquer le capital social',
+    liberationCapital: 'Préciser la libération du capital',
+    formeJuridique: 'Choisir la forme juridique',
+    typeFormalite: 'Choisir la formalité',
+    dirigeant: 'Identifier le dirigeant',
+    associates: 'Renseigner les associés',
+  };
+  if (labels[key]) return labels[key];
+  const label = String(field?.label || '').trim();
+  return label ? `Compléter « ${label} »` : 'Compléter l’étape manquante';
+};
+
+export const resolvePriorFieldBlockNotice = (missingEntry) => {
+  const label = missingEntry?.field?.label || 'une information précédente';
+  return `Pour poursuivre, il nous manque encore ${label.toLowerCase()}. Nous vous guidons vers la question à compléter – vous reviendrez ensuite ici.`;
+};
+
+/** Prochaine position lors d’un retour guidé après correction d’un champ antérieur. */
+export const resolveNextGroupWithPendingReturn = (
+  formData = {},
+  step,
+  currentGroupIndex = 0,
+  pendingReturn = null,
+  options = {},
+) => {
+  const { mobilePresentation = false } = options;
+  if (!pendingReturn || pendingReturn.stepId !== step?.id) {
+    return { type: 'normal', groupIndex: currentGroupIndex + 1 };
+  }
+
+  const groups = mobilePresentation
+    ? resolveMobileFieldGroups(step, formData)
+    : getVisibleFieldsForStep(step, formData).map((field) => [field]);
+  const returnGroupIndex = groupIndexFromFieldKey(groups, pendingReturn.fieldKey);
+  if (returnGroupIndex < 0 || currentGroupIndex >= returnGroupIndex) {
+    return { type: 'normal', groupIndex: currentGroupIndex + 1 };
+  }
+
+  const visibleFields = getVisibleFieldsForStep(step, formData);
+  const currentFieldKeys = new Set((groups[currentGroupIndex] || []).map((field) => field.key));
+  let passedCurrent = false;
+
+  for (const field of visibleFields) {
+    if (currentFieldKeys.has(field.key)) {
+      passedCurrent = true;
+      continue;
+    }
+    if (!passedCurrent) continue;
+    const fieldGroupIndex = groupIndexFromFieldKey(groups, field.key);
+    if (fieldGroupIndex >= returnGroupIndex) break;
+    if (!isFieldValueValid(field, formData[field.key], formData)) {
+      return { type: 'skip-to', groupIndex: fieldGroupIndex };
+    }
+  }
+
+  return { type: 'return', groupIndex: returnGroupIndex };
 };
 
 export const getVisibleFieldsForStep = (step, formData = {}) => {

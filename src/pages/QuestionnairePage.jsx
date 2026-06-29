@@ -25,8 +25,10 @@ import {
   analyzeStepFieldStates,
   EXISTING_BUSINESS_FORMALITIES,
   QUESTIONNAIRE_FLOW,
+  findPriorMissingBlockingField,
   getApplicableFlowSteps,
   getFieldValidationMessage,
+  getFlowStepIndexById,
   getQuestionnaireProgressPercent,
   getVisibleFieldsForStep,
   groupIndexFromFieldKey,
@@ -34,10 +36,14 @@ import {
   inferDemarcheCategory,
   isFieldValueValid,
   isStepComplete,
+  resolveMissingFieldCtaLabel,
   resolveMobileFieldGroups,
+  resolveNextGroupWithPendingReturn,
+  resolvePriorFieldBlockNotice,
   resolveResumePosition,
   resolveContinueBlockMessage,
 } from '@/lib/questionnaireFlow.js';
+import { PriorFieldGuide } from '@/components/questionnaire/PriorFieldGuide.jsx';
 import {
   completeQuestionnaireStep,
   getQuestionnaireState,
@@ -181,6 +187,8 @@ export const QuestionnairePage = () => {
   const associatesWizardRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [stepError, setStepError] = useState('');
+  const [priorFieldBlock, setPriorFieldBlock] = useState(null);
+  const [pendingReturnPosition, setPendingReturnPosition] = useState(null);
   const [demarcheCategory, setDemarcheCategory] = useState('');
   const [demarcheCategoryConfirmed, setDemarcheCategoryConfirmed] = useState(false);
   const [touchedFields, setTouchedFields] = useState({});
@@ -351,6 +359,7 @@ export const QuestionnairePage = () => {
       fieldKey: activeField?.key || '',
       demarcheCategory: resumeMeta.demarcheCategory ?? demarcheCategory,
       categoryConfirmed: resumeMeta.categoryConfirmed ?? demarcheCategoryConfirmed,
+      pendingReturn: pendingReturnPosition || null,
       ...(resumeMeta.associatesAssociateIndex != null
         ? { associatesAssociateIndex: resumeMeta.associatesAssociateIndex }
         : {}),
@@ -657,6 +666,9 @@ export const QuestionnairePage = () => {
         setFormData(mergedData);
         setStepIndex(resumeStep);
         setGroupIndex(resumeGroupIndex);
+        if (resume.pendingReturn) {
+          setPendingReturnPosition(resume.pendingReturn);
+        }
         setDemarcheCategory(resumeCategory || inferDemarcheCategory(mergedData.typeFormalite));
         setDemarcheCategoryConfirmed(startNewQuestionnaire ? false : categoryConfirmed);
       } catch (_error) {
@@ -670,7 +682,31 @@ export const QuestionnairePage = () => {
   }, [searchParams, isAuthenticated]);
 
   useEffect(() => {
-    if (!dossierId || loading) return;
+    if (!useUnifiedPresentation || loading || !activeField?.key || priorFieldBlock) return undefined;
+    if (!isLastGroupInStep || canCompleteStep) return undefined;
+    const priorMissing = findPriorMissingBlockingField(
+      formData,
+      step.id,
+      activeField.key,
+      { mobilePresentation: useUnifiedPresentation },
+    );
+    if (priorMissing) {
+      setPriorFieldBlock(priorMissing);
+    }
+    return undefined;
+  }, [
+    useUnifiedPresentation,
+    loading,
+    activeField?.key,
+    priorFieldBlock,
+    isLastGroupInStep,
+    canCompleteStep,
+    formData,
+    step.id,
+  ]);
+
+  useEffect(() => {
+    if (!dossierId || loading) return undefined;
     const timeout = window.setTimeout(async () => {
       const requestId = autosaveRequestId.current + 1;
       autosaveRequestId.current = requestId;
@@ -830,12 +866,53 @@ export const QuestionnairePage = () => {
     requestTapAdvance(field.key);
   };
 
+  const goToField = (targetStepId, targetFieldKey) => {
+    const targetStepIndex = getFlowStepIndexById(targetStepId);
+    const targetStep = QUESTIONNAIRE_FLOW[targetStepIndex];
+    if (!targetStep) return;
+    const targetGroups = useUnifiedPresentation
+      ? resolveMobileFieldGroups(targetStep, formData)
+      : getVisibleFieldsForStep(targetStep, formData).map((field) => [field]);
+    const targetGroupIndex = groupIndexFromFieldKey(targetGroups, targetFieldKey);
+    setStepError('');
+    setPriorFieldBlock(null);
+    setTouchedFields({});
+    setStepIndex(targetStepIndex);
+    setGroupIndex(targetGroupIndex);
+  };
+
+  const navigateToPriorField = () => {
+    if (!priorFieldBlock) return;
+    void lightQuestionnaireHaptic();
+    if (!pendingReturnPosition && activeField?.key) {
+      setPendingReturnPosition({ stepId: step.id, fieldKey: activeField.key });
+    }
+    goToField(priorFieldBlock.stepId, priorFieldBlock.fieldKey);
+  };
+
   const goNext = async () => {
     if (navigationLockRef.current) return;
     navigationLockRef.current = true;
     try {
       setStepError('');
+      setPriorFieldBlock(null);
       if (!canContinue) {
+        if (isLastGroupInStep && useUnifiedPresentation && activeField?.key) {
+          const priorMissing = findPriorMissingBlockingField(
+            formData,
+            step.id,
+            activeField.key,
+            { mobilePresentation: useUnifiedPresentation },
+          );
+          if (priorMissing) {
+            setPendingReturnPosition((current) => current || {
+              stepId: step.id,
+              fieldKey: activeField.key,
+            });
+            setPriorFieldBlock(priorMissing);
+            return;
+          }
+        }
         const message = resolveContinueBlockMessage(step, formData, activeField, visibleStepFields);
         setStepError(message);
         if (activeField?.key) {
@@ -845,7 +922,23 @@ export const QuestionnairePage = () => {
         return;
       }
       if (!isLastGroupInStep) {
+        const advancePlan = resolveNextGroupWithPendingReturn(
+          formData,
+          step,
+          safeGroupIndex,
+          pendingReturnPosition,
+          { mobilePresentation: useUnifiedPresentation },
+        );
         setTouchedFields({});
+        if (advancePlan.type === 'return') {
+          setGroupIndex(advancePlan.groupIndex);
+          setPendingReturnPosition(null);
+          return;
+        }
+        if (advancePlan.type === 'skip-to') {
+          setGroupIndex(advancePlan.groupIndex);
+          return;
+        }
         setGroupIndex((current) => Math.min(current + 1, fieldGroups.length - 1));
         return;
       }
@@ -908,6 +1001,34 @@ export const QuestionnairePage = () => {
           navigate('/dashboard');
         }
         return;
+      }
+      if (pendingReturnPosition) {
+        const returnStepIndex = getFlowStepIndexById(pendingReturnPosition.stepId);
+        const returnStep = QUESTIONNAIRE_FLOW[returnStepIndex];
+        if (returnStep) {
+          const stillMissing = findPriorMissingBlockingField(
+            formData,
+            pendingReturnPosition.stepId,
+            pendingReturnPosition.fieldKey,
+            { mobilePresentation: useUnifiedPresentation },
+          );
+          if (!stillMissing) {
+            const returnGroups = useUnifiedPresentation
+              ? resolveMobileFieldGroups(returnStep, formData)
+              : getVisibleFieldsForStep(returnStep, formData).map((field) => [field]);
+            const returnGroupIndex = groupIndexFromFieldKey(
+              returnGroups,
+              pendingReturnPosition.fieldKey,
+            );
+            setTouchedFields({});
+            setStepIndex(returnStepIndex);
+            setGroupIndex(returnGroupIndex);
+            setPendingReturnPosition(null);
+            return;
+          }
+          goToField(stillMissing.stepId, stillMissing.fieldKey);
+          return;
+        }
       }
       let nextIndex = stepIndex + 1;
       const applicableSteps = getApplicableFlowSteps(formData);
@@ -1428,6 +1549,14 @@ export const QuestionnairePage = () => {
           />
           <AutosaveIndicator status={autosaveState} />
         </div>
+        {priorFieldBlock ? (
+          <PriorFieldGuide
+            message={resolvePriorFieldBlockNotice(priorFieldBlock)}
+            ctaLabel={resolveMissingFieldCtaLabel(priorFieldBlock.field)}
+            onNavigate={navigateToPriorField}
+            className="mb-3"
+          />
+        ) : null}
         {stepError ? (
           <QuestionnaireNotice variant="error" title="Enregistrement" className="mb-3">
             {stepError}
@@ -1475,6 +1604,14 @@ export const QuestionnairePage = () => {
         hideContinueButton={hideContinueOnUnified}
         compactMobile={isCompactStep}
       >
+        {priorFieldBlock ? (
+          <PriorFieldGuide
+            message={resolvePriorFieldBlockNotice(priorFieldBlock)}
+            ctaLabel={resolveMissingFieldCtaLabel(priorFieldBlock.field)}
+            onNavigate={navigateToPriorField}
+            className="mb-3"
+          />
+        ) : null}
         {stepError ? (
           <QuestionnaireNotice variant="error" title="Enregistrement">
             {stepError}
