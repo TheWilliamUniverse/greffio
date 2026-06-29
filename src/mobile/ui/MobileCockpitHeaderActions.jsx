@@ -94,7 +94,6 @@ export const MobileCockpitHeaderActions = ({
     setAccountOpen(false);
     logout();
     navigate('/login');
-    toast.success('Déconnexion effectuée.');
   };
 
   const confirmSleep = async () => {
@@ -111,7 +110,7 @@ export const MobileCockpitHeaderActions = ({
         /* fallback déconnexion douce ci-dessous */
       }
     }
-    logout();
+    logout({ silent: true });
     navigate('/login');
     toast.info('Session mise en veille. Reconnectez-vous pour reprendre.');
   };
