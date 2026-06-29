@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { motion } from 'framer-motion';
 import { ArrowRight, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
 import { PasswordInput } from '@/components/PasswordInput.jsx';
-import { toast } from 'sonner';
+import { showAuthFeedback } from '@/utils/authFeedback.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { sendMfaEmailCode } from '@/api/mfa.js';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
@@ -104,7 +104,7 @@ export const LoginPage = () => {
       setMfaToken(result.mfaToken);
       resetMfaState();
       setStep('mfa');
-      toast.message('Vérification en deux étapes – c’est une protection standard pour votre compte.');
+      showAuthFeedback('mfa', 'Vérification en deux étapes – c’est une protection standard pour votre compte.', { level: 'message' });
       return;
     }
 
@@ -122,12 +122,12 @@ export const LoginPage = () => {
         navigate(resolvePostLoginPath({ role: resolveSessionRole(result.user), fromPath }), { replace: true });
       }
     } else if (result.error === 'TEMP_ACCOUNT_EXPIRED') {
-      toast.error('Ce compte temporaire a expiré (validité jusqu’à 10 h ce matin).');
+      showAuthFeedback('login', 'Ce compte temporaire a expiré (validité jusqu’à 10 h ce matin).', { level: 'error' });
     } else if (result.error === 'SECURITY_CHECK_REQUIRED') {
       setFailedAttempts((value) => Math.max(value + 1, 2));
-      toast.error(result.message || 'Une vérification de sécurité est nécessaire. Réessayez dans un instant.');
+      showAuthFeedback('login', result.message || 'Une vérification de sécurité est nécessaire. Réessayez dans un instant.', { level: 'error' });
     } else if (result.error === 'RATE_LIMITED') {
-      toast.error(result.message || 'Pour protéger votre compte, merci de patienter quelques minutes avant de réessayer.');
+      showAuthFeedback('login', result.message || 'Pour protéger votre compte, merci de patienter quelques minutes avant de réessayer.', { level: 'error' });
     } else {
       setFailedAttempts((value) => value + 1);
       setFieldErrors({
@@ -151,12 +151,12 @@ export const LoginPage = () => {
       const payload = await sendMfaEmailCode({ mfaToken });
       setEmailMasked(payload.emailMasked || '');
       setEmailCodeSent(true);
-      toast.success(`Code envoyé à ${payload.emailMasked || 'votre adresse email'}.`);
+      showAuthFeedback('mfa', `Code envoyé à ${payload.emailMasked || 'votre adresse email'}.`);
     } catch (error) {
       if (error?.message === 'MFA_EMAIL_COOLDOWN') {
-        toast.error(`Patientez ${error.payload?.retryAfterSeconds || 60} s avant un nouvel envoi.`);
+        showAuthFeedback('mfa', `Patientez ${error.payload?.retryAfterSeconds || 60} s avant un nouvel envoi.`, { level: 'error' });
       } else {
-        toast.error('Impossible d’envoyer le code par email.');
+        showAuthFeedback('mfa', 'Impossible d\'envoyer le code par email.', { level: 'error' });
       }
     } finally {
       setSendingEmailCode(false);
@@ -196,7 +196,7 @@ export const LoginPage = () => {
         navigate(resolvePostLoginPath({ role: resolveSessionRole(result.user), fromPath }), { replace: true });
       }
     } else {
-      toast.error(result.error || 'Code incorrect ou expiré. Réessayez ou demandez un nouveau code.');
+      showAuthFeedback('mfa', result.error || 'Code incorrect ou expiré. Réessayez ou demandez un nouveau code.', { level: 'error' });
     }
   };
 

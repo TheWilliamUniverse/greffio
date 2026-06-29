@@ -1,5 +1,5 @@
 import React, { createContext, useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { showAuthFeedback } from '@/utils/authFeedback.js';
 import {
   clearAllData,
   getRefreshToken,
@@ -229,7 +229,7 @@ export const AuthProvider = ({ children }) => {
       } catch (_profileError) {
         // keep login payload user
       }
-      toast.success('Bienvenue dans votre espace Greffio');
+      showAuthFeedback('welcome', 'Bienvenue dans votre espace Greffio');
       if (isCapacitorNative()) {
         markFreshNativePasswordLogin();
         try {
@@ -291,7 +291,7 @@ export const AuthProvider = ({ children }) => {
       } catch (_profileError) {
         // keep MFA login payload user
       }
-      toast.success('Authentification multifacteur validée');
+      showAuthFeedback('mfa', 'Authentification multifacteur validée');
       if (isCapacitorNative()) {
         markFreshNativePasswordLogin();
         try {
@@ -406,7 +406,7 @@ export const AuthProvider = ({ children }) => {
     if (userId) clearLoginAlertsConfiguredLocal(userId);
     setCurrentUser(null);
     if (!silent && reason !== 'idle') {
-      toast.success('Déconnexion effectuée');
+      showAuthFeedback('logout', 'Déconnexion effectuée');
     }
   };
 
@@ -437,7 +437,7 @@ export const AuthProvider = ({ children }) => {
     } catch (_biometricError) {
       // non-blocking
     }
-    toast.success('Connexion réussie');
+    showAuthFeedback('login', 'Connexion réussie');
     return { success: true, user: session.user };
   };
 

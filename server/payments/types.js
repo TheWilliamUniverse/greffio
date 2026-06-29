@@ -125,3 +125,6 @@ export class PaymentError extends Error {
     this.httpStatus = httpStatus;
   }
 }
+
+/** CAWL / e-Transactions : actif uniquement si explicitement activé (recette). */
+export const isCawlPaymentEnabled = () => String(process.env.CAWL_ENABLED || '').trim().toLowerCase() === 'true';

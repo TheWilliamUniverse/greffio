@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test';
 const hasAuthCredentials = Boolean(process.env.E2E_AUTH_EMAIL && process.env.E2E_AUTH_PASSWORD);
 
 test.describe('authenticated cockpit smoke', () => {
+  // Secrets CI : E2E_AUTH_EMAIL + E2E_AUTH_PASSWORD (GitHub Actions → repository secrets).
   test.skip(!hasAuthCredentials, 'Définir E2E_AUTH_EMAIL et E2E_AUTH_PASSWORD pour activer le smoke authentifié');
 
   test.beforeEach(async ({ page }) => {

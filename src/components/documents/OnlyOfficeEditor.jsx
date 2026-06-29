@@ -123,6 +123,9 @@ const resolveFriendlyOnlyOfficeError = (event) => {
   if (code === -20) {
     return 'La session d’édition a expiré. Fermez puis rouvrez l’éditeur.';
   }
+  if (code === -71 || code === -13) {
+    return 'Une version plus récente du document est disponible. Rechargez l’éditeur pour travailler sur la dernière version.';
+  }
   return 'L’éditeur ONLYOFFICE a rencontré un problème. Réessayez dans un instant.';
 };
 

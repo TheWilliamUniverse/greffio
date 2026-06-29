@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { FileSignature } from 'lucide-react';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
+import { Button } from '@/components/ui/button.jsx';
 import { SignatureAdoptPanel } from '@/components/signature/SignatureAdoptPanel.jsx';
 import { SignatureDocumentAcknowledge } from '@/components/signature/SignatureDocumentAcknowledge.jsx';
 import { SignatureOtpStep } from '@/components/signature/SignatureOtpStep.jsx';
@@ -16,6 +17,8 @@ import {
 import { mapSignaturePublicError } from '@/utils/signaturePublicErrors.js';
 import { PdfPreviewPanel } from '@/components/documents/PdfPreviewPanel.jsx';
 import { runtimeConfig } from '@/config/runtime.js';
+
+const isRecoverableSignatureLinkError = (message = '') => /expiré|invalide|déjà utilisé/i.test(String(message));
 
 export const SignaturePublicPage = () => {
   const { token } = useParams();
@@ -167,6 +170,23 @@ export const SignaturePublicPage = () => {
       <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#f6f8fc] p-6 text-center">
         <GreffioLogo variant="wordmark" className="mb-6 text-2xl" />
         <p className="max-w-sm text-sm text-destructive">{error}</p>
+        {isRecoverableSignatureLinkError(error) ? (
+          <div className="mt-5 flex max-w-sm flex-col items-center gap-3">
+            <p className="text-sm text-muted-foreground">
+              Demandez un nouveau lien depuis votre espace Greffio ou contactez notre équipe.
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button asChild variant="outline" className="rounded-xl">
+                <a href={`mailto:${runtimeConfig.supportEmail}?subject=Nouveau%20lien%20de%20signature`}>
+                  Contacter Greffio
+                </a>
+              </Button>
+              <Button asChild className="rounded-xl">
+                <Link to="/contact">Aide &amp; support</Link>
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </div>
     );
   }

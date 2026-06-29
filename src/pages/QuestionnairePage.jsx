@@ -782,10 +782,7 @@ export const QuestionnairePage = () => {
     if (!pendingKey || !useUnifiedPresentation) return undefined;
     if (navigationLockRef.current) return undefined;
     if (!activeGroup.some((field) => field.key === pendingKey)) return undefined;
-    if (!canAdvanceCurrentGroup) {
-      pendingTapAdvanceRef.current = null;
-      return undefined;
-    }
+    if (!canAdvanceCurrentGroup) return undefined;
     pendingTapAdvanceRef.current = null;
     const timer = window.setTimeout(() => {
       if (navigationLockRef.current) return;

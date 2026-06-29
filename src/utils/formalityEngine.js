@@ -39,6 +39,12 @@ export const getFormProfile = (label = '') => {
   return 'DEFAULT';
 };
 
+/** Alignement questionnaire Greffio → profil simulateur / statuts. */
+export const resolveFormProfileFromQuestionnaire = (questionnaire = {}) => {
+  const forme = String(questionnaire.formeJuridique || questionnaire.legalForm || '').trim();
+  return getFormProfile(forme);
+};
+
 const allSections = {
   identity: {
     title: 'Identité',

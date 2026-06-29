@@ -5,7 +5,7 @@ const DOSSIER_ID = 'e2e-forme-flow';
 const MOBILE_VIEWPORT = { width: 390, height: 844 };
 const DESKTOP_VIEWPORT = { width: 1280, height: 800 };
 /** Select fields auto-advance shortly after tap once React commits the new value. */
-const TAP_ADVANCE_MS = 400;
+const TAP_ADVANCE_MS = 700;
 
 const e2eUser = {
   id: 'e2e-user',

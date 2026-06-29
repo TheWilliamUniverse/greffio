@@ -31,7 +31,7 @@ import {
 } from './security/loginRisk.js';
 import { securityHeadersMiddleware } from './security/headers.js';
 import { buildPublicSecurityConfig } from './security/publicSecurityConfig.js';
-import { initSentry } from './security/sentry.js';
+import { initSentry, captureSecurityException } from './security/sentry.js';
 import { isAssistantBudgetExhausted, spendAssistantBudget } from './security/verificationBudget.js';
 import { initSchema } from './dbClient.js';
 import { DOSSIER_STATUSES } from './stateMachine.js';
@@ -390,8 +390,10 @@ app.get('/api/public/security-config', healthRateLimiter, (_req, res) => {
   res.json(buildPublicSecurityConfig());
 });
 
-app.post('/api/observability/client-error', express.json({ limit: '32kb' }), (req, res) => {
+app.post('/api/observability/client-error', express.json({ limit: '32kb' }), async (req, res) => {
   const payload = req.body || {};
+  const error = new Error(String(payload.message || 'CLIENT_ERROR'));
+  if (payload.stack) error.stack = String(payload.stack);
   console.error('[CLIENT_ERROR]', {
     message: payload.message,
     route: payload.route,
@@ -399,9 +401,11 @@ app.post('/api/observability/client-error', express.json({ limit: '32kb' }), (re
     stack: payload.stack ? String(payload.stack).slice(0, 500) : null,
     timestamp: new Date().toISOString(),
   });
-  if (process.env.SENTRY_DSN) {
-    console.info('[CLIENT_ERROR] Sentry DSN configured – forward via votre agent Sentry serveur si activé.');
-  }
+  await captureSecurityException(error, {
+    route: payload.route,
+    source: payload.source,
+    chunkVersion: payload.chunkVersion,
+  });
   return res.status(204).end();
 });
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bell, Power, Search, User } from 'lucide-react';
-import { toast } from 'sonner';
+import { showAuthFeedback } from '@/utils/authFeedback.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet.jsx';
 import { MobileCockpitSearchDialog } from '@/mobile/ui/MobileCockpitSearchDialog.jsx';
 import { MobileAccountQuickSheet } from '@/mobile/ui/MobileAccountQuickSheet.jsx';
@@ -112,7 +112,7 @@ export const MobileCockpitHeaderActions = ({
     }
     logout({ silent: true });
     navigate('/login');
-    toast.info('Session mise en veille. Reconnectez-vous pour reprendre.');
+    showAuthFeedback('sessionSleep', 'Session mise en veille. Reconnectez-vous pour reprendre.', { level: 'info' });
   };
 
   const confirmDialogAction = () => {
