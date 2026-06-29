@@ -15,7 +15,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { NavbarDropdown } from '@/components/NavbarDropdown.jsx';
-import { GreffioLogo } from '@/components/GreffioLogo.jsx';
+import { GreffioLogo, GreffioWordmark } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { CompanyLookupCard } from '@/components/CompanyLookupCard.jsx';
 import { LEGAL_SERVICES } from '@/config/businessCatalog.js';
@@ -27,6 +27,7 @@ import { GreffioUltraFooter } from '@/components/layout/GreffioUltraFooter.jsx';
 import { LegalFormComparatorPromoCard } from '@/components/comparator/LegalFormComparatorPromoCard.jsx';
 import { MobileLandingPage } from '@/mobile/MobileLandingPage.jsx';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth.js';
 import { SeoHead, HOME_JSON_LD } from '@/components/seo/SeoHead.jsx';
 import { SEO_HOME } from '@/config/seoContent.js';
 
@@ -87,6 +88,7 @@ const heroChecklist = ['Statuts signés', 'Annonce publiée', 'Capital à compl�
 
 export const LandingPage = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const reduceMotion = useReducedMotion();
   const [lookupIdentifier, setLookupIdentifier] = React.useState('');
   const [lookupLoading, setLookupLoading] = React.useState(false);
@@ -169,7 +171,9 @@ export const LandingPage = () => {
               {...revealMount(0.2)}
               className="mt-7 max-w-xl text-xl font-medium leading-8 text-[hsl(var(--greffio-blue-900))]"
             >
-              Création, modifications, documents, signature, échanges avec l’équipe Greffio et suivi de votre dossier : une approche moderne et humaine.
+              Création, modifications, documents, signature, échanges avec l’équipe{' '}
+              <GreffioWordmark className="text-[0.92em] align-baseline" />
+              {' '}et suivi de votre dossier : une approche moderne et humaine.
             </motion.p>
             <motion.div {...revealMount(0.28)} className="mt-9 flex flex-col gap-3 sm:flex-row">
               <Button asChild size="lg" className="relative h-12 w-full justify-center px-12 text-center text-base sm:w-auto sm:justify-between sm:px-6">
@@ -179,7 +183,9 @@ export const LandingPage = () => {
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="h-12 w-full justify-center bg-white px-6 text-center text-base sm:w-auto">
-                <Link to="/login">Accéder au dashboard</Link>
+                <Link to={isAuthenticated ? '/dashboard' : '/login'}>
+                  {isAuthenticated ? 'Retour au dashboard' : 'Accéder au dashboard'}
+                </Link>
               </Button>
             </motion.div>
             <div className="mt-8 grid max-w-xl grid-cols-1 gap-3 text-sm font-semibold text-[hsl(var(--greffio-blue-900))] sm:grid-cols-3">

@@ -7,6 +7,7 @@ import { fetchPaymentVerificationStatus } from '@/api/payments.js';
 import { formatPaymentStatusLabel } from '@/utils/orderReference.js';
 import { isCapacitorNative } from '@/utils/platform.js';
 import { isPageVisible } from '@/utils/pageVisibility.js';
+import { clearExternalCheckoutFlag } from '@/utils/paymentCheckoutNavigation.js';
 
 const PAID_STATUSES = new Set(['paid', 'authorized', 'PAID', 'AUTHORIZED']);
 const FAILED_STATUSES = new Set(['failed', 'cancelled', 'expired', 'FAILED', 'CANCELLED', 'EXPIRED']);
@@ -27,6 +28,10 @@ export const PaymentVerificationPage = () => {
   const [resolvedStatus, setResolvedStatus] = useState(initialStatus || '');
   const [refundPending, setRefundPending] = useState(false);
   const [pollError, setPollError] = useState('');
+
+  useEffect(() => {
+    clearExternalCheckoutFlag();
+  }, []);
 
   useEffect(() => {
     if (!molliePaymentId && !dossierId) {

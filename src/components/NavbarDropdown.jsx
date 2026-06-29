@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { SiteSearchDialog } from '@/components/SiteSearchDialog.jsx';
 import { useAuth } from '@/hooks/useAuth.js';
+import { GREFFIO_MARKETING_HOME, GREFFIO_BRAND_HOME_LABEL } from '@/utils/greffioBrandNavigation.js';
 
 const buildMenuColumns = (profileLink) => [
   {
@@ -80,7 +81,7 @@ export const NavbarDropdown = () => {
   return (
     <nav className="fixed left-0 right-0 top-0 z-50 border-b border-[#c5d2e6] bg-white shadow-[0_1px_0_rgba(10,18,32,0.1),0_8px_24px_rgba(10,18,32,0.08)]">
       <div className="mx-auto flex min-h-[84px] max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-        <Link to="/" className="flex items-center">
+        <Link to={GREFFIO_MARKETING_HOME} className="flex items-center" aria-label={GREFFIO_BRAND_HOME_LABEL}>
           <GreffioLogo variant="full" />
         </Link>
 
@@ -159,20 +160,35 @@ export const NavbarDropdown = () => {
         </div>
 
         <div className="hidden items-center gap-2 lg:flex">
-          <Button variant="outline" size="icon" asChild className="bg-white">
-            <Link to="/login" aria-label="Connexion">
-              <User className="h-4 w-4" />
-            </Link>
-          </Button>
+          {isAuthenticated ? (
+            <Button variant="outline" size="sm" asChild className="bg-white">
+              <Link to="/dashboard">Dashboard</Link>
+            </Button>
+          ) : (
+            <Button variant="outline" size="icon" asChild className="bg-white">
+              <Link to="/login" aria-label="Connexion">
+                <User className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
           <Button variant="outline" size="icon" className="bg-white" aria-label="Recherche" onClick={() => setSearchOpen(true)}>
             <Search className="h-4 w-4" />
           </Button>
-          <Button asChild className="gap-2 bg-[#0f1f3d] hover:bg-[#0f1f3d]/92">
-            <Link to="/signup">
-              Créer mon espace
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
+          {isAuthenticated ? (
+            <Button asChild className="gap-2 bg-[#0f1f3d] hover:bg-[#0f1f3d]/92">
+              <Link to="/simulateur">
+                Nouvelle démarche
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          ) : (
+            <Button asChild className="gap-2 bg-[#0f1f3d] hover:bg-[#0f1f3d]/92">
+              <Link to="/signup">
+                Créer mon espace
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5 lg:hidden">
@@ -184,20 +200,31 @@ export const NavbarDropdown = () => {
           >
             <Search className="h-4 w-4" />
           </button>
-          <Link
-            to="/login"
-            aria-label="Connexion"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-white text-[#0a1220] transition hover:bg-muted"
-          >
-            <User className="h-4 w-4" />
-          </Link>
-          <Link
-            to="/signup"
-            className="hidden h-9 items-center gap-1 rounded-md bg-[#0f1f3d] px-3 text-xs font-semibold text-white transition hover:bg-[#0f1f3d]/92 sm:inline-flex"
-          >
-            Créer mon espace
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
+          {isAuthenticated ? (
+            <Link
+              to="/dashboard"
+              className="hidden h-9 items-center gap-1 rounded-md border border-border bg-white px-3 text-xs font-semibold text-[#0a1220] transition hover:bg-muted sm:inline-flex"
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <Link
+              to="/login"
+              aria-label="Connexion"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-white text-[#0a1220] transition hover:bg-muted"
+            >
+              <User className="h-4 w-4" />
+            </Link>
+          )}
+          {!isAuthenticated ? (
+            <Link
+              to="/signup"
+              className="hidden h-9 items-center gap-1 rounded-md bg-[#0f1f3d] px-3 text-xs font-semibold text-white transition hover:bg-[#0f1f3d]/92 sm:inline-flex"
+            >
+              Créer mon espace
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          ) : null}
           <button
             onClick={() => setIsMobileOpen((value) => !value)}
             aria-label={isMobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'}

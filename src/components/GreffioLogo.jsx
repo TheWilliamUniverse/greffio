@@ -5,6 +5,23 @@ import { cn } from '@/lib/utils.js';
 
 const WORDMARK_FONT = "'Plus Jakarta Sans', sans-serif";
 
+export const GreffioWordmark = ({ className = '', size }) => (
+  <span
+    className={cn(
+      'inline font-extrabold leading-none text-[hsl(var(--greffio-blue-900))]',
+      className,
+    )}
+    style={{
+      fontFamily: WORDMARK_FONT,
+      ...(size ? { fontSize: size } : null),
+    }}
+    translate="no"
+    lang="fr"
+  >
+    Greffio
+  </span>
+);
+
 const resolveVariant = (variant) => {
   if (variant === 'icon-only' || variant === 'mark') return 'mark';
   if (variant === 'tile' || variant === 'inverse') return 'tile';

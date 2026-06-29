@@ -13,6 +13,7 @@ import {
 import { loginWithApi, refreshAccessToken, signupWithApi } from '@/api/auth.js';
 import { mapSecurityApiError } from '@/config/security.js';
 import {
+  isAuthSessionInvalidError,
   isTransientApiError,
   mapLoginPayloadError,
   withTransientRetry,
@@ -27,6 +28,7 @@ import { markFreshNativePasswordLogin } from '@/utils/nativeAppStorage.js';
 import { persistNativeAuthSession } from '@/utils/nativeWebAuth.js';
 import { initializeClientDataCache, purgeEphemeralClientData } from '@/utils/clientDataCache.js';
 import { setActiveSessionUserId } from '@/utils/sessionStore.js';
+import { clearExternalCheckoutFlag, isExternalCheckoutActive } from '@/utils/paymentCheckoutNavigation.js';
 import { setApiUnauthorizedHandler } from '@/api/client.js';
 import { clearAuthenticatedQueries } from '@/lib/queryClient.js';
 import { resolveSessionRole } from '@/utils/roles.js';
@@ -77,6 +79,7 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
         return;
       }
+      let resolvedUser = storedUser;
       try {
         const payload = await withTransientRetry(
           () => refreshAccessToken({ refreshToken }),
@@ -90,6 +93,7 @@ export const AuthProvider = ({ children }) => {
         }
         const refreshedUser = payload?.user;
         if (refreshedUser) {
+          resolvedUser = refreshedUser;
           setActiveSessionUserId(refreshedUser.id || null);
           initializeClientDataCache(refreshedUser.id || null);
           setCurrentUser(refreshedUser);
@@ -101,6 +105,7 @@ export const AuthProvider = ({ children }) => {
             { retries: 1, delays: [600] },
           );
           const user = profilePayload?.user || refreshedUser || storedUser;
+          resolvedUser = user;
           setActiveSessionUserId(user?.id || null);
           initializeClientDataCache(user?.id || null);
           setCurrentUser(user);
@@ -116,7 +121,18 @@ export const AuthProvider = ({ children }) => {
           }
         }
       } catch (error) {
-        if (isTransientApiError(error) && storedUser) {
+        const fallbackUser = resolvedUser || storedUser || getUser();
+        if (isAuthSessionInvalidError(error)) {
+          clearAllData();
+          purgeEphemeralClientData({ keepConsent: true });
+          setActiveSessionUserId(null);
+          initializeClientDataCache(null);
+          setCurrentUser(null);
+        } else if (fallbackUser && getRefreshToken()) {
+          setActiveSessionUserId(fallbackUser?.id || null);
+          initializeClientDataCache(fallbackUser?.id || null);
+          setCurrentUser(fallbackUser);
+        } else if (isTransientApiError(error) && storedUser) {
           setActiveSessionUserId(storedUser?.id || null);
           initializeClientDataCache(storedUser?.id || null);
           setCurrentUser(storedUser);
@@ -133,6 +149,44 @@ export const AuthProvider = ({ children }) => {
     };
     void bootstrap();
   }, []);
+
+  useEffect(() => {
+    if (!currentUser?.id) return undefined;
+
+    const healSessionOnReturn = async () => {
+      if (document.hidden) return;
+      const refreshToken = getRefreshToken();
+      if (!refreshToken) return;
+      try {
+        const payload = await withTransientRetry(
+          () => refreshAccessToken({ refreshToken }),
+          { retries: 1, delays: [400] },
+        );
+        if (payload?.accessToken) saveToken(payload.accessToken);
+        if (payload?.refreshToken) saveRefreshToken(payload.refreshToken);
+        if (payload?.user) {
+          setActiveSessionUserId(payload.user.id || null);
+          initializeClientDataCache(payload.user.id || null);
+          setCurrentUser(payload.user);
+          saveUser(payload.user);
+        }
+        if (isExternalCheckoutActive()) {
+          clearExternalCheckoutFlag();
+        }
+      } catch (error) {
+        if (isAuthSessionInvalidError(error)) {
+          // La prochaine requête API déclenchera onUnauthorized si la session est réellement expirée.
+        }
+      }
+    };
+
+    const onVisibilityChange = () => {
+      void healSessionOnReturn();
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [currentUser?.id]);
 
   const login = async (email, password, provider = 'email', captcha = {}) => {
     if (!email || !password || password.length < 8) {

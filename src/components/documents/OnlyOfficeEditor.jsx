@@ -126,10 +126,10 @@ const resolveFriendlyOnlyOfficeError = (event) => {
   return 'L’éditeur ONLYOFFICE a rencontré un problème. Réessayez dans un instant.';
 };
 
-/** ONLYOFFICE JWT signs the full config server-side — do not mutate signed fields client-side. */
+/** ONLYOFFICE JWT signs the full config server-side — client passes token + events only. */
 const buildDocEditorConfig = (config, events, isMobilePresentation, fullViewport) => {
   if (config?.token) {
-    return { ...config, events };
+    return { token: config.token, events };
   }
   return {
     ...config,

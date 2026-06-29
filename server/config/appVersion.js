@@ -18,8 +18,8 @@
 const PLAY_STORE_DEFAULT = 'https://play.google.com/store/apps/details?id=com.greffio.app';
 
 /** Dernière version réellement publiée sur le Play Store — ne monter qu'après « j'ai posté ». */
-const PUBLISHED_VERSION_CODE = 261510017;
-const PUBLISHED_VERSION_NAME = '1.2.18';
+const PUBLISHED_VERSION_CODE = 261510020;
+const PUBLISHED_VERSION_NAME = '1.2.20';
 
 const parseIntStrict = (value, fallback) => {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -38,10 +38,10 @@ const parseChangelog = (value) => {
 const DEFAULT_MIN_VERSION_CODE = 261422041;
 
 const PUBLISHED_CHANGELOG = [
-  'Icône Greffio sur l’écran d’accueil',
-  'PDF : ouverture et enregistrement via le lecteur système',
-  'Questionnaire : choix de forme juridique plus clair',
-  'Paiement mobile optimisé',
+  'Navigation landing sans déconnexion',
+  'Checkout boutique : Apple Pay, Google Pay et virement',
+  'Simulateur desktop : sélection de forme corrigée',
+  'Éditeur ONLYOFFICE : chargement document fiabilisé',
 ];
 
 export const getAppVersionConfig = () => ({

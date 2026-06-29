@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth.js';
 import { clearOpsStepUp } from '@/lib/auth/opsStepUp.js';
 import { isCapacitorNative } from '@/utils/platform.js';
+import { isExternalCheckoutActive } from '@/utils/paymentCheckoutNavigation.js';
 
 const IDLE_MS = 30 * 60 * 1000;
 const CHECK_MS = 15 * 1000;
@@ -35,6 +36,10 @@ export const useIdleLock = () => {
   const evaluateIdle = useCallback(() => {
     if (idleExpiredRef.current || lockedRef.current) return;
     if (!guardEnabled) return;
+    if (isExternalCheckoutActive()) {
+      lastActivityRef.current = Date.now();
+      return;
+    }
     if (Date.now() - lastActivityRef.current >= IDLE_MS) {
       void lockSession();
     }
@@ -52,6 +57,9 @@ export const useIdleLock = () => {
     events.forEach((event) => window.addEventListener(event, touchActivity, { passive: true }));
 
     const onVisibility = () => {
+      if (!document.hidden && isExternalCheckoutActive()) {
+        lastActivityRef.current = Date.now();
+      }
       if (!document.hidden) evaluateIdle();
     };
     document.addEventListener('visibilitychange', onVisibility);

@@ -433,8 +433,10 @@ app.get('/api/ready', healthRateLimiter, async (_req, res) => {
       });
     }
   }
-  if (checks.supabaseCredentialsPresent) {
+  if (checks.supabaseStorageActive) {
     checks.supabaseStorageProbe = await probeSupabaseStorageBucket();
+  } else if (checks.supabaseCredentialsPresent) {
+    checks.supabaseStorageProbe = { ok: false, skipped: true, reason: 'SUPABASE_STORAGE_NOT_ACTIVE' };
   }
   checks.onlyofficeConfigured = isOnlyOfficeConfigured();
   checks.onlyofficeApiBaseUrl = getOnlyOfficePublicApiBaseUrl();
@@ -562,6 +564,7 @@ app.post('/api/resources/orders', requireAuth, async (req, res) => {
       body: req.body,
       appUrl,
       customerName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '',
+      customerEmail: user?.email || req.body?.email || '',
     });
     return res.status(201).json({ ok: true, order, config: getResourceConfig() });
   } catch (error) {
@@ -612,6 +615,7 @@ app.post('/api/resources/cart/prepare', requireAuth, async (req, res) => {
       items: req.body?.items || [],
       appUrl,
       customerName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '',
+      customerEmail: user?.email || req.body?.email || '',
     });
     return res.json({ ok: true, ...payload });
   } catch (error) {

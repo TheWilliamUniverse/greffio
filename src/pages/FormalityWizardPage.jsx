@@ -1119,18 +1119,18 @@ export const FormalityWizardPage = ({ presentation = 'auto' }) => {
     ? 'bottom-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom))]'
     : 'bottom-[calc(var(--bottom-nav-height-web)+env(safe-area-inset-bottom))]';
 
-  const choiceTapNoContinue = (
+  const choiceTapNoContinue = isMobilePresentation && (
     step === 0
     || (step === 1 && projectSubStep === 2)
     || (step === 1 && projectSubStep === 3)
-    || (step === 1 && projectSubStep === 0 && !isAccountCreationStep && isMobilePresentation)
-    || (step === 1 && projectSubStep === 1 && isMobilePresentation && (
+    || (step === 1 && projectSubStep === 0 && !isAccountCreationStep)
+    || (step === 1 && projectSubStep === 1 && (
       activeInitiatorStep?.kind === 'choice'
       || activeInitiatorStep?.kind === 'select'
       || activeInitiatorStep?.kind === 'input'
     ))
-    || (step === 1 && projectSubStep === 4 && isMobilePresentation)
-    || (step === 2 && step2Phase === 'profile' && isMobilePresentation)
+    || (step === 1 && projectSubStep === 4)
+    || (step === 2 && step2Phase === 'profile')
     || (step === 2 && step2Phase === 'questionnaire' && activeQuestion?.type === 'select' && !questionnaireFinished && !questionExitPhase)
   );
 

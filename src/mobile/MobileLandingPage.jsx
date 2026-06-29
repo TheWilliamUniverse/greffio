@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from 'lucide-react';
-import { GreffioLogo } from '@/components/GreffioLogo.jsx';
+import { GreffioLogo, GreffioWordmark } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { CompanyLookupCard } from '@/components/CompanyLookupCard.jsx';
@@ -26,6 +26,7 @@ import { MobilePublicDrawer } from '@/mobile/MobilePublicDrawer.jsx';
 import { MobileCockpitHeaderActions } from '@/mobile/ui/MobileCockpitHeaderActions.jsx';
 import { useMobileMotion } from '@/mobile/ui/mobileMotion.js';
 import { useAuth } from '@/hooks/useAuth.js';
+import { GREFFIO_MARKETING_HOME, GREFFIO_BRAND_HOME_LABEL } from '@/utils/greffioBrandNavigation.js';
 
 const MobileLandingDeferredSections = lazy(() => import('@/mobile/MobileLandingDeferredSections.jsx').then((module) => ({
   default: module.MobileLandingDeferredSections,
@@ -126,7 +127,7 @@ const MobileLandingHeroMockup = ({ revealMount }) => (
 );
 
 export const MobileLandingPage = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, isAuthenticated } = useAuth();
   const { revealMount, staggerItem } = useMobileMotion();
   const [lookupIdentifier, setLookupIdentifier] = useState('');
   const [lookupLoading, setLookupLoading] = useState(false);
@@ -167,7 +168,7 @@ export const MobileLandingPage = () => {
         className="sticky top-0 z-30 border-b border-border/70 bg-white/95 backdrop-blur"
       >
         <div className="mx-auto flex min-h-[4.75rem] max-w-lg items-center justify-between gap-2 px-4 py-2.5 pt-[env(safe-area-inset-top)]">
-          <Link to="/" className="shrink-0" aria-label="Accueil Greffio">
+          <Link to={GREFFIO_MARKETING_HOME} className="shrink-0" aria-label={GREFFIO_BRAND_HOME_LABEL}>
             <GreffioLogo variant="full" className="h-8" />
           </Link>
           <div className="flex shrink-0 items-center gap-1.5">
@@ -191,7 +192,8 @@ export const MobileLandingPage = () => {
             Créer et suivre vos formalités simplement.
           </h1>
           <p className="mt-4 text-base leading-7 text-muted-foreground">
-            Un parcours guidé, des documents centralisés et un suivi clair avec l’équipe Greffio.
+            Un parcours guidé, des documents centralisés et un suivi clair avec l’équipe{' '}
+            <GreffioWordmark className="text-[0.95em] align-baseline" />.
           </p>
           <motion.div {...revealMount(0.14)} className="mt-6 flex flex-col gap-3">
             <Button asChild size="lg" className="h-12 w-full rounded-2xl text-base shadow-elevation-sm">
@@ -202,7 +204,9 @@ export const MobileLandingPage = () => {
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="h-12 w-full rounded-2xl bg-white text-base">
-              <Link to={dashboardTarget}>Accéder au dashboard</Link>
+              <Link to={dashboardTarget}>
+                {isAuthenticated ? 'Retour au dashboard' : 'Accéder au dashboard'}
+              </Link>
             </Button>
           </motion.div>
           <motion.p

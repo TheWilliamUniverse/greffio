@@ -25,4 +25,15 @@ test.describe('authenticated cockpit smoke', () => {
       await expect(page.locator('#root')).toBeVisible();
     }
   });
+
+  test('boutique checkout page loads for authenticated user', async ({ page }) => {
+    await page.goto('/boutique');
+    await expect(page.locator('#root')).toBeVisible();
+    const addButton = page.getByRole('button', { name: /ajouter|commander|panier/i }).first();
+    if (await addButton.isVisible().catch(() => false)) {
+      await addButton.click();
+    }
+    await page.goto('/boutique/checkout');
+    await expect(page.getByText(/panier boutique|finaliser ma commande|options de paiement/i).first()).toBeVisible({ timeout: 20_000 });
+  });
 });

@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth.js';
 import { useNotificationsSummary } from '@/hooks/useNotificationsSummary.js';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { cn } from '@/lib/utils.js';
+import { GREFFIO_MARKETING_HOME, GREFFIO_BRAND_HOME_LABEL } from '@/utils/greffioBrandNavigation.js';
 import { Button } from '@/components/ui/button.jsx';
 import { CountBadge, countBadgeHostClass } from '@/components/ui/count-badge.jsx';
 import {
@@ -32,9 +33,9 @@ export const Header = () => {
     <header className="sticky top-0 z-40 w-full border-b border-border bg-white/90 backdrop-blur-xl">
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center px-4 md:px-6">
         <Link
-          to={isAuthenticated ? '/dashboard' : '/'}
+          to={GREFFIO_MARKETING_HOME}
           className="mr-6 flex w-[5.5rem] shrink-0 items-center overflow-hidden sm:w-auto sm:max-w-[9rem]"
-          aria-label={isAuthenticated ? 'Greffio – Retour au tableau de bord' : 'Greffio – Retour à l’accueil'}
+          aria-label={GREFFIO_BRAND_HOME_LABEL}
         >
           <GreffioLogo variant="full" className="origin-left scale-75" />
         </Link>

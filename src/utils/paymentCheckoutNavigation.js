@@ -2,6 +2,7 @@ import { App as CapApp } from '@capacitor/app';
 import { isCapacitorNative } from '@/utils/platform.js';
 
 export const PAYMENT_RETURN_STORAGE_KEY = 'greffio_payment_return';
+export const EXTERNAL_CHECKOUT_ACTIVE_KEY = 'greffio_external_checkout_active';
 
 /** Mémorise la route courante avant redirection Mollie (retour WebView si besoin). */
 export const storePaymentReturnPath = () => {
@@ -10,8 +11,25 @@ export const storePaymentReturnPath = () => {
       PAYMENT_RETURN_STORAGE_KEY,
       window.location.pathname + window.location.search,
     );
+    window.sessionStorage.setItem(EXTERNAL_CHECKOUT_ACTIVE_KEY, '1');
   } catch (_error) {
     // ignore quota / private mode
+  }
+};
+
+export const clearExternalCheckoutFlag = () => {
+  try {
+    window.sessionStorage.removeItem(EXTERNAL_CHECKOUT_ACTIVE_KEY);
+  } catch (_error) {
+    // ignore
+  }
+};
+
+export const isExternalCheckoutActive = () => {
+  try {
+    return window.sessionStorage.getItem(EXTERNAL_CHECKOUT_ACTIVE_KEY) === '1';
+  } catch (_error) {
+    return false;
   }
 };
 

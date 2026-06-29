@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Loader2, ShieldCheck, Smartphone } from 'lucide-react';
 import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { Button } from '@/components/ui/button.jsx';
-import { openExternalCheckoutUrl } from '@/utils/paymentCheckoutNavigation.js';
+import { openExternalCheckoutUrl, clearExternalCheckoutFlag } from '@/utils/paymentCheckoutNavigation.js';
 
 export const PaymentAuthenticationPage = () => {
   const [searchParams] = useSearchParams();
@@ -16,6 +16,10 @@ export const PaymentAuthenticationPage = () => {
       return '';
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    clearExternalCheckoutFlag();
+  }, []);
 
   useEffect(() => {
     if (!targetUrl || !/^https:\/\//i.test(targetUrl)) {
@@ -32,7 +36,7 @@ export const PaymentAuthenticationPage = () => {
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[var(--we-bg)] px-4 py-10">
       <div className="w-full max-w-md rounded-2xl border border-border bg-white p-8 shadow-elevation-md">
         <div className="mb-6 flex justify-center">
-          <GreffioLogo variant="mark" />
+          <GreffioLogo variant="full" className="text-xl" />
         </div>
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[hsl(var(--greffio-blue))]/10 text-[hsl(var(--greffio-blue))]">
           <ShieldCheck className="h-7 w-7" />

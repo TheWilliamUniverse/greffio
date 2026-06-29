@@ -4,6 +4,7 @@ import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import { MobileMenuButton } from '@/mobile/MobileAuthenticatedNav.jsx';
 import { MobileCockpitHeaderActions } from '@/mobile/ui/MobileCockpitHeaderActions.jsx';
 import { isCapacitorNative } from '@/utils/platform.js';
+import { GREFFIO_MARKETING_HOME, GREFFIO_BRAND_HOME_LABEL } from '@/utils/greffioBrandNavigation.js';
 
 const headerRowClass = 'mx-auto flex min-h-[3.75rem] max-w-lg items-center gap-2 px-4 py-2';
 
@@ -18,8 +19,12 @@ export const MobileWebHeader = ({ title, onMenuClick }) => {
 
         {isAuthenticatedCockpit ? (
           <>
-            <Link to="/dashboard" className="shrink-0" aria-label="Greffio – Retour au tableau de bord">
-              <GreffioLogo variant="mark" className="h-9 w-9" />
+            <Link
+              to={GREFFIO_MARKETING_HOME}
+              className="shrink-0 overflow-hidden"
+              aria-label={GREFFIO_BRAND_HOME_LABEL}
+            >
+              <GreffioLogo variant="full" className="origin-left scale-[0.72]" />
             </Link>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold text-[hsl(var(--greffio-blue-900))]">

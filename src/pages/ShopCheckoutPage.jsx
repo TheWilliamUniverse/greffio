@@ -14,6 +14,7 @@ import { useShopCart } from '@/hooks/useShopCart.js';
 import { useAuth } from '@/hooks/useAuth.js';
 import { openPaymentCheckoutUrl } from '@/utils/paymentCheckoutNavigation.js';
 import { resolvePaymentCheckoutErrorMessage } from '@/utils/paymentErrors.js';
+import { GREFFIO_MARKETING_HOME } from '@/utils/greffioBrandNavigation.js';
 
 export const ShopCheckoutPage = () => {
   const navigate = useNavigate();
@@ -130,7 +131,7 @@ export const ShopCheckoutPage = () => {
         <header className="border-b border-border bg-white px-6 py-4">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <GreffioLogo variant="mark" to="/dashboard" className="hidden sm:block" />
+              <GreffioLogo variant="full" to={GREFFIO_MARKETING_HOME} className="hidden sm:block" />
               <div>
                 <p className="text-sm font-bold uppercase text-primary">Boutique Greffio</p>
                 <h1 className="text-xl font-extrabold">Finaliser ma commande</h1>

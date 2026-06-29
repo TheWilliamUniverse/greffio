@@ -31,7 +31,7 @@ const offers = {
 
 export const PaymentPage = () => {
   const [searchParams] = useSearchParams();
-  const { currentUser, isAuthenticated } = useAuth();
+  const { currentUser } = useAuth();
   const offerName = searchParams.get('offer') || 'Dossier Standard';
   const service = searchParams.get('service') || 'creation';
   const resourceOrderId = searchParams.get('resourceOrder');
@@ -204,7 +204,7 @@ export const PaymentPage = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-white px-6 py-4">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <GreffioLogo variant="full" to={isAuthenticated ? '/dashboard' : '/'} />
+          <GreffioLogo variant="full" to="/" />
           <Button variant="outline" asChild className="bg-white">
             <Link to="/mentions-legales#cgv">CGV</Link>
           </Button>

@@ -1,7 +1,6 @@
 import React from 'react';
 import { isCapacitorNative } from '@/utils/platform.js';
 import { NavLink } from 'react-router-dom';
-import { GreffioLogo } from '@/components/GreffioLogo.jsx';
 import {
   BarChart3,
   Bot,
@@ -75,7 +74,6 @@ export const Sidebar = ({ className }) => {
   return (
     <aside className={cn('hidden h-full w-72 flex-col border-r border-border bg-white md:flex', className)}>
       <div className="border-b border-border px-5 py-5">
-        <GreffioLogo variant="mark" to="/dashboard" className="mb-4 h-9 w-9" />
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[hsl(var(--greffio-blue))] text-white">
             <Building2 className="h-5 w-5" />

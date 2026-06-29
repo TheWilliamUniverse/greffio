@@ -1,6 +1,9 @@
 node_modules/
 dist/
 build/
+dist.zip
+dist_*.zip
+staging-deploy/
 .env
 .env.*
 !.env.example
