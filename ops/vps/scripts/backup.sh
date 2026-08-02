@@ -25,6 +25,7 @@ OBJECT_DIR="$BACKUP_ROOT/object-storage"
 mkdir -p "$BACKUP_ROOT" "$OBJECT_DIR"
 
 export PGPASSWORD="$GREFFIO_DB_PASSWORD"
+export PGSSLMODE=require
 pg_dump \
   --host=127.0.0.1 \
   --port=5433 \
@@ -35,7 +36,7 @@ pg_dump \
   --no-owner \
   --no-privileges \
   --file="$BACKUP_ROOT/postgres.dump"
-unset PGPASSWORD
+unset PGPASSWORD PGSSLMODE
 
 export S3_ADMIN_ENDPOINT=http://127.0.0.1:3900
 export S3_REGION=garage
