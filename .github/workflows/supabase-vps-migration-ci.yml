@@ -141,7 +141,7 @@ jobs:
           set -a
           source ops/vps/.env.infrastructure
           set +a
-          DATABASE_URL="postgresql://$GREFFIO_DB_USER:$GREFFIO_DB_PASSWORD@127.0.0.1:5433/$GREFFIO_DB_NAME?sslmode=require" \
+          DATABASE_URL="postgresql://$GREFFIO_DB_USER:$GREFFIO_DB_PASSWORD@127.0.0.1:5433/$GREFFIO_DB_NAME" \
           DATABASE_SSL=require \
           node server/scripts/audit-supabase-storage-references.js --strict --require-zero
 
