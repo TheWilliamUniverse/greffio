@@ -1,0 +1,69 @@
+name: Supabase to VPS Migration CI
+
+on:
+  pull_request:
+    paths:
+      - 'server/services/s3StorageService.js'
+      - 'server/services/objectStorage.js'
+      - 'server/services/tests/s3StorageConfig.test.js'
+      - 'server/scripts/migrate-supabase-storage-to-s3.js'
+      - 'scripts/audit-supabase-usage.mjs'
+      - 'ops/vps/**'
+      - 'docs/migration/**'
+      - '.github/workflows/supabase-vps-migration-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-migration-tooling:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies without native lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Validate Node syntax
+        run: |
+          node --check scripts/audit-supabase-usage.mjs
+          node --check server/scripts/migrate-supabase-storage-to-s3.js
+          node --check ops/vps/scripts/backup-object-storage.mjs
+          node --check server/services/s3StorageService.js
+          node --check server/services/objectStorage.js
+
+      - name: Test S3-compatible configuration
+        run: node --test server/services/tests/s3StorageConfig.test.js
+
+      - name: Validate shell syntax
+        run: |
+          find ops/vps -type f -name '*.sh' -print0 | xargs -0 -r -n1 bash -n
+
+      - name: Validate Docker Compose model
+        run: |
+          cp ops/vps/.env.infrastructure.example ops/vps/.env.infrastructure
+          docker compose \
+            --env-file ops/vps/.env.infrastructure \
+            -f ops/vps/compose.yml \
+            config --quiet
+
+      - name: Generate redacted Supabase inventory
+        run: |
+          mkdir -p artifacts/migration
+          node scripts/audit-supabase-usage.mjs --json > artifacts/migration/supabase-inventory.json
+          node -e "const fs=require('fs');const r=JSON.parse(fs.readFileSync('artifacts/migration/supabase-inventory.json'));if(!r.summary||!Array.isArray(r.findings))process.exit(1);console.log(r.summary);"
+
+      - name: Upload audit inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-inventory
+          path: artifacts/migration/supabase-inventory.json
+          if-no-files-found: error
+          retention-days: 14
