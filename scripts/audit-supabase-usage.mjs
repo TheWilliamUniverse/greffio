@@ -39,15 +39,37 @@ const isHistoricalMigration = (relativePath) => (
   && /(?:supabase|rls|postgrest)/i.test(relativePath)
 );
 
+const isMigrationTool = (relativePath) => (
+  relativePath === 'scripts/audit-supabase-usage.mjs'
+  || relativePath === 'server/scripts/migrate-supabase-storage-to-s3.js'
+  || relativePath === 'server/scripts/migrate-local-documents-to-supabase.js'
+  || relativePath.startsWith('ops/vps/')
+  || relativePath === '.github/workflows/supabase-vps-migration-ci.yml'
+);
+
+const isTransitionRuntime = (relativePath) => [
+  'server/services/objectStorage.js',
+  'server/index.js',
+  'server/features/documentCompletion/documentCompletion.service.js',
+].includes(relativePath);
+
+const isConfiguration = (relativePath) => (
+  relativePath === '.gitignore'
+  || relativePath === '.env.example'
+  || relativePath.endsWith('.env.example')
+  || relativePath.endsWith('_TEMPLATE.env')
+  || relativePath.endsWith('_TEMPLATE.md')
+);
+
 const classify = (relativePath) => {
-  if (relativePath === 'scripts/audit-supabase-usage.mjs') return 'audit-tool';
-  if (relativePath === 'server/scripts/migrate-supabase-storage-to-s3.js') return 'migration-tool';
+  if (isMigrationTool(relativePath)) return 'migration-tool';
   if (relativePath.startsWith('docs/') || relativePath.endsWith('.md')) return 'documentation';
   if (isHistoricalMigration(relativePath)) return 'historical-migration';
   if (relativePath.includes('/tests/') || relativePath.includes('.test.') || relativePath.includes('.spec.')) {
     return 'test';
   }
-  if (relativePath === '.env.example' || relativePath.endsWith('.env.example')) return 'configuration';
+  if (isConfiguration(relativePath)) return 'configuration';
+  if (isTransitionRuntime(relativePath)) return 'transition-runtime';
   return 'runtime-blocker';
 };
 
@@ -116,6 +138,8 @@ const scan = async () => {
     accumulator[finding.classification] = (accumulator[finding.classification] || 0) + 1;
     return accumulator;
   }, {});
+  const activeRuntimeDependencies = counts['runtime-blocker'] || 0;
+  const transitionalRuntime = counts['transition-runtime'] || 0;
 
   return {
     generatedAt: new Date().toISOString(),
@@ -124,7 +148,9 @@ const scan = async () => {
     summary: {
       filesScanned: files.length,
       findings: findings.length,
-      runtimeBlockers: counts['runtime-blocker'] || 0,
+      runtimeBlockers: activeRuntimeDependencies + transitionalRuntime,
+      activeRuntimeDependencies,
+      transitionalRuntime,
       configuration: counts.configuration || 0,
       documentation: counts.documentation || 0,
       historicalMigrations: counts['historical-migration'] || 0,
@@ -143,7 +169,9 @@ const toMarkdown = (result) => {
     '',
     `- Fichiers analyses : ${result.summary.filesScanned}`,
     `- Occurrences : ${result.summary.findings}`,
-    `- Bloquants runtime : ${result.summary.runtimeBlockers}`,
+    `- Dependances runtime actives : ${result.summary.activeRuntimeDependencies}`,
+    `- Compatibilite runtime transitoire : ${result.summary.transitionalRuntime}`,
+    `- Total a supprimer avant cloture : ${result.summary.runtimeBlockers}`,
     `- Configuration : ${result.summary.configuration}`,
     `- Documentation : ${result.summary.documentation}`,
     `- Migrations historiques : ${result.summary.historicalMigrations}`,
