@@ -94,13 +94,23 @@ cd "$OPS_DIR"
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d
 
 echo "Attente de PostgreSQL..."
-for _ in $(seq 1 30); do
-  if docker exec greffio-postgres pg_isready -U "$POSTGRES_ADMIN_USER" -d postgres >/dev/null 2>&1; then
+for _ in $(seq 1 45); do
+  if docker exec \
+    -e PGPASSWORD="$POSTGRES_ADMIN_PASSWORD" \
+    -e PGSSLMODE=require \
+    greffio-postgres \
+    psql -h 127.0.0.1 -U "$POSTGRES_ADMIN_USER" -d postgres -Atc 'select 1' \
+    >/dev/null 2>&1; then
     break
   fi
   sleep 2
 done
-docker exec greffio-postgres pg_isready -U "$POSTGRES_ADMIN_USER" -d postgres
+docker exec \
+  -e PGPASSWORD="$POSTGRES_ADMIN_PASSWORD" \
+  -e PGSSLMODE=require \
+  greffio-postgres \
+  psql -h 127.0.0.1 -U "$POSTGRES_ADMIN_USER" -d postgres -Atc 'select 1' \
+  >/dev/null
 
 echo "Attente de Garage..."
 for _ in $(seq 1 30); do
