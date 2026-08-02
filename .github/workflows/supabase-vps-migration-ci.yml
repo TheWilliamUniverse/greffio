@@ -67,3 +67,83 @@ jobs:
           path: artifacts/migration/supabase-inventory.json
           if-no-files-found: error
           retention-days: 14
+
+  integration-infrastructure:
+    needs: validate-migration-tooling
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install S3 client dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Generate disposable infrastructure secrets
+        shell: bash
+        run: |
+          cat > ops/vps/.env.infrastructure <<EOF
+          POSTGRES_ADMIN_USER=greffio_admin
+          POSTGRES_ADMIN_PASSWORD=$(openssl rand -hex 32)
+          GREFFIO_DB_NAME=greffio
+          GREFFIO_DB_USER=greffio_app
+          GREFFIO_DB_PASSWORD=$(openssl rand -hex 32)
+          GARAGE_RPC_SECRET=$(openssl rand -hex 32)
+          GARAGE_ADMIN_TOKEN=$(openssl rand -hex 32)
+          GARAGE_METRICS_TOKEN=$(openssl rand -hex 32)
+          GARAGE_DEFAULT_ACCESS_KEY=GK$(openssl rand -hex 16)
+          GARAGE_DEFAULT_SECRET_KEY=$(openssl rand -hex 32)
+          GARAGE_DEFAULT_BUCKET=greffio-production-documents
+          RESTIC_REPOSITORY=
+          RESTIC_PASSWORD=
+          EOF
+          chmod 600 ops/vps/.env.infrastructure
+
+      - name: Start PostgreSQL and Garage
+        run: sudo bash ops/vps/scripts/setup-infrastructure.sh
+
+      - name: Verify PostgreSQL application account over TLS
+        shell: bash
+        run: |
+          set -a
+          source ops/vps/.env.infrastructure
+          set +a
+          docker exec \
+            -e PGPASSWORD="$GREFFIO_DB_PASSWORD" \
+            -e PGSSLMODE=require \
+            greffio-postgres \
+            psql -h 127.0.0.1 -U "$GREFFIO_DB_USER" -d "$GREFFIO_DB_NAME" \
+              -v ON_ERROR_STOP=1 -Atc "select current_user, current_database();"
+
+      - name: Verify S3 upload and deletion through Garage
+        shell: bash
+        run: |
+          set -a
+          source ops/vps/.env.infrastructure
+          set +a
+          S3_ENDPOINT=http://127.0.0.1:3900 \
+          S3_REGION=garage \
+          S3_ACCESS_KEY_ID="$GARAGE_DEFAULT_ACCESS_KEY" \
+          S3_SECRET_ACCESS_KEY="$GARAGE_DEFAULT_SECRET_KEY" \
+          S3_BUCKET="$GARAGE_DEFAULT_BUCKET" \
+          S3_FORCE_PATH_STYLE=true \
+          node --input-type=module -e "const m=await import('./server/services/s3StorageService.js'); console.log(await m.probeS3StorageConnectivity());"
+
+      - name: Show container logs on failure
+        if: failure()
+        run: |
+          docker logs greffio-postgres || true
+          docker logs greffio-garage || true
+
+      - name: Stop disposable infrastructure
+        if: always()
+        run: |
+          docker compose \
+            --env-file ops/vps/.env.infrastructure \
+            -f ops/vps/compose.yml \
+            down --remove-orphans || true
+          sudo rm -rf /srv/greffio
