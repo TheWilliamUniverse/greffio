@@ -4,6 +4,7 @@ import {
   buildS3StorageUrl,
   deleteDocumentFromS3StorageUrl,
   downloadObjectBufferFromStorageUrl,
+  getS3StorageConfig,
   getSignedDownloadUrlFromStorageUrl,
   isS3Configured,
   parseS3StorageUrl,
@@ -28,21 +29,21 @@ const resolveActiveDriver = () => {
 };
 
 const activeDriver = resolveActiveDriver();
+const s3Config = getS3StorageConfig();
 
 export const objectStorageConfig = {
   driver: activeDriver,
   requestedDriver: STORAGE_DRIVER,
   s3Configured: isS3Configured(),
-  /** Clés Supabase présentes (Postgres / API admin). */
+  s3Endpoint: s3Config.endpoint,
+  /** Cles Supabase presentes uniquement pendant la transition. */
   supabaseCredentialsPresent: hasSupabaseCredentials,
   /** Storage Supabase actif uniquement si DOCUMENT_STORAGE_DRIVER=supabase. */
   supabaseStorageActive: activeDriver === 'supabase',
-  /** @deprecated Utiliser supabaseCredentialsPresent – ne signifie pas que le bucket Storage existe. */
+  /** @deprecated Utiliser supabaseCredentialsPresent. */
   supabaseConfigured: hasSupabaseCredentials,
-  bucket: activeDriver === 's3'
-    ? process.env.AWS_S3_BUCKET
-    : SUPABASE_STORAGE_BUCKET,
-  presignedTtlSeconds: Number(process.env.AWS_S3_PRESIGNED_URL_TTL_SECONDS || 900),
+  bucket: activeDriver === 's3' ? s3Config.bucket : SUPABASE_STORAGE_BUCKET,
+  presignedTtlSeconds: s3Config.presignedTtlSeconds,
 };
 
 export const probeSupabaseStorageBucket = async () => {
@@ -133,11 +134,7 @@ const uploadToSupabaseFromBuffer = async ({
   };
 };
 
-const writeLocalFallback = async ({
-  dossierId,
-  targetFilename,
-  buffer,
-}) => {
+const writeLocalFallback = async ({ dossierId, targetFilename, buffer }) => {
   const uploadsRoot = path.resolve(process.cwd(), 'server', 'data', 'uploads');
   const dossierUploadDir = path.join(uploadsRoot, String(dossierId));
   await fs.mkdir(dossierUploadDir, { recursive: true });
@@ -161,12 +158,8 @@ export const uploadDocumentToConfiguredStorage = async ({
   localFilePath,
 }) => {
   let fileBuffer = buffer;
-  if (!fileBuffer && localFilePath) {
-    fileBuffer = await fs.readFile(localFilePath);
-  }
-  if (!fileBuffer) {
-    throw new Error('FILE_BUFFER_REQUIRED');
-  }
+  if (!fileBuffer && localFilePath) fileBuffer = await fs.readFile(localFilePath);
+  if (!fileBuffer) throw new Error('FILE_BUFFER_REQUIRED');
 
   if (objectStorageConfig.driver === 's3') {
     const uploaded = await uploadDocumentToS3WithRetry({
@@ -186,22 +179,18 @@ export const uploadDocumentToConfiguredStorage = async ({
   }
 
   if (objectStorageConfig.driver === 'supabase') {
-    const uploaded = await uploadToSupabaseFromBuffer({
+    return uploadToSupabaseFromBuffer({
       dossierId,
       docKey,
       buffer: fileBuffer,
       originalFilename,
       mimeType,
     });
-    return uploaded;
   }
 
-  const localName = targetFilename || `${Date.now()}_${String(originalFilename || 'document.pdf').replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-  return writeLocalFallback({
-    dossierId,
-    targetFilename: localName,
-    buffer: fileBuffer,
-  });
+  const localName = targetFilename
+    || `${Date.now()}_${String(originalFilename || 'document.pdf').replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+  return writeLocalFallback({ dossierId, targetFilename: localName, buffer: fileBuffer });
 };
 
 export const createSupabaseSignedDownloadUrl = async (storageUrl, expiresInSeconds = 120) => {
@@ -238,7 +227,6 @@ export const createSignedDownloadUrl = async (storageUrl) => {
 export const deleteDocumentFromConfiguredStorage = async (storageUrl) => {
   const source = String(storageUrl || '');
   if (!source) return { deleted: false };
-
   if (source.startsWith('s3://')) {
     if (!isS3Configured()) return { deleted: false, provider: 's3' };
     return deleteDocumentFromS3StorageUrl(source);
@@ -248,17 +236,11 @@ export const deleteDocumentFromConfiguredStorage = async (storageUrl) => {
   if (parsed && hasSupabaseCredentials) {
     const response = await fetch(
       `${SUPABASE_URL}/storage/v1/object/${parsed.bucket}/${encodePath(parsed.objectPath)}`,
-      {
-        method: 'DELETE',
-        headers: supabaseHeaders(),
-      },
+      { method: 'DELETE', headers: supabaseHeaders() },
     );
     return { deleted: response.ok, provider: 'supabase' };
   }
-
-  if (source.startsWith('supabase://')) {
-    return { deleted: false, provider: 'supabase' };
-  }
+  if (source.startsWith('supabase://')) return { deleted: false, provider: 'supabase' };
 
   try {
     await fs.unlink(source);
@@ -271,12 +253,10 @@ export const deleteDocumentFromConfiguredStorage = async (storageUrl) => {
 export const downloadDocumentBufferFromConfiguredStorage = async (storageUrl) => {
   const source = String(storageUrl || '');
   if (!source) throw new Error('STORAGE_URL_MISSING');
-
   if (source.startsWith('s3://')) {
     if (!isS3Configured()) throw new Error('STORAGE_DOWNLOAD_FAILED');
     return downloadObjectBufferFromStorageUrl(source);
   }
-
   if (source.startsWith('supabase://')) {
     const signedUrl = await createSupabaseSignedDownloadUrl(source, 120);
     if (!signedUrl) throw new Error('STORAGE_DOWNLOAD_FAILED');
@@ -284,7 +264,6 @@ export const downloadDocumentBufferFromConfiguredStorage = async (storageUrl) =>
     if (!response.ok) throw new Error('STORAGE_DOWNLOAD_FAILED');
     return Buffer.from(await response.arrayBuffer());
   }
-
   return fs.readFile(source);
 };
 
