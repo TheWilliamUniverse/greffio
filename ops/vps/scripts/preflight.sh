@@ -43,7 +43,8 @@ psql "$SOURCE_DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "select extname || '=' || ex
   | tee /srv/greffio/migration-source-extensions.txt
 
 echo "=== Connexion base cible ==="
-psql "$TARGET_DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "select current_database(), current_user, version();"
+PGSSLMODE=require psql "$TARGET_DATABASE_URL" -v ON_ERROR_STOP=1 -Atc \
+  "select current_database(), current_user, version(), current_setting('ssl');"
 
 echo "=== Audit statique Supabase ==="
 cd "$REPO_ROOT"
@@ -56,7 +57,7 @@ if grep -Eq '^[[:space:]]*(SUPABASE_|VITE_SUPABASE_)' "$TARGET_APP_ENV_FILE"; th
   echo "Le fichier cible contient encore des variables Supabase." >&2
   exit 1
 fi
-for key in DATABASE_URL DOCUMENT_STORAGE_DRIVER S3_ENDPOINT S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY S3_BUCKET; do
+for key in DATABASE_URL DATABASE_SSL DOCUMENT_STORAGE_DRIVER S3_ENDPOINT S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY S3_BUCKET; do
   grep -q "^${key}=" "$TARGET_APP_ENV_FILE" || { echo "Variable absente du fichier cible : $key" >&2; exit 1; }
 done
 
