@@ -8,51 +8,103 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-const REQUIRED_ENV = [
-  'AWS_REGION',
-  'AWS_ACCESS_KEY_ID',
-  'AWS_SECRET_ACCESS_KEY',
-  'AWS_S3_BUCKET',
-];
+const readFirstEnv = (...keys) => {
+  for (const key of keys) {
+    const value = String(process.env[key] || '').trim();
+    if (value) return value;
+  }
+  return '';
+};
 
-export const isS3Configured = () => REQUIRED_ENV.every((key) => Boolean(process.env[key]));
+const parseBoolean = (value, fallback = false) => {
+  if (value == null || value === '') return fallback;
+  return ['1', 'true', 'yes', 'on'].includes(String(value).trim().toLowerCase());
+};
+
+const resolveEndpoint = () => readFirstEnv('S3_ENDPOINT', 'AWS_S3_ENDPOINT').replace(/\/+$/, '');
+const resolveAccessKeyId = () => readFirstEnv('S3_ACCESS_KEY_ID', 'AWS_ACCESS_KEY_ID');
+const resolveSecretAccessKey = () => readFirstEnv('S3_SECRET_ACCESS_KEY', 'AWS_SECRET_ACCESS_KEY');
+const resolveBucket = () => readFirstEnv('S3_BUCKET', 'AWS_S3_BUCKET');
+const resolveAwsRegion = () => readFirstEnv('S3_REGION', 'AWS_REGION', 'AWS_DEFAULT_REGION') || 'eu-west-3';
+const resolveForcePathStyle = () => parseBoolean(
+  readFirstEnv('S3_FORCE_PATH_STYLE', 'AWS_S3_FORCE_PATH_STYLE'),
+  Boolean(resolveEndpoint()),
+);
+const resolveServerSideEncryption = () => {
+  const configured = readFirstEnv('S3_SERVER_SIDE_ENCRYPTION', 'AWS_S3_SERVER_SIDE_ENCRYPTION');
+  if (configured) return configured;
+  return resolveEndpoint() ? '' : 'AES256';
+};
+
+export const getS3StorageConfig = () => ({
+  endpoint: resolveEndpoint() || null,
+  region: resolveAwsRegion(),
+  accessKeyId: resolveAccessKeyId(),
+  secretAccessKey: resolveSecretAccessKey(),
+  bucket: resolveBucket(),
+  forcePathStyle: resolveForcePathStyle(),
+  serverSideEncryption: resolveServerSideEncryption() || null,
+  presignedTtlSeconds: Number(
+    readFirstEnv('S3_PRESIGNED_URL_TTL_SECONDS', 'AWS_S3_PRESIGNED_URL_TTL_SECONDS') || 900,
+  ),
+});
+
+export const isS3Configured = () => {
+  const config = getS3StorageConfig();
+  return Boolean(config.accessKeyId && config.secretAccessKey && config.bucket);
+};
 
 export const assertS3Config = () => {
-  const missing = REQUIRED_ENV.filter((key) => !process.env[key]);
+  const config = getS3StorageConfig();
+  const missing = [];
+  if (!config.accessKeyId) missing.push('S3_ACCESS_KEY_ID/AWS_ACCESS_KEY_ID');
+  if (!config.secretAccessKey) missing.push('S3_SECRET_ACCESS_KEY/AWS_SECRET_ACCESS_KEY');
+  if (!config.bucket) missing.push('S3_BUCKET/AWS_S3_BUCKET');
   if (missing.length > 0) {
-    throw new Error(`Configuration AWS S3 incomplète. Variables manquantes: ${missing.join(', ')}`);
+    throw new Error(`Configuration S3 incomplete. Variables manquantes: ${missing.join(', ')}`);
   }
+  return config;
 };
 
 let s3Client = null;
+let s3ClientFingerprint = null;
 
 const getS3Client = () => {
-  if (!s3Client) {
-    assertS3Config();
+  const config = assertS3Config();
+  const fingerprint = JSON.stringify({
+    endpoint: config.endpoint,
+    region: config.region,
+    accessKeyId: config.accessKeyId,
+    forcePathStyle: config.forcePathStyle,
+  });
+  if (!s3Client || s3ClientFingerprint !== fingerprint) {
     s3Client = new S3Client({
-      region: resolveAwsRegion(),
+      region: config.region,
+      endpoint: config.endpoint || undefined,
+      forcePathStyle: config.forcePathStyle,
       credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        accessKeyId: config.accessKeyId,
+        secretAccessKey: config.secretAccessKey,
       },
     });
+    s3ClientFingerprint = fingerprint;
   }
   return s3Client;
 };
 
-const bucketName = () => process.env.AWS_S3_BUCKET;
-
-const resolveAwsRegion = () => (
-  process.env.AWS_REGION
-  || process.env.AWS_DEFAULT_REGION
-  || 'eu-west-3'
-);
-
-const presignedTtlSeconds = () => Number(process.env.AWS_S3_PRESIGNED_URL_TTL_SECONDS || 900);
-
+const bucketName = () => assertS3Config().bucket;
+const presignedTtlSeconds = () => {
+  const configured = getS3StorageConfig().presignedTtlSeconds;
+  return Number.isFinite(configured) && configured > 0 ? configured : 900;
+};
 const sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
 
-/** Métadonnées S3 : valeurs ASCII uniquement (sinon SignatureDoesNotMatch côté AWS). */
+const buildEncryptionInput = () => {
+  const value = resolveServerSideEncryption();
+  return value ? { ServerSideEncryption: value } : {};
+};
+
+/** Metadonnees S3 : valeurs ASCII uniquement (sinon SignatureDoesNotMatch cote AWS). */
 const sanitizeS3MetadataValue = (value, fallback = '') => {
   const ascii = String(value ?? fallback)
     .normalize('NFD')
@@ -78,8 +130,8 @@ const getExtension = (filename, mimeType) => {
 };
 
 export const buildDocumentKey = ({ dossierId, docKey, originalFilename, mimeType }) => {
-  if (!dossierId) throw new Error('dossierId requis pour créer une clé S3');
-  if (!docKey) throw new Error('docKey requis pour créer une clé S3');
+  if (!dossierId) throw new Error('dossierId requis pour creer une cle S3');
+  if (!docKey) throw new Error('docKey requis pour creer une cle S3');
   const uuid = crypto.randomUUID();
   const extension = getExtension(originalFilename, mimeType);
   const safeDossierId = sanitizeSegment(dossierId);
@@ -117,7 +169,7 @@ export async function uploadDocumentToS3({
     Key: key,
     Body: buffer,
     ContentType: mimeType,
-    ServerSideEncryption: 'AES256',
+    ...buildEncryptionInput(),
     Metadata: {
       dossierId: sanitizeS3MetadataValue(dossierId, 'unknown'),
       docKey: sanitizeS3MetadataValue(docKey, 'document'),
@@ -146,40 +198,42 @@ export async function uploadDocumentToS3WithRetry(params, { attempts = 3 } = {})
       return await uploadDocumentToS3(params);
     } catch (error) {
       lastError = error;
-      if (attempt < attempts) {
-        await sleep(250 * attempt);
-      }
+      if (attempt < attempts) await sleep(250 * attempt);
     }
   }
   throw lastError;
 }
 
 export async function probeS3StorageConnectivity() {
-  assertS3Config();
+  const config = assertS3Config();
   const probeKey = `test/greffio-storage-probe-${Date.now()}.txt`;
-  const bucket = bucketName();
   const payload = Buffer.from(`greffio-probe ${new Date().toISOString()}`);
   await getS3Client().send(new PutObjectCommand({
-    Bucket: bucket,
+    Bucket: config.bucket,
     Key: probeKey,
     Body: payload,
     ContentType: 'text/plain',
+    ...buildEncryptionInput(),
   }));
   await getS3Client().send(new DeleteObjectCommand({
-    Bucket: bucket,
+    Bucket: config.bucket,
     Key: probeKey,
   }));
-  return { ok: true, bucket, region: resolveAwsRegion() };
+  return {
+    ok: true,
+    bucket: config.bucket,
+    region: config.region,
+    endpoint: config.endpoint,
+    forcePathStyle: config.forcePathStyle,
+  };
 }
 
 export async function getSignedDownloadUrl(s3Key, bucket = bucketName()) {
-  if (!s3Key) throw new Error('Clé S3 manquante pour générer une URL signée');
-  const command = new GetObjectCommand({
-    Bucket: bucket,
-    Key: s3Key,
-  });
-  const url = await getSignedUrl(getS3Client(), command, { expiresIn: presignedTtlSeconds() });
-  return { url, expiresIn: presignedTtlSeconds() };
+  if (!s3Key) throw new Error('Cle S3 manquante pour generer une URL signee');
+  const command = new GetObjectCommand({ Bucket: bucket, Key: s3Key });
+  const expiresIn = presignedTtlSeconds();
+  const url = await getSignedUrl(getS3Client(), command, { expiresIn });
+  return { url, expiresIn };
 }
 
 export async function getSignedDownloadUrlFromStorageUrl(storageUrl) {
@@ -189,12 +243,8 @@ export async function getSignedDownloadUrlFromStorageUrl(storageUrl) {
 }
 
 export async function deleteDocumentFromS3(s3Key, bucket = bucketName()) {
-  if (!s3Key) throw new Error('Clé S3 manquante pour suppression');
-  const command = new DeleteObjectCommand({
-    Bucket: bucket,
-    Key: s3Key,
-  });
-  await getS3Client().send(command);
+  if (!s3Key) throw new Error('Cle S3 manquante pour suppression');
+  await getS3Client().send(new DeleteObjectCommand({ Bucket: bucket, Key: s3Key }));
   return true;
 }
 
@@ -209,9 +259,7 @@ export async function downloadObjectBufferFromStorageUrl(storageUrl) {
     return Buffer.from(await response.Body.transformToByteArray());
   }
   const chunks = [];
-  for await (const chunk of response.Body) {
-    chunks.push(Buffer.from(chunk));
-  }
+  for await (const chunk of response.Body) chunks.push(Buffer.from(chunk));
   return Buffer.concat(chunks);
 }
 
