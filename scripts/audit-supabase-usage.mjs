@@ -42,6 +42,7 @@ const isHistoricalMigration = (relativePath) => (
 const isMigrationTool = (relativePath) => (
   relativePath === 'scripts/audit-supabase-usage.mjs'
   || relativePath === 'server/scripts/migrate-supabase-storage-to-s3.js'
+  || relativePath === 'server/scripts/audit-supabase-storage-references.js'
   || relativePath === 'server/scripts/migrate-local-documents-to-supabase.js'
   || relativePath.startsWith('ops/vps/')
   || relativePath === '.github/workflows/supabase-vps-migration-ci.yml'
