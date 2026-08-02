@@ -45,7 +45,12 @@ assets/play-store/video/page@*.webm
 artifacts/playstore/*.aab
 artifacts/playstore/*.apk
 artifacts/playstore/archive/
-# Archivage versionné dans releases/android/ (AAB Play Store)
+artifacts/migration/
+# Archivage versionne dans releases/android/ (AAB Play Store)
 !releases/android/
 !releases/android/**
 _statuts_templates_import/
+
+# Secrets locaux de migration VPS
+ops/vps/.env.infrastructure
+ops/vps/.env.migration
