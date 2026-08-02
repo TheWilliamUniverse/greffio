@@ -5,6 +5,7 @@ import process from 'node:process';
 
 const ROOT = path.resolve(process.cwd());
 const STRICT = process.argv.includes('--strict');
+const REQUIRE_CLEAN = process.argv.includes('--require-clean');
 const JSON_ONLY = process.argv.includes('--json');
 
 const EXCLUDED_DIRECTORIES = new Set([
@@ -50,12 +51,15 @@ const isMigrationTool = (relativePath) => (
 
 const isTransitionRuntime = (relativePath) => [
   'server/services/objectStorage.js',
+  'server/services/statutesPdfService.js',
+  'server/services/storageMigrationService.js',
   'server/index.js',
   'server/features/documentCompletion/documentCompletion.service.js',
 ].includes(relativePath);
 
 const isConfiguration = (relativePath) => (
   relativePath === '.gitignore'
+  || relativePath === 'eslint.config.js'
   || relativePath === '.env.example'
   || relativePath.endsWith('.env.example')
   || relativePath.endsWith('_TEMPLATE.env')
@@ -146,12 +150,14 @@ const scan = async () => {
     generatedAt: new Date().toISOString(),
     root: '.',
     strict: STRICT,
+    requireClean: REQUIRE_CLEAN,
     summary: {
       filesScanned: files.length,
       findings: findings.length,
-      runtimeBlockers: activeRuntimeDependencies + transitionalRuntime,
+      runtimeBlockers: activeRuntimeDependencies,
       activeRuntimeDependencies,
       transitionalRuntime,
+      remainingRuntimeReferences: activeRuntimeDependencies + transitionalRuntime,
       configuration: counts.configuration || 0,
       documentation: counts.documentation || 0,
       historicalMigrations: counts['historical-migration'] || 0,
@@ -170,9 +176,9 @@ const toMarkdown = (result) => {
     '',
     `- Fichiers analyses : ${result.summary.filesScanned}`,
     `- Occurrences : ${result.summary.findings}`,
-    `- Dependances runtime actives : ${result.summary.activeRuntimeDependencies}`,
+    `- Dependances runtime actives bloquantes : ${result.summary.activeRuntimeDependencies}`,
     `- Compatibilite runtime transitoire : ${result.summary.transitionalRuntime}`,
-    `- Total a supprimer avant cloture : ${result.summary.runtimeBlockers}`,
+    `- References runtime a supprimer avant cloture : ${result.summary.remainingRuntimeReferences}`,
     `- Configuration : ${result.summary.configuration}`,
     `- Documentation : ${result.summary.documentation}`,
     `- Migrations historiques : ${result.summary.historicalMigrations}`,
@@ -199,7 +205,8 @@ try {
   const result = await scan();
   if (JSON_ONLY) process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   else process.stdout.write(`${toMarkdown(result)}\n`);
-  if (STRICT && result.summary.runtimeBlockers > 0) process.exitCode = 2;
+  if (STRICT && result.summary.activeRuntimeDependencies > 0) process.exitCode = 2;
+  if (REQUIRE_CLEAN && result.summary.remainingRuntimeReferences > 0) process.exitCode = 3;
 } catch (error) {
   console.error('SUPABASE_AUDIT_FAILED', error?.message || error);
   process.exitCode = 1;
