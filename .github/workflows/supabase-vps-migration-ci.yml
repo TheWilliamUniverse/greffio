@@ -7,6 +7,7 @@ on:
       - 'server/services/objectStorage.js'
       - 'server/services/tests/s3StorageConfig.test.js'
       - 'server/scripts/migrate-supabase-storage-to-s3.js'
+      - 'server/scripts/audit-supabase-storage-references.js'
       - 'scripts/audit-supabase-usage.mjs'
       - 'ops/vps/**'
       - 'docs/migration/**'
@@ -35,6 +36,7 @@ jobs:
         run: |
           node --check scripts/audit-supabase-usage.mjs
           node --check server/scripts/migrate-supabase-storage-to-s3.js
+          node --check server/scripts/audit-supabase-storage-references.js
           node --check ops/vps/scripts/backup-object-storage.mjs
           node --check server/services/s3StorageService.js
           node --check server/services/objectStorage.js
@@ -132,6 +134,16 @@ jobs:
           S3_BUCKET="$GARAGE_DEFAULT_BUCKET" \
           S3_FORCE_PATH_STYLE=true \
           node --input-type=module -e "const m=await import('./server/services/s3StorageService.js'); console.log(await m.probeS3StorageConnectivity());"
+
+      - name: Verify Storage reference audit on an empty schema
+        shell: bash
+        run: |
+          set -a
+          source ops/vps/.env.infrastructure
+          set +a
+          DATABASE_URL="postgresql://$GREFFIO_DB_USER:$GREFFIO_DB_PASSWORD@127.0.0.1:5433/$GREFFIO_DB_NAME?sslmode=require" \
+          DATABASE_SSL=require \
+          node server/scripts/audit-supabase-storage-references.js --strict --require-zero
 
       - name: Show container logs on failure
         if: failure()
