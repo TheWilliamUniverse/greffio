@@ -51,4 +51,11 @@ export default [
       'react/react-in-jsx-scope': 'off',
     },
   },
+  {
+    files: ['server/scripts/migrate-supabase-storage-to-s3.js'],
+    rules: {
+      // La regex neutralise volontairement les octets de controle dans les cles d'objet legacy.
+      'no-control-regex': 'off',
+    },
+  },
 ];
