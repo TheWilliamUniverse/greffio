@@ -80,7 +80,9 @@ export MIGRATION_SUPABASE_SERVICE_ROLE_KEY="$SOURCE_STORAGE_KEY"
 
 cd "$REPO_ROOT"
 npm run db:migrate
+node server/scripts/audit-supabase-storage-references.js --strict
 node server/scripts/migrate-supabase-storage-to-s3.js --apply --limit=100000
+node server/scripts/audit-supabase-storage-references.js --strict --require-zero
 
 cp "$TARGET_APP_ENV_FILE" "$APP_ENV"
 chmod 600 "$APP_ENV"
