@@ -22,6 +22,7 @@ set -a
 source "$MIGRATION_ENV"
 set +a
 : "${TARGET_DATABASE_URL:?TARGET_DATABASE_URL_REQUIRED}"
+export PGSSLMODE=require
 
 SAFETY_DIR="/srv/greffio/migration/target-before-restore-$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir -p "$SAFETY_DIR"
@@ -38,5 +39,7 @@ pg_restore \
   --single-transaction \
   "$DUMP_FILE"
 
-psql "$TARGET_DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "select count(*) from information_schema.tables where table_schema='public';"
+psql "$TARGET_DATABASE_URL" -v ON_ERROR_STOP=1 -Atc \
+  "select count(*) from information_schema.tables where table_schema='public';"
+unset PGSSLMODE
 echo "Base cible restauree. Sauvegarde precedente : $SAFETY_DIR"
