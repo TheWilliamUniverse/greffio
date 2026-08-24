@@ -3,58 +3,31 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils.js';
 
-const WORDMARK_FONT = "'Plus Jakarta Sans', sans-serif";
+const WORDMARK_SRC = '/icons/clareffio-wordmark.svg';
+const MARK_SRC = '/icons/clareffio-arc.svg';
 
 export const GreffioWordmark = ({ className = '', size }) => (
-  <span
-    className={cn(
-      'inline font-extrabold leading-none text-[hsl(var(--greffio-blue-900))]',
-      className,
-    )}
-    style={{
-      fontFamily: WORDMARK_FONT,
-      ...(size ? { fontSize: size } : null),
-    }}
+  <img
+    src={WORDMARK_SRC}
+    alt="Clareffio"
+    className={cn('block h-auto w-auto max-w-full', className)}
+    style={size ? { height: size, width: 'auto' } : undefined}
     translate="no"
     lang="fr"
-  >
-    Greffio
-  </span>
+  />
 );
 
 const resolveVariant = (variant) => {
   if (variant === 'icon-only' || variant === 'mark') return 'mark';
-  if (variant === 'tile' || variant === 'inverse') return 'tile';
-  if (variant === 'wordmark-on-blue' || variant === 'on-blue') return 'wordmark-on-blue';
-  if (variant === 'wordmark' || variant === 'full') return 'wordmark';
+  if (variant === 'tile' || variant === 'inverse') return 'inverse';
+  if (variant === 'wordmark-on-blue' || variant === 'on-blue') return 'inverse';
   return 'wordmark';
 };
 
 export const GreffioLogo = ({ variant = 'full', className = '', to, linkLabel }) => {
   const resolved = resolveVariant(variant);
   const isIconOnly = resolved === 'mark';
-  const isTile = resolved === 'tile';
-  const isOnBlue = resolved === 'wordmark-on-blue';
-
-  const wordmark = (
-    <span
-      className={cn(
-        'logo-sheen inline-flex items-center font-extrabold leading-none',
-        isTile
-          ? 'rounded-md bg-[hsl(var(--greffio-blue))] px-5 py-3 text-3xl text-white shadow-elevation-md md:text-4xl'
-          : isOnBlue
-            ? 'text-2xl text-white md:text-3xl'
-            : 'text-3xl text-[hsl(var(--greffio-blue))] md:text-4xl',
-        !isOnBlue && 'rounded-md',
-        className,
-      )}
-      style={{ fontFamily: WORDMARK_FONT }}
-      translate="no"
-      lang="fr"
-    >
-      Greffio
-    </span>
-  );
+  const isInverse = resolved === 'inverse';
 
   const logo = (
     <motion.span
@@ -69,14 +42,22 @@ export const GreffioLogo = ({ variant = 'full', className = '', to, linkLabel })
     >
       {isIconOnly ? (
         <img
-          src="/icons/greffio-icon.svg"
+          src={MARK_SRC}
           alt=""
-          className={cn('h-11 w-11 rounded-md shadow-elevation-sm', !to && className)}
+          className={cn('h-11 w-11 object-contain', !to && className)}
           width={44}
           height={44}
         />
       ) : (
-        wordmark
+        <img
+          src={WORDMARK_SRC}
+          alt={to ? '' : 'Clareffio'}
+          className={cn(
+            'block h-auto w-[8.75rem] max-w-full object-contain md:w-[10.5rem]',
+            isInverse && 'brightness-0 invert',
+            className,
+          )}
+        />
       )}
     </motion.span>
   );
@@ -84,15 +65,15 @@ export const GreffioLogo = ({ variant = 'full', className = '', to, linkLabel })
   if (to) {
     const resolvedLinkLabel = linkLabel || (
       to === '/dashboard'
-        ? 'Greffio – Retour au tableau de bord'
-        : 'Greffio – Retour à l’accueil'
+        ? 'Clareffio – Retour au tableau de bord'
+        : 'Clareffio – Retour à l’accueil'
     );
     return (
       <Link
         to={to}
         className={cn(
           'inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
-          isOnBlue && 'focus-visible:ring-offset-[hsl(var(--greffio-blue))]',
+          isInverse && 'focus-visible:ring-offset-[hsl(var(--greffio-blue))]',
         )}
         aria-label={resolvedLinkLabel}
         translate="no"
