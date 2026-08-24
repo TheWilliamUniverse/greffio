@@ -1,17 +1,10 @@
-import creationIcon from '@/assets/formalities/creation-societe.png';
-import modificationIcon from '@/assets/formalities/modifier-societe.png';
-import etablissementAddIcon from '@/assets/formalities/ajouter-etablissement.png';
-import etablissementCloseIcon from '@/assets/formalities/fermer-etablissement.png';
-import siegeTransferIcon from '@/assets/formalities/transferer-siege.png';
-import dirigeantIcon from '@/assets/formalities/changer-dirigeant.png';
-
 const ICONS = {
-  creation: creationIcon,
-  modification: modificationIcon,
-  etablissementAdd: etablissementAddIcon,
-  etablissementClose: etablissementCloseIcon,
-  siegeTransfer: siegeTransferIcon,
-  dirigeant: dirigeantIcon,
+  creation: '/images/formalities/creation-societe.png',
+  modification: '/images/formalities/modifier-societe.png',
+  etablissementAdd: '/images/formalities/ajouter-etablissement.png',
+  etablissementClose: '/images/formalities/fermer-etablissement.png',
+  siegeTransfer: '/images/formalities/transferer-siege.png',
+  dirigeant: '/images/formalities/changer-dirigeant.png',
 };
 
 const defaultsByCategory = {
@@ -243,7 +236,7 @@ export const getDemarcheVisual = (item) => {
   };
 };
 
-/** Icônes Greffio pour les 4 familles de formalité (questionnaire mobile / desktop). */
+/** Icônes Clareffio pour les 4 familles de formalité (questionnaire mobile / desktop). */
 export const getCategoryVisual = (categoryId) => (
   defaultsByCategory[categoryId] || defaultsByCategory.autres
 );
