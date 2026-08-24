@@ -265,6 +265,8 @@ const port = Number(process.env.PORT || 8787);
 const allowedOrigins = [
   'https://greffio.willentreprises.com',
   'https://www.greffio.willentreprises.com',
+  'https://clareffio.willentreprises.com',
+  'https://www.clareffio.willentreprises.com',
   // Capacitor Android/iOS bundled shell (mobile:build) — sans cela, POST /api/auth/login → 500 CORS
   'https://localhost',
   'http://localhost',

@@ -21,8 +21,8 @@ const config: ExpoConfig = {
     bundleIdentifier: 'com.greffio.app',
     buildNumber: IOS_BUILD_NUMBER,
     associatedDomains: [
-      'applinks:greffio.willentreprises.com',
-      'applinks:www.greffio.willentreprises.com',
+      'applinks:clareffio.willentreprises.com',
+      'applinks:www.clareffio.willentreprises.com',
     ],
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
@@ -36,7 +36,7 @@ const config: ExpoConfig = {
     },
   },
   extra: {
-    homeUrl: 'https://greffio.willentreprises.com/?nativeApp=1',
+    homeUrl: 'https://clareffio.willentreprises.com/?nativeApp=1',
     authCallbackScheme: 'com.greffio.app',
     allowedHostSuffixes: [
       'willentreprises.com',

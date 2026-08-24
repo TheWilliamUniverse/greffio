@@ -15,7 +15,7 @@ type AppExtra = {
 };
 
 const extra = (Constants.expoConfig?.extra || {}) as AppExtra;
-const HOME_URL = extra.homeUrl || 'https://greffio.willentreprises.com/?nativeApp=1';
+const HOME_URL = extra.homeUrl || 'https://clareffio.willentreprises.com/?nativeApp=1';
 const AUTH_SCHEME = extra.authCallbackScheme || 'com.greffio.app';
 const ALLOWED_SUFFIXES = extra.allowedHostSuffixes || ['willentreprises.com', 'mollie.com', 'mollie.nl'];
 

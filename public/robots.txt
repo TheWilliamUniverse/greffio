@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://greffio.willentreprises.com/sitemap.xml
+Sitemap: https://clareffio.willentreprises.com/sitemap.xml
