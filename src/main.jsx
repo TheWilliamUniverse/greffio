@@ -9,11 +9,13 @@ import { registerGreffioServiceWorker } from '@/utils/serviceWorkerRegistration.
 import { queryClient } from '@/lib/queryClient.js';
 import { initWebVitals } from '@/utils/observability/webVitals.js';
 import { initClientErrorReporting } from '@/utils/observability/errorReporting.js';
+import { installClareffioBranding } from '@/utils/clareffioBranding.js';
 
 initializeClientDataCache(null);
 clearChunkReloadGuard();
 initClientErrorReporting();
 initWebVitals();
+installClareffioBranding();
 
 window.addEventListener('error', (event) => {
   if (isChunkLoadError(event?.message || '')) {
