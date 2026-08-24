@@ -1,0 +1,103 @@
+name: Clareffio domain cutover
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message == 'Prepare Clareffio subdomain cutover'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Patch Clareffio public domain without breaking the existing API
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              p = Path(path)
+              s = p.read_text()
+              if old not in s:
+                  raise SystemExit(f'Missing expected text in {path}: {old!r}')
+              p.write_text(s.replace(old, new))
+
+          # Public website / SEO. The backend remains on api.greffio.willentreprises.com for the cutover.
+          for path in ['index.html', 'src/components/seo/SeoHead.jsx', 'public/sitemap.xml', 'public/robots.txt']:
+              replace(path, 'https://greffio.willentreprises.com', 'https://clareffio.willentreprises.com')
+
+          p = Path('src/config/runtime.js')
+          s = p.read_text()
+          s = s.replace(
+              "if (hostname === 'greffio.willentreprises.com' || hostname === 'www.greffio.willentreprises.com') {",
+              "if (['greffio.willentreprises.com', 'www.greffio.willentreprises.com', 'clareffio.willentreprises.com', 'www.clareffio.willentreprises.com'].includes(hostname)) {",
+          )
+          s = s.replace("appName: import.meta.env.VITE_APP_NAME || 'Greffio'", "appName: import.meta.env.VITE_APP_NAME || 'Clareffio'")
+          s = s.replace("appUrl: import.meta.env.VITE_APP_URL || 'https://greffio.willentreprises.com'", "appUrl: import.meta.env.VITE_APP_URL || 'https://clareffio.willentreprises.com'")
+          s = s.replace("bookingUrl: import.meta.env.VITE_BOOKING_URL || 'https://greffio.willentreprises.com/contact'", "bookingUrl: import.meta.env.VITE_BOOKING_URL || 'https://clareffio.willentreprises.com/contact'")
+          p.write_text(s)
+
+          p = Path('server/index.js')
+          s = p.read_text()
+          needle = "  'https://www.greffio.willentreprises.com',\n"
+          addition = needle + "  'https://clareffio.willentreprises.com',\n  'https://www.clareffio.willentreprises.com',\n"
+          if "'https://clareffio.willentreprises.com'" not in s:
+              if needle not in s:
+                  raise SystemExit('CORS origin insertion point not found')
+              s = s.replace(needle, addition, 1)
+          p.write_text(s)
+
+          # Capacitor keeps com.greffio.app for store/update continuity, but displays Clareffio and opens the new host.
+          for path in ['capacitor.config.json', 'capacitor.config.remote.json']:
+              p = Path(path)
+              s = p.read_text().replace('"appName": "Greffio"', '"appName": "Clareffio"')
+              s = s.replace('"url": "https://greffio.willentreprises.com/?nativeApp=1"', '"url": "https://clareffio.willentreprises.com/?nativeApp=1"')
+              s = s.replace('"greffio.willentreprises.com",', '"clareffio.willentreprises.com",\n      "greffio.willentreprises.com",', 1)
+              p.write_text(s)
+
+          p = Path('capacitor.config.bundled.json')
+          p.write_text(p.read_text().replace('"appName": "Greffio"', '"appName": "Clareffio"'))
+
+          p = Path('capacitor.config.dev.json')
+          s = p.read_text().replace('"appName": "Greffio"', '"appName": "Clareffio"')
+          s = s.replace('"url": "https://greffio.willentreprises.com"', '"url": "https://clareffio.willentreprises.com"')
+          p.write_text(s)
+
+          replace('mobile-expo/App.tsx', "const HOME_URL = extra.homeUrl || 'https://greffio.willentreprises.com/?nativeApp=1';", "const HOME_URL = extra.homeUrl || 'https://clareffio.willentreprises.com/?nativeApp=1';")
+
+          p = Path('mobile-expo/app.config.ts')
+          s = p.read_text()
+          s = s.replace("'applinks:greffio.willentreprises.com'", "'applinks:clareffio.willentreprises.com'")
+          s = s.replace("'applinks:www.greffio.willentreprises.com'", "'applinks:www.clareffio.willentreprises.com'")
+          s = s.replace("homeUrl: 'https://greffio.willentreprises.com/?nativeApp=1'", "homeUrl: 'https://clareffio.willentreprises.com/?nativeApp=1'")
+          p.write_text(s)
+
+          # Example production values: switch the public frontend only. API/S3 identifiers intentionally stay unchanged.
+          p = Path('.env.example')
+          s = p.read_text()
+          for old, new in [
+              ('HOSTINGER_DEPLOY_DOMAIN=greffio.willentreprises.com', 'HOSTINGER_DEPLOY_DOMAIN=clareffio.willentreprises.com'),
+              ('HOSTINGER_VERIFY_URL=https://greffio.willentreprises.com/health', 'HOSTINGER_VERIFY_URL=https://clareffio.willentreprises.com/health'),
+              ('APP_URL=https://greffio.willentreprises.com', 'APP_URL=https://clareffio.willentreprises.com'),
+              ('GREFFIO_APP_URL=https://greffio.willentreprises.com', 'GREFFIO_APP_URL=https://clareffio.willentreprises.com'),
+              ('MOLLIE_CALLBACK_URL=https://greffio.willentreprises.com/api/mollie/callback', 'MOLLIE_CALLBACK_URL=https://clareffio.willentreprises.com/api/mollie/callback'),
+          ]:
+              s = s.replace(old, new)
+          p.write_text(s)
+          PY
+      - name: Remove one-time workflow and commit
+        run: |
+          git rm .github/workflows/clareffio-domain-cutover.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html src/components/seo/SeoHead.jsx public/sitemap.xml public/robots.txt src/config/runtime.js server/index.js capacitor.config.json capacitor.config.remote.json capacitor.config.bundled.json capacitor.config.dev.json mobile-expo/App.tsx mobile-expo/app.config.ts .env.example
+          git commit -m 'Prepare Clareffio for clareffio.willentreprises.com'
+          git push origin HEAD:main
