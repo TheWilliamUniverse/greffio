@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Greffio</string>
-    <string name="title_activity_main">Greffio</string>
+    <string name="app_name">Clareffio</string>
+    <string name="title_activity_main">Clareffio</string>
     <string name="package_name">com.greffio.app</string>
     <string name="custom_url_scheme">com.greffio.app</string>
     <string name="shortcut_new_formality">Nouvelle formalité</string>
