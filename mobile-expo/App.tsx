@@ -41,7 +41,7 @@ export default function App() {
   const [booting, setBooting] = useState(true);
 
   const userAgent = useMemo(
-    () => `GreffioExpo/${Constants.expoConfig?.version || '1.0.0'} (${Platform.OS}; Expo)`,
+    () => `ClareffioExpo/${Constants.expoConfig?.version || '1.0.0'} (${Platform.OS}; Expo)`,
     [],
   );
 
@@ -77,7 +77,7 @@ export default function App() {
           pullToRefreshEnabled
           onLoadEnd={onLoadEnd}
           onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
-          applicationNameForUserAgent="GreffioNative"
+          applicationNameForUserAgent="ClareffioNative"
         />
         {booting ? (
           <View style={styles.loader} pointerEvents="none">
