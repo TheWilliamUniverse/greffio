@@ -1,10 +1,10 @@
-/** Colonnes du footer public Greffio – structure type Namirial. */
+/** Colonnes du footer public Clareffio – structure type Namirial. */
 export const GREFFIO_FOOTER_COLUMNS = [
   {
     id: 'utilitaire',
     title: 'Utilitaire',
     links: [
-      { to: '/a-propos', label: 'À propos de Greffio' },
+      { to: '/a-propos', label: 'À propos de Clareffio' },
       { to: '/contact', label: 'Contact & support' },
       { to: '/tarifs', label: 'Tarifs & offres' },
       { to: '/app', label: 'Application mobile' },
@@ -50,7 +50,7 @@ export const GREFFIO_FOOTER_COLUMNS = [
     title: 'Documentation',
     links: [
       { to: '/mentions-legales', label: 'Mentions légales & CGV' },
-      { to: '/procuration', label: 'Procuration Greffio' },
+      { to: '/procuration', label: 'Procuration Clareffio' },
       { to: '/paiement', label: 'Paiement sécurisé' },
       { to: '/credentials-unlock', label: 'Déverrouillage identifiants' },
     ],
