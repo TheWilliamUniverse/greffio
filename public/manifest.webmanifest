@@ -1,24 +1,24 @@
 {
-  "name": "Greffio - formalites d'entreprise",
-  "short_name": "Greffio",
-  "description": "SaaS de formalites greffe, statuts, documents et suivi client.",
+  "name": "Clareffio - formalites d'entreprise",
+  "short_name": "Clareffio",
+  "description": "SaaS de formalites, statuts, documents et suivi client.",
   "lang": "fr-FR",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "browser"],
-  "background_color": "#FFFBF1",
-  "theme_color": "#26487A",
+  "background_color": "#F6F8FC",
+  "theme_color": "#1E4D8C",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/icons/greffio-icon.svg",
+      "src": "/icons/clareffio-arc.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/icons/greffio-maskable.svg",
+      "src": "/icons/clareffio-arc.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "maskable"
@@ -29,13 +29,13 @@
       "name": "Nouvelle formalite",
       "short_name": "Formalite",
       "url": "/simulateur?type=statuts",
-      "description": "Lancer une nouvelle formalite Greffio"
+      "description": "Lancer une nouvelle formalite Clareffio"
     },
     {
       "name": "Espace client",
       "short_name": "Dashboard",
       "url": "/dashboard",
-      "description": "Ouvrir le tableau de bord Greffio"
+      "description": "Ouvrir le tableau de bord Clareffio"
     }
   ]
 }
