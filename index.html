@@ -2,39 +2,50 @@
 <html lang="fr">
 	<head>
 		<meta charset="UTF-8" />
-		<link rel="icon" type="image/svg+xml" href="/icons/greffio-icon.svg" />
+		<link rel="icon" type="image/svg+xml" href="/icons/clareffio-arc.svg" />
 		<link rel="manifest" href="/manifest.webmanifest" />
-		<link rel="apple-touch-icon" href="/icons/greffio-icon.svg" />
+		<link rel="apple-touch-icon" href="/icons/clareffio-arc.svg" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 		<meta name="theme-color" content="#1e4d8c" />
 		<meta name="apple-mobile-web-app-capable" content="yes" />
-		<meta name="apple-mobile-web-app-title" content="Greffio" translate="no" />
+		<meta name="apple-mobile-web-app-title" content="Clareffio" translate="no" />
 		<meta name="apple-mobile-web-app-status-bar-style" content="default" />
-		<meta name="description" content="Créez, modifiez et suivez vos formalités d'entreprise en ligne avec Greffio : SAS, entreprise individuelle, statuts, dépôt du dossier et accompagnement administratif." />
+		<meta name="description" content="Créez, modifiez et suivez vos formalités d'entreprise en ligne avec Clareffio : SAS, entreprise individuelle, statuts, dépôt du dossier et accompagnement administratif." />
 		<meta name="robots" content="index, follow" />
 		<link rel="canonical" href="https://greffio.willentreprises.com/" />
 		<meta property="og:type" content="website" />
-		<meta property="og:site_name" content="Greffio" translate="no" />
-		<meta property="og:title" content="Greffio – Formalités d'entreprise en ligne" />
-		<meta property="og:description" content="Créez, modifiez et suivez vos formalités d'entreprise en ligne avec Greffio : SAS, entreprise individuelle, statuts, dépôt du dossier et accompagnement administratif." />
+		<meta property="og:site_name" content="Clareffio" translate="no" />
+		<meta property="og:title" content="Clareffio – Formalités d'entreprise en ligne" />
+		<meta property="og:description" content="Créez, modifiez et suivez vos formalités d'entreprise en ligne avec Clareffio : SAS, entreprise individuelle, statuts, dépôt du dossier et accompagnement administratif." />
 		<meta property="og:url" content="https://greffio.willentreprises.com/" />
-		<meta property="og:image" content="https://greffio.willentreprises.com/icons/greffio-icon.svg" />
+		<meta property="og:image" content="https://greffio.willentreprises.com/icons/clareffio-arc.svg" />
 		<meta property="og:locale" content="fr_FR" />
 		<meta name="twitter:card" content="summary_large_image" />
-		<meta name="twitter:title" content="Greffio – Formalités d'entreprise en ligne" />
-		<meta name="twitter:description" content="Créez, modifiez et suivez vos formalités d'entreprise en ligne avec Greffio : SAS, entreprise individuelle, statuts, dépôt du dossier et accompagnement administratif." />
-		<title>Greffio – Formalités d'entreprise en ligne</title>
+		<meta name="twitter:title" content="Clareffio – Formalités d'entreprise en ligne" />
+		<meta name="twitter:description" content="Créez, modifiez et suivez vos formalités d'entreprise en ligne avec Clareffio : SAS, entreprise individuelle, statuts, dépôt du dossier et accompagnement administratif." />
+		<title>Clareffio – Formalités d'entreprise en ligne</title>
 		<script src="https://js.mollie.com/v1/mollie.js"></script>
 	</head>
 	<body>
 		<div id="root">
-			<div id="greffio-boot" style="display:flex;min-height:100dvh;align-items:center;justify-content:center;background:#f6f8fc;font-family:Inter,system-ui,sans-serif;color:#475569;">
+			<div id="clareffio-boot" style="display:flex;min-height:100dvh;align-items:center;justify-content:center;background:#f6f8fc;font-family:Inter,system-ui,sans-serif;color:#475569;">
 				<div style="text-align:center;padding:1.5rem;">
-					<div style="width:2.5rem;height:2.5rem;border-radius:9999px;border:3px solid rgba(30,77,140,.15);border-top-color:#1e4d8c;margin:0 auto;animation:greffio-spin .8s linear infinite;"></div>
-					<p style="margin-top:1rem;font-size:.875rem;font-weight:600;">Chargement de <span class="notranslate" translate="no" lang="fr">Greffio</span>…</p>
+					<div class="clareffio-loader" aria-hidden="true">
+						<img class="clareffio-loader-base" src="/icons/clareffio-arc.svg" alt="" />
+						<img class="clareffio-loader-arrow" src="/icons/clareffio-arc.svg" alt="" />
+					</div>
+					<p style="margin-top:.75rem;font-size:.875rem;font-weight:600;">Chargement de <span class="notranslate" translate="no" lang="fr">Clareffio</span>…</p>
 				</div>
 			</div>
-			<style>@keyframes greffio-spin{to{transform:rotate(360deg)}}</style>
+			<style>
+				.clareffio-loader{position:relative;width:4rem;height:4rem;margin:0 auto;overflow:visible}
+				.clareffio-loader img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+				.clareffio-loader-base{animation:clareffio-tension 1.55s ease-in-out infinite}
+				.clareffio-loader-arrow{clip-path:polygon(14% 88%,24% 66%,70% 17%,91% 5%,80% 31%,37% 74%);animation:clareffio-release 1.55s ease-out infinite}
+				@keyframes clareffio-tension{0%,100%{transform:scale(1)}34%{transform:scale(.97)}48%{transform:scale(1)}}
+				@keyframes clareffio-release{0%,34%{transform:translate(0,0);opacity:1}48%{transform:translate(0,0);opacity:1}66%,100%{transform:translate(18px,-18px);opacity:0}}
+				@media (prefers-reduced-motion:reduce){.clareffio-loader-base,.clareffio-loader-arrow{animation:none}.clareffio-loader-arrow{display:none}}
+			</style>
 		</div>
 		<script type="module" src="/src/main.jsx"></script>
 	</body>
