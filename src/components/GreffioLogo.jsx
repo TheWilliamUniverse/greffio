@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils.js';
 
 const WORDMARK_SRC = '/icons/clareffio-wordmark.svg';
-const MARK_SRC = '/icons/clareffio-arc.svg';
 
 export const GreffioWordmark = ({ className = '', size }) => (
   <img
@@ -18,7 +17,6 @@ export const GreffioWordmark = ({ className = '', size }) => (
 );
 
 const resolveVariant = (variant) => {
-  if (variant === 'icon-only' || variant === 'mark') return 'mark';
   if (variant === 'tile' || variant === 'inverse') return 'inverse';
   if (variant === 'wordmark-on-blue' || variant === 'on-blue') return 'inverse';
   return 'wordmark';
@@ -26,7 +24,6 @@ const resolveVariant = (variant) => {
 
 export const GreffioLogo = ({ variant = 'full', className = '', to, linkLabel }) => {
   const resolved = resolveVariant(variant);
-  const isIconOnly = resolved === 'mark';
   const isInverse = resolved === 'inverse';
 
   const logo = (
@@ -40,25 +37,15 @@ export const GreffioLogo = ({ variant = 'full', className = '', to, linkLabel })
       lang="fr"
       aria-hidden={Boolean(to)}
     >
-      {isIconOnly ? (
-        <img
-          src={MARK_SRC}
-          alt=""
-          className={cn('h-11 w-11 object-contain', !to && className)}
-          width={44}
-          height={44}
-        />
-      ) : (
-        <img
-          src={WORDMARK_SRC}
-          alt={to ? '' : 'Clareffio'}
-          className={cn(
-            'block h-auto w-[8.75rem] max-w-full object-contain md:w-[10.5rem]',
-            isInverse && 'brightness-0 invert',
-            className,
-          )}
-        />
-      )}
+      <img
+        src={WORDMARK_SRC}
+        alt={to ? '' : 'Clareffio'}
+        className={cn(
+          'block h-auto w-[8.75rem] max-w-full object-contain md:w-[10.5rem]',
+          isInverse && 'brightness-0 invert',
+          className,
+        )}
+      />
     </motion.span>
   );
 
