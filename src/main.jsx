@@ -36,6 +36,7 @@ if (rootElement) {
       <App />
     </QueryClientProvider>,
   );
+  rootElement.querySelector('#clareffio-boot')?.remove();
   rootElement.querySelector('#greffio-boot')?.remove();
 }
 
