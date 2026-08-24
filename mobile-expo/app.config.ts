@@ -4,7 +4,7 @@ const APP_VERSION = '1.2.20';
 const IOS_BUILD_NUMBER = '261510020';
 
 const config: ExpoConfig = {
-  name: 'Greffio',
+  name: 'Clareffio',
   slug: 'greffio',
   version: APP_VERSION,
   orientation: 'portrait',
@@ -32,7 +32,7 @@ const config: ExpoConfig = {
     package: 'com.greffio.app',
     adaptiveIcon: {
       foregroundImage: './assets/icon.png',
-      backgroundColor: '#1e4d8c',
+      backgroundColor: '#f6f8fc',
     },
   },
   extra: {
