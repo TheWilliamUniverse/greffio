@@ -26,7 +26,7 @@ const upsertLink = (rel, href) => {
 
 const upsertJsonLd = (id, payload) => {
   if (typeof document === 'undefined' || !payload) return;
-  const scriptId = `greffio-jsonld-${id}`;
+  const scriptId = `clareffio-jsonld-${id}`;
   let element = document.getElementById(scriptId);
   if (!element) {
     element = document.createElement('script');
@@ -41,7 +41,7 @@ export const SeoHead = ({
   title,
   description,
   path = '/',
-  ogImage = `${runtimeConfig.appUrl}/icons/greffio-icon.svg`,
+  ogImage = `${runtimeConfig.appUrl}/icons/clareffio-arc.svg`,
   jsonLd = null,
   jsonLdId = 'page',
   noIndex = false,
@@ -53,7 +53,7 @@ export const SeoHead = ({
     upsertMeta('meta[name="robots"]', { name: 'robots', content: noIndex ? 'noindex, nofollow' : 'index, follow' });
     upsertLink('canonical', canonical);
     upsertMeta('meta[property="og:type"]', { property: 'og:type', content: 'website' });
-    upsertMeta('meta[property="og:site_name"]', { property: 'og:site_name', content: 'Greffio' });
+    upsertMeta('meta[property="og:site_name"]', { property: 'og:site_name', content: 'Clareffio' });
     upsertMeta('meta[property="og:title"]', { property: 'og:title', content: title });
     upsertMeta('meta[property="og:description"]', { property: 'og:description', content: description });
     upsertMeta('meta[property="og:url"]', { property: 'og:url', content: canonical });
@@ -89,9 +89,9 @@ export const HOME_JSON_LD = {
     {
       '@type': 'Organization',
       '@id': 'https://greffio.willentreprises.com/#organization',
-      name: 'Greffio',
+      name: 'Clareffio',
       url: 'https://greffio.willentreprises.com/',
-      logo: 'https://greffio.willentreprises.com/icons/greffio-icon.svg',
+      logo: 'https://greffio.willentreprises.com/icons/clareffio-arc.svg',
       parentOrganization: {
         '@type': 'Organization',
         name: 'William Establishments',
@@ -101,7 +101,7 @@ export const HOME_JSON_LD = {
     {
       '@type': 'WebSite',
       '@id': 'https://greffio.willentreprises.com/#website',
-      name: 'Greffio',
+      name: 'Clareffio',
       url: 'https://greffio.willentreprises.com/',
       inLanguage: 'fr-FR',
       description: 'Formalités d\'entreprise en ligne : création, modification, statuts et dépôt du dossier.',
@@ -110,7 +110,7 @@ export const HOME_JSON_LD = {
     {
       '@type': 'Service',
       '@id': 'https://greffio.willentreprises.com/#service',
-      name: 'Greffio',
+      name: 'Clareffio',
       serviceType: 'Formalités d\'entreprise en ligne',
       areaServed: { '@type': 'Country', name: 'France' },
       provider: { '@id': 'https://greffio.willentreprises.com/#organization' },
