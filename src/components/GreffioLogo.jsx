@@ -3,17 +3,23 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils.js';
 
-const WORDMARK_SRC = '/icons/clareffio-wordmark.svg';
+const WORDMARK_FONT = "'Plus Jakarta Sans', Inter, system-ui, sans-serif";
 
 export const GreffioWordmark = ({ className = '', size }) => (
-  <img
-    src={WORDMARK_SRC}
-    alt="Clareffio"
-    className={cn('block h-auto w-auto max-w-full', className)}
-    style={size ? { height: size, width: 'auto' } : undefined}
+  <span
+    className={cn(
+      'notranslate inline font-extrabold leading-none tracking-[-0.045em] text-[hsl(var(--greffio-blue-900))]',
+      className,
+    )}
+    style={{
+      fontFamily: WORDMARK_FONT,
+      ...(size ? { fontSize: size } : null),
+    }}
     translate="no"
     lang="fr"
-  />
+  >
+    Clareffio
+  </span>
 );
 
 const resolveVariant = (variant) => {
@@ -32,20 +38,18 @@ export const GreffioLogo = ({ variant = 'full', className = '', to, linkLabel })
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -1 }}
       transition={{ duration: 0.25 }}
-      className="notranslate inline-flex items-center select-none"
+      className={cn(
+        'notranslate inline-flex items-center select-none whitespace-nowrap font-extrabold leading-none tracking-[-0.045em]',
+        isInverse ? 'text-white' : 'text-[hsl(var(--greffio-blue-900))]',
+        'text-[1.9rem] md:text-[2.15rem]',
+        className,
+      )}
+      style={{ fontFamily: WORDMARK_FONT }}
       translate="no"
       lang="fr"
       aria-hidden={Boolean(to)}
     >
-      <img
-        src={WORDMARK_SRC}
-        alt={to ? '' : 'Clareffio'}
-        className={cn(
-          'block h-auto w-[8.75rem] max-w-full object-contain md:w-[10.5rem]',
-          isInverse && 'brightness-0 invert',
-          className,
-        )}
-      />
+      Clareffio
     </motion.span>
   );
 
