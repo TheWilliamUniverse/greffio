@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Clareffio">
+  <!-- Approved Clareffio arc: shared source for Play Store and launcher assets. -->
   <rect width="512" height="512" fill="#fefefe"/>
   <image x="23" y="44" width="465" height="385" href="../../../public/icons/clareffio-arc.svg"/>
 </svg>
