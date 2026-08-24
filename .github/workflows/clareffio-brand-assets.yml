@@ -1,0 +1,44 @@
+name: Clareffio Brand Assets
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'public/icons/clareffio-arc.svg'
+      - 'assets/play-store/source/icon-source.svg'
+      - 'scripts/generate-play-store-assets.js'
+      - 'scripts/generate-android-launcher-icons.js'
+      - '.github/workflows/clareffio-brand-assets.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Generate store and Android icons
+        run: |
+          npm run assets:playstore
+          npm run assets:android-icons
+          cp assets/play-store/icon-512.png mobile-expo/assets/icon.png
+          cp assets/play-store/icon-512.png mobile-expo/assets/splash.png
+      - name: Commit generated Clareffio assets
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/play-store/icon-512.png android/app/src/main/res/mipmap-* mobile-expo/assets/icon.png mobile-expo/assets/splash.png
+          if git diff --cached --quiet; then
+            echo 'Brand assets already up to date.'
+            exit 0
+          fi
+          git commit -m 'Generate Clareffio app and store icons'
+          git push
